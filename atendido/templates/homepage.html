@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block titulo %}
+Ficha dos Atendidos
+{% endblock %}
+
+{% block content %}
+<h2 class="text-center mb-4">Salas</h2>
+
+<div class="row justify-content-center">
+  {% for sala in salas %}
+  <div class="col-md-4 col-lg-3 mb-3">
+    <a href="{% url 'atendidos_por_sala' sala %}" class="text-decoration-none">
+      <div class="card text-center shadow-sm border-0">
+        <div class="card-body bg-primary text-white rounded">
+          <h5 class="card-title">{{ sala|title }}</h5>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% empty %}
+  <p class="text-center">Nenhuma sala encontrada.</p>
+  {% endfor %}
+</div>
+{% endblock %}
