@@ -1,22 +1,20 @@
 {% extends 'base.html' %}
 
 {% block titulo %}
-Ficha dos Atendidos
+Ficha dos Caios
 {% endblock %}
 
 {% block content %}
 <h2 class="text-center mb-4">Salas</h2>
 
 <div class="row justify-content-center">
-  {% for sala in salas %}
+  {% for atendido in variavel_atendidos %}
   <div class="col-md-4 col-lg-3 mb-3">
-    <a href="{% url 'atendidos_por_sala' sala %}" class="text-decoration-none">
-      <div class="card text-center shadow-sm border-0">
-        <div class="card-body bg-primary text-white rounded">
-          <h5 class="card-title">{{ sala|title }}</h5>
-        </div>
+    <div class="card h-100">
+      <div class="card-body d-flex flex-column">
+        <h5 class="card-title text-center">{{ atendido.sala }}</h5>
       </div>
-    </a>
+    </div>
   </div>
   {% empty %}
   <p class="text-center">Nenhuma sala encontrada.</p>
