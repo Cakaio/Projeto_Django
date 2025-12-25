@@ -25,3 +25,13 @@ class Atendido(models.Model):
 
     def __str__(self):
         return self.nome
+    
+class Pai(models.Model):
+    nome = models.CharField(max_length=50)
+    data_nascimento = models.DateField()
+    renda = models.DecimalField(max_digits=10, decimal_places=2)
+    cpf = models.CharField(max_length=14, unique=True, blank=True, null=True)
+    data_criacao = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.nome
