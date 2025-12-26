@@ -8,16 +8,16 @@ Ficha dos Caios
 <h2 class="text-center mb-4">Salas</h2>
 
 <div class="row justify-content-center">
-  {% for atendido in variavel_atendidos %}
+  {% for atendido in object_list %}
   <div class="col-md-4 col-lg-3 mb-3">
     <div class="card h-100">
       <div class="card-body d-flex flex-column">
-        <h5 class="card-title text-center">{{ atendido.sala }}</h5>
+        <a href="{% url 'atendido:detalhe_atendido' atendido.pk %}"><h5 class="card-title text-center">{{ atendido }}</h5></a>
       </div>
     </div>
   </div>
   {% empty %}
-  <p class="text-center">Nenhuma sala encontrada.</p>
+  <p class="text-center">Nenhum Atendido Cadastrado.</p>
   {% endfor %}
 </div>
 {% endblock %}
