@@ -14,9 +14,9 @@ LISTA_SALAS = (
 )
 
 class Atendido(models.Model):
+    familia = models.ForeignKey("Familia", on_delete=models.SET_NULL, null=True, blank=True, related_name="atendidos")
     nome = models.CharField(max_length=50)
     data_nascimento = models.DateField()
-    responsavel = models.CharField(max_length=50)
     sala = models.CharField(max_length=20, choices=LISTA_SALAS)
     rg = models.CharField(max_length=15, blank=True, null=True)
     cpf = models.CharField(max_length=14, unique=True, blank=True, null=True)
@@ -26,7 +26,7 @@ class Atendido(models.Model):
     def __str__(self):
         return self.nome
     
-class Pai(models.Model):
+class Familia(models.Model):
     nome = models.CharField(max_length=50)
     data_nascimento = models.DateField()
     renda = models.DecimalField(max_digits=10, decimal_places=2)
