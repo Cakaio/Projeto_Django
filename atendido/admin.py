@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import Atendido
-from .models import Pai
+from .models import Familia
 # Register your models here.
 admin.site.register(Atendido)
-admin.site.register(Pai)
+admin.site.register(Familia)
