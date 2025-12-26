@@ -23,7 +23,7 @@ from .views import homepage_inicial
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', homepage_inicial),
-    path('atendido/', include('atendido.urls'))
+    path('atendido/', include('atendido.urls', namespace='atendido')),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

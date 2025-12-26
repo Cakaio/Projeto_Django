@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block titulo %}
+Ficha dos Caios
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-4 d-flex justify-content-center">
+  <div class="w-100" style="max-width: 600px;">
+    <h2 class="text-center mb-1">Detalhes do Atendido</h2>
+
+    <div class="card">
+      <div class="card-body">
+        <img src="{{ object.foto.url }}" class="card-img-top mb-3" alt="Foto do Atendido">
+        <h5 class="card-title">Nome: {{ object.nome }}</h5>
+        <h5 class="card-title">Idade: {{ object.idade }}</h5>
+        <h5 class="card-title">Sala: {{ object.sala }}</h5>
+        <h5 class="card-title">Data de Nascimento: {{ object.data_nascimento }}</h5>
+        <!-- outros campos -->
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
