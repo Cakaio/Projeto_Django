@@ -1,13 +1,76 @@
-{% extends 'base.html' %}
+{% load static %}
 
-{% block titulo %}
-Ficha dos Caios
+{% block titulo %}Entrar{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="/src/style.css" rel="stylesheet">
+
+<style>
+  html, body { height: 100%; }
+  body {
+    display: flex;
+    align-items: center;
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-color: #f8f9fa;
+  }
+  .form-signin {
+    max-width: 330px;
+    padding: 15px;
+  }
+  .form-signin .form-floating:focus-within {
+    z-index: 2;
+  }
+  .form-signin input[type="email"] {
+    margin-bottom: -1px;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+  .form-signin input[type="password"] {
+    margin-bottom: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<h2 class="text-center mb-4">Salas</h2>
+{% include 'footer.html' %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<main class="form-signin w-100 m-auto text-center">
+  <form method="post">
+    {% csrf_token %}
 
-<div class="row justify-content-center">
-  TESTE ASHIUDHASIUDHASIUDHASUI
-</div>
+    <img class="mb-4 rounded-circle" src="{% static 'images/Logo_PCF.png' %}" alt="Logo" width="72" height="72">
+
+    <h1 class="h3 mb-3 fw-normal">Entrar</h1>
+
+    {% if form.errors %}
+      <div class="alert alert-danger py-2">
+        Usuário ou senha inválidos.
+      </div>
+    {% endif %}
+
+    <div class="form-floating">
+      <input type="text" name="username" class="form-control" id="floatingUser" placeholder="usuario" required>
+      <label for="floatingUser">Usuário</label>
+    </div>
+
+    <div class="form-floating">
+      <input type="password" name="password" class="form-control" id="floatingPassword" placeholder="Senha" required>
+      <label for="floatingPassword">Senha</label>
+    </div>
+
+    <div class="form-check text-start my-3">
+      <input class="form-check-input" type="checkbox" value="remember-me" id="rememberMe">
+      <label class="form-check-label" for="rememberMe">
+        Lembrar de mim
+      </label>
+    </div>
+
+    <button class="btn btn-primary w-100 py-2" type="submit">Entrar</button>
+    <p class="mt-5 mb-3 text-body-secondary">&copy; {% now "Y" %}</p>
+  </form>
+</main>
 {% endblock %}
