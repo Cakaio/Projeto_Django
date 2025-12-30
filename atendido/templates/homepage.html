@@ -1,23 +1,97 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block titulo %}
-Ficha dos Caios
-{% endblock %}
+{% block titulo %}Salas e Atendidos{% endblock %}
 
 {% block content %}
-<h2 class="text-center mb-4">Salas</h2>
+<div class="container my-5">
+  <h2 class="text-center mb-4">Salas e Atendidos</h2>
 
-<div class="row justify-content-center">
-  {% for atendido in object_list %}
-  <div class="col-md-4 col-lg-3 mb-3">
-    <div class="card h-100">
-      <div class="card-body d-flex flex-column">
-        <a href="{% url 'atendido:detalhe_atendido' atendido.pk %}"><h5 class="card-title text-center">{{ atendido }}</h5></a>
+  <div class="accordion" id="accordionSalas">
+    {% for codigo, nome in salas %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
+                  aria-controls="collapse{{ forloop.counter }}">
+            {{ nome }}
+          </button>
+        </h2>
+
+        <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
+             aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#accordionSalas">
+          <div class="accordion-body">
+            <ul class="list-group">
+              {% for atendido in atendidos %}
+                {% if atendido.sala == codigo %}
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>{{ atendido.nome }}</strong>
+                      <br>
+                      <small class="text-muted">Familia: {{ atendido.familia }}</small>
+                    </div>
+
+                    <!-- Botão que abre o modal -->
+                    <button
+                      class="btn btn-outline-primary btn-sm"
+                      data-bs-toggle="modal"
+                      data-bs-target="#detalheAtendidoModal"
+                      data-nome="{{ atendido.nome }}"
+                      data-sala="{{ atendido.get_sala_display }}"
+                      data-data="{{ atendido.data_nascimento|date:'d/m/Y' }}"
+                      data-foto="{% if atendido.foto %}{{ atendido.foto.url }}{% else %}{% static 'images/sem-foto.jpg' %}{% endif %}">
+                      Ver detalhes
+                    </button>
+                  </li>
+                {% endif %}
+              {% endfor %}
+              {% if not atendidos %}
+                <li class="list-group-item text-muted">Nenhum atendido encontrado.</li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Modal de Detalhes do Atendido -->
+<div class="modal fade" id="detalheAtendidoModal" tabindex="-1" aria-labelledby="detalheAtendidoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detalheAtendidoModalLabel">Detalhes do Atendido</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="modalFoto" src="" alt="Foto do atendido" class="img-fluid rounded-circle mb-3" width="120" height="120">
+        <h5 id="modalNome" class="fw-bold"></h5>
+        <p class="text-muted" id="modalSala"></p>
+        <p><strong>Data de Nascimento:</strong> <span id="modalData"></span></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
       </div>
     </div>
   </div>
-  {% empty %}
-  <p class="text-center">Nenhum Atendido Cadastrado.</p>
-  {% endfor %}
 </div>
+
+<!-- Script para preencher o modal -->
+<script>
+  const modal = document.getElementById('detalheAtendidoModal');
+  modal.addEventListener('show.bs.modal', event => {
+    const button = event.relatedTarget;
+    const nome = button.getAttribute('data-nome');
+    const sala = button.getAttribute('data-sala');
+    const data = button.getAttribute('data-data');
+    const foto = button.getAttribute('data-foto');
+
+    modal.querySelector('#modalNome').textContent = nome;
+    modal.querySelector('#modalSala').textContent = `Sala: ${sala}`;
+    modal.querySelector('#modalData').textContent = data;
+    modal.querySelector('#modalFoto').src = foto;
+  });
+</script>
+
 {% endblock %}

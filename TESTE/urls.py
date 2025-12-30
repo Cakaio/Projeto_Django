@@ -18,11 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import homepage_inicial
+from .views import login_view, inicio
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', homepage_inicial),
+    path('', login_view, name='login'),
+    path('inicio/', inicio, name='inicio'),
     path('atendido/', include('atendido.urls', namespace='atendido')),
 ]
 
