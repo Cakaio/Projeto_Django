@@ -10,13 +10,10 @@
     {% block head %}{% endblock %}
 </head>
 
-<body class="font-primary">
+<body class="d-flex flex-column min-vh-100 font-primary">
     {% include 'navbar.html' %}
-    {% block content %}{% endblock %}
-
-    <footer class="mt-auto">
-        {% include 'footer.html' %}
-    </footer>
+    <main class="flex-fill">{% block content %}{% endblock %}</main>
+    <footer class="mt-auto">{% include 'footer.html' %}</footer>
 
     <!-- Bootstrap JS (necessário pro dropdown e navbar-toggler funcionarem) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
