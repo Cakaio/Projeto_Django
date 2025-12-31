@@ -35,3 +35,27 @@ class Familia(models.Model):
 
     def __str__(self):
         return self.nome
+
+class PresencaAtendido(models.Model):
+    OPCOES_PRESENCA = [
+        ("PRESENTE", "Presente"),
+        ("AUSENTE", "Ausente"),
+        ("JUSTIFICADA", "Falta Justificada"),
+    ]
+
+    atendido = models.ForeignKey(
+        "Atendido",
+        on_delete=models.CASCADE,
+        related_name="presencas"
+    )
+    presenca = models.CharField(
+        max_length=15,
+        choices=OPCOES_PRESENCA,
+        default="PRESENTE"
+    )
+    data = models.DateField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.atendido.nome} - {self.data} ({self.get_presenca_display()})"
+
+
