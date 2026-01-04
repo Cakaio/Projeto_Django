@@ -1,8 +1,10 @@
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, TemplateView
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.contrib import messages
 from .models import Atendido, PresencaAtendido
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 
 LISTA_SALAS = [
     ("VIOLETA", "Violeta"),
@@ -15,9 +17,9 @@ LISTA_SALAS = [
     ("FAMILIA_FELIZ", "Família Feliz"),
 ]
 
-class Homepage(ListView):
+class ListaAtendido(LoginRequiredMixin, ListView):
     model = Atendido
-    template_name = 'homepage.html'
+    template_name = 'lista_atendidos.html'
     context_object_name = 'atendidos'
 
     def get_context_data(self, **kwargs):
@@ -26,11 +28,16 @@ class Homepage(ListView):
         return context
 
 
-class DetalheAtendido(DetailView):
+class DetalheAtendido(LoginRequiredMixin, DetailView):
     model = Atendido
     template_name = 'detalhe_atendido.html'
 
+class AtendidoView(LoginRequiredMixin, TemplateView):
+    template_name = "atendido_view.html"
 
+
+# ✅ view protegida com login
+@login_required(login_url="/")  # redireciona para a página de login se não estiver autenticado
 def registrar_presencas(request):
     hoje = timezone.now().date()
     atendidos = Atendido.objects.exclude(
@@ -38,11 +45,11 @@ def registrar_presencas(request):
     ).order_by("nome")
 
     if request.method == "POST":
-        registros_criados = 0  # contador opcional
+        registros_criados = 0
 
         for atendido in atendidos:
             presenca = request.POST.get(f"presenca_{atendido.id}")
-            if presenca:  # só salva se o select tiver valor
+            if presenca:
                 PresencaAtendido.objects.create(
                     atendido=atendido,
                     presenca=presenca,
@@ -55,7 +62,6 @@ def registrar_presencas(request):
         else:
             messages.warning(request, "⚠️ Nenhuma presença selecionada.")
 
-        # Atualiza a lista (remove quem já foi marcado hoje)
         atendidos = Atendido.objects.exclude(
             presencas__data=hoje
         ).order_by("nome")

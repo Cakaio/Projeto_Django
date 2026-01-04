@@ -18,12 +18,16 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import login_view, inicio
+from .views import inicio
+from django.contrib.auth import views as auth_view
+from django.shortcuts import redirect
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', login_view, name='login'),
-    path('inicio/', inicio, name='inicio'),
+    path('', lambda request: redirect('login', permanent=False)),
+    path('login/', auth_view.LoginView.as_view(template_name='login.html'), name='login'),
+    path('logout/', auth_view.LogoutView.as_view(next_page='login'), name='logout'),
+    path('inicio/', inicio.as_view(), name='inicio'),
     path('atendido/', include('atendido.urls', namespace='atendido')),
 ]
 
