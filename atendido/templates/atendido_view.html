@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Painel de Gestão{% endblock %}
+
+{% block content %}
+<section class="py-2 text-center container">
+  <div class="row py-lg-3">
+    <div class="col-lg-8 col-md-10 mx-auto">
+      <h1 class="fw-light text-primary">Painel do Projeto Criança Feliz</h1>
+      <p class="lead text-muted">
+        Escolha uma das áreas abaixo para gerenciar os atendidos, registrar presenças ou gerar relatórios.
+      </p>
+    </div>
+  </div>
+</section>
+
+<div class="container px-4 py-5" id="featured-3">
+  <h2 class="pb-2 border-bottom text-center mb-5">O que você deseja acessar?</h2>
+
+  <div class="row g-4 py-3 row-cols-1 row-cols-lg-3">
+
+    <!-- CARD 1: ATENDIDOS -->
+    <div class="feature col text-center">
+      <div class="feature-icon bg-primary bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+        <i class="bi bi-people-fill fs-2"></i>
+      </div>
+      <h3 class="fs-4 text-body-emphasis">Atendidos</h3>
+      <p>Visualize e gerencie as informações dos atendidos, famílias e salas do projeto.</p>
+      <a href="{% url 'atendido:lista_atendidos' %}" class="btn btn-outline-primary">Acessar</a>
+    </div>
+
+    <!-- CARD 2: PRESENÇAS -->
+    <div class="feature col text-center">
+      <div class="feature-icon bg-success bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+        <i class="bi bi-clipboard-check-fill fs-2"></i>
+      </div>
+      <h3 class="fs-4 text-body-emphasis">Presenças</h3>
+      <p>Registre e acompanhe as presenças das crianças nas atividades de cada sábado.</p>
+      <a href="{% url 'atendido:registrar_presencas' %}" class="btn btn-outline-success">Registrar</a>
+    </div>
+
+    <!-- CARD 3: RELATÓRIO -->
+    <div class="feature col text-center">
+      <div class="feature-icon bg-warning bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+        <i class="bi bi-bar-chart-line-fill fs-2"></i>
+      </div>
+      <h3 class="fs-4 text-body-emphasis">Relatórios</h3>
+      <p>Gere relatórios e estatísticas sobre o comparecimento e desempenho dos atendidos.</p>
+      <a href="#" class="btn btn-outline-warning">Ver Relatórios</a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
