@@ -29,9 +29,30 @@ class Voluntario(AbstractUser):
     celular = models.CharField(max_length=15, blank=True, null=True)
     rg = models.CharField(max_length=15, blank=True, null=True)
     foto = models.ImageField(upload_to='fotos_voluntarios', blank=True, null=True)
-    ativo = models.BooleanField(default=True)
     data_entrada_projeto = models.DateField(default=timezone.now)
     data_saida_projeto = models.DateField(blank=True, null=True)
 
     def __str__(self):
         return self.get_full_name() or self.username
+
+class PresencaVoluntario(models.Model):
+    OPCOES_PRESENCA = [
+        ("PRESENTE", "Presente"),
+        ("AUSENTE", "Ausente"),
+        ("JUSTIFICADA", "Falta Justificada"),
+    ]
+
+    voluntario = models.ForeignKey(
+        "Voluntario",
+        on_delete=models.CASCADE,
+        related_name="presencas"
+    )
+    presenca = models.CharField(
+        max_length=15,
+        choices=OPCOES_PRESENCA,
+        default="PRESENTE"
+    )
+    data = models.DateField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.voluntario.username} - {self.data} ({self.get_presenca_display()})"

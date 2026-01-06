@@ -29,6 +29,7 @@ urlpatterns = [
     path('logout/', auth_view.LogoutView.as_view(next_page='login'), name='logout'),
     path('inicio/', inicio.as_view(), name='inicio'),
     path('atendido/', include('atendido.urls', namespace='atendido')),
+    path('voluntario/', include('voluntario.urls', namespace='voluntario')),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
