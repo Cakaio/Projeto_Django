@@ -20,13 +20,13 @@ LISTA_AREAS = [
     ("VERMELHO", "Vermelho"),
     ("FAMILIA_FELIZ", "Família Feliz"),
     ("MARKETING", "Marketing"),
-    ("ADM/FIN", "Adm/Fin"),
-    ("CR/RE", "Cr/Re"),
+    ("ADM/FIN", "ADM/FIN"),
+    ("CR/RE", "CR/RE"),
     ("EVENTOS", "Eventos"),
     ("GESTAO_DE_TALENTOS", "Gestão de Talentos"),
     ("RECREACAO", "Recreação"),
     ("SUPPLY", "Supply"),
-    ("PROJETOS", "Projetos"),
+    ("PROJETOS", "Projatos"),
     ("TRIADE", "Tríade"),
 ]
 
@@ -48,7 +48,7 @@ class ListaVoluntario(LoginRequiredMixin, ListView):
 @login_required(login_url="/")
 def RegistrarPresencasVoluntarios(request):
     hoje = timezone.now().date()
-    voluntarios = Voluntario.objects.exclude(
+    voluntarios = Voluntario.objects.filter(is_active=True).exclude(
         presencas__data=hoje
     ).order_by("first_name")
 
