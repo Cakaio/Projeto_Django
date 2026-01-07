@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Painel dos Voluntários{% endblock %}
+
+{% block content %}
+<section class="py-5 text-center container">
+  <div class="row py-lg-3">
+    <div class="col-lg-8 col-md-10 mx-auto">
+      <h1 class="fw-bold text-primary">Painel dos Voluntários</h1>
+      <p class="lead text-muted">
+        Bem-vindo(a) ao painel de gestão dos voluntários do Projeto Criança Feliz.
+        Aqui você pode acompanhar os voluntários ativos, registrar presenças e gerar relatórios de participação.
+      </p>
+    </div>
+  </div>
+</section>
+
+<div class="container px-4 py-4" id="featured-3">
+  <h2 class="pb-3 border-bottom text-center mb-5">O que você deseja acessar?</h2>
+
+  <div class="row g-5 py-3 row-cols-1 row-cols-lg-3">
+
+    <!-- CARD 1: VOLUNTÁRIOS -->
+    <div class="feature col text-center">
+      <div class="feature-icon bg-info bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow mb-3"
+           style="width: 90px; height: 90px; transition: transform 0.3s;">
+        <i class="bi bi-person-lines-fill fs-1"></i>
+      </div>
+      <h3 class="fs-4 text-body-emphasis">Voluntários</h3>
+      <p>Visualize e gerencie os perfis dos voluntários, suas áreas de atuação e dados cadastrais.</p>
+      <a href="{% url 'voluntario:lista_voluntarios' %}" class="btn btn-outline-info">Acessar</a>
+    </div>
+
+    <!-- CARD 2: PRESENÇAS -->
+    <div class="feature col text-center">
+      <div class="feature-icon bg-success bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow mb-3"
+           style="width: 90px; height: 90px; transition: transform 0.3s;">
+        <i class="bi bi-clipboard-check-fill fs-1"></i>
+      </div>
+      <h3 class="fs-4 text-body-emphasis">Presenças</h3>
+      <p>Registre e acompanhe as presenças dos voluntários nas atividades e encontros do projeto.</p>
+      <a href="{% url 'voluntario:registrar_presencas' %}" class="btn btn-outline-success">Registrar</a>
+    </div>
+
+    <!-- CARD 3: RELATÓRIOS -->
+    <div class="feature col text-center">
+      <div class="feature-icon bg-warning bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow mb-3"
+           style="width: 90px; height: 90px; transition: transform 0.3s;">
+        <i class="bi bi-bar-chart-line-fill fs-1"></i>
+      </div>
+      <h3 class="fs-4 text-body-emphasis">Relatórios</h3>
+      <p>Gere relatórios de frequência, engajamento e participação dos voluntários por área ou período.</p>
+      <a href="" class="btn btn-outline-warning">Gerar Relatórios</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- Pequeno efeito de zoom nos ícones -->
+<script>
+  document.querySelectorAll('.feature-icon').forEach(icon => {
+    icon.addEventListener('mouseenter', () => icon.style.transform = 'scale(1.1)');
+    icon.addEventListener('mouseleave', () => icon.style.transform = 'scale(1)');
+  });
+</script>
+{% endblock %}

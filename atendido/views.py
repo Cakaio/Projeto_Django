@@ -71,4 +71,4 @@ def registrar_presencas(request):
         "salas": LISTA_SALAS,
         "hoje": hoje,
     }
-    return render(request, "presencas.html", contexto)
+    return render(request, "presencas_atendidos.html", contexto)

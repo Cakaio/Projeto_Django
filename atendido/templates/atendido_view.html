@@ -4,10 +4,10 @@
 {% block titulo %}Painel de Gestão{% endblock %}
 
 {% block content %}
-<section class="py-2 text-center container">
+<section class="py-5 text-center container">
   <div class="row py-lg-3">
     <div class="col-lg-8 col-md-10 mx-auto">
-      <h1 class="fw-light text-primary">Painel do Projeto Criança Feliz</h1>
+      <h1 class="fw-bold text-primary">Painel do Projeto Criança Feliz</h1>
       <p class="lead text-muted">
         Escolha uma das áreas abaixo para gerenciar os atendidos, registrar presenças ou gerar relatórios.
       </p>
@@ -15,15 +15,16 @@
   </div>
 </section>
 
-<div class="container px-4 py-5" id="featured-3">
-  <h2 class="pb-2 border-bottom text-center mb-5">O que você deseja acessar?</h2>
+<div class="container px-4 py-4" id="featured-3">
+  <h2 class="pb-3 border-bottom text-center mb-5">O que você deseja acessar?</h2>
 
-  <div class="row g-4 py-3 row-cols-1 row-cols-lg-3">
+  <div class="row g-5 py-3 row-cols-1 row-cols-lg-3">
 
     <!-- CARD 1: ATENDIDOS -->
     <div class="feature col text-center">
-      <div class="feature-icon bg-primary bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-        <i class="bi bi-people-fill fs-2"></i>
+      <div class="feature-icon bg-primary bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow mb-3"
+           style="width: 90px; height: 90px; transition: transform 0.3s;">
+        <i class="bi bi-people-fill fs-1"></i>
       </div>
       <h3 class="fs-4 text-body-emphasis">Atendidos</h3>
       <p>Visualize e gerencie as informações dos atendidos, famílias e salas do projeto.</p>
@@ -32,8 +33,9 @@
 
     <!-- CARD 2: PRESENÇAS -->
     <div class="feature col text-center">
-      <div class="feature-icon bg-success bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-        <i class="bi bi-clipboard-check-fill fs-2"></i>
+      <div class="feature-icon bg-success bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow mb-3"
+           style="width: 90px; height: 90px; transition: transform 0.3s;">
+        <i class="bi bi-clipboard-check-fill fs-1"></i>
       </div>
       <h3 class="fs-4 text-body-emphasis">Presenças</h3>
       <p>Registre e acompanhe as presenças das crianças nas atividades de cada sábado.</p>
@@ -42,8 +44,9 @@
 
     <!-- CARD 3: RELATÓRIO -->
     <div class="feature col text-center">
-      <div class="feature-icon bg-warning bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-        <i class="bi bi-bar-chart-line-fill fs-2"></i>
+      <div class="feature-icon bg-warning bg-gradient text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow mb-3"
+           style="width: 90px; height: 90px; transition: transform 0.3s;">
+        <i class="bi bi-bar-chart-line-fill fs-1"></i>
       </div>
       <h3 class="fs-4 text-body-emphasis">Relatórios</h3>
       <p>Gere relatórios e estatísticas sobre o comparecimento e desempenho dos atendidos.</p>
@@ -52,4 +55,12 @@
 
   </div>
 </div>
+
+<!-- Pequeno efeito de zoom nos ícones -->
+<script>
+  document.querySelectorAll('.feature-icon').forEach(icon => {
+    icon.addEventListener('mouseenter', () => icon.style.transform = 'scale(1.1)');
+    icon.addEventListener('mouseleave', () => icon.style.transform = 'scale(1)');
+  });
+</script>
 {% endblock %}
