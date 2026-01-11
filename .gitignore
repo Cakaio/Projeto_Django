@@ -3,3 +3,5 @@ db.sqlite3
 __pycache__/
 media/
 venv/
+package-lock.json
+node_modules/
