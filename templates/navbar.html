@@ -1,14 +1,202 @@
 {% load static %}
 
-<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm fixed-top">
+<style>
+  :root {
+    --navbar-bg: #ffffff;
+    --navbar-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+    --primary-color: #4f46e5;
+    --primary-hover: #4338ca;
+    --primary-light: rgba(79, 70, 229, 0.1);
+    --text-color: #1f2937;
+    --text-muted: #6b7280;
+    --border-color: #e5e7eb;
+    --transition: all 0.2s ease;
+  }
+
+  .navbar-custom {
+    background: var(--navbar-bg);
+    box-shadow: var(--navbar-shadow);
+    padding: 0.75rem 0;
+    transition: var(--transition);
+  }
+
+  .navbar-custom .navbar-brand {
+    font-weight: 700;
+    color: var(--primary-color);
+    transition: var(--transition);
+  }
+
+  .navbar-custom .navbar-brand:hover {
+    transform: scale(1.02);
+  }
+
+  .navbar-custom .navbar-brand img {
+    border: 2px solid var(--primary-light);
+    transition: var(--transition);
+  }
+
+  .navbar-custom .navbar-brand:hover img {
+    border-color: var(--primary-color);
+  }
+
+  .navbar-custom .nav-link {
+    color: var(--text-muted);
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    border-radius: 8px;
+    transition: var(--transition);
+    position: relative;
+  }
+
+  .navbar-custom .nav-link:hover {
+    color: var(--primary-color);
+    background: var(--primary-light);
+  }
+
+  .navbar-custom .nav-link.active {
+    color: var(--primary-color);
+    background: var(--primary-light);
+  }
+
+  .navbar-custom .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: var(--primary-color);
+    border-radius: 3px;
+  }
+
+  .navbar-custom .dropdown-menu {
+    border: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+    border-radius: 12px;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .navbar-custom .dropdown-item {
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+    transition: var(--transition);
+  }
+
+  .navbar-custom .dropdown-item:hover {
+    background: var(--primary-light);
+    color: var(--primary-color);
+  }
+
+  .navbar-custom .dropdown-divider {
+    margin: 0.5rem 0;
+    border-color: var(--border-color);
+  }
+
+  .navbar-custom .search-form {
+    position: relative;
+  }
+
+  .navbar-custom .search-input {
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.5rem 1rem;
+    width: 200px;
+    transition: var(--transition);
+    font-size: 0.9rem;
+  }
+
+  .navbar-custom .search-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light);
+    outline: none;
+    width: 250px;
+  }
+
+  .navbar-custom .search-btn {
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .navbar-custom .search-btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  }
+
+  .navbar-custom .navbar-toggler {
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem;
+    transition: var(--transition);
+  }
+
+  .navbar-custom .navbar-toggler:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+  }
+
+  .navbar-custom .navbar-toggler:focus {
+    box-shadow: 0 0 0 3px var(--primary-light);
+  }
+
+  @media (max-width: 991.98px) {
+    .navbar-custom .navbar-collapse {
+      background: var(--navbar-bg);
+      padding: 1rem;
+      border-radius: 12px;
+      margin-top: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .navbar-custom .search-form {
+      margin-top: 1rem;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .navbar-custom .search-input {
+      width: 100%;
+    }
+
+    .navbar-custom .search-input:focus {
+      width: 100%;
+    }
+
+    .navbar-custom .search-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+
+<nav class="navbar navbar-expand-lg navbar-custom fixed-top">
   <div class="container">
     <!-- Logo + Nome -->
     <a class="navbar-brand d-flex align-items-center" href="/inicio/">
       <img src="{% static 'images/Logo_PCF.png' %}" alt="Logo" width="40" class="me-2 rounded-circle">
-      <span class="fw-bold text-primary">Projeto Criança Feliz</span>
+      <span>Projeto Crianca Feliz</span>
     </a>
 
-    <!-- Botão de menu (mobile) -->
+    <!-- Botao de menu (mobile) -->
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
             aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -18,7 +206,7 @@
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a class="nav-link active" href="#">Início</a>
+          <a class="nav-link active" href="#">Inicio</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#">Atendidos</a>
@@ -38,10 +226,16 @@
       </ul>
 
       <!-- Busca -->
-      <form class="d-flex ms-lg-3" role="search">
-        <input class="form-control me-2" type="search" placeholder="Buscar..." aria-label="Search">
-        <button class="btn btn-outline-primary" type="submit">Buscar</button>
+      <form class="d-flex ms-lg-3 search-form" role="search">
+        <input class="form-control me-2 search-input" type="search" placeholder="Buscar..." aria-label="Search">
+        <button class="btn search-btn" type="submit">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+          </svg>
+          Buscar
+        </button>
       </form>
     </div>
   </div>
 </nav>
+
