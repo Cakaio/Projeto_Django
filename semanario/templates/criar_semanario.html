@@ -1,0 +1,738 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block titulo %}Novo Semanário{% endblock %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Novo Semanário</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-light: #eef2ff;
+      --success: #10b981;
+      --success-hover: #059669;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius: 12px;
+      --radius-lg: 16px;
+    }
+
+    * { font-family: 'Inter', sans-serif; }
+    body { background: var(--background); color: var(--text-primary); min-height: 100vh; }
+
+    .page-header {
+      background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+      padding: 3rem 0;
+      margin-bottom: 2rem;
+    }
+    .page-header h1 { color: white; font-weight: 700; font-size: 2rem; margin: 0; }
+    .page-header p { color: rgba(255, 255, 255, 0.8); margin: 0.5rem 0 0; }
+
+    .main-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1.5rem;
+      background: var(--primary-light);
+      border-bottom: 1px solid var(--border);
+    }
+    .section-header .icon {
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    .section-header .icon svg { width: 20px; height: 20px; }
+    .section-header h5 { margin: 0; font-weight: 600; color: var(--text-primary); }
+    .section-header span { color: var(--text-secondary); font-size: 0.875rem; }
+    .section-body { padding: 1.5rem; }
+
+    .form-label { font-weight: 500; color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem; }
+    .form-control, .form-select {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-size: 0.9375rem;
+      transition: all 0.2s ease;
+      background: var(--surface);
+      width: 100%;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Adiciona estilo para garantir que labels e inputs fiquem empilhados */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .form-group label {
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin: 0;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-size: 0.9375rem;
+      transition: all 0.2s ease;
+      background: var(--surface);
+      width: 100%;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+      outline: none;
+    }
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .alert { border-radius: var(--radius); border: none; padding: 1rem 1.25rem; }
+    .alert-danger { background: #fef2f2; color: #991b1b; }
+
+    .activity-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .activity-card:hover { box-shadow: var(--shadow); }
+
+    .activity-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      background: #f8fafc;
+      cursor: pointer;
+      border: none;
+      width: 100%;
+      text-align: left;
+      transition: all 0.2s ease;
+    }
+    .activity-header:hover { background: #f1f5f9; }
+    .activity-header .activity-info { display: flex; align-items: center; gap: 0.75rem; }
+    .activity-number {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      color: white;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .activity-title { font-weight: 600; color: var(--text-primary); margin: 0; }
+    .activity-chevron { color: var(--text-muted); transition: transform 0.2s ease; }
+    .activity-header[aria-expanded="true"] .activity-chevron { transform: rotate(180deg); }
+    .activity-body { 
+      padding: 1.5rem; 
+      border-top: 1px solid var(--border); 
+    }
+    .activity-body .row {
+      display: grid;
+      gap: 1.25rem;
+    }
+    .activity-body .row.g-3 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .activity-body .row .col-12 {
+      grid-column: 1 / -1;
+    }
+    .activity-body .row .col-md-6 {
+      grid-column: span 1;
+    }
+    .activity-body .row .col-md-4 {
+      grid-column: span 1;
+    }
+    /* Grid de 3 colunas para a ultima linha */
+    @media (min-width: 768px) {
+      .activity-body .fields-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+      }
+      .activity-body .fields-grid .full-width {
+        grid-column: 1 / -1;
+      }
+      .activity-body .fields-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+        margin-top: 1.25rem;
+      }
+    }
+    @media (max-width: 767px) {
+      .activity-body .fields-grid,
+      .activity-body .fields-grid-3 {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .activity-body .fields-grid-3 {
+        margin-top: 1rem;
+      }
+    }
+
+    .btn-add-material {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1rem;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: var(--radius);
+      font-weight: 500;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+    }
+    .btn-add-material:hover { background: var(--primary); color: white; }
+    .material-badge {
+      background: var(--primary);
+      color: white;
+      padding: 0.125rem 0.5rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .btn-add-material:hover .material-badge { background: white; color: var(--primary); }
+
+    .btn-submit {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.875rem 2rem;
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+    }
+    .btn-submit:hover {
+      background: var(--success-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+    }
+
+    .modal-content { border: none; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+    .modal-header { background: var(--primary-light); border-bottom: 1px solid var(--border); padding: 1.25rem 1.5rem; }
+    .modal-title { font-weight: 600; color: var(--text-primary); }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer { border-top: 1px solid var(--border); padding: 1rem 1.5rem; }
+
+    .table-modern { border-collapse: separate; border-spacing: 0; }
+    .table-modern thead th {
+      background: #f8fafc;
+      border: none;
+      padding: 0.875rem 1rem;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+    .table-modern tbody td {
+      padding: 0.75rem;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .btn-remove-row {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--danger);
+      transition: all 0.2s ease;
+    }
+    .btn-remove-row:hover { background: #fef2f2; border-color: var(--danger); }
+
+    .btn-add-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: white;
+      color: var(--primary);
+      border: 1px dashed var(--primary);
+      border-radius: var(--radius);
+      font-weight: 500;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+    }
+    .btn-add-line:hover { background: var(--primary-light); }
+
+    .btn-modal-save {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .btn-modal-save:hover { background: var(--primary-hover); }
+
+    .btn-modal-close {
+      background: white;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .btn-modal-close:hover { background: #f8fafc; }
+
+    @media (max-width: 768px) {
+      .page-header { padding: 2rem 0; }
+      .page-header h1 { font-size: 1.5rem; }
+      .section-body, .activity-body { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="page-header">
+  <div class="container">
+    <h1>
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:8px"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+      Registrar Semanario
+    </h1>
+    <p>Organize as atividades da semana de forma simples e eficiente</p>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <form method="POST" id="formSemanario" class="shadow p-4 bg-white rounded">
+    {% csrf_token %}
+
+    {% if semanario_form.errors %}
+      <div class="alert alert-danger mb-4">
+        <strong>Erros no Semanario:</strong>
+        {{ semanario_form.errors }}
+      </div>
+    {% endif %}
+    {% if formset.non_form_errors %}
+      <div class="alert alert-danger mb-4">
+        <strong>Erros no Formset:</strong>
+        {{ formset.non_form_errors }}
+      </div>
+    {% endif %}
+
+    <!-- Informacoes do Semanario -->
+    <div class="main-card mb-4">
+      <div class="section-header">
+        <div class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/></svg>
+        </div>
+        <div>
+          <h5>Informacoes do Semanario</h5>
+          <span>Preencha os dados basicos da semana</span>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="form-group">
+              {{ semanario_form.tema.label_tag }}
+              {{ semanario_form.tema }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              {{ semanario_form.sala.label_tag }}
+              {{ semanario_form.sala }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              {{ semanario_form.data.label_tag }}
+              {{ semanario_form.data }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Atividades da Semana -->
+    <div class="main-card">
+      <div class="section-header">
+        <div class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div>
+          <h5>Atividades da Semana</h5>
+          <span>Adicione e organize todas as atividades planejadas</span>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="accordion" id="accordionAtividades">
+          {{ formset.management_form }}
+          {% for form in formset.forms %}
+            <div class="activity-card">
+              <button class="activity-header" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
+                      aria-controls="collapse{{ forloop.counter }}">
+                <div class="activity-info">
+                  <div class="activity-number">{{ forloop.counter }}</div>
+                  <span class="activity-title">Atividade {{ forloop.counter }}</span>
+                </div>
+                <svg class="activity-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+
+              <div id="collapse{{ forloop.counter }}" class="collapse"
+                   aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#accordionAtividades">
+                <div class="activity-body">
+                  {% if form.errors %}
+                    <div class="alert alert-danger">{{ form.errors }}</div>
+                  {% endif %}
+                  
+                  <!-- Reestruturando layout dos campos com grid organizado -->
+                  <div class="fields-grid">
+                    <div class="form-group">
+                      <label for="id_form-{{ forloop.counter0 }}-atividade">Atividade</label>
+                      {{ form.atividade }}
+                    </div>
+                    <div class="form-group">
+                      <label for="id_form-{{ forloop.counter0 }}-competencia">Competencia</label>
+                      {{ form.competencia }}
+                    </div>
+                    <div class="form-group full-width">
+                      <label for="id_form-{{ forloop.counter0 }}-descricao">Descricao</label>
+                      {{ form.descricao }}
+                    </div>
+                  </div>
+                  
+                  <div class="fields-grid-3">
+                    <div class="form-group">
+                      <label for="id_form-{{ forloop.counter0 }}-tempo_atividade">Tempo da Atividade</label>
+                      {{ form.tempo_atividade }}
+                    </div>
+                    <div class="form-group">
+                      <label for="id_form-{{ forloop.counter0 }}-responsavel">Responsavel</label>
+                      {{ form.responsavel }}
+                    </div>
+                    <div class="form-group">
+                      <label for="id_form-{{ forloop.counter0 }}-feedback">Feedback</label>
+                      {{ form.feedback }}
+                    </div>
+                  </div>
+
+                  <div class="mt-4 text-end">
+                    <button type="button" class="btn-add-material"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modalMateriais"
+                            data-atividade-index="{{ forloop.counter0 }}"
+                            data-atividade-name="Atividade {{ forloop.counter }}">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"></path>
+                      </svg>
+                      Adicionar Materiais
+                      <span class="material-badge material-count">0</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <input type="hidden" id="materiaisJson" name="materiais_json" value="">
+
+      <div class="form-footer">
+        <button type="submit" class="btn-submit">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          Salvar Semanario
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Modal para Materiais -->
+<div class="modal fade" id="modalMateriais" tabindex="-1" aria-labelledby="materiaisLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="materiaisLabel">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:8px">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          </svg>
+          Materiais da <span id="atividadeNome"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-modern align-middle text-center">
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Quantidade</th>
+              <th>Unidade</th>
+              <th style="width:60px"></th>
+            </tr>
+          </thead>
+          <tbody id="tabelaMateriais">
+          </tbody>
+        </table>
+        <button type="button" class="btn-add-line" id="addMaterial">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"></path>
+          </svg>
+          Adicionar Linha
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-close" data-bs-dismiss="modal">Fechar</button>
+        <button type="button" class="btn-modal-save" id="salvarMateriaisModal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Salvar Materiais
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Toast para confirmação de salvamento de materiais -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+  <div id="materiaisToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">Materiais salvos.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const modal = document.getElementById('modalMateriais');
+    const tabela = document.getElementById('tabelaMateriais');
+    const addMaterial = document.getElementById('addMaterial');
+    const salvarMateriaisModal = document.getElementById('salvarMateriaisModal');
+    const materiaisJsonInput = document.getElementById('materiaisJson');
+    const formSemanario = document.getElementById('formSemanario');
+
+    const materialsByIndex = {};
+    let currentIndex = null;
+
+    function novaLinha(material = {}){
+      const nome = material.nome || '';
+      const quantidade = material.quantidade || '';
+      const unidade = material.unidade || 'UN';
+      return `
+        <tr>
+          <td><input type="text" class="form-control material-nome" value="${nome}" placeholder="Material"></td>
+          <td><input type="number" class="form-control material-quantidade" step="0.1" min="0" value="${quantidade}"></td>
+          <td>
+            <select class="form-select material-unidade">
+              <option value="UN"${unidade==='UN' ? ' selected':''}>Unidade</option>
+              <option value="PAC"${unidade==='PAC' ? ' selected':''}>Pacote</option>
+              <option value="CX"${unidade==='CX' ? ' selected':''}>Caixa</option>
+              <option value="TUBO"${unidade==='TUBO' ? ' selected':''}>Tubo</option>
+              <option value="METRO"${unidade==='METRO' ? ' selected':''}>Metro</option>
+              <option value="L"${unidade==='L' ? ' selected':''}>Litro</option>
+              <option value="KG"${unidade==='KG' ? ' selected':''}>Quilo</option>
+              <option value="OUTROS"${unidade==='OUTROS' ? ' selected':''}>Outros</option>
+            </select>
+          </td>
+          <td><button type="button" class="btn-remove-row">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"></path>
+            </svg>
+          </button></td>
+        </tr>`;
+    }
+
+    function openModalFor(index, name){
+      currentIndex = index;
+      modal.querySelector('#atividadeNome').textContent = name;
+      tabela.innerHTML = '';
+      const list = materialsByIndex[index] || [];
+      if(list.length===0){
+        tabela.insertAdjacentHTML('beforeend', novaLinha());
+      } else {
+        list.forEach(m => tabela.insertAdjacentHTML('beforeend', novaLinha(m)));
+      }
+    }
+
+    tabela.addEventListener('click', (e)=>{
+      if(e.target.closest('.btn-remove-row')){
+        e.target.closest('tr').remove();
+      }
+    });
+
+    addMaterial.addEventListener('click', ()=>{
+      tabela.insertAdjacentHTML('beforeend', novaLinha());
+    });
+
+    modal.addEventListener('show.bs.modal', event => {
+      const button = event.relatedTarget;
+      const idx = button.getAttribute('data-atividade-index');
+      const name = button.getAttribute('data-atividade-name');
+      openModalFor(idx, name);
+    });
+
+    // Cleanup extra backdrops / focus traps caso algo falhe no hide
+    modal.addEventListener('hidden.bs.modal', ()=>{
+      try{
+        console.log('modal hidden event: cleanup');
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        const firstInput = document.querySelector('#formSemanario input, #formSemanario select, #formSemanario textarea');
+        if(firstInput) firstInput.focus(); else document.body.focus();
+      } catch(e){ console.warn('Erro no hidden.bs.modal cleanup', e); }
+    });
+
+    salvarMateriaisModal.addEventListener('click', ()=>{
+      // prevenir duplo clique enquanto processa
+      salvarMateriaisModal.disabled = true;
+
+      const rows = Array.from(tabela.querySelectorAll('tr'));
+      const arr = rows.map(r=>({
+        nome: r.querySelector('.material-nome').value.trim(),
+        quantidade: r.querySelector('.material-quantidade').value.trim(),
+        unidade: r.querySelector('.material-unidade').value,
+      })).filter(m=>m.nome!=='');
+
+      const key = (currentIndex === null || currentIndex === undefined) ? '0' : currentIndex;
+      console.log('Salvar materiais para atividade', key, 'quantidade:', arr.length);
+      materialsByIndex[key] = arr;
+
+      const btn = document.querySelector(`button[data-atividade-index='${key}']`);
+      if(btn){
+        const badge = btn.querySelector('.material-count, .material-badge');
+        if(badge) badge.textContent = arr.length;
+      }
+
+      // Tentar fechar o modal com a API do Bootstrap; em todos os casos, fazer um cleanup após um pequeno atraso
+      try{
+        const inst = bootstrap.Modal.getOrCreateInstance(modal);
+        // blur do elemento com foco dentro do modal para evitar problema de aria-hidden bloqueado
+        try{
+          const active = document.activeElement;
+          if(modal.contains(active)) active.blur();
+        } catch(e){ /* ignore */ }
+        inst.hide();
+
+        // garantir que a instância seja descartada após o hide para liberar listeners/focus-trap
+        setTimeout(()=>{
+          try{ inst.dispose(); }catch(e){ /* ignore */ }
+        }, 350);
+
+      } catch (err) {
+        console.error('Erro ao fechar modal:', err);
+      } finally {
+        // Aguarda a animação do Bootstrap (se houver) e então forçar remoção de backdrops e reset do body
+        setTimeout(()=>{
+          const backdrops = document.querySelectorAll('.modal-backdrop');
+          if(backdrops.length > 0){
+            console.warn('Removendo backdrops restantes:', backdrops.length);
+            backdrops.forEach(el => el.remove());
+          }
+
+          // remover classe que trava scroll e focus
+          document.body.classList.remove('modal-open');
+          document.body.style.overflow = '';
+          document.body.style.paddingRight = '';
+
+          // garantir que o modal não fique visível (não mexer em aria-hidden para evitar problemas de acessibilidade)
+          if(modal){
+            modal.classList.remove('show');
+          }
+
+          // restaurar foco para o formulário para evitar foco preso no modal
+          try{
+            const firstInput = document.querySelector('#formSemanario input, #formSemanario select, #formSemanario textarea');
+            if(firstInput) firstInput.focus(); else document.body.focus();
+            if(document.activeElement) document.activeElement.blur();
+          } catch(e){ /* ignore */ }
+
+          // Mostrar toast de confirmação
+          try{
+            const toastEl = document.getElementById('materiaisToast');
+            const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+            toast.show();
+          } catch(e){ /* ignore */ }
+
+          salvarMateriaisModal.disabled = false;
+        }, 260);
+      }
+    });
+
+    formSemanario.addEventListener('submit', (e)=>{
+      materiaisJsonInput.value = JSON.stringify(materialsByIndex);
+    });
+
+  })();
+</script>
+<script src="{% static 'js/competencias_dynamic.js' %}"></script>
+{% endblock %}
+</body>
+</html>

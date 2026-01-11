@@ -44,24 +44,31 @@ UNIDADES = (
 )
 
 class Semanario(models.Model):
+    tema = models.CharField(max_length=100, blank=True, null=True)
     sala = models.CharField(max_length=20, choices=LISTA_SALAS)
     data = models.DateField(default=proximo_sabado)
-    atividade = models.CharField(max_length=50)
-    descricao = models.TextField()
-    competencia = models.CharField(max_length=50)
-    fotos = models.ImageField(upload_to='fotos_atendidos', blank=True, null=True)
-    tempo_atividade = models.PositiveIntegerField(help_text="Tempo da atividade em minutos", blank=True, null=True) 
-    feedback = models.TextField(blank=True, null=True)
-    responsavel = models.ForeignKey("voluntario.Voluntario",on_delete=models.SET_NULL,null=True,blank=True,related_name="semanarios")
 
     def __str__(self):
-        return f"{self.sala} - {self.data.strftime('%d/%m/%Y')} ({self.atividade})"
+        return f"{self.sala} - {self.data.strftime('%d/%m/%Y')}"
+
+class Atividade(models.Model):
+    semanario = models.ForeignKey(Semanario,on_delete=models.CASCADE,related_name="atividades")
+    atividade = models.CharField(max_length=100)
+    descricao = models.TextField()
+    competencia = models.CharField(max_length=50)
+    fotos = models.ImageField(upload_to='fotos_atividades', blank=True, null=True)
+    tempo_atividade = models.PositiveIntegerField(help_text="Tempo da atividade em minutos", blank=True, null=True) 
+    feedback = models.TextField(blank=True, null=True)
+    responsavel = models.ForeignKey("voluntario.Voluntario",on_delete=models.SET_NULL,null=True,blank=True,related_name="atividades_responsavel")
+
+    def __str__(self):
+        return f"{self.atividade} ({self.semanario.sala} - {self.semanario.data.strftime('%d/%m/%Y')})"
 
 class Material(models.Model):
-    semanario = models.ForeignKey(Semanario,on_delete=models.CASCADE,related_name="materiais")
+    atividade = models.ForeignKey(Atividade,on_delete=models.CASCADE,related_name="materiais")
     nome = models.CharField(max_length=100)
     quantidade = models.DecimalField(max_digits=6, decimal_places=2, default=1)
     unidade = models.CharField(max_length=10, choices=UNIDADES, default="UN")
 
     def __str__(self):
-        return f"{self.nome} ({self.semanario.sala} - {self.semanario.data.strftime('%d/%m/%Y')})"
+        return f"{self.nome} ({self.atividade.semanario.sala} - {self.atividade.semanario.data.strftime('%d/%m/%Y')})"
