@@ -3,43 +3,340 @@
 {% block head %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="/src/style.css" rel="stylesheet">
+<style>
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --secondary: #8b5cf6;
+    --bg-gradient-start: #6366f1;
+    --bg-gradient-end: #8b5cf6;
+    --text-dark: #1e293b;
+    --text-muted: #64748b;
+    --white: #ffffff;
+    --error-bg: #fef2f2;
+    --error-border: #fecaca;
+    --error-text: #dc2626;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body.login-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Decorative circles */
+  .login-page::before,
+  .login-page::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .login-page::before {
+    width: 400px;
+    height: 400px;
+    top: -100px;
+    right: -100px;
+  }
+
+  .login-page::after {
+    width: 300px;
+    height: 300px;
+    bottom: -50px;
+    left: -50px;
+  }
+
+  .login-main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .login-card {
+    background: var(--white);
+    border-radius: 24px;
+    padding: 3rem 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: slideUp 0.5s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .logo-container {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+  }
+
+  .logo-container img {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .login-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    text-align: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .login-subtitle {
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+  }
+
+  .alert-error {
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .alert-error svg {
+    width: 20px;
+    height: 20px;
+    color: var(--error-text);
+    flex-shrink: 0;
+  }
+
+  .alert-error span {
+    color: var(--error-text);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .input-group-custom {
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+
+  .input-group-custom label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+  }
+
+  .input-wrapper {
+    position: relative;
+  }
+
+  .input-wrapper svg {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+  }
+
+  .input-wrapper input {
+    width: 100%;
+    padding: 0.875rem 1rem 0.875rem 3rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    background: #f8fafc;
+  }
+
+  .input-wrapper input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--white);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  }
+
+  .input-wrapper input:focus + svg,
+  .input-wrapper:focus-within svg {
+    color: var(--primary);
+  }
+
+  .checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .checkbox-wrapper input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+
+  .checkbox-wrapper label {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .btn-login {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: var(--white);
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-login::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+  }
+
+  .btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+  }
+
+  .btn-login:hover::before {
+    left: 100%;
+  }
+
+  .btn-login:active {
+    transform: translateY(0);
+  }
+
+  .copyright {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .login-card {
+      padding: 2rem 1.5rem;
+      margin: 1rem;
+    }
+
+    .logo-container {
+      width: 80px;
+      height: 80px;
+    }
+
+    .logo-container img {
+      width: 56px;
+      height: 56px;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<body class="d-flex flex-column min-vh-100 bg-light">
+<body class="login-page">
 
-  <main class="flex-fill d-flex justify-content-center align-items-center">
-    <form method="post" class="form-signin text-center bg-white p-4 rounded shadow-sm">
+  <main class="login-main">
+    <form method="post" class="login-card">
       {% csrf_token %}
 
-      <img class="mb-4 rounded-circle" src="{% static 'images/Logo_PCF.png' %}" alt="Logo" width="72" height="72">
-      <h1 class="h3 mb-3 fw-normal">Entrar</h1>
+      <div class="logo-container">
+        <img src="{% static 'images/Logo_PCF.png' %}" alt="Logo">
+      </div>
+      
+      <h1 class="login-title">Bem-vindo de volta</h1>
+      <p class="login-subtitle">Entre com suas credenciais para acessar</p>
 
       {% if form.errors %}
-        <div class="alert alert-danger py-2">
-          Usuário ou senha inválidos.
+        <div class="alert-error">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>Usuário ou senha inválidos.</span>
         </div>
       {% endif %}
 
-      <div class="form-floating mb-2">
-        <input type="text" name="username" class="form-control" id="floatingUser" placeholder="Usuário" required>
+      <div class="input-group-custom">
         <label for="floatingUser">Usuário</label>
+        <div class="input-wrapper">
+          <input type="text" name="username" id="floatingUser" placeholder="Digite seu usuário" required>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        </div>
       </div>
 
-      <div class="form-floating mb-3">
-        <input type="password" name="password" class="form-control" id="floatingPassword" placeholder="Senha" required>
+      <div class="input-group-custom">
         <label for="floatingPassword">Senha</label>
+        <div class="input-wrapper">
+          <input type="password" name="password" id="floatingPassword" placeholder="Digite sua senha" required>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
       </div>
 
-      <div class="form-check text-start mb-3">
-        <input class="form-check-input" type="checkbox" value="remember-me" id="rememberMe">
-        <label class="form-check-label" for="rememberMe">
-          Lembrar de mim
-        </label>
+      <div class="checkbox-wrapper">
+        <input type="checkbox" value="remember-me" id="rememberMe">
+        <label for="rememberMe">Lembrar de mim</label>
       </div>
 
-      <button class="btn btn-primary w-100 py-2" type="submit">Entrar</button>
-      <p class="mt-5 mb-3 text-body-secondary">&copy; {% now "Y" %}</p>
+      <button class="btn-login" type="submit">
+        Entrar
+      </button>
+      
+      <p class="copyright">&copy; {% now "Y" %} - Todos os direitos reservados</p>
     </form>
   </main>
 

@@ -2,10 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib import messages
 from django.forms import modelformset_factory
+from django.views.generic import ListView, DetailView, TemplateView
 import json
 from decimal import Decimal, InvalidOperation
 from .models import Semanario, Atividade, Material
 from .forms import SemanarioForm, AtividadeForm
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 def criar_semanario(request):
     AtividadeFormSet = modelformset_factory(Atividade, form=AtividadeForm, extra=5, can_delete=False)
@@ -95,3 +97,6 @@ def adicionar_material(request, atividade_id):
             Material.objects.create(atividade=atividade, nome=nome, quantidade=quantidade, unidade=unidade)
             return JsonResponse({"success": True})
     return JsonResponse({"success": False})
+
+class SemanarioView(LoginRequiredMixin, TemplateView):
+    template_name = "semanario_view.html"

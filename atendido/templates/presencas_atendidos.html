@@ -4,63 +4,526 @@
 {% block titulo %}Registro de Presenças{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-  <h2 class="text-center mb-4">Registro de Presenças — {{ hoje|date:"d/m/Y" }}</h2>
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --primary-light: #818cf8;
+    --secondary: #7c3aed;
+    --bg-light: #f8fafc;
+    --text-dark: #1e293b;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --success: #10b981;
+    --success-dark: #059669;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
 
-  <form method="POST" class="shadow p-4 bg-white rounded">
-    {% csrf_token %}
+  .page-wrapper {
+    min-height: 100vh;
+    background: var(--bg-light);
+    padding: 2rem 1rem;
+  }
 
-    <div class="accordion" id="accordionSalas">
-      {% for codigo, nome in salas %}
-        <div class="accordion-item">
-          <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
-                    aria-controls="collapse{{ forloop.counter }}">
-              {{ nome }}
-            </button>
-          </h2>
+  /* Hero Section */
+  .hero-section {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    border-radius: 1.5rem;
+    padding: 2.5rem 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
 
-          <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
-               aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#accordionSalas">
-            <div class="accordion-body">
-              <ul class="list-group">
-                {% for atendido in atendidos %}
-                  {% if atendido.sala == codigo %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
-                      <div class="d-flex align-items-center">
-                        {% if atendido.foto %}
-                          <img src="{{ atendido.foto.url }}" alt="{{ atendido.nome }}"
-                               width="45" height="45" class="rounded-circle me-3">
-                        {% else %}
-                          <img src="{% static 'images/sem-foto.jpg' %}" alt="Sem foto"
-                               width="45" height="45" class="rounded-circle me-3">
-                        {% endif %}
-                        <div>
-                          <strong>{{ atendido.nome }}</strong><br>
-                          <small class="text-muted">Família: {{ atendido.familia }}</small>
-                        </div>
-                      </div>
+  .hero-section::before,
+  .hero-section::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+  }
 
-                      <select name="presenca_{{ atendido.id }}" class="form-select w-auto mt-2 mt-md-0">
-                        <option value="">-- Selecione --</option>
-                        <option value="PRESENTE">Presente</option>
-                        <option value="AUSENTE">Ausente</option>
-                        <option value="JUSTIFICADA">Falta Justificada</option>
-                      </select>
-                    </li>
-                  {% endif %}
-                {% endfor %}
-              </ul>
-            </div>
+  .hero-section::before {
+    width: 200px;
+    height: 200px;
+    top: -50px;
+    right: -50px;
+  }
+
+  .hero-section::after {
+    width: 150px;
+    height: 150px;
+    bottom: -30px;
+    left: -30px;
+  }
+
+  .hero-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .hero-icon {
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hero-icon svg {
+    width: 28px;
+    height: 28px;
+    color: white;
+  }
+
+  .hero-title {
+    color: white;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .hero-subtitle {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9375rem;
+    margin-top: 0.25rem;
+  }
+
+  .date-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    color: white;
+    font-weight: 600;
+  }
+
+  .date-badge svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Accordion Customizado */
+  .custom-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .sala-card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+  }
+
+  .sala-card:hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sala-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: white;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .sala-header:hover {
+    background: var(--bg-light);
+  }
+
+  .sala-header:not(.collapsed) {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  }
+
+  .sala-header:not(.collapsed) .sala-icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  .sala-header:not(.collapsed) .sala-nome {
+    color: white;
+  }
+
+  .sala-header:not(.collapsed) .sala-subtitle {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .sala-header:not(.collapsed) .sala-arrow {
+    color: white;
+    transform: rotate(180deg);
+  }
+
+  .sala-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+  }
+
+  .sala-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .sala-info {
+    flex-grow: 1;
+  }
+
+  .sala-nome {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    transition: color 0.3s ease;
+  }
+
+  .sala-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-top: 0.125rem;
+  }
+
+  .sala-arrow {
+    width: 40px;
+    height: 40px;
+    background: var(--bg-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+  }
+
+  .sala-arrow svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .sala-body {
+    padding: 1.5rem;
+    background: var(--bg-light);
+  }
+
+  /* Lista de Atendidos */
+  .atendidos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .atendido-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+    flex-wrap: wrap;
+  }
+
+  .atendido-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-light);
+    transform: translateY(-2px);
+  }
+
+  .atendido-avatar {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .atendido-avatar img {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--bg-light);
+  }
+
+  .atendido-avatar::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--success);
+    border-radius: 50%;
+    border: 2px solid white;
+  }
+
+  .atendido-info {
+    flex-grow: 1;
+    min-width: 150px;
+  }
+
+  .atendido-nome {
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .atendido-familia {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .atendido-familia svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Custom Select */
+  .custom-select {
+    min-width: 180px;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    background: var(--bg-light);
+    border: 2px solid var(--border-color);
+    border-radius: 0.625rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+  }
+
+  .custom-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+  }
+
+  .custom-select:hover {
+    border-color: var(--primary-light);
+  }
+
+  /* Submit Button */
+  .btn-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
+    color: white;
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.3);
+  }
+
+  .btn-submit:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.4);
+  }
+
+  .btn-submit svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .submit-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 2rem;
+  }
+
+  /* Empty Message */
+  .empty-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem;
+    color: var(--text-muted);
+    background: white;
+    border-radius: 0.75rem;
+    border: 2px dashed var(--border-color);
+  }
+
+  @media (max-width: 768px) {
+    .hero-section {
+      padding: 1.5rem;
+    }
+
+    .hero-title {
+      font-size: 1.375rem;
+    }
+
+    .hero-content {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .atendido-card {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .atendido-info {
+      text-align: center;
+    }
+
+    .atendido-familia {
+      justify-content: center;
+    }
+
+    .custom-select {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="page-wrapper">
+  <div class="container" style="max-width: 900px;">
+    
+    <!-- Hero Section -->
+    <div class="hero-section">
+      <div class="hero-content">
+        <div class="hero-left">
+          <div class="hero-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="hero-title">Registro de Presenças</h2>
+            <p class="hero-subtitle">Controle de frequência dos atendidos</p>
           </div>
         </div>
-      {% endfor %}
+        <div class="date-badge">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          {{ hoje|date:"d/m/Y" }}
+        </div>
+      </div>
     </div>
 
-    <div class="text-end mt-4">
-      <button type="submit" class="btn btn-success px-4">Salvar Presenças</button>
-    </div>
-  </form>
+    <!-- Form -->
+    <form method="POST">
+      {% csrf_token %}
+
+      <div class="custom-accordion" id="accordionSalas">
+        {% for codigo, nome in salas %}
+          <div class="sala-card">
+            <button class="sala-header collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
+                    aria-controls="collapse{{ forloop.counter }}">
+              <div class="sala-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <div class="sala-info">
+                <span class="sala-nome">{{ nome }}</span>
+                <p class="sala-subtitle">Clique para expandir</p>
+              </div>
+              <div class="sala-arrow">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+            </button>
+
+            <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
+                 aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#accordionSalas">
+              <div class="sala-body">
+                <div class="atendidos-list">
+                  {% for atendido in atendidos %}
+                    {% if atendido.sala == codigo %}
+                      <div class="atendido-card">
+                        <div class="atendido-avatar">
+                          {% if atendido.foto %}
+                            <img src="{{ atendido.foto.url }}" alt="{{ atendido.nome }}">
+                          {% else %}
+                            <img src="{% static 'images/sem-foto.jpg' %}" alt="Sem foto">
+                          {% endif %}
+                        </div>
+                        <div class="atendido-info">
+                          <div class="atendido-nome">{{ atendido.nome }}</div>
+                          <div class="atendido-familia">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Família: {{ atendido.familia }}
+                          </div>
+                        </div>
+
+                        <select name="presenca_{{ atendido.id }}" class="custom-select">
+                          <option value="">-- Selecione --</option>
+                          <option value="PRESENTE">Presente</option>
+                          <option value="AUSENTE">Ausente</option>
+                          <option value="JUSTIFICADA">Falta Justificada</option>
+                        </select>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="submit-wrapper">
+        <button type="submit" class="btn-submit">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          Salvar Presenças
+        </button>
+      </div>
+    </form>
+
+  </div>
 </div>
 {% endblock %}

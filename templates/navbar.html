@@ -206,10 +206,10 @@
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a class="nav-link active" href="#">Inicio</a>
+          <a class="nav-link" href="{% url 'inicio' %}">Inicio</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#">Atendidos</a>
+          <a class="nav-link" href="{% url 'atendido:atendido_view' %}">Atendidos</a>
         </li>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
@@ -217,8 +217,8 @@
             Mais
           </a>
           <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-            <li><a class="dropdown-item" href="#">Sobre</a></li>
-            <li><a class="dropdown-item" href="#">Contato</a></li>
+            <li><a class="dropdown-item" href="{% url 'voluntario:voluntario_view' %}">Voluntários</a></li>
+            <li><a class="dropdown-item" href="{% url 'semanario:semanario_view' %}">Semanários</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="{% url 'logout' %}">Sair</a></li>
           </ul>
