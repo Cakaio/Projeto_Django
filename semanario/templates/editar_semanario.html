@@ -1,0 +1,649 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Semanário{% endblock %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Novo Semanário</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #00acac;
+      --primary-hover: #4f46e5;
+      --primary-light: #eef2ff;
+      --success: #10b981;
+      --success-hover: #059669;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius: 12px;
+      --radius-lg: 16px;
+    }
+
+    * { font-family: 'Inter', sans-serif; }
+    body { background: var(--background); color: var(--text-primary); min-height: 100vh; }
+
+    .page-header {
+      background: linear-gradient(135deg, var(--primary) 0%, #00acac79 100%);
+      padding: 3rem 0;
+      margin-bottom: 2rem;
+    }
+    .page-header h1 { color: white; font-weight: 700; font-size: 2rem; margin: 0; }
+    .page-header p { color: rgba(255, 255, 255, 0.8); margin: 0.5rem 0 0; }
+
+    .main-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1.5rem;
+      background: var(--primary-light);
+      border-bottom: 1px solid var(--border);
+    }
+    .section-header .icon {
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    .section-header .icon svg { width: 20px; height: 20px; }
+    .section-header h5 { margin: 0; font-weight: 600; color: var(--text-primary); }
+    .section-header span { color: var(--text-secondary); font-size: 0.875rem; }
+    .section-body { padding: 1.5rem; }
+
+    .form-label { font-weight: 500; color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem; }
+    .form-control, .form-select {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-size: 0.9375rem;
+      transition: all 0.2s ease;
+      background: var(--surface);
+      width: 100%;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Adiciona estilo para garantir que labels e inputs fiquem empilhados */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .form-group label {
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin: 0;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-size: 0.9375rem;
+      transition: all 0.2s ease;
+      background: var(--surface);
+      width: 100%;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+      outline: none;
+    }
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .alert { border-radius: var(--radius); border: none; padding: 1rem 1.25rem; }
+    .alert-danger { background: #fef2f2; color: #991b1b; }
+
+    .activity-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .activity-card:hover { box-shadow: var(--shadow); }
+
+    .activity-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      background: #f8fafc;
+      cursor: pointer;
+      border: none;
+      width: 100%;
+      text-align: left;
+      transition: all 0.2s ease;
+    }
+    .activity-header:hover { background: #f1f5f9; }
+    .activity-header .activity-info { display: flex; align-items: center; gap: 0.75rem; }
+    .activity-number {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      color: white;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .activity-title { font-weight: 600; color: var(--text-primary); margin: 0; }
+    .activity-chevron { color: var(--text-muted); transition: transform 0.2s ease; }
+    .activity-header[aria-expanded="true"] .activity-chevron { transform: rotate(180deg); }
+    .activity-body { 
+      padding: 1.5rem; 
+      border-top: 1px solid var(--border); 
+    }
+    .activity-body .row {
+      display: grid;
+      gap: 1.25rem;
+    }
+    .activity-body .row.g-3 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .activity-body .row .col-12 {
+      grid-column: 1 / -1;
+    }
+    .activity-body .row .col-md-6 {
+      grid-column: span 1;
+    }
+    .activity-body .row .col-md-4 {
+      grid-column: span 1;
+    }
+    /* Grid de 3 colunas para a ultima linha */
+    @media (min-width: 768px) {
+      .activity-body .fields-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+      }
+      .activity-body .fields-grid .full-width {
+        grid-column: 1 / -1;
+      }
+      .activity-body .fields-grid-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+        margin-top: 1.25rem;
+      }
+    }
+    @media (max-width: 767px) {
+      .activity-body .fields-grid,
+      .activity-body .fields-grid-3 {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .activity-body .fields-grid-3 {
+        margin-top: 1rem;
+      }
+    }
+
+    .btn-add-material {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1rem;
+      background: var(--primary-light);
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: var(--radius);
+      font-weight: 500;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+    }
+    .btn-add-material:hover { background: var(--primary); color: white; }
+    .material-badge {
+      background: var(--primary);
+      color: white;
+      padding: 0.125rem 0.5rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .btn-add-material:hover .material-badge { background: white; color: var(--primary); }
+
+    .btn-submit {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.875rem 2rem;
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+    }
+    .btn-submit:hover {
+      background: var(--success-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+    }
+
+    .modal-content { border: none; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+    .modal-header { background: var(--primary-light); border-bottom: 1px solid var(--border); padding: 1.25rem 1.5rem; }
+    .modal-title { font-weight: 600; color: var(--text-primary); }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer { border-top: 1px solid var(--border); padding: 1rem 1.5rem; }
+
+    .table-modern { border-collapse: separate; border-spacing: 0; }
+    .table-modern thead th {
+      background: #f8fafc;
+      border: none;
+      padding: 0.875rem 1rem;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+    .table-modern tbody td {
+      padding: 0.75rem;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .btn-remove-row {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--danger);
+      transition: all 0.2s ease;
+    }
+    .btn-remove-row:hover { background: #fef2f2; border-color: var(--danger); }
+
+    .btn-add-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: white;
+      color: var(--primary);
+      border: 1px dashed var(--primary);
+      border-radius: var(--radius);
+      font-weight: 500;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+    }
+    .btn-add-line:hover { background: var(--primary-light); }
+
+    .btn-modal-save {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .btn-modal-save:hover { background: var(--primary-hover); }
+
+    .btn-modal-close {
+      background: white;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .btn-modal-close:hover { background: #f8fafc; }
+
+    @media (max-width: 768px) {
+      .page-header { padding: 2rem 0; }
+      .page-header h1 { font-size: 1.5rem; }
+      .section-body, .activity-body { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+
+
+<div class="container my-5">
+  <h2 class="text-center mb-4 text-primary">
+    {% if semanario %}Editar Semanário{% else %}Criar Semanário{% endif %}
+  </h2>
+
+  <form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <!-- ================= SEMANÁRIO ================= -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-bold">Informações do Semanário</div>
+      <div class="card-body row g-3">
+        <div class="col-md-4">
+          {{ semanario_form.tema.label_tag }}
+          {{ semanario_form.tema }}
+        </div>
+        <div class="col-md-4">
+          {{ semanario_form.sala.label_tag }}
+          {{ semanario_form.sala }}
+        </div>
+        <div class="col-md-4">
+          {{ semanario_form.data.label_tag }}
+          {{ semanario_form.data }}
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= ATIVIDADES ================= -->
+    {{ formset.management_form }}
+
+    <div class="accordion" id="accordionAtividades">
+
+      {% for form in formset %}
+      <div class="accordion-item mb-2">
+        <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+          <button class="accordion-button collapsed fw-semibold" type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapse{{ forloop.counter }}">
+            Atividade: {{ form.atividade.value|default:forloop.counter }}
+          </button>
+        </h2>
+
+        <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse">
+          <div class="accordion-body">
+
+            <div class="row g-3 align-items-end">
+              <div class="col-md-6">
+                {{ form.atividade.label_tag }}
+                {{ form.atividade }}
+              </div>
+
+              <div class="col-md-6">
+                {{ form.competencia.label_tag }}
+                {{ form.competencia }}
+              </div>
+
+              <div class="col-md-12">
+                {{ form.descricao.label_tag }}
+                {{ form.descricao }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.tempo_atividade.label_tag }}
+                {{ form.tempo_atividade }}
+              </div>
+
+              <div class="col-md-4">
+                {{ form.responsavel.label_tag }}
+                {{ form.responsavel }}
+              </div>
+
+              <div class="col-md-4 text-end">
+                <button type="button"
+                        class="btn btn-outline-primary btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#materiaisModal"
+                        data-atividade-id="{{ form.instance.id }}"
+                        data-atividade-index="{{ forloop.counter0 }}">
+                  ➕ Materiais
+                </button>
+              </div>
+
+              <div class="col-md-12">
+                {{ form.feedback.label_tag }}
+                {{ form.feedback }}
+              </div>
+
+              {{ form.id }}
+            </div>
+
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- JSON escondido para materiais -->
+    <input type="hidden" name="materiais_json" id="materiais_json">
+
+    <div class="text-end mt-4">
+      <button type="submit" class="btn btn-success px-4">
+        💾 Salvar Semanário
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- ================= MODAL MATERIAIS ================= -->
+<div class="modal fade" id="materiaisModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Materiais da Atividade</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="materiais-form">
+          <input type="hidden" id="atividade-id">
+
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Quantidade</th>
+                <th>Unidade</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="materiais-body">
+              <!-- preenchido via JS -->
+            </tbody>
+          </table>
+
+          <button type="button" class="btn btn-outline-primary btn-sm" id="add-material">
+            ➕ Adicionar material
+          </button>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Fechar
+        </button>
+        <button type="button" class="btn btn-success" id="salvar-materiais">
+          💾 Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= SCRIPT ================= -->
+<script>
+// Helpers e handlers para modal de Materiais (editar)
+const modal = document.getElementById("materiaisModal");
+let currentAtividadeId = null;
+let currentAtividadeIndex = null;
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+function novaLinha(material = {}){
+  const nome = (material.nome || '').replace(/"/g, '&quot;');
+  const quantidade = material.quantidade || '';
+  const unidade = material.unidade || 'UN';
+  return `
+    <tr>
+      <td><input class="form-control mat-nome" value="${nome}"></td>
+      <td><input class="form-control mat-quant" value="${quantidade}"></td>
+      <td>
+        <select class="form-select mat-unidade">
+          <option value="UN"${unidade==='UN' ? ' selected':''}>Unidade</option>
+          <option value="PAC"${unidade==='PAC' ? ' selected':''}>Pacote</option>
+          <option value="CX"${unidade==='CX' ? ' selected':''}>Caixa</option>
+        </select>
+      </td>
+      <td><button type="button" class="btn btn-danger btn-sm remover-material">🗑</button></td>
+    </tr>`;
+}
+
+modal.addEventListener("show.bs.modal", function (event) {
+  const button = event.relatedTarget;
+  const atividadeId = button.getAttribute("data-atividade-id");
+  const atividadeIndex = button.getAttribute("data-atividade-index");
+
+  currentAtividadeId = atividadeId;
+  currentAtividadeIndex = atividadeIndex;
+
+  document.getElementById("atividade-id").value = atividadeId || '';
+
+  const tbody = document.getElementById("materiais-body");
+  tbody.innerHTML = "";
+
+  if (atividadeId) {
+    // Atividade já existe: buscar do servidor
+    fetch(`/semanario/materiais/${atividadeId}/`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data || data.length === 0) {
+          tbody.insertAdjacentHTML('beforeend', novaLinha());
+        } else {
+          data.forEach(m => tbody.insertAdjacentHTML('beforeend', novaLinha(m)));
+        }
+      }).catch(err => {
+        console.error('Erro ao buscar materiais:', err);
+        tbody.insertAdjacentHTML('beforeend', novaLinha());
+      });
+  } else {
+    // Atividade nova: carregar materiais do hidden 'materiais_json' se houver
+    try {
+      const parsed = JSON.parse(document.getElementById('materiais_json').value || '{}');
+      const list = parsed[currentAtividadeIndex] || [];
+      if (list.length === 0) tbody.insertAdjacentHTML('beforeend', novaLinha());
+      else list.forEach(m => tbody.insertAdjacentHTML('beforeend', novaLinha(m)));
+    } catch(e){
+      tbody.insertAdjacentHTML('beforeend', novaLinha());
+    }
+  }
+});
+
+// Adicionar linha
+document.getElementById('add-material').addEventListener('click', function(){
+  document.getElementById('materiais-body').insertAdjacentHTML('beforeend', novaLinha());
+});
+
+// Delegação para remover linha
+document.getElementById('materiais-body').addEventListener('click', function(e){
+  if (e.target.closest('.remover-material')){
+    e.target.closest('tr').remove();
+  }
+});
+
+// Salvar materiais: se atividade já existe -> POST AJAX para salvar no servidor;
+// se não existe -> atualizar campo hidden 'materiais_json' para gravação quando o form principal for submetido
+document.getElementById('salvar-materiais').addEventListener('click', function(){
+  const rows = Array.from(document.querySelectorAll('#materiais-body tr'));
+  const materiais = rows.map(r => ({
+    nome: (r.querySelector('.mat-nome').value || '').trim(),
+    quantidade: (r.querySelector('.mat-quant').value || '').trim(),
+    unidade: (r.querySelector('.mat-unidade').value || '').trim() || 'UN'
+  })).filter(m => m.nome !== '');
+
+  if (currentAtividadeId) {
+    // salvar no servidor via endpoint /semanario/salvar_materiais/
+    fetch('/semanario/salvar_materiais/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify({atividade_id: currentAtividadeId, materiais: materiais})
+    }).then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+    })
+      .then(resp => {
+        if (resp.success) {
+          const inst = bootstrap.Modal.getInstance(modal);
+          if (inst) inst.hide();
+          try {
+            const toastEl = document.getElementById('materiaisToast');
+            const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+            toast.show();
+          } catch(e){}
+        } else {
+          alert('Não foi possível salvar os materiais: ' + (resp.error || 'erro desconhecido'));
+        }
+      }).catch(err => { console.error(err); alert('Erro ao salvar materiais: ' + err.message); });
+  } else {
+    // atualizar campo hidden para ser processado quando o semanário for salvo
+    try {
+      const parsed = JSON.parse(document.getElementById('materiais_json').value || '{}');
+      parsed[currentAtividadeIndex] = materiais;
+      document.getElementById('materiais_json').value = JSON.stringify(parsed);
+      const inst = bootstrap.Modal.getInstance(modal);
+      if (inst) inst.hide();
+    } catch(e){
+      console.error('Erro ao atualizar materiais_json', e);
+      alert('Erro ao armazenar materiais localmente.');
+    }
+  }
+});
+</script>
+
+
+{% endblock %}

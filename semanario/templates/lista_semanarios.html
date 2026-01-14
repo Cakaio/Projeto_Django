@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-5">
+  <h2 class="mb-4">Semanários</h2>
+
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>Sala</th>
+        <th>Data</th>
+        <th>Tema</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for semanario in semanarios %}
+        <tr>
+          <td>{{ semanario.get_sala_display }}</td>
+          <td>{{ semanario.data|date:"d/m/Y" }}</td>
+          <td>{{ semanario.tema }}</td>
+          <td>
+            <a href="{% url 'semanario:editar_semanario' semanario.id %}"
+               class="btn btn-sm btn-outline-primary">
+              ✏️ Editar
+            </a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4" class="text-center text-muted">
+            Nenhum semanário cadastrado.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
