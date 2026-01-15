@@ -1,39 +1,489 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Semanários por Sala{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-  <h2 class="mb-4">Semanários</h2>
+<style>
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --secondary: #8b5cf6;
+    --accent: #a78bfa;
+    --bg-light: #f5f3ff;
+    --bg-dark: #1e1b4b;
+    --text-dark: #1e1b4b;
+    --text-muted: #6b7280;
+    --white: #ffffff;
+    --success: #10b981;
+    --warning: #f59e0b;
+  }
 
-  <table class="table table-striped align-middle">
-    <thead>
-      <tr>
-        <th>Sala</th>
-        <th>Data</th>
-        <th>Tema</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for semanario in semanarios %}
-        <tr>
-          <td>{{ semanario.get_sala_display }}</td>
-          <td>{{ semanario.data|date:"d/m/Y" }}</td>
-          <td>{{ semanario.tema }}</td>
-          <td>
-            <a href="{% url 'semanario:editar_semanario' semanario.id %}"
-               class="btn btn-sm btn-outline-primary">
-              ✏️ Editar
-            </a>
-          </td>
-        </tr>
-      {% empty %}
-        <tr>
-          <td colspan="4" class="text-center text-muted">
-            Nenhum semanário cadastrado.
-          </td>
-        </tr>
+  .page-wrapper {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg-light) 0%, #ede9fe 50%, #ddd6fe 100%);
+    padding: 2rem 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page-wrapper::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .page-wrapper::after {
+    content: '';
+    position: absolute;
+    bottom: -150px;
+    left: -150px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .content-container {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Hero Section */
+  .hero-card {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    border-radius: 20px;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 300px;
+    height: 300px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+  }
+
+  .hero-card::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: -10%;
+    width: 200px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    color: var(--white);
+  }
+
+  .hero-icon {
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    backdrop-filter: blur(10px);
+  }
+
+  .hero-icon svg {
+    width: 35px;
+    height: 35px;
+    stroke: var(--white);
+  }
+
+  .hero-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .hero-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+  }
+
+  /* Sala Cards */
+  .sala-card {
+    background: var(--white);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .sala-card:hover {
+    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .sala-header {
+    background: var(--white);
+    border: none;
+    padding: 1.25rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+  }
+
+  .sala-header:not(.collapsed) {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: var(--white);
+  }
+
+  .sala-header.collapsed {
+    color: var(--text-dark);
+  }
+
+  .sala-header:hover.collapsed {
+    background: var(--bg-light);
+  }
+
+  .sala-icon {
+    width: 42px;
+    height: 42px;
+    background: var(--bg-light);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+  }
+
+  .sala-header:not(.collapsed) .sala-icon {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .sala-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: var(--primary);
+    transition: all 0.3s ease;
+  }
+
+  .sala-header:not(.collapsed) .sala-icon svg {
+    stroke: var(--white);
+  }
+
+  .sala-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .sala-arrow {
+    transition: transform 0.3s ease;
+  }
+
+  .sala-header:not(.collapsed) .sala-arrow {
+    transform: rotate(180deg);
+  }
+
+  .sala-body {
+    padding: 1.5rem;
+    background: #fafafa;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  /* Semanario Items */
+  .semanario-item {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f0f0f0;
+    transition: all 0.2s ease;
+  }
+
+  .semanario-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .semanario-item:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.1);
+  }
+
+  .semanario-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .semanario-tema {
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .semanario-tema::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .semanario-date {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding-left: 1rem;
+  }
+
+  .semanario-date svg {
+    width: 14px;
+    height: 14px;
+    stroke: var(--text-muted);
+  }
+
+  .semanario-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .btn-action {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-edit {
+    background: var(--bg-light);
+    color: var(--primary);
+  }
+
+  .btn-edit:hover {
+    background: var(--primary);
+    color: var(--white);
+  }
+
+  .btn-view {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: var(--white);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  }
+
+  .btn-view:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    color: var(--white);
+  }
+
+  .btn-action svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+  }
+
+  .empty-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--bg-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+  }
+
+  .empty-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: var(--accent);
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .hero-card {
+      padding: 1.5rem;
+    }
+
+    .hero-title {
+      font-size: 1.5rem;
+    }
+
+    .semanario-item {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .semanario-actions {
+      width: 100%;
+      margin-top: 0.75rem;
+    }
+
+    .btn-action {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+</style>
+
+<div class="page-wrapper">
+  <div class="content-container">
+
+    <!-- Hero Section -->
+    <div class="hero-card">
+      <div class="hero-content">
+        <div class="hero-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <h1 class="hero-title">Semanários</h1>
+        <p class="hero-subtitle">Visualize os semanários organizados por sala</p>
+      </div>
+    </div>
+
+    <!-- Accordion por Sala -->
+    <div class="custom-accordion" id="accordionSalas">
+
+      {% for codigo, nome in salas %}
+        <div class="sala-card">
+
+          <!-- Cabeçalho da Sala -->
+          <button class="sala-header collapsed w-100 d-flex align-items-center justify-content-between"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapse{{ forloop.counter }}"
+                  aria-expanded="false">
+
+            <div class="d-flex align-items-center gap-3">
+              <div class="sala-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+              </div>
+              <span class="sala-name">{{ nome }}</span>
+            </div>
+
+            <svg class="sala-arrow" width="20" height="20" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+
+          <!-- Corpo -->
+          <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
+               data-bs-parent="#accordionSalas">
+
+            <div class="sala-body">
+
+              {% if codigo in salas_com_semanarios %}
+                {% for semanario in semanarios %}
+                  {% if semanario.sala == codigo %}
+                  <div class="semanario-item">
+
+                    <div class="semanario-info">
+                      <div class="semanario-tema">
+                        {{ semanario.tema|default:"Sem tema" }}
+                      </div>
+                      <div class="semanario-date">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        {{ semanario.data|date:"d/m/Y" }}
+                      </div>
+                    </div>
+
+                    <div class="semanario-actions">
+                      <a href="{% url 'semanario:editar_semanario' semanario.id %}"
+                         class="btn-action btn-edit">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Editar
+                      </a>
+
+                      <a href="{% url 'semanario:visualizar_semanario' semanario.id %}"
+                         class="btn-action btn-view">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        Visualizar
+                      </a>
+                    </div>
+
+                  </div>
+                  {% endif %}
+                {% endfor %}
+              {% else %}
+                <div class="empty-state">
+                  <div class="empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                  </div>
+                  <p>Nenhum semanário cadastrado para esta sala.</p>
+                </div>
+              {% endif %}
+
+            </div>
+          </div>
+
+        </div>
       {% endfor %}
-    </tbody>
-  </table>
+
+    </div>
+  </div>
 </div>
 {% endblock %}

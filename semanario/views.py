@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib import messages
@@ -5,9 +6,12 @@ from django.forms import modelformset_factory
 from django.views.generic import ListView, DetailView, TemplateView
 import json
 from decimal import Decimal, InvalidOperation
-from .models import Semanario, Atividade, Material
+from .models import LISTA_SALAS, Semanario, Atividade, Material
 from .forms import SemanarioForm, AtividadeForm
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
 def criar_semanario(request):
     AtividadeFormSet = modelformset_factory(Atividade, form=AtividadeForm, extra=5, can_delete=False)
@@ -105,6 +109,11 @@ def editar_semanario(request, semanario_id):
     semanario = get_object_or_404(Semanario, id=semanario_id)
     AtividadeFormSet = modelformset_factory(Atividade, form=AtividadeForm, extra=0, can_delete=False)
 
+    # Verificar permissão de edição com base na sala do usuário
+    if request.user.area != semanario.sala:
+        messages.error(request, "❌ Você não pode editar semanários de outra sala.")
+    return redirect("semanario:lista_semanarios")
+
     # Pegando atividades existentes ou criando 5 vazias
     atividades_existentes = list(semanario.atividades.all())
     while len(atividades_existentes) < 5:
@@ -175,11 +184,29 @@ def editar_semanario(request, semanario_id):
         "semanario": semanario
     })
 
-class SemanarioListView(ListView):
+class SemanarioListView(LoginRequiredMixin, ListView):
     model = Semanario
     template_name = "lista_semanarios.html"
     context_object_name = "semanarios"
-    ordering = ["-data"]
+
+    def get_queryset(self):
+        hoje = timezone.now().date()
+        return Semanario.objects.filter(
+            data__gt=hoje
+        ).order_by("data")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["salas"] = LISTA_SALAS
+        context["hoje"] = timezone.now().date()
+        
+        # Criar um dicionário indicando quais salas têm semanários
+        salas_com_semanarios = set()
+        for semanario in context["semanarios"]:
+            salas_com_semanarios.add(semanario.sala)
+        context["salas_com_semanarios"] = salas_com_semanarios
+        
+        return context
 
 
 def listar_materiais(request, atividade_id):
@@ -213,3 +240,10 @@ def salvar_materiais(request):
         )
 
     return JsonResponse({"success": True})
+
+
+class VisualizarSemanario(LoginRequiredMixin, DetailView):
+    model = Semanario
+    template_name = "visualizar_semanario.html"
+    context_object_name = "semanario"
+    pk_url_kwarg = "semanario_id"
