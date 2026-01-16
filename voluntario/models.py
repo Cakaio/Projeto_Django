@@ -27,10 +27,21 @@ class Voluntario(AbstractUser):
     apelido = models.CharField(max_length=50, blank=True, null=True)
     data_nascimento = models.DateField(blank=True, null=True)
     celular = models.CharField(max_length=15, blank=True, null=True)
+    instagram = models.CharField(max_length=50, blank=True, null=True)
+    email_alternativo = models.EmailField(blank=True, null=True)
+    endereco = models.CharField(max_length=200, blank=True, null=True)
+    republica = models.CharField(max_length=100, blank=True, null=True)
     rg = models.CharField(max_length=15, blank=True, null=True)
     foto = models.ImageField(upload_to='fotos_voluntarios', blank=True, null=True)
-    data_entrada_projeto = models.DateField(default=timezone.now)
-    data_saida_projeto = models.DateField(blank=True, null=True)
+    restricao_alimentar = models.TextField(blank=True, null=True)
+    alergia = models.TextField(blank=True, null=True)
+    medicacao_continua = models.TextField(blank=True, null=True)
+    faculdade = models.CharField(max_length=100, blank=True, null=True)
+    curso = models.CharField(max_length=100, blank=True, null=True)
+    talentos = models.ManyToManyField("Talento", blank=True)
+    data_entrada = models.DateField(default=timezone.now)
+    data_saida = models.DateField(blank=True, null=True)
+    
 
     def __str__(self):
         return self.get_full_name() or self.username
@@ -42,17 +53,18 @@ class PresencaVoluntario(models.Model):
         ("JUSTIFICADA", "Falta Justificada"),
     ]
 
-    voluntario = models.ForeignKey(
-        "Voluntario",
-        on_delete=models.CASCADE,
-        related_name="presencas"
-    )
-    presenca = models.CharField(
-        max_length=15,
-        choices=OPCOES_PRESENCA,
-        default="PRESENTE"
-    )
+    voluntario = models.ForeignKey("Voluntario",on_delete=models.CASCADE,related_name="presencas")
+    presenca = models.CharField(max_length=15,choices=OPCOES_PRESENCA,default="PRESENTE")
     data = models.DateField(default=timezone.now)
 
     def __str__(self):
         return f"{self.voluntario.username} - {self.data} ({self.get_presenca_display()})"
+    
+class Talento(models.Model):
+    talento = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ['talento']
+
+    def __str__(self):
+        return self.talento

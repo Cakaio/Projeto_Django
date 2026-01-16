@@ -192,7 +192,7 @@ class SemanarioListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         hoje = timezone.now().date()
         return Semanario.objects.filter(
-            data__gt=hoje
+            data__gt=hoje + timezone.timedelta(days=-14)
         ).order_by("data")
 
     def get_context_data(self, **kwargs):
