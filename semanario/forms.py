@@ -5,12 +5,12 @@ from .models import Semanario, Atividade, Material, COMPETENCIAS_SALAS
 class SemanarioForm(forms.ModelForm):
     class Meta:
         model = Semanario
-        fields = ["tema", "sala", "data"]
+        fields = ["tema", "sala", "data", "projetor", "vagas", "talentos_necessarios"]
 
 class AtividadeForm(forms.ModelForm):
     class Meta:
         model = Atividade
-        fields = ["atividade", "descricao", "competencia", "tempo_atividade", "responsavel", "feedback"]
+        fields = ["atividade", "descricao", "competencia", "tempo_atividade", "responsavel", "feedback", "local"]
 
     def __init__(self, *args, **kwargs):
         sala = kwargs.pop('sala', None)
@@ -18,6 +18,8 @@ class AtividadeForm(forms.ModelForm):
         # permitir que os forms extras do formset fiquem vazios sem gerar erro de validação
         self.fields['atividade'].required = False
         self.fields['descricao'].required = False
+        self.fields['local'].required = False
+        self.fields['feedback'].required = False
 
         if sala and sala in COMPETENCIAS_SALAS:
             self.fields['competencia'].widget = forms.Select(

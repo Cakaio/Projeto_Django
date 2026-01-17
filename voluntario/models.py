@@ -2,6 +2,8 @@ from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 
+from sabado.models import Sabado
+
 LISTA_AREAS = (
     ("VIOLETA", "Violeta"),
     ("ANIL", "Anil"),
@@ -34,6 +36,10 @@ class Voluntario(AbstractUser):
     rg = models.CharField(max_length=15, blank=True, null=True)
     foto = models.ImageField(upload_to='fotos_voluntarios', blank=True, null=True)
     restricao_alimentar = models.TextField(blank=True, null=True)
+
+    TIPO_ALIMENTACAO = (("ONIVORO", "Onívoro"),("VEGETARIANO", "Vegetariano"),("VEGANO", "Vegano"))
+    
+    alimentacao = models.CharField(max_length=20,choices=TIPO_ALIMENTACAO,blank=True,null=True)
     alergia = models.TextField(blank=True, null=True)
     medicacao_continua = models.TextField(blank=True, null=True)
     faculdade = models.CharField(max_length=100, blank=True, null=True)
@@ -55,7 +61,7 @@ class PresencaVoluntario(models.Model):
 
     voluntario = models.ForeignKey("Voluntario",on_delete=models.CASCADE,related_name="presencas")
     presenca = models.CharField(max_length=15,choices=OPCOES_PRESENCA,default="PRESENTE")
-    data = models.DateField(default=timezone.now)
+    data = models.ForeignKey(Sabado,on_delete=models.CASCADE,related_name="presencas_voluntarios")
 
     def __str__(self):
         return f"{self.voluntario.username} - {self.data} ({self.get_presenca_display()})"

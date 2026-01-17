@@ -35,9 +35,10 @@ class SemanarioAdmin(admin.ModelAdmin):
     """
     Exibe o Semanário com suas Atividades inline.
     """
-    list_display = ("sala", "data", "tema")
+    list_display = ("sala", "tema")
     list_filter = ("sala", "data")
-    search_fields = ("tema",)
+    search_fields = ("tema","sala")
+    filter_horizontal = ['talentos_necessarios']
     inlines = [AtividadeInline]
 
 

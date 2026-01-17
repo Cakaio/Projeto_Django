@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'atendido',
     'voluntario',
     'semanario',
+    'sabado',
 ]
 
 MIDDLEWARE = [

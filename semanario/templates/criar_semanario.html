@@ -203,15 +203,26 @@
         gap: 1.25rem;
         margin-top: 1.25rem;
       }
+      .activity-body .fields-grid-4 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+        margin-top: 1.25rem;
+      }
+      .activity-body .fields-grid-4 .full-width {
+        grid-column: 1 / -1;
+      }
     }
     @media (max-width: 767px) {
       .activity-body .fields-grid,
-      .activity-body .fields-grid-3 {
+      .activity-body .fields-grid-3,
+      .activity-body .fields-grid-4 {
         display: flex;
         flex-direction: column;
         gap: 1rem;
       }
-      .activity-body .fields-grid-3 {
+      .activity-body .fields-grid-3,
+      .activity-body .fields-grid-4 {
         margin-top: 1rem;
       }
     }
@@ -404,6 +415,24 @@
               {{ semanario_form.data }}
             </div>
           </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              {{ semanario_form.projetor.label_tag }}
+              {{ semanario_form.projetor }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              {{ semanario_form.vagas.label_tag }}
+              {{ semanario_form.vagas }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group full-width">
+              {{ semanario_form.talentos_necessarios.label_tag }}
+              {{ semanario_form.talentos_necessarios }}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -459,7 +488,7 @@
                     </div>
                   </div>
                   
-                  <div class="fields-grid-3">
+                  <div class="fields-grid-4">
                     <div class="form-group">
                       <label for="id_form-{{ forloop.counter0 }}-tempo_atividade">Tempo da Atividade</label>
                       {{ form.tempo_atividade }}
@@ -469,6 +498,10 @@
                       {{ form.responsavel }}
                     </div>
                     <div class="form-group">
+                      <label for="id_form-{{ forloop.counter0 }}-local">Local</label>
+                      {{ form.local }}
+                    </div>
+                    <div class="form-group full-width">
                       <label for="id_form-{{ forloop.counter0 }}-feedback">Feedback</label>
                       {{ form.feedback }}
                     </div>

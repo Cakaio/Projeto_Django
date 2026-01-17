@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 import datetime
+from sabado.models import Sabado
 
 # Create your models here.
 LISTA_SALAS = (
@@ -24,14 +25,6 @@ COMPETENCIAS_SALAS = {
     "FAMILIA_FELIZ": ["Cidadania","Quem sou eu?","Reinventar meu lugar no mundo","Resiliência emocional",],
 }
 
-def proximo_sabado():
-    """Retorna a data do próximo sábado a partir de hoje."""
-    hoje = timezone.now().date()
-    dias_ate_sabado = (5 - hoje.weekday()) % 7  # 5 = sábado (0 = segunda)
-    if dias_ate_sabado == 0:
-        dias_ate_sabado = 7  # se hoje já for sábado, pega o próximo
-    return hoje + datetime.timedelta(days=dias_ate_sabado)
-
 UNIDADES = (
     ("UN", "Unidade"),
     ("PAC", "Pacote"),
@@ -43,18 +36,31 @@ UNIDADES = (
     ("OUTROS", "Outros"),
 )
 
+LOCAIS = (
+    ("SALNHA", "Salinha"),
+    ("CAMPO", "Campo"),
+    ("RANCHO", "Rancho"),
+    ("PRAÇA", "Praça"),
+    ("RU", "RU"),
+    ("OUTROS", "Outros"),
+)
+
 class Semanario(models.Model):
     tema = models.CharField(max_length=100, blank=True, null=True)
     sala = models.CharField(max_length=20, choices=LISTA_SALAS)
-    data = models.DateField(default=proximo_sabado)
+    data = models.ForeignKey(Sabado,on_delete=models.CASCADE,related_name="semanarios")
+    projetor = models.BooleanField(default=True)
+    vagas = models.PositiveIntegerField(default=1)
+    talentos_necessarios = models.ManyToManyField("voluntario.Talento", blank=True)
 
     def __str__(self):
-        return f"{self.sala} - {self.data.strftime('%d/%m/%Y')}"
+        return f"{self.sala}"
 
 class Atividade(models.Model):
     semanario = models.ForeignKey(Semanario,on_delete=models.CASCADE,related_name="atividades")
     atividade = models.CharField(max_length=100)
     descricao = models.TextField()
+    local = models.CharField(max_length=100, choices=LOCAIS, blank=True, null=True, default="SALNHA")
     competencia = models.CharField(max_length=50)
     fotos = models.ImageField(upload_to='fotos_atividades', blank=True, null=True)
     tempo_atividade = models.PositiveIntegerField(help_text="Tempo da atividade em minutos", blank=True, null=True) 
@@ -62,7 +68,7 @@ class Atividade(models.Model):
     responsavel = models.ForeignKey("voluntario.Voluntario",on_delete=models.SET_NULL,null=True,blank=True,related_name="atividades_responsavel")
 
     def __str__(self):
-        return f"{self.atividade} ({self.semanario.sala} - {self.semanario.data.strftime('%d/%m/%Y')})"
+        return f"{self.atividade} {self.semanario.sala}"
 
 class Material(models.Model):
     atividade = models.ForeignKey(Atividade,on_delete=models.CASCADE,related_name="materiais")
@@ -71,4 +77,4 @@ class Material(models.Model):
     unidade = models.CharField(max_length=10, choices=UNIDADES, default="UN")
 
     def __str__(self):
-        return f"{self.nome} ({self.atividade.semanario.sala} - {self.atividade.semanario.data.strftime('%d/%m/%Y')})"
+        return f"{self.nome} ({self.atividade.semanario.sala})"
