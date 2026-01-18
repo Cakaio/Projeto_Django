@@ -3,7 +3,10 @@ from .models import Talento, Voluntario, PresencaVoluntario
 from django.contrib.auth.admin import UserAdmin
 
 # Register your models here.
-admin.site.register(PresencaVoluntario)
+@admin.register(PresencaVoluntario)
+class PresencaVoluntarioAdmin(admin.ModelAdmin):
+    list_display = ['voluntario', 'data', 'registrado_por']
+    list_filter = ['data']
 
 @admin.register(Talento)
 class TalentoAdmin(admin.ModelAdmin):

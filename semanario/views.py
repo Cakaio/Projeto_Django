@@ -112,7 +112,7 @@ def editar_semanario(request, semanario_id):
     # Verificar permissão de edição com base na sala do usuário
     if request.user.area != semanario.sala:
         messages.error(request, "❌ Você não pode editar semanários de outra sala.")
-    return redirect("semanario:lista_semanarios")
+        return redirect("semanario:lista_semanarios")
 
     # Pegando atividades existentes ou criando 5 vazias
     atividades_existentes = list(semanario.atividades.all())
@@ -192,8 +192,8 @@ class SemanarioListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         hoje = timezone.now().date()
         return Semanario.objects.filter(
-            data__gt=hoje + timezone.timedelta(days=-14)
-        ).order_by("data")
+            data__data__gt=hoje + timezone.timedelta(days=-14)
+        ).order_by("data__data")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

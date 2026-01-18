@@ -40,10 +40,6 @@ class DisponibilidadeVoluntario(models.Model):
     vai_ao_projeto = models.BooleanField(null=False)
     pode_ajudar = models.ManyToManyField(FaixaHorarioAjuda,blank=True)
     vai_de_carro = models.BooleanField(null=True)
-
-    TIPO_ALIMENTACAO = (("ONIVORO", "Onívoro"),("VEGETARIANO", "Vegetariano"),("VEGANO", "Vegano"))
-
-    alimentacao = models.CharField(max_length=20,choices=TIPO_ALIMENTACAO,blank=True,null=True)
     respondido_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

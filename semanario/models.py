@@ -37,7 +37,7 @@ UNIDADES = (
 )
 
 LOCAIS = (
-    ("SALNHA", "Salinha"),
+    ("SALINHA", "Salinha"),
     ("CAMPO", "Campo"),
     ("RANCHO", "Rancho"),
     ("PRAÇA", "Praça"),
@@ -49,9 +49,10 @@ class Semanario(models.Model):
     tema = models.CharField(max_length=100, blank=True, null=True)
     sala = models.CharField(max_length=20, choices=LISTA_SALAS)
     data = models.ForeignKey(Sabado,on_delete=models.CASCADE,related_name="semanarios")
-    projetor = models.BooleanField(default=True)
-    vagas = models.PositiveIntegerField(default=1)
+    projetor = models.BooleanField(default=False)
+    vagas = models.PositiveIntegerField(default=0)
     talentos_necessarios = models.ManyToManyField("voluntario.Talento", blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.sala}"
@@ -60,7 +61,7 @@ class Atividade(models.Model):
     semanario = models.ForeignKey(Semanario,on_delete=models.CASCADE,related_name="atividades")
     atividade = models.CharField(max_length=100)
     descricao = models.TextField()
-    local = models.CharField(max_length=100, choices=LOCAIS, blank=True, null=True, default="SALNHA")
+    local = models.CharField(max_length=100, choices=LOCAIS, blank=True, null=True, default="SALINHA")
     competencia = models.CharField(max_length=50)
     fotos = models.ImageField(upload_to='fotos_atividades', blank=True, null=True)
     tempo_atividade = models.PositiveIntegerField(help_text="Tempo da atividade em minutos", blank=True, null=True) 

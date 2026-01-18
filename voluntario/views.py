@@ -1,10 +1,12 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, TemplateView
 from .models import Voluntario, PresencaVoluntario
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.utils.timezone import localdate
 from django.contrib import messages
+from sabado.models import Sabado
 
 # Create your views here.
 class VoluntarioView(LoginRequiredMixin, TemplateView):
@@ -47,32 +49,45 @@ class ListaVoluntario(LoginRequiredMixin, ListView):
 # ✅ view protegida com login
 @login_required(login_url="/")
 def RegistrarPresencasVoluntarios(request):
-    hoje = timezone.now().date()
+    hoje = localdate()
+    AREAS_PERMITIDAS = ["TRIADE", "GESTAO_DE_TALENTOS"]
+
+    # Impede registro se usuário não tem área definida ou não está em áreas permitidas
+    if not hasattr(request.user, 'area') or not request.user.area:
+        messages.error(request, "❌ Você não pode registrar presença sem ter uma área definida no cadastro.")
+        return redirect("inicio")
+    if request.user.area not in AREAS_PERMITIDAS:
+        messages.error(request, "❌ Você não pode registrar presença. Sua área não tem permissão para este registro.")
+        return redirect("inicio")
+
+    # Busca o sábado cadastrado para hoje (data exata)
+    sabado_obj = Sabado.objects.filter(data=hoje).first()
+    if not sabado_obj:
+        messages.warning(request, "Não existe sábado cadastrado para hoje. O registro de presenças só é permitido no sábado cadastrado.")
+        return render(request, "presencas_voluntarios.html", {"voluntarios": [], "areas": LISTA_AREAS, "hoje": hoje})
+
     voluntarios = Voluntario.objects.filter(is_active=True).exclude(
-        presencas__data=hoje
+        presencas__data=sabado_obj
     ).order_by("first_name")
 
     if request.method == "POST":
         registros_criados = 0
-
         for voluntario in voluntarios:
             presenca = request.POST.get(f"presenca_{voluntario.id}")
             if presenca:
                 PresencaVoluntario.objects.create(
                     voluntario=voluntario,
                     presenca=presenca,
-                    data=hoje
+                    data=sabado_obj,
+                    registrado_por=request.user
                 )
                 registros_criados += 1
-
         if registros_criados > 0:
             messages.success(request, f"✅ {registros_criados} presenças salvas com sucesso!")
         else:
             messages.warning(request, "⚠️ Nenhuma presença selecionada.")
-
-        # Atualiza a lista
-        voluntarios = Voluntario.objects.exclude(
-            presencas__data=hoje
+        voluntarios = Voluntario.objects.filter(is_active=True).exclude(
+            presencas__data=sabado_obj
         ).order_by("first_name")
 
     contexto = {

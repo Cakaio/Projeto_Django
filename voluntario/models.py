@@ -62,6 +62,7 @@ class PresencaVoluntario(models.Model):
     voluntario = models.ForeignKey("Voluntario",on_delete=models.CASCADE,related_name="presencas")
     presenca = models.CharField(max_length=15,choices=OPCOES_PRESENCA,default="PRESENTE")
     data = models.ForeignKey(Sabado,on_delete=models.CASCADE,related_name="presencas_voluntarios")
+    registrado_por = models.ForeignKey("Voluntario",on_delete=models.SET_NULL,blank=True,null=True,related_name="presencas_registradas_voluntarios")
 
     def __str__(self):
         return f"{self.voluntario.username} - {self.data} ({self.get_presenca_display()})"

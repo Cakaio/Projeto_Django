@@ -11,7 +11,7 @@ class SabadoAdmin(admin.ModelAdmin):
 class DisponibilidadeVoluntarioAdmin(admin.ModelAdmin):
     list_display = ['sabado', 'voluntario', 'vai_ao_projeto']
     search_fields = ['voluntario__first_name', 'voluntario__last_name']
-    list_filter = ['sabado', 'vai_ao_projeto', 'alimentacao']
+    list_filter = ['sabado', 'vai_ao_projeto']
     filter_horizontal = ['pode_ajudar']
 
 @admin.register(FaixaHorarioAjuda)
