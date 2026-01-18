@@ -351,6 +351,23 @@ Início
   </div>
 </section>
 
+<!-- Lista de formulários de disponibilidade abertos -->
+<section class="container my-4">
+  <h4>Formulários de Disponibilidade Abertos</h4>
+  <ul class="list-group">
+    {% for sabado in sabados_abertos %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>
+          <strong>{{ sabado.data|date:"d/m/Y" }}</strong> — {{ sabado.tema }}
+        </span>
+        <a href="{% url 'sabado:responder_disponibilidade' sabado.id %}" class="btn btn-primary btn-sm">Responder</a>
+      </li>
+    {% empty %}
+      <li class="list-group-item">Nenhum formulário aberto no momento.</li>
+    {% endfor %}
+  </ul>
+</section>
+
 <!-- SEÇÃO DE FEATURES -->
 <section class="features-section">
   <div class="container">

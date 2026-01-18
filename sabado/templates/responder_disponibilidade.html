@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block titulo %}Disponibilidade do Voluntário{% endblock %}
+
+{% block content %}
+<div class="container my-5" style="max-width: 720px;">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h3 class="mb-2">Disponibilidade — {{ sabado.data|date:"d/m/Y" }}</h3>
+      <p class="text-muted mb-4">{{ sabado.tema }}</p>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">Você vai ao projeto?</label>
+          {{ form.vai_ao_projeto }}
+        </div>
+
+        <hr>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">Você pode ajudar em quais horários?</label>
+          {{ form.pode_ajudar }}
+        </div>
+
+        <hr>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">Você vai de carro e pode dar carona?</label>
+          {{ form.vai_de_carro }}
+        </div>
+
+        <hr>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">Como você está se sentindo essa semana?</label>
+          {{ form.saude }}
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button class="btn btn-success" type="submit">Salvar</button>
+          <a class="btn btn-outline-secondary" href="/inicio/">Voltar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

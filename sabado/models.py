@@ -37,8 +37,9 @@ class FaixaHorarioAjuda(models.Model):
 class DisponibilidadeVoluntario(models.Model):
     sabado = models.ForeignKey(Sabado,on_delete=models.CASCADE,related_name="disponibilidades")
     voluntario = models.ForeignKey("voluntario.Voluntario",on_delete=models.CASCADE,related_name="disponibilidades")
-    vai_ao_projeto = models.BooleanField(null=False)
+    vai_ao_projeto = models.BooleanField(null=False, default=True)
     pode_ajudar = models.ManyToManyField(FaixaHorarioAjuda,blank=True)
+    saude = models.BooleanField(null=True, default=True)
     vai_de_carro = models.BooleanField(null=True)
     respondido_em = models.DateTimeField(auto_now_add=True)
 
