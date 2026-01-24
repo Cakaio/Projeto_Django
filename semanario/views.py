@@ -171,6 +171,17 @@ def editar_semanario(request, semanario_id):
             messages.success(request, "✅ Semanário atualizado com sucesso!")
             return redirect("semanario:lista_semanarios")
         else:
+            # Diagnóstico detalhado dos erros do formset e do form principal
+            with open('semanario_form_errors.log', 'a', encoding='utf-8') as log:
+                log.write(f"\n--- Erros em {timezone.now()} ---\n")
+                if semanario_form.errors:
+                    log.write(f"Erros no SemanarioForm: {semanario_form.errors}\n")
+                if formset.non_form_errors():
+                    log.write(f"Non form errors do formset: {formset.non_form_errors()}\n")
+                for i, f in enumerate(formset.forms):
+                    if f.errors:
+                        log.write(f"Erro na Atividade #{i+1}: {f.errors}\n")
+                        messages.error(request, f"Erro na Atividade #{i+1}: {f.errors}")
             messages.error(request, "Existem erros no formulário. Confira os campos.")
 
     else:

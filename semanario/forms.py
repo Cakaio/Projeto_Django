@@ -20,6 +20,7 @@ class AtividadeForm(forms.ModelForm):
         self.fields['descricao'].required = False
         self.fields['local'].required = False
         self.fields['feedback'].required = False
+        self.empty_permitted = True
 
         if sala and sala in COMPETENCIAS_SALAS:
             self.fields['competencia'].widget = forms.Select(

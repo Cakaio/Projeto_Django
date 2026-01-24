@@ -14,453 +14,792 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #00acac;
-      --primary-hover: #4f46e5;
-      --primary-light: #eef2ff;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #8b5cf6;
+      --bg-light: #f8fafc;
+      --bg-card: #ffffff;
+      --text-dark: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
       --success: #10b981;
-      --success-hover: #059669;
+      --success-dark: #059669;
       --danger: #ef4444;
       --warning: #f59e0b;
-      --background: #f8fafc;
-      --surface: #ffffff;
-      --border: #e2e8f0;
-      --text-primary: #1e293b;
-      --text-secondary: #64748b;
-      --text-muted: #94a3b8;
-      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-      --radius: 12px;
-      --radius-lg: 16px;
     }
 
-    * { font-family: 'Inter', sans-serif; }
-    body { background: var(--background); color: var(--text-primary); min-height: 100vh; }
+    * {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      min-height: 100vh;
+      position: relative;
+    }
+
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      z-index: 0;
+    }
+
+    body::before {
+      width: 400px;
+      height: 400px;
+      top: -100px;
+      right: -100px;
+    }
+
+    body::after {
+      width: 300px;
+      height: 300px;
+      bottom: -50px;
+      left: -50px;
+    }
+
+    .main-container {
+      position: relative;
+      z-index: 1;
+      padding: 2rem 0;
+    }
 
     .page-header {
-      background: linear-gradient(135deg, var(--primary) 0%, #00acac79 100%);
-      padding: 3rem 0;
+      background: var(--bg-card);
+      border-radius: 20px;
+      padding: 2rem;
       margin-bottom: 2rem;
-    }
-    .page-header h1 { color: white; font-weight: 700; font-size: 2rem; margin: 0; }
-    .page-header p { color: rgba(255, 255, 255, 0.8); margin: 0.5rem 0 0; }
-
-    .main-card {
-      background: var(--surface);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      border: 1px solid var(--border);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      position: relative;
       overflow: hidden;
     }
 
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 1.5rem;
-      background: var(--primary-light);
-      border-bottom: 1px solid var(--border);
+    .page-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
     }
-    .section-header .icon {
-      width: 40px;
-      height: 40px;
-      background: var(--primary);
-      border-radius: 10px;
+
+    .page-header-icon {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
+      margin: 0 auto 1rem;
+      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .page-header-icon svg {
+      width: 36px;
+      height: 36px;
       color: white;
     }
-    .section-header .icon svg { width: 20px; height: 20px; }
-    .section-header h5 { margin: 0; font-weight: 600; color: var(--text-primary); }
-    .section-header span { color: var(--text-secondary); font-size: 0.875rem; }
-    .section-body { padding: 1.5rem; }
 
-    .form-label { font-weight: 500; color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem; }
-    .form-control, .form-select {
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
-      padding: 0.75rem 1rem;
-      font-size: 0.9375rem;
-      transition: all 0.2s ease;
-      background: var(--surface);
-      width: 100%;
-    }
-    .form-control:focus, .form-select:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-    }
-
-    /* Adiciona estilo para garantir que labels e inputs fiquem empilhados */
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .form-group label {
-      font-weight: 500;
-      color: var(--text-secondary);
-      font-size: 0.875rem;
+    .page-header h2 {
+      color: var(--text-dark);
+      font-weight: 700;
+      font-size: 1.75rem;
       margin: 0;
     }
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius);
+
+    .section-card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+      border: none;
+    }
+
+    .section-header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      padding: 1rem 1.5rem;
+      font-weight: 600;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-header svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .section-body {
+      padding: 1.5rem;
+    }
+
+    .form-label {
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .form-control,
+    .form-select {
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
       padding: 0.75rem 1rem;
-      font-size: 0.9375rem;
-      transition: all 0.2s ease;
-      background: var(--surface);
-      width: 100%;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+      background-color: var(--bg-light);
     }
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
+
+    .form-control:focus,
+    .form-select:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-      outline: none;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+      background-color: white;
     }
-    .form-group textarea {
+
+    textarea.form-control {
       min-height: 100px;
       resize: vertical;
     }
 
-    .alert { border-radius: var(--radius); border: none; padding: 1rem 1.25rem; }
-    .alert-danger { background: #fef2f2; color: #991b1b; }
-
-    .activity-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      margin-bottom: 1rem;
-      overflow: hidden;
-      transition: all 0.2s ease;
-    }
-    .activity-card:hover { box-shadow: var(--shadow); }
-
-    .activity-header {
+    /* Accordion Styles */
+    .accordion {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1rem 1.25rem;
-      background: #f8fafc;
-      cursor: pointer;
-      border: none;
-      width: 100%;
-      text-align: left;
-      transition: all 0.2s ease;
+      flex-direction: column;
+      gap: 1rem;
     }
-    .activity-header:hover { background: #f1f5f9; }
-    .activity-header .activity-info { display: flex; align-items: center; gap: 0.75rem; }
-    .activity-number {
+
+    .accordion-item {
+      background: var(--bg-card);
+      border: none;
+      border-radius: 16px !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+    }
+
+    .accordion-button {
+      background: var(--bg-light);
+      border: none;
+      padding: 1.25rem 1.5rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      font-size: 1rem;
+      gap: 0.75rem;
+      transition: all 0.3s ease;
+    }
+
+    .accordion-button:not(.collapsed) {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      box-shadow: none;
+    }
+
+    .accordion-button::after {
+      background-size: 1.25rem;
+      transition: transform 0.3s ease;
+    }
+
+    .accordion-button:not(.collapsed)::after {
+      filter: brightness(0) invert(1);
+    }
+
+    .accordion-button:focus {
+      box-shadow: none;
+      border-color: transparent;
+    }
+
+    .accordion-body {
+      padding: 1.5rem;
+      background: white;
+    }
+
+    .atividade-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 32px;
       height: 32px;
-      background: var(--primary);
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
-      border-radius: 8px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.875rem;
+    }
+
+    .accordion-button:not(.collapsed) .atividade-badge {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Buttons */
+    .btn-material {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      padding: 0.625rem 1.25rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .btn-material:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+      color: white;
+    }
+
+    .btn-submit {
+      background: linear-gradient(135deg, var(--success), var(--success-dark));
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+      color: white;
+    }
+
+    .btn-submit svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Modal Styles */
+    .modal-content {
+      border: none;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      padding: 1.25rem 1.5rem;
+    }
+
+    .modal-title {
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .modal-title svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .btn-close {
+      filter: brightness(0) invert(1);
+      opacity: 0.8;
+    }
+
+    .btn-close:hover {
+      opacity: 1;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-footer {
+      border-top: 1px solid var(--border-color);
+      padding: 1rem 1.5rem;
+      background: var(--bg-light);
+    }
+
+    /* Table Styles */
+    .materials-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .materials-table thead th {
+      background: var(--bg-light);
+      padding: 0.875rem 1rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .materials-table tbody td {
+      padding: 0.75rem;
+      vertical-align: middle;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .materials-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .materials-table .form-control,
+    .materials-table .form-select {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .btn-remove {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 600;
-      font-size: 0.875rem;
+      transition: all 0.3s ease;
     }
-    .activity-title { font-weight: 600; color: var(--text-primary); margin: 0; }
-    .activity-chevron { color: var(--text-muted); transition: transform 0.2s ease; }
-    .activity-header[aria-expanded="true"] .activity-chevron { transform: rotate(180deg); }
-    .activity-body { 
-      padding: 1.5rem; 
-      border-top: 1px solid var(--border); 
+
+    .btn-remove:hover {
+      background: var(--danger);
+      color: white;
     }
-    .activity-body .row {
-      display: grid;
-      gap: 1.25rem;
-    }
-    .activity-body .row.g-3 {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .activity-body .row .col-12 {
-      grid-column: 1 / -1;
-    }
-    .activity-body .row .col-md-6 {
-      grid-column: span 1;
-    }
-    .activity-body .row .col-md-4 {
-      grid-column: span 1;
-    }
-    /* Grid de 3 colunas para a ultima linha */
-    @media (min-width: 768px) {
-      .activity-body .fields-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1.25rem;
-      }
-      .activity-body .fields-grid .full-width {
-        grid-column: 1 / -1;
-      }
-      .activity-body .fields-grid-3 {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1.25rem;
-        margin-top: 1.25rem;
-      }
-    }
-    @media (max-width: 767px) {
-      .activity-body .fields-grid,
-      .activity-body .fields-grid-3 {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-      .activity-body .fields-grid-3 {
-        margin-top: 1rem;
-      }
+
+    .btn-remove svg {
+      width: 18px;
+      height: 18px;
     }
 
     .btn-add-material {
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+      border: 2px dashed var(--primary);
+      padding: 0.625rem 1.25rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.875rem;
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.625rem 1rem;
-      background: var(--primary-light);
-      color: var(--primary);
-      border: 1px solid var(--primary);
-      border-radius: var(--radius);
-      font-weight: 500;
-      font-size: 0.875rem;
-      transition: all 0.2s ease;
+      transition: all 0.3s ease;
     }
-    .btn-add-material:hover { background: var(--primary); color: white; }
-    .material-badge {
+
+    .btn-add-material:hover {
       background: var(--primary);
       color: white;
-      padding: 0.125rem 0.5rem;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
+      border-color: var(--primary);
     }
-    .btn-add-material:hover .material-badge { background: white; color: var(--primary); }
 
-    .btn-submit {
+    .btn-secondary-custom {
+      background: var(--bg-light);
+      color: var(--text-muted);
+      border: 2px solid var(--border-color);
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-secondary-custom:hover {
+      background: var(--border-color);
+      color: var(--text-dark);
+    }
+
+    .btn-save-modal {
+      background: linear-gradient(135deg, var(--success), var(--success-dark));
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 600;
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.875rem 2rem;
-      background: var(--success);
+      transition: all 0.3s ease;
+    }
+
+    .btn-save-modal:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+      color: white;
+    }
+
+    /* Form Group Styling */
+    .form-group-icon {
+      position: relative;
+    }
+
+    .form-group-icon .icon-left {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      width: 18px;
+      height: 18px;
+    }
+
+    .form-group-icon .form-control,
+    .form-group-icon .form-select {
+      padding-left: 2.75rem;
+    }
+
+    /* Feedback field special styling */
+    .feedback-field {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.1));
+      border-radius: 12px;
+      padding: 1rem;
+      border: 2px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .feedback-field .form-label {
+      color: var(--success-dark);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .feedback-field .form-label svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .feedback-field textarea {
+      border-color: rgba(16, 185, 129, 0.3);
+      background: white;
+    }
+
+    .feedback-field textarea:focus {
+      border-color: var(--success);
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 9999;
+    }
+
+    .toast-success {
+      background: linear-gradient(135deg, var(--success), var(--success-dark));
       color: white;
       border: none;
-      border-radius: var(--radius);
-      font-weight: 600;
-      font-size: 1rem;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
-    }
-    .btn-submit:hover {
-      background: var(--success-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(16, 185, 129, 0.4);
     }
 
-    .modal-content { border: none; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
-    .modal-header { background: var(--primary-light); border-bottom: 1px solid var(--border); padding: 1.25rem 1.5rem; }
-    .modal-title { font-weight: 600; color: var(--text-primary); }
-    .modal-body { padding: 1.5rem; }
-    .modal-footer { border-top: 1px solid var(--border); padding: 1rem 1.5rem; }
-
-    .table-modern { border-collapse: separate; border-spacing: 0; }
-    .table-modern thead th {
-      background: #f8fafc;
-      border: none;
-      padding: 0.875rem 1rem;
-      font-weight: 600;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-secondary);
-    }
-    .table-modern tbody td {
-      padding: 0.75rem;
-      border: none;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
+    /* Custom Checkbox - Round Purple */
+    .custom-checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-light);
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      height: 38%;
+      min-height: 40px;
     }
 
-    .btn-remove-row {
-      width: 32px;
-      height: 32px;
-      padding: 0;
+    .custom-checkbox-wrapper:hover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .custom-checkbox-wrapper input[type="checkbox"] {
+      display: none;
+    }
+
+    .custom-checkbox-circle {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: white;
-      color: var(--danger);
-      transition: all 0.2s ease;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
     }
-    .btn-remove-row:hover { background: #fef2f2; border-color: var(--danger); }
 
-    .btn-add-line {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: white;
-      color: var(--primary);
-      border: 1px dashed var(--primary);
-      border-radius: var(--radius);
-      font-weight: 500;
-      font-size: 0.875rem;
-      transition: all 0.2s ease;
-    }
-    .btn-add-line:hover { background: var(--primary-light); }
-
-    .btn-modal-save {
-      background: var(--primary);
+    .custom-checkbox-circle svg {
+      width: 14px;
+      height: 14px;
       color: white;
-      border: none;
-      padding: 0.625rem 1.25rem;
-      border-radius: var(--radius);
-      font-weight: 500;
+      opacity: 0;
+      transform: scale(0);
       transition: all 0.2s ease;
     }
-    .btn-modal-save:hover { background: var(--primary-hover); }
 
-    .btn-modal-close {
-      background: white;
-      color: var(--text-secondary);
-      border: 1px solid var(--border);
-      padding: 0.625rem 1.25rem;
-      border-radius: var(--radius);
-      font-weight: 500;
-      transition: all 0.2s ease;
+    .custom-checkbox-wrapper input[type="checkbox"]:checked + .custom-checkbox-circle {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-color: var(--primary);
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
     }
-    .btn-modal-close:hover { background: #f8fafc; }
 
+    .custom-checkbox-wrapper input[type="checkbox"]:checked + .custom-checkbox-circle svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .custom-checkbox-text {
+      font-weight: 500;
+      color: var(--text-dark);
+      font-size: 0.95rem;
+    }
+
+    /* Talentos Necessarios Field */
+    .talentos-field {
+      position: relative;
+    }
+
+    .talentos-field .form-control {
+      padding-left: 2.75rem;
+      min-height: 52px;
+    }
+
+    .talentos-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      color: var(--primary);
+    }
+
+    /* Responsive */
     @media (max-width: 768px) {
-      .page-header { padding: 2rem 0; }
-      .page-header h1 { font-size: 1.5rem; }
-      .section-body, .activity-body { padding: 1rem; }
+      .page-header {
+        padding: 1.5rem;
+      }
+
+      .page-header h2 {
+        font-size: 1.5rem;
+      }
+
+      .section-body {
+        padding: 1rem;
+      }
+
+      .accordion-button {
+        padding: 1rem;
+        font-size: 0.9rem;
+      }
+
+      .accordion-body {
+        padding: 1rem;
+      }
+
+      .btn-submit {
+        width: 100%;
+        justify-content: center;
+      }
     }
   </style>
 </head>
 <body>
 
-
-
-<div class="container my-5">
-  <h2 class="text-center mb-4 text-primary">
-    {% if semanario %}Editar Semanário{% else %}Criar Semanário{% endif %}
-  </h2>
+<div class="container main-container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+      </svg>
+    </div>
+    <h2>{% if semanario %}Editar Semanário{% else %}Criar Semanário{% endif %}</h2>
+  </div>
 
   <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
 
-    <!-- ================= SEMANÁRIO ================= -->
-    <div class="card shadow-sm mb-4">
-      <div class="card-header fw-bold">Informações do Semanário</div>
-      <div class="card-body row g-3">
-        <div class="col-md-4">
-          {{ semanario_form.tema.label_tag }}
-          {{ semanario_form.tema }}
-        </div>
-        <div class="col-md-4">
-          {{ semanario_form.sala.label_tag }}
-          {{ semanario_form.sala }}
-        </div>
-        <div class="col-md-4">
-          {{ semanario_form.data.label_tag }}
-          {{ semanario_form.data }}
+    <!-- Informações do Semanário -->
+    <div class="section-card">
+      <div class="section-header">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Informações do Semanário
+      </div>
+      <div class="section-body">
+        <div class="row g-4">
+          <div class="col-md-4">
+            <label class="form-label">{{ semanario_form.tema.label }}</label>
+            {{ semanario_form.tema }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ semanario_form.sala.label }}</label>
+            {{ semanario_form.sala }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ semanario_form.data.label }}</label>
+            {{ semanario_form.data }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ semanario_form.projetor.label }}</label>
+            <label class="custom-checkbox-wrapper">
+              <input type="checkbox" name="projetor" {% if semanario_form.projetor.value %}checked{% endif %}>
+              <span class="custom-checkbox-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+              <span class="custom-checkbox-text">Preciso de projetor</span>
+            </label>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ semanario_form.vagas.label }}</label>
+            {{ semanario_form.vagas }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 6px; color: var(--primary);">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              {{ semanario_form.talentos_necessarios.label }}
+            </label>
+            {{ semanario_form.talentos_necessarios }}
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- ================= ATIVIDADES ================= -->
+    <!-- Atividades -->
     {{ formset.management_form }}
 
-    <div class="accordion" id="accordionAtividades">
+    <div class="section-card">
+      <div class="section-header">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+        Atividades
+      </div>
+      <div class="section-body p-0">
+        <div class="accordion" id="accordionAtividades">
+          {% for form in formset %}
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+              <button class="accordion-button collapsed" type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#collapse{{ forloop.counter }}">
+                <span class="atividade-badge">{{ forloop.counter }}</span>
+                Atividade: {{ form.atividade.value|default:forloop.counter }}
+              </button>
+            </h2>
 
-      {% for form in formset %}
-      <div class="accordion-item mb-2">
-        <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-          <button class="accordion-button collapsed fw-semibold" type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#collapse{{ forloop.counter }}">
-            Atividade: {{ form.atividade.value|default:forloop.counter }}
-          </button>
-        </h2>
+            <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse">
+              <div class="accordion-body">
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <label class="form-label">{{ form.atividade.label }}</label>
+                    {{ form.atividade }}
+                  </div>
 
-        <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse">
-          <div class="accordion-body">
+                  <div class="col-md-6">
+                    <label class="form-label">{{ form.competencia.label }}</label>
+                    {{ form.competencia }}
+                  </div>
 
-            <div class="row g-3 align-items-end">
-              <div class="col-md-6">
-                {{ form.atividade.label_tag }}
-                {{ form.atividade }}
+                  <div class="col-md-12">
+                    <label class="form-label">{{ form.descricao.label }}</label>
+                    {{ form.descricao }}
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">{{ form.tempo_atividade.label }}</label>
+                    {{ form.tempo_atividade }}
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">{{ form.responsavel.label }}</label>
+                    {{ form.responsavel }}
+                  </div>
+
+                  <div class="col-md-4 d-flex align-items-end">
+                    <button type="button"
+                            class="btn btn-material"
+                            data-bs-toggle="modal"
+                            data-bs-target="#materiaisModal"
+                            data-atividade-id="{{ form.instance.id }}"
+                            data-atividade-index="{{ forloop.counter0 }}">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      Materiais
+                    </button>
+                  </div>
+
+                  <div class="col-md-12">
+                    <div class="feedback-field">
+                      <label class="form-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                        </svg>
+                        {{ form.feedback.label }}
+                      </label>
+                      {{ form.feedback }}
+                    </div>
+                  </div>
+
+                  {{ form.id }}
+                </div>
               </div>
-
-              <div class="col-md-6">
-                {{ form.competencia.label_tag }}
-                {{ form.competencia }}
-              </div>
-
-              <div class="col-md-12">
-                {{ form.descricao.label_tag }}
-                {{ form.descricao }}
-              </div>
-
-              <div class="col-md-4">
-                {{ form.tempo_atividade.label_tag }}
-                {{ form.tempo_atividade }}
-              </div>
-
-              <div class="col-md-4">
-                {{ form.responsavel.label_tag }}
-                {{ form.responsavel }}
-              </div>
-
-              <div class="col-md-4 text-end">
-                <button type="button"
-                        class="btn btn-outline-primary btn-sm"
-                        data-bs-toggle="modal"
-                        data-bs-target="#materiaisModal"
-                        data-atividade-id="{{ form.instance.id }}"
-                        data-atividade-index="{{ forloop.counter0 }}">
-                  ➕ Materiais
-                </button>
-              </div>
-
-              <div class="col-md-12">
-                {{ form.feedback.label_tag }}
-                {{ form.feedback }}
-              </div>
-
-              {{ form.id }}
             </div>
-
           </div>
+          {% endfor %}
         </div>
       </div>
-      {% endfor %}
     </div>
 
     <!-- JSON escondido para materiais -->
     <input type="hidden" name="materiais_json" id="materiais_json">
 
     <div class="text-end mt-4">
-      <button type="submit" class="btn btn-success px-4">
-        💾 Salvar Semanário
+      <button type="submit" class="btn btn-submit">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+        </svg>
+        Salvar Semanário
       </button>
     </div>
   </form>
 </div>
 
-<!-- ================= MODAL MATERIAIS ================= -->
+<!-- Modal Materiais -->
 <div class="modal fade" id="materiaisModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Materiais da Atividade</h5>
+        <h5 class="modal-title">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+          Materiais da Atividade
+        </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
@@ -468,13 +807,13 @@
         <form id="materiais-form">
           <input type="hidden" id="atividade-id">
 
-          <table class="table table-sm">
+          <table class="materials-table">
             <thead>
               <tr>
                 <th>Material</th>
                 <th>Quantidade</th>
                 <th>Unidade</th>
-                <th>Ação</th>
+                <th style="width: 60px;">Ação</th>
               </tr>
             </thead>
             <tbody id="materiais-body">
@@ -482,25 +821,45 @@
             </tbody>
           </table>
 
-          <button type="button" class="btn btn-outline-primary btn-sm" id="add-material">
-            ➕ Adicionar material
-          </button>
+          <div class="mt-3">
+            <button type="button" class="btn btn-add-material" id="add-material">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Adicionar material
+            </button>
+          </div>
         </form>
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+        <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">
           Fechar
         </button>
-        <button type="button" class="btn btn-success" id="salvar-materiais">
-          💾 Salvar
+        <button type="button" class="btn btn-save-modal" id="salvar-materiais">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Salvar
         </button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ================= SCRIPT ================= -->
+<!-- Toast -->
+<div class="toast-container">
+  <div class="toast toast-success" id="materiaisToast" role="alert">
+    <div class="toast-body d-flex align-items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      Materiais salvos com sucesso!
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // Helpers e handlers para modal de Materiais (editar)
 const modal = document.getElementById("materiaisModal");
@@ -528,8 +887,8 @@ function novaLinha(material = {}){
   const unidade = material.unidade || 'UN';
   return `
     <tr>
-      <td><input class="form-control mat-nome" value="${nome}"></td>
-      <td><input class="form-control mat-quant" value="${quantidade}"></td>
+      <td><input class="form-control mat-nome" value="${nome}" placeholder="Nome do material"></td>
+      <td><input class="form-control mat-quant" value="${quantidade}" placeholder="Qtd"></td>
       <td>
         <select class="form-select mat-unidade">
           <option value="UN"${unidade==='UN' ? ' selected':''}>Unidade</option>
@@ -537,7 +896,13 @@ function novaLinha(material = {}){
           <option value="CX"${unidade==='CX' ? ' selected':''}>Caixa</option>
         </select>
       </td>
-      <td><button type="button" class="btn btn-danger btn-sm remover-material">🗑</button></td>
+      <td>
+        <button type="button" class="btn btn-remove remover-material">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </td>
     </tr>`;
 }
 
@@ -643,7 +1008,19 @@ document.getElementById('salvar-materiais').addEventListener('click', function()
     }
   }
 });
+
+// Add form-control class to all Django form inputs
+document.addEventListener('DOMContentLoaded', function() {
+  const inputs = document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea, select');
+  inputs.forEach(input => {
+    if (input.tagName === 'SELECT') {
+      input.classList.add('form-select');
+    } else {
+      input.classList.add('form-control');
+    }
+  });
+});
 </script>
 
-
 {% endblock %}
+

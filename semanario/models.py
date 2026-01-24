@@ -25,6 +25,58 @@ COMPETENCIAS_SALAS = {
     "FAMILIA_FELIZ": ["Cidadania","Quem sou eu?","Reinventar meu lugar no mundo","Resiliência emocional",],
 }
 
+DIMENSOES_COMPETENCIAS = {
+    "Desenvolvimento Socioemocional e Relacional": [
+        "Respeito",
+        "Sentimentos",
+        "Cooperação e relações interpessoais",
+        "Empatia",
+        "Trabalho em equipe",
+        "Vínculo",
+        "Quebra de panelinhas",
+        "Relacionamento interpessoal",
+    ],
+
+    "Autoconhecimento, Identidade e Projeto de Vida": [
+        "Autoconhecimento",
+        "Projeção de futuro",
+        "Reinventar seu lugar no mundo",
+        "Visão global",
+        "Quem sou eu",
+    ],
+
+    "Autonomia, Responsabilidade e Protagonismo": [
+        "Responsabilidade e consequência",
+        "Autonomia",
+        "Liderança",
+        "Responsabilidade",
+        "Resiliência emocional",
+    ],
+
+    "Pensamento Crítico e Consciência Social": [
+        "Ampliação de visão de mundo e tolerância",
+        "Consciência social",
+        "Senso crítico",
+        "Pensamento crítico",
+        "Cidadania",
+    ],
+
+    "Criatividade, Expressão e Comunicação": [
+        "Imaginação",
+        "Criatividade",
+        "Prática sensorial e coordenação motora",
+        "Expressão de opinião",
+        "Comunicação",
+    ],
+
+    "Aprendizagem Cognitiva e Desenvolvimento Intelectual": [
+        "Comunicação e introdução à leitura",
+        "Concentração e memória",
+        "Incentivo à leitura e escrita",
+    ],
+}
+
+
 UNIDADES = (
     ("UN", "Unidade"),
     ("PAC", "Pacote"),
@@ -38,6 +90,7 @@ UNIDADES = (
 
 LOCAIS = (
     ("SALINHA", "Salinha"),
+    ("FF", "FF"),
     ("CAMPO", "Campo"),
     ("RANCHO", "Rancho"),
     ("PRAÇA", "Praça"),
@@ -55,7 +108,7 @@ class Semanario(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.sala}"
+        return f"{self.sala} - {self.data.data.strftime('%d/%m/%Y')}"
 
 class Atividade(models.Model):
     semanario = models.ForeignKey(Semanario,on_delete=models.CASCADE,related_name="atividades")
@@ -63,6 +116,7 @@ class Atividade(models.Model):
     descricao = models.TextField()
     local = models.CharField(max_length=100, choices=LOCAIS, blank=True, null=True, default="SALINHA")
     competencia = models.CharField(max_length=50)
+    dimensao_competencia = models.CharField(max_length=50, editable=False, blank=True, null=True)
     fotos = models.ImageField(upload_to='fotos_atividades', blank=True, null=True)
     tempo_atividade = models.PositiveIntegerField(help_text="Tempo da atividade em minutos", blank=True, null=True) 
     feedback = models.TextField(blank=True, null=True)
@@ -70,6 +124,22 @@ class Atividade(models.Model):
 
     def __str__(self):
         return f"{self.atividade} {self.semanario.sala}"
+    
+    def save(self, *args, **kwargs):
+        self.dimensao_competencia = self.get_dimensao_por_competencia()
+        super().save(*args, **kwargs)
+
+    def get_dimensao_por_competencia(self):
+        if not self.competencia:
+            return ""
+
+        for dimensao, competencias in DIMENSOES_COMPETENCIAS.items():
+            if self.competencia.strip().lower() in [
+                c.lower() for c in competencias
+            ]:
+                return dimensao
+
+        return "Não classificada"
 
 class Material(models.Model):
     atividade = models.ForeignKey(Atividade,on_delete=models.CASCADE,related_name="materiais")
