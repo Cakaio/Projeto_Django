@@ -228,6 +228,9 @@ class ResponsavelAtendido(models.Model):
     escolaridade = models.CharField(max_length=100, choices=ESCOLARIDADE, blank=True, null=True, help_text="Escolaridade do responsável pelo atendido")
     data_criacao = models.DateTimeField(default=timezone.now)
 
+    def __str__(self):
+        return f"{self.nome}"
+
 class PresencaAtendido(models.Model):
     OPCOES_PRESENCA = [
         ("PRESENTE", "Presente"),
