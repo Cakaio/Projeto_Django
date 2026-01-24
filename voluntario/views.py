@@ -1,7 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic import ListView, DetailView, TemplateView
+from django.views.generic import ListView, DetailView, TemplateView, UpdateView
 from .models import Voluntario, PresencaVoluntario
+from .forms import MeuPerfilForm
+from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.utils.timezone import localdate
@@ -96,3 +98,18 @@ def RegistrarPresencasVoluntarios(request):
         "hoje": hoje,
     }
     return render(request, "presencas_voluntarios.html", contexto)
+
+
+
+class MeuPerfilView(LoginRequiredMixin, UpdateView):
+    model = Voluntario
+    form_class = MeuPerfilForm
+    template_name = "meu_perfil.html"
+    success_url = reverse_lazy("voluntario:meu_perfil")
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def form_valid(self, form):
+        messages.success(self.request, "✅ Perfil atualizado com sucesso!")
+        return super().form_valid(form)

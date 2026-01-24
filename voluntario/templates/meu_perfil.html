@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Meu Perfil{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">👤 Meu Perfil</h4>
+        </div>
+
+        <div class="card-body">
+          <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.errors %}
+              <div class="alert alert-danger">
+                <ul class="mb-0">
+                  {% for field in form %}
+                    {% for error in field.errors %}
+                      <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                  {% endfor %}
+                  {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+
+            <!-- FOTO COM PREVIEW -->
+            <div class="text-center mb-4">
+              {% if user.foto %}
+                <img id="previewFoto"
+                     src="{{ user.foto.url }}"
+                     class="rounded-circle mb-3 shadow"
+                     width="130"
+                     height="130">
+              {% else %}
+                <img id="previewFoto"
+                     src="{% static 'images/sem-foto.jpg' %}"
+                     class="rounded-circle mb-3 shadow"
+                     width="130"
+                     height="130">
+              {% endif %}
+
+              <div class="mt-2">
+                {{ form.foto.label_tag }}
+                {{ form.foto }}
+              </div>
+            </div>
+
+            <hr>
+
+            <!-- DADOS PRINCIPAIS -->
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                {{ form.first_name.label_tag }}
+                {{ form.first_name }}
+              </div>
+              <div class="col-md-6">
+                {{ form.last_name.label_tag }}
+                {{ form.last_name }}
+              </div>
+              <div class="col-md-6">
+                {{ form.apelido.label_tag }}
+                {{ form.apelido }}
+              </div>
+              <div class="col-md-6">
+                {{ form.email.label_tag }}
+                {{ form.email }}
+              </div>
+              <div class="col-md-6">
+                {{ form.email_alternativo.label_tag }}
+                {{ form.email_alternativo }}
+              </div>
+              <div class="col-md-6">
+                {{ form.celular.label_tag }}
+                {{ form.celular }}
+              </div>
+              <div class="col-md-6">
+                {{ form.instagram.label_tag }}
+                {{ form.instagram }}
+              </div>
+              <div class="col-md-6">
+                {{ form.data_nascimento.label_tag }}
+                <input type="date" name="data_nascimento" class="form-control" value="{{ form.data_nascimento.value|date:'Y-m-d' }}">
+              </div>
+              <div class="col-md-6">
+                {{ form.endereco.label_tag }}
+                {{ form.endereco }}
+              </div>
+              <div class="col-md-6">
+                {{ form.republica.label_tag }}
+                {{ form.republica }}
+              </div>
+              <div class="col-md-6">
+                {{ form.rg.label_tag }}
+                {{ form.rg }}
+              </div>
+              <div class="col-md-6">
+                {{ form.restricao_alimentar.label_tag }}
+                {{ form.restricao_alimentar }}
+              </div>
+              <div class="col-md-6">
+                {{ form.alimentacao.label_tag }}
+                {{ form.alimentacao }}
+              </div>
+              <div class="col-md-6">
+                {{ form.alergia.label_tag }}
+                {{ form.alergia }}
+              </div>
+              <div class="col-md-6">
+                {{ form.medicacao_continua.label_tag }}
+                {{ form.medicacao_continua }}
+              </div>
+              <div class="col-md-6">
+                {{ form.faculdade.label_tag }}
+                {{ form.faculdade }}
+              </div>
+              <div class="col-md-6">
+                {{ form.curso.label_tag }}
+                {{ form.curso }}
+              </div>
+              <div class="col-md-12">
+                {{ form.talentos.label_tag }}
+                {{ form.talentos }}
+              </div>
+              <div class="col-md-6">
+                {{ form.data_entrada.label_tag }}
+                {{ form.data_entrada }}
+              </div>
+              <div class="col-md-6">
+                {{ form.data_saida.label_tag }}
+                {{ form.data_saida }}
+              </div>
+            </div>
+
+            <hr>
+
+            <!-- CAMPOS BLOQUEADOS -->
+            <h6 class="text-muted mb-3">🔒 Informações do Sistema</h6>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                {{ form.username.label_tag }}
+                {{ form.username }}
+                <small class="text-muted">Este campo não pode ser alterado</small>
+              </div>
+
+              <div class="col-md-6">
+                {{ form.area.label_tag }}
+                {{ form.area }}
+                <small class="text-muted">Área vinculada ao voluntário</small>
+              </div>
+            </div>
+
+            <hr>
+
+            <!-- AÇÕES -->
+            <div class="d-flex justify-content-between align-items-center mt-4">
+              <a href="{% url 'voluntario:alterar_senha' %}"
+                 class="btn btn-warning btn-lg">
+                🔐 Alterar Senha
+              </a>
+
+              <button type="submit" class="btn btn-success px-4">
+                💾 Salvar Alterações
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- PREVIEW DA FOTO -->
+<script>
+  const inputFoto = document.getElementById("id_foto");
+  const preview = document.getElementById("previewFoto");
+
+  if (inputFoto) {
+    inputFoto.addEventListener("change", function () {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          preview.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+</script>
+{% endblock %}

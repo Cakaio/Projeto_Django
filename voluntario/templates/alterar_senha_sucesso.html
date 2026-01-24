@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block titulo %}Senha Alterada{% endblock %}
+
+{% block content %}
+<div class="container my-5 text-center">
+  <div class="card shadow p-4">
+    <h2 class="text-success mb-3">✅ Senha alterada com sucesso!</h2>
+    <p class="lead">Sua senha foi atualizada com segurança.<br>Use sua nova senha para acessar o sistema.</p>
+
+    <a href="{% url 'voluntario:meu_perfil' %}"
+       class="btn btn-success btn-lg mt-3">
+      👤 Voltar ao Meu Perfil
+    </a>
+  </div>
+</div>
+{% endblock %}
