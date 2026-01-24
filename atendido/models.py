@@ -169,6 +169,24 @@ class Atendido(models.Model):
     data_criacao = models.DateTimeField(default=timezone.now)
     ativo = models.BooleanField(default=True, help_text="Indica que o usuário será tratado como ativo. Ao invés de excluir atendidos, desmarque isso.")
 
+    def __str__(self):
+        return f"{self.nome}"
+
+class AtendidoInclusivo(models.Model):
+    atendido = models.OneToOneField(Atendido, on_delete=models.CASCADE, related_name="inclusivo")
+    diagnostico = models.BooleanField(blank=True, null=True, help_text="O Atendido possui algum diagnóstico médico formal (laudo)?")
+    diagnostico_descricao = models.TextField(blank=True, null=True, help_text="Descrição do diagnóstico médico formal (laudo) do Atendido")
+    acompanhamento = models.BooleanField(blank=True, null=True, help_text="A condições de saúde requer acompanhamento ou suporte especializado? Exemplo: Transtorno do Espectro Autista, TDAH?")
+    recomendacoes = models.TextField(blank=True, null=True, help_text="Qual é a recomendação do profissional de saúde ou educacional para melhor atender o Atendido?")
+    comportamento_social = models.TextField(blank=True, null=True, help_text="Descreva o comportamento social do Atendido (interação com colegas, comunicação, etc.)")
+    dificuldades_aprendizado = models.TextField(blank=True, null=True, help_text="O Atendido apresenta dificuldades específicas de aprendizado? Se sim, descreva.")
+    dificuldades_motoras = models.TextField(blank=True, null=True, help_text="O Atendido apresenta dificuldades motoras? Se sim, descreva.")
+    dificuldade_atencao = models.TextField(blank=True, null=True, help_text="O Atendido apresenta dificuldades de atenção ou concentração? Se sim, descreva.")
+    dificuldade_emocional = models.TextField(blank=True, null=True, help_text="O Atendido apresenta dificuldades em controlar suas emoções ou comportamentais? Se sim, descreva.")
+    servicos_apoio = models.BooleanField(blank=True, null=True, help_text="O Atendido recebe algum serviço de apoio externo (terapia ocupacional, fonoaudiologia, psicologia, etc.)?")
+    expectativas_familia = models.TextField(blank=True, null=True, help_text="Quais são as expectativas da família em relação ao apoio inclusivo oferecido pelo projeto?")
+    observacoes_adicionais = models.TextField(blank=True, null=True, help_text="Adicione quaisquer outras informações relevantes sobre as necessidades inclusivas do Atendido.")
+
     
 class Familia(models.Model):
     nome = models.CharField(max_length=50, blank=True, null=True,help_text="Nome da família")

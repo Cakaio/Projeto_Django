@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Atendido, Familia, PresencaAtendido, ResponsavelAtendido
+from .models import Atendido, Familia, PresencaAtendido, ResponsavelAtendido, AtendidoInclusivo
 
 # Register your models here.
 @admin.register(PresencaAtendido)
@@ -33,3 +33,13 @@ class FamiliaAdmin(admin.ModelAdmin):
 @admin.register(ResponsavelAtendido)
 class ResponsavelAtendidoAdmin(admin.ModelAdmin):
     list_display = ['nome', 'parentesco']
+
+
+@admin.register(AtendidoInclusivo)
+class AtendidoInclusivoAdmin(admin.ModelAdmin):
+    list_display = ['atendido', 'get_sala']
+    list_filter = ['atendido__sala']
+
+    def get_sala(self, obj):
+        return obj.atendido.sala if obj.atendido else None
+    get_sala.short_description = 'Sala'
