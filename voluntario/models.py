@@ -24,30 +24,59 @@ LISTA_AREAS = (
     ("TRIADE", "Tríade"),
 )
 
+FACULDADES = (
+    ("EEL-USP", "EEL-USP"),
+    ("SERRA DOURADA", "Serra Dourada"),
+    ("UNISAL", "Unisal"),
+    ("UNIFATEA", "Unifatea"),
+    ("OUTRA", "Outra"),
+    ("NAO_ESTUDANTE", "Não Estudante")
+)
+
+CURSOS = (
+    ("ENGENHARIA_QUÍMICA", "Engenharia Química"),
+    ("ENGENHARIA_DE_PRODUÇÃO", "Engenharia de Produção"),
+    ("ENGENHARIA_FÍSICA", "Engenharia Física"),
+    ("ENGENHARIA_AMBIENTAL", "Engenharia Ambiental"),
+    ("ENGENHARIA_DE_MATERIAIS", "Engenharia de Materiais"),
+    ("ENGENHARIA_BIOQUÍMICA", "Engenharia Bioquímica"),
+    ("PSICOLOGIA", "Psicologia"),
+    ("OUTRO", "Outro"),
+    ("NAO_ESTUDANTE", "Não Estudante")
+)
+TIPO_ALIMENTACAO = (
+    ("ONIVORO", "Onívoro"),
+    ("VEGETARIANO", "Vegetariano"),
+    ("VEGANO", "Vegano")
+)
+
 class Voluntario(AbstractUser):
     area = models.CharField(max_length=30, choices=LISTA_AREAS)
     apelido = models.CharField(max_length=50, blank=True, null=True)
     data_nascimento = models.DateField(blank=True, null=True)
-    celular = models.CharField(max_length=15, blank=True, null=True)
+    celular = models.CharField(max_length=15, blank=True, null=True, help_text="Formato: DDD + número, apenas números")
     instagram = models.CharField(max_length=50, blank=True, null=True)
     email_alternativo = models.EmailField(blank=True, null=True)
-    endereco = models.CharField(max_length=200, blank=True, null=True)
+    endereco = models.CharField(max_length=200, blank=True, null=True, help_text="Endereço de Lorena de preferência")
     republica = models.CharField(max_length=100, blank=True, null=True)
     rg = models.CharField(max_length=15, blank=True, null=True)
     foto = models.ImageField(upload_to='fotos_voluntarios', blank=True, null=True)
-    restricao_alimentar = models.TextField(blank=True, null=True)
-
-    TIPO_ALIMENTACAO = (("ONIVORO", "Onívoro"),("VEGETARIANO", "Vegetariano"),("VEGANO", "Vegano"))
-    
+    restricao_alimentar = models.CharField(max_length=100, blank=True, null=True)
     alimentacao = models.CharField(max_length=20,choices=TIPO_ALIMENTACAO,blank=True,null=True)
-    alergia = models.TextField(blank=True, null=True)
-    medicacao_continua = models.TextField(blank=True, null=True)
-    faculdade = models.CharField(max_length=100, blank=True, null=True)
-    curso = models.CharField(max_length=100, blank=True, null=True)
+    comida_favorita = models.CharField(max_length=100, blank=True, null=True)
+    alergia = models.CharField(max_length=100, blank=True, null=True)
+    medicacao_continua = models.CharField(max_length=100, blank=True, null=True)
+    faculdade = models.CharField(max_length=100, choices=FACULDADES, blank=True, null=True)
+    n_usp = models.CharField(max_length=20, blank=True, null=True)
+    email_usp = models.EmailField(blank=True, null=True)
+    curso = models.CharField(max_length=100, choices=CURSOS, blank=True, null=True)
+    ano_faculdade = models.IntegerField(blank=True, null=True)
+    trabalha = models.BooleanField(default=False)
+    empresa = models.CharField(max_length=100, blank=True, null=True)
     talentos = models.ManyToManyField("Talento", blank=True)
     data_entrada = models.DateField(default=timezone.now)
     data_saida = models.DateField(blank=True, null=True)
-    
+
 
     def __str__(self):
         return self.get_full_name() or self.username

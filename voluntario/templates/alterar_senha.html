@@ -3,64 +3,641 @@
 {% block titulo %}Alterar Senha{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-  <div class="row justify-content-center">
-    <div class="col-md-7 col-lg-6">
-      <div class="card shadow">
-        <div class="card-header bg-warning text-dark">
-          <h4 class="mb-0">🔐 Alterar Senha</h4>
+<style>
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --secondary: #8b5cf6;
+    --success: #10b981;
+    --success-dark: #059669;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --text-dark: #1e293b;
+    --text-muted: #64748b;
+    --bg-light: #f8fafc;
+    --border-color: #e2e8f0;
+  }
+
+  .password-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .password-page::before,
+  .password-page::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .password-page::before {
+    width: 400px;
+    height: 400px;
+    top: -100px;
+    right: -100px;
+  }
+
+  .password-page::after {
+    width: 300px;
+    height: 300px;
+    bottom: -50px;
+    left: -50px;
+  }
+
+  .password-container {
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .password-card {
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    animation: slideUp 0.5s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .password-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    padding: 2rem;
+    text-align: center;
+    position: relative;
+  }
+
+  .password-icon {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    backdrop-filter: blur(10px);
+  }
+
+  .password-icon svg {
+    width: 40px;
+    height: 40px;
+    color: white;
+  }
+
+  .password-header h4 {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .password-header p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    margin: 0.5rem 0 0;
+  }
+
+  .password-body {
+    padding: 2rem;
+  }
+
+  .info-alert {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.12));
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .info-alert-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--primary);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .info-alert-content {
+    flex: 1;
+  }
+
+  .info-alert-title {
+    font-weight: 600;
+    color: var(--primary-dark);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .info-alert-text {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-label svg {
+    width: 18px;
+    height: 18px;
+    color: var(--primary);
+  }
+
+  .password-input-wrapper {
+    position: relative;
+  }
+
+  .password-input-wrapper .form-control {
+    width: 100%;
+    padding: 0.875rem 3rem 0.875rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--bg-light);
+  }
+
+  .password-input-wrapper .form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  }
+
+  .toggle-password {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+  }
+
+  .toggle-password:hover {
+    color: var(--primary);
+  }
+
+  .toggle-password svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .form-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .form-hint svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .password-strength {
+    margin-top: 0.75rem;
+  }
+
+  .strength-bar {
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+
+  .strength-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  .strength-bar-fill.weak { width: 33%; background: var(--danger); }
+  .strength-bar-fill.medium { width: 66%; background: var(--warning); }
+  .strength-bar-fill.strong { width: 100%; background: var(--success); }
+
+  .strength-text {
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .strength-text.weak { color: var(--danger); }
+  .strength-text.medium { color: var(--warning); }
+  .strength-text.strong { color: var(--success); }
+
+  .error-alert {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .error-alert-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .error-alert-header svg {
+    width: 20px;
+    height: 20px;
+    color: var(--danger);
+  }
+
+  .error-alert-header span {
+    font-weight: 600;
+    color: var(--danger);
+    font-size: 0.875rem;
+  }
+
+  .error-alert ul {
+    margin: 0;
+    padding-left: 1.5rem;
+  }
+
+  .error-alert li {
+    color: #b91c1c;
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .btn-back {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+
+  .btn-back:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+  }
+
+  .btn-back svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .btn-save {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, var(--success), var(--success-dark));
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  }
+
+  .btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  }
+
+  .btn-save svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .security-tips {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-light);
+    border-radius: 12px;
+  }
+
+  .security-tips-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .security-tips-title svg {
+    width: 16px;
+    height: 16px;
+    color: var(--warning);
+  }
+
+  .security-tips ul {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+
+  .security-tips li {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-bottom: 0.35rem;
+  }
+
+  @media (max-width: 576px) {
+    .password-page {
+      padding: 1rem 0.5rem;
+    }
+
+    .password-header {
+      padding: 1.5rem;
+    }
+
+    .password-body {
+      padding: 1.5rem;
+    }
+
+    .form-actions {
+      flex-direction: column;
+    }
+  }
+</style>
+
+<div class="password-page">
+  <div class="password-container">
+    <div class="password-card">
+      <div class="password-header">
+        <div class="password-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
         </div>
-        <div class="card-body">
-          <form method="POST">
-            {% csrf_token %}
+        <h4>Alterar Senha</h4>
+        <p>Mantenha sua conta segura</p>
+      </div>
 
-            <div class="alert alert-info mb-4">
-              <strong>Importante:</strong> Sua nova senha deve ter pelo menos 8 caracteres, conter letras e números, e não pode ser igual à anterior.
-            </div>
+      <div class="password-body">
+        <div class="info-alert">
+          <svg class="info-alert-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="info-alert-content">
+            <div class="info-alert-title">Requisitos de Senha</div>
+            <p class="info-alert-text">Sua nova senha deve ter pelo menos 8 caracteres, conter letras e numeros, e nao pode ser igual a anterior.</p>
+          </div>
+        </div>
 
-            <div class="mb-3">
-              <label class="form-label">Senha Atual</label>
-              {{ form.old_password }}
-            </div>
+        <form method="POST">
+          {% csrf_token %}
 
-            <div class="mb-3">
-              <label class="form-label">Nova Senha</label>
-              {{ form.new_password1 }}
-              <small class="text-muted">Use uma senha forte para proteger sua conta.</small>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Confirme a Nova Senha</label>
-              {{ form.new_password2 }}
-            </div>
-
-            {% if form.errors %}
-              <div class="alert alert-danger">
-                <ul class="mb-0">
-                  {% for field in form %}
-                    {% for error in field.errors %}
-                      <li>{{ error }}</li>
-                    {% endfor %}
-                  {% endfor %}
-                  {% for error in form.non_field_errors %}
+          {% if form.errors %}
+            <div class="error-alert">
+              <div class="error-alert-header">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Erro ao alterar senha</span>
+              </div>
+              <ul>
+                {% for field in form %}
+                  {% for error in field.errors %}
                     <li>{{ error }}</li>
                   {% endfor %}
-                </ul>
-              </div>
-            {% endif %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
 
-            <div class="d-flex justify-content-between mt-4">
-              <a href="{% url 'voluntario:meu_perfil' %}" class="btn btn-outline-secondary">
-                ↩ Voltar ao Perfil
-              </a>
-              <button type="submit" class="btn btn-success px-4">
-                💾 Alterar Senha
+          <div class="form-group">
+            <label class="form-label">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              Senha Atual
+            </label>
+            <div class="password-input-wrapper">
+              {{ form.old_password }}
+              <button type="button" class="toggle-password" onclick="togglePassword(this)">
+                <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <svg class="eye-off-icon" style="display:none;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                </svg>
               </button>
             </div>
-          </form>
-        </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Nova Senha
+            </label>
+            <div class="password-input-wrapper">
+              {{ form.new_password1 }}
+              <button type="button" class="toggle-password" onclick="togglePassword(this)">
+                <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <svg class="eye-off-icon" style="display:none;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                </svg>
+              </button>
+            </div>
+            <div class="password-strength" id="passwordStrength" style="display: none;">
+              <div class="strength-bar">
+                <div class="strength-bar-fill" id="strengthBarFill"></div>
+              </div>
+              <span class="strength-text" id="strengthText"></span>
+            </div>
+            <div class="form-hint">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              Use uma senha forte para proteger sua conta.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Confirme a Nova Senha
+            </label>
+            <div class="password-input-wrapper">
+              {{ form.new_password2 }}
+              <button type="button" class="toggle-password" onclick="togglePassword(this)">
+                <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <svg class="eye-off-icon" style="display:none;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="security-tips">
+            <div class="security-tips-title">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              Dicas de Seguranca
+            </div>
+            <ul>
+              <li>Use pelo menos 8 caracteres</li>
+              <li>Combine letras maiusculas e minusculas</li>
+              <li>Inclua numeros e caracteres especiais</li>
+              <li>Evite informacoes pessoais obvias</li>
+            </ul>
+          </div>
+
+          <div class="form-actions">
+            <a href="{% url 'voluntario:meu_perfil' %}" class="btn-back">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Voltar ao Perfil
+            </a>
+            <button type="submit" class="btn-save">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              Alterar Senha
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+  function togglePassword(btn) {
+    const wrapper = btn.closest('.password-input-wrapper');
+    const input = wrapper.querySelector('input');
+    const eyeIcon = btn.querySelector('.eye-icon');
+    const eyeOffIcon = btn.querySelector('.eye-off-icon');
+    
+    if (input.type === 'password') {
+      input.type = 'text';
+      eyeIcon.style.display = 'none';
+      eyeOffIcon.style.display = 'block';
+    } else {
+      input.type = 'password';
+      eyeIcon.style.display = 'block';
+      eyeOffIcon.style.display = 'none';
+    }
+  }
+
+  // Password strength checker
+  document.addEventListener('DOMContentLoaded', function() {
+    const newPasswordInput = document.querySelector('[name="new_password1"]');
+    const strengthContainer = document.getElementById('passwordStrength');
+    const strengthBarFill = document.getElementById('strengthBarFill');
+    const strengthText = document.getElementById('strengthText');
+
+    if (newPasswordInput) {
+      newPasswordInput.addEventListener('input', function() {
+        const password = this.value;
+        
+        if (password.length === 0) {
+          strengthContainer.style.display = 'none';
+          return;
+        }
+        
+        strengthContainer.style.display = 'block';
+        
+        let strength = 0;
+        if (password.length >= 8) strength++;
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+        if (/\d/.test(password)) strength++;
+        if (/[^a-zA-Z0-9]/.test(password)) strength++;
+        
+        strengthBarFill.className = 'strength-bar-fill';
+        strengthText.className = 'strength-text';
+        
+        if (strength <= 1) {
+          strengthBarFill.classList.add('weak');
+          strengthText.classList.add('weak');
+          strengthText.textContent = 'Senha fraca';
+        } else if (strength <= 2) {
+          strengthBarFill.classList.add('medium');
+          strengthText.classList.add('medium');
+          strengthText.textContent = 'Senha media';
+        } else {
+          strengthBarFill.classList.add('strong');
+          strengthText.classList.add('strong');
+          strengthText.textContent = 'Senha forte';
+        }
+      });
+    }
+  });
+</script>
 {% endblock %}
