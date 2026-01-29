@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Estoque - Supply{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Controle de Estoque</h2>
+
+    {% if itens_estoque_baixo %}
+    <div class="alert alert-warning">
+        <strong>Atenção!</strong> {{ itens_estoque_baixo|length }} item(ns) com estoque baixo.
+    </div>
+    {% endif %}
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Categoria</th>
+                    <th>Quantidade Atual</th>
+                    <th>Unidade</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in itens %}
+                <tr {% if item.estoque_baixo %}class="table-warning"{% endif %}>
+                    <td>{{ item.nome }}</td>
+                    <td>{{ item.get_categoria_display }}</td>
+                    <td>{{ item.quantidade_atual }}</td>
+                    <td>{{ item.get_unidade_display }}</td>
+                    <td>
+                        {% if item.estoque_baixo %}
+                            <span class="badge bg-warning text-dark">Estoque Baixo</span>
+                        {% else %}
+                            <span class="badge bg-success">OK</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">Nenhum item cadastrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <a href="{% url 'supply:lista_movimentacoes' %}" class="btn btn-secondary">Ver Movimentações</a>
+</div>
+{% endblock %}

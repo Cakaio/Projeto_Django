@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Movimentações - Supply{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Movimentações de Estoque</h2>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Item</th>
+                    <th>Tipo</th>
+                    <th>Quantidade</th>
+                    <th>Registrado por</th>
+                    <th>Sábado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for mov in movimentacoes %}
+                <tr>
+                    <td>{{ mov.criado_em|date:"d/m/Y H:i" }}</td>
+                    <td>{{ mov.item.nome }}</td>
+                    <td>
+                        {% if mov.tipo == 'ENTRADA' %}
+                            <span class="badge bg-success">Entrada</span>
+                        {% elif mov.tipo == 'SAIDA' %}
+                            <span class="badge bg-danger">Saída</span>
+                        {% else %}
+                            <span class="badge bg-info">Ajuste</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ mov.quantidade }}</td>
+                    <td>{{ mov.registrado_por|default:"-" }}</td>
+                    <td>{{ mov.sabado|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">Nenhuma movimentação registrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav>
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+            {% endif %}
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Próxima</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    <a href="{% url 'supply:lista_itens' %}" class="btn btn-secondary">Voltar ao Estoque</a>
+</div>
+{% endblock %}
