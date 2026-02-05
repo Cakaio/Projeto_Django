@@ -12,6 +12,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from sabado.models import Sabado, DisponibilidadeVoluntario
+from django.db.models import Prefetch, Count
 
 def criar_semanario(request):
     AtividadeFormSet = modelformset_factory(Atividade, form=AtividadeForm, extra=5, can_delete=False)
@@ -258,3 +260,89 @@ class VisualizarSemanario(LoginRequiredMixin, DetailView):
     template_name = "visualizar_semanario.html"
     context_object_name = "semanario"
     pk_url_kwarg = "semanario_id"
+
+
+def painel_sabado_educ(request):
+    # filtro por sábado via GET ?sabado=ID
+    sabados = Sabado.objects.order_by("-data")[:30]  # lista pro dropdown
+
+    sabado_id = request.GET.get("sabado")
+    if sabado_id:
+        sabado = get_object_or_404(Sabado, pk=sabado_id)
+    else:
+        # padrão: próximo sábado (ou o mais recente futuro)
+        sabado = Sabado.objects.order_by("data").first()
+
+    # atividades com responsável já carregado
+    atividades_qs = Atividade.objects.select_related("responsavel").only(
+        "id", "semanario_id", "atividade", "local", "tempo_atividade", "responsavel__first_name"
+    )
+
+    semanarios = (
+        Semanario.objects
+        .filter(data=sabado)
+        .prefetch_related(
+            "talentos_necessarios",
+            Prefetch("atividades", queryset=atividades_qs),
+        )
+    )
+
+    # Mapa sala -> semanário (ou None)
+    sem_por_sala = {sala_key: None for sala_key, _ in LISTA_SALAS}
+    for s in semanarios:
+        sem_por_sala[s.sala] = s
+
+    # Contagem de voluntários por sala que VÃO ao projeto nesse sábado
+    # ⚠️ Ajuste "voluntario__sala" se o seu model Voluntario usar outro campo!
+    voluntarios_por_sala = (
+        DisponibilidadeVoluntario.objects
+        .filter(sabado=sabado, vai_ao_projeto=True)
+        .values("voluntario__area")
+        .annotate(total=Count("id"))
+    )
+    voluntarios_map = {row["voluntario__area"]: row["total"] for row in voluntarios_por_sala}
+
+    # Monta cards prontos pro template (mais fácil de renderizar)
+    cards = []
+    for sala_key, sala_nome in LISTA_SALAS:
+        sem = sem_por_sala[sala_key]
+
+        if sem:
+            locais = sorted({a.local for a in sem.atividades.all() if a.local})
+            talentos = list(sem.talentos_necessarios.all())
+            atividades = list(sem.atividades.all())
+            precisa_projetor = sem.projetor
+            vagas = sem.vagas
+            tema = sem.tema
+        else:
+            locais, talentos, atividades = [], [], []
+            precisa_projetor = False
+            vagas = 0
+            tema = None
+
+        cards.append({
+            "sala_key": sala_key,
+            "sala_nome": sala_nome,
+            "semanario": sem,
+            "tema": tema,
+            "projetor": precisa_projetor,
+            "vagas": vagas,
+            "talentos": talentos,
+            "locais": locais,
+            "atividades": atividades,
+            "voluntarios_confirmados": voluntarios_map.get(sala_key, 0),
+        })
+
+    # Resumos “de topo” (pra bater o olho)
+    salas_com_projetor = [c["sala_nome"] for c in cards if c["projetor"]]
+    total_vagas = sum(c["vagas"] for c in cards)
+    total_voluntarios = sum(c["voluntarios_confirmados"] for c in cards)
+
+    return render(request, "painel_sabado_educ.html", {
+        "sabados": sabados,
+        "sabado": sabado,
+        "cards": cards,
+        "salas_com_projetor": salas_com_projetor,
+        "total_vagas": total_vagas,
+        "total_voluntarios": total_voluntarios,
+    })

@@ -109,6 +109,11 @@ class Semanario(models.Model):
 
     def __str__(self):
         return f"{self.sala} - {self.data.data.strftime('%d/%m/%Y')}"
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["data", "sala"], name="uniq_semanario_por_sabado_sala")
+        ]
 
 class Atividade(models.Model):
     semanario = models.ForeignKey(Semanario,on_delete=models.CASCADE,related_name="atividades")
@@ -116,7 +121,7 @@ class Atividade(models.Model):
     descricao = models.TextField()
     local = models.CharField(max_length=100, choices=LOCAIS, blank=True, null=True, default="SALINHA")
     competencia = models.CharField(max_length=50)
-    dimensao_competencia = models.CharField(max_length=50, editable=False, blank=True, null=True)
+    dimensao_competencia = models.CharField(max_length=200, editable=False, blank=True, null=True)
     fotos = models.ImageField(upload_to='fotos_atividades', blank=True, null=True)
     tempo_atividade = models.PositiveIntegerField(help_text="Tempo da atividade em minutos", blank=True, null=True) 
     feedback = models.TextField(blank=True, null=True)
