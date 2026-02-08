@@ -12,6 +12,7 @@
     --success-light: #34d399;
     --warning: #f59e0b;
     --warning-light: #fbbf24;
+    --bg-light: #f5f3ff;
   }
 
   .hero-section {
@@ -60,6 +61,7 @@
   .section-title {
     font-size: 1.75rem;
     font-weight: 700;
+    align-items: center;
     color: #1e293b;
     position: relative;
     display: inline-block;
@@ -221,6 +223,46 @@
       padding: 2rem 1.5rem;
     }
   }
+
+  .participe-section {
+    padding: 4rem 0;
+    background: var(--bg-light);
+  }
+
+  .painel-link-container {
+    text-align: center;
+    margin-top: 2.5rem;
+  }
+
+  .btn-painel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.8rem 2rem;
+    background: var(--white);
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+  .btn-painel:hover {
+    background: var(--primary);
+    color: var(--white);
+    box-shadow: 0 8px 20px rgba(124,58,237,0.25);
+    transform: translateY(-2px);
+  }
+  .btn-painel svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.3s ease;
+  }
+  .btn-painel:hover svg {
+    transform: translateX(-4px);
+  }
+
 </style>
 
 <!-- Hero section com gradiente e elementos decorativos -->
@@ -235,6 +277,19 @@
       </div>
     </div>
   </div>
+</section>
+
+<!-- ===================== PARTICIPE SECTION ===================== -->
+<section class="participe-section">
+  <div class="painel-link-container">
+    <a class="btn-painel" href="/semanario/painel/">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/>
+      </svg>
+        Painel do Semanários
+    </a>
+  </div>
+</div>
 </section>
 
 <!-- Cards com design moderno e efeitos hover -->
@@ -293,7 +348,7 @@
         </div>
         <h3 class="card-title">Relatorios</h3>
         <p class="card-text">Gere relatorios e estatisticas sobre o comparecimento e desempenho dos atendidos.</p>
-        <a href="#" class="btn btn-feature btn-warning-gradient">
+        <a href="{% url 'semanario:relatorio_pedagogico' %}" class="btn btn-feature btn-warning-gradient">
           Ver Relatorios
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />

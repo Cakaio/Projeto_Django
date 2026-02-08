@@ -6,12 +6,21 @@ from django.forms import modelformset_factory
 from django.views.generic import ListView, DetailView, TemplateView
 import json
 from decimal import Decimal, InvalidOperation
+from django.db.models import IntegerField, Value
+from django.db.models import Count, Sum, Avg, Q
+from django.utils import timezone
+from django.db.models.functions import Coalesce
+from datetime import datetime, timedelta
+from atendido.models import PresencaAtendido
+from voluntario.models import PresencaVoluntario
 from .models import LISTA_SALAS, Semanario, Atividade, Material
 from .forms import SemanarioForm, AtividadeForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from sabado.models import Sabado, DisponibilidadeVoluntario
+from django.db.models import Prefetch, Count
 
 def criar_semanario(request):
     AtividadeFormSet = modelformset_factory(Atividade, form=AtividadeForm, extra=5, can_delete=False)
@@ -258,3 +267,245 @@ class VisualizarSemanario(LoginRequiredMixin, DetailView):
     template_name = "visualizar_semanario.html"
     context_object_name = "semanario"
     pk_url_kwarg = "semanario_id"
+
+
+def painel_sabado_educ(request):
+    # filtro por sábado via GET ?sabado=ID
+    sabados = Sabado.objects.order_by("-data")[:30]  # lista pro dropdown
+
+    sabado_id = request.GET.get("sabado")
+    if sabado_id:
+        sabado = get_object_or_404(Sabado, pk=sabado_id)
+    else:
+        # padrão: próximo sábado (ou o mais recente futuro)
+        sabado = Sabado.objects.order_by("data").first()
+
+    # atividades com responsável já carregado
+    atividades_qs = Atividade.objects.select_related("responsavel").only(
+        "id", "semanario_id", "atividade", "local", "tempo_atividade", "responsavel__first_name"
+    )
+
+    semanarios = (
+        Semanario.objects
+        .filter(data=sabado)
+        .prefetch_related(
+            "talentos_necessarios",
+            Prefetch("atividades", queryset=atividades_qs),
+        )
+    )
+
+    # Mapa sala -> semanário (ou None)
+    sem_por_sala = {sala_key: None for sala_key, _ in LISTA_SALAS}
+    for s in semanarios:
+        sem_por_sala[s.sala] = s
+
+    # Contagem de voluntários por sala que VÃO ao projeto nesse sábado
+    # ⚠️ Ajuste "voluntario__sala" se o seu model Voluntario usar outro campo!
+    voluntarios_por_sala = (
+        DisponibilidadeVoluntario.objects
+        .filter(sabado=sabado, vai_ao_projeto=True)
+        .values("voluntario__area")
+        .annotate(total=Count("id"))
+    )
+    voluntarios_map = {row["voluntario__area"]: row["total"] for row in voluntarios_por_sala}
+
+    # Monta cards prontos pro template (mais fácil de renderizar)
+    cards = []
+    for sala_key, sala_nome in LISTA_SALAS:
+        sem = sem_por_sala[sala_key]
+
+        if sem:
+            locais = sorted({a.local for a in sem.atividades.all() if a.local})
+            talentos = list(sem.talentos_necessarios.all())
+            atividades = list(sem.atividades.all())
+            precisa_projetor = sem.projetor
+            vagas = sem.vagas
+            tema = sem.tema
+        else:
+            locais, talentos, atividades = [], [], []
+            precisa_projetor = False
+            vagas = 0
+            tema = None
+
+        cards.append({
+            "sala_key": sala_key,
+            "sala_nome": sala_nome,
+            "semanario": sem,
+            "tema": tema,
+            "projetor": precisa_projetor,
+            "vagas": vagas,
+            "talentos": talentos,
+            "locais": locais,
+            "atividades": atividades,
+            "voluntarios_confirmados": voluntarios_map.get(sala_key, 0),
+        })
+
+    # Resumos “de topo” (pra bater o olho)
+    salas_com_projetor = [c["sala_nome"] for c in cards if c["projetor"]]
+    total_vagas = sum(c["vagas"] for c in cards)
+    total_voluntarios = sum(c["voluntarios_confirmados"] for c in cards)
+
+    return render(request, "painel_sabado_educ.html", {
+        "sabados": sabados,
+        "sabado": sabado,
+        "cards": cards,
+        "salas_com_projetor": salas_com_projetor,
+        "total_vagas": total_vagas,
+        "total_voluntarios": total_voluntarios,
+    })
+
+
+
+def relatorio_pedagogico(request):
+    # ======= filtros =======
+    sala = request.GET.get("sala")  # ex: "AZUL"
+    dt_ini_str = request.GET.get("inicio")
+    dt_fim_str = request.GET.get("fim")
+
+    # defaults: últimos 90 dias
+    hoje = timezone.now().date()
+    dt_ini = hoje - timedelta(days=90)
+    dt_fim = hoje
+
+    if dt_ini_str:
+        try:
+            dt_ini = datetime.strptime(dt_ini_str, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+
+    if dt_fim_str:
+        try:
+            dt_fim = datetime.strptime(dt_fim_str, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+
+    # ======= queryset base (semanários no período) =======
+    sem_qs = Semanario.objects.filter(
+        data__data__gte=dt_ini,
+        data__data__lte=dt_fim,
+    )
+    if sala:
+        sem_qs = sem_qs.filter(sala=sala)
+
+    # sábados considerados no relatório (somente onde existe semanário no filtro)
+    sabados_ids = list(sem_qs.values_list("data_id", flat=True).distinct())
+    qtd_sabados = len(sabados_ids)
+
+    # ======= atividades e materiais do recorte =======
+    atv_qs = Atividade.objects.filter(semanario__in=sem_qs)
+    mat_qs = Material.objects.filter(atividade__semanario__in=sem_qs)
+
+    # ======= cards do topo =======
+    qtd_atividades = atv_qs.count()
+
+    from django.db.models import IntegerField, DecimalField, FloatField, Value
+    total_minutos = atv_qs.aggregate(
+        total=Coalesce(Sum("tempo_atividade", output_field=IntegerField()), Value(0, output_field=IntegerField()))
+    )["total"] or 0
+
+    # Materiais:
+    # - total_itens_material = quantidade de linhas
+    # - total_quantidade_material = soma de quantidades (mistura unidades; útil como “volume de registros”, não de estoque)
+    total_itens_material = mat_qs.count()
+    total_quantidade_material = mat_qs.aggregate(
+        total=Coalesce(Sum("quantidade", output_field=DecimalField()), Value(0, output_field=DecimalField()))
+    )["total"] or 0
+
+    # ======= análises =======
+
+    # 1) horas por competência (soma de minutos por competência)
+    minutos_por_competencia = (
+        atv_qs.values("competencia")
+        .annotate(
+            minutos=Coalesce(Sum("tempo_atividade", output_field=IntegerField()), Value(0, output_field=IntegerField()))
+        )
+        .order_by("-minutos")
+    )
+    
+    horas_por_competencia = [
+        {
+            "competencia": row["competencia"] or "(sem competência)",
+            "horas": round((row["minutos"] or 0) / 60, 2),
+            "minutos": int(row["minutos"] or 0),
+        }
+        for row in minutos_por_competencia
+    ]
+
+    # 2) nº médio de atividades por sábado
+    media_ativ_por_sabado = round(qtd_atividades / qtd_sabados, 2) if qtd_sabados else 0
+
+    # 3) média de vagas abertas
+    media_vagas = sem_qs.aggregate(
+        media=Coalesce(Avg("vagas", output_field=FloatField()), Value(0, output_field=FloatField()))
+    )["media"] or 0
+    media_vagas = round(media_vagas, 2)
+
+    # 4) frequência de uso de projetor (%)
+    total_semanarios = sem_qs.count()
+    qtd_projetor = sem_qs.filter(projetor=True).count()
+    freq_projetor = round((qtd_projetor / total_semanarios) * 100, 1) if total_semanarios else 0
+
+    # 5) locais mais usados
+    locais_mais_usados = (
+        atv_qs.values("local")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
+
+    # 6) presença real de atendidos (por sábado): Presente + Justificada
+    pres_at_qs = PresencaAtendido.objects.filter(
+        data_id__in=sabados_ids
+    )
+
+    if sala:
+        # ⚠️ Ajuste aqui se o seu Atendido NÃO tiver campo "sala"
+        # Ex.: atendido__salinha ou atendido__area
+        pres_at_qs = pres_at_qs.filter(atendido__sala=sala)
+
+    pres_at_presentes = pres_at_qs.filter(presenca__in=["PRESENTE", "JUSTIFICADA"]).count()
+    media_presenca_atendidos = round(pres_at_presentes / qtd_sabados, 2) if qtd_sabados else 0
+
+    # 7) presença real de voluntários (por sábado): Presente + Justificada
+    pres_vol_qs = PresencaVoluntario.objects.filter(
+        data_id__in=sabados_ids
+    )
+
+    if sala:
+        # voluntários daquela salinha (assumindo area = sala)
+        pres_vol_qs = pres_vol_qs.filter(voluntario__area=sala)
+
+    pres_vol_presentes = pres_vol_qs.filter(presenca__in=["PRESENTE", "JUSTIFICADA"]).count()
+    media_presenca_voluntarios = round(pres_vol_presentes / qtd_sabados, 2) if qtd_sabados else 0
+
+    # Extras úteis: materiais mais usados (top 10 por nome)
+    materiais_top = (
+        mat_qs.values("nome")
+        .annotate(total_itens=Count("id"))
+        .order_by("-total_itens")[:10]
+    )
+
+    context = {
+        "lista_salas": LISTA_SALAS,
+        "filtro_sala": sala,
+        "inicio": dt_ini,
+        "fim": dt_fim,
+
+        # cards
+        "qtd_sabados": qtd_sabados,
+        "qtd_atividades": qtd_atividades,
+        "total_minutos": int(total_minutos),
+        "total_horas": round(total_minutos / 60, 2),
+        "total_itens_material": total_itens_material,
+        "total_quantidade_material": total_quantidade_material,
+
+        # análises
+        "horas_por_competencia": horas_por_competencia,
+        "media_ativ_por_sabado": media_ativ_por_sabado,
+        "media_vagas": media_vagas,
+        "freq_projetor": freq_projetor,
+        "locais_mais_usados": locais_mais_usados,
+        "media_presenca_atendidos": media_presenca_atendidos,
+        "media_presenca_voluntarios": media_presenca_voluntarios,
+        "materiais_top": materiais_top,
+    }
+    return render(request, "relatorio_pedagogico.html", context)
