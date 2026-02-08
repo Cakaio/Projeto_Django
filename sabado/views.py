@@ -1,8 +1,14 @@
+from collections import defaultdict
+from urllib import request
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Sabado, DisponibilidadeVoluntario
+
+import sabado
+from .models import Sabado, DisponibilidadeVoluntario, FaixaHorarioAjuda
 from .forms import DisponibilidadeForm
+from voluntario.models import Voluntario, Talento, LISTA_AREAS, TIPO_ALIMENTACAO
+from django.db.models import Count, Q, Prefetch
 # Create your views here.
 
 @login_required
@@ -46,3 +52,178 @@ def responder_disponibilidade(request, sabado_id):
         "form": form,
         "created": created,  # opcional (debug)
     })
+
+def resumo_sabado(request):
+    # dropdown com sábados recentes
+    sabados = Sabado.objects.order_by("-data")[:40]
+
+    sabado_id = request.GET.get("sabado")
+    if sabado_id:
+        sabado = get_object_or_404(Sabado, pk=sabado_id)
+    else:
+        # fallback: o mais próximo/primeiro existente
+        sabado = Sabado.objects.order_by("data").first()
+
+    if not sabado:
+        # caso não exista nenhum sábado cadastrado ainda
+        return render(request, "resumo_sabado.html", {
+            "sabados": sabados,
+            "sabado": None,
+            "erro": "Nenhum sábado cadastrado ainda.",
+        })
+
+    # Base: disponibilidades de quem VAI ao projeto nesse sábado
+    disp_qs = (
+        DisponibilidadeVoluntario.objects
+        .filter(sabado=sabado, vai_ao_projeto=True)
+        .select_related("voluntario")
+        .prefetch_related("pode_ajudar")
+    )
+
+    total_voluntarios = disp_qs.count()
+    
+    # ====== NÃO RESPONDERAM A ENQUETE ======
+    total_nao_responderam = (
+        Voluntario.objects
+        .exclude(disponibilidades__sabado=sabado)
+        .count()
+    )
+    
+
+    # ====== 1) Por área ======
+    por_area_qs = (
+        disp_qs.values("voluntario__area")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
+    por_area_map = {r["voluntario__area"]: r["total"] for r in por_area_qs}
+
+    por_area_lista = []
+    for area_key, area_nome in LISTA_AREAS:
+        por_area_lista.append({
+            "key": area_key,
+            "nome": area_nome,
+            "total": por_area_map.get(area_key, 0),
+        })
+
+    # ====== 2) Ajuda por faixa (com nomes) ======
+    faixas = FaixaHorarioAjuda.objects.order_by("descricao")
+
+    # quem é "ajudante": marcou pelo menos uma faixa
+    disp_com_ajuda = disp_qs.filter(pode_ajudar__isnull=False).distinct()
+    total_ajudantes = disp_com_ajuda.count()
+
+    faixa_para_vols = {f.id: {"faixa": f, "voluntarios": []} for f in faixas}
+
+    for d in disp_com_ajuda:
+        for f in d.pode_ajudar.all():
+            faixa_para_vols[f.id]["voluntarios"].append(d.voluntario)
+
+    faixa_cards = []
+    for f in faixas:
+        vols = faixa_para_vols[f.id]["voluntarios"]
+        # opcional: ordenar por nome/username
+        vols_sorted = sorted(vols, key=lambda v: (v.get_full_name() or v.username).lower())
+        faixa_cards.append({
+            "faixa": f,
+            "total": len(vols_sorted),
+            "voluntarios": vols_sorted,
+        })
+
+    # ====== 3) Carro ======
+    total_carro = disp_qs.filter(vai_de_carro=True).count()
+    total_nao_carro = disp_qs.filter(vai_de_carro=False).count()
+    total_carro_nao_resp = disp_qs.filter(vai_de_carro__isnull=True).count()
+
+    # ====== 4) Saúde (contagens + listas) ======
+    disp_saude_ok = disp_qs.filter(saude=True)
+    disp_saude_nao_ok = disp_qs.filter(saude=False)
+    disp_saude_nao_resp = disp_qs.filter(saude__isnull=True)
+
+    def voluntarios_from_disp(qs):
+        vols = [d.voluntario for d in qs]
+        return sorted(vols, key=lambda v: (v.get_full_name() or v.username).lower())
+
+    saude = {
+        "ok": {"total": disp_saude_ok.count(), "voluntarios": voluntarios_from_disp(disp_saude_ok)},
+        "nao_ok": {"total": disp_saude_nao_ok.count(), "voluntarios": voluntarios_from_disp(disp_saude_nao_ok)},
+        "nao_resp": {"total": disp_saude_nao_resp.count(), "voluntarios": voluntarios_from_disp(disp_saude_nao_resp)},
+    }
+
+    # ====== 5) Alimentação ======
+    por_alimentacao_qs = (
+        disp_qs.values("voluntario__alimentacao")
+        .annotate(total=Count("id"))
+    )
+    por_alimentacao_map = {r["voluntario__alimentacao"]: r["total"] for r in por_alimentacao_qs}
+
+    alimentacao_lista = []
+    for key, nome in TIPO_ALIMENTACAO:
+        alimentacao_lista.append({
+            "key": key,
+            "nome": nome,
+            "total": por_alimentacao_map.get(key, 0),
+        })
+    alimentacao_nao_preenchido = por_alimentacao_map.get(None, 0)
+
+    # ====== 6) Talentos dos ajudantes (com nomes) ======
+    # Pega voluntários que podem ajudar (ajudantes) + seus talentos
+    voluntarios_ajudantes = (
+        Voluntario.objects
+        .filter(
+            disponibilidades__sabado=sabado,
+            disponibilidades__vai_ao_projeto=True,
+            disponibilidades__pode_ajudar__isnull=False,
+        )
+        .distinct()
+        .prefetch_related("talentos")
+    )
+
+    talentos_map = defaultdict(list)  # "Talento X" -> [Voluntario, ...]
+    for v in voluntarios_ajudantes:
+        for t in v.talentos.all():
+            talentos_map[str(t)].append(v)
+
+    talentos_cards = []
+    for nome_talento, vols in talentos_map.items():
+        vols_sorted = sorted(vols, key=lambda v: (v.get_full_name() or v.username).lower())
+        talentos_cards.append({
+            "talento": nome_talento,
+            "total": len(vols_sorted),
+            "voluntarios": vols_sorted,
+        })
+    talentos_cards.sort(key=lambda x: x["total"], reverse=True)
+
+    context = {
+        "sabados": sabados,
+        "sabado": sabado,
+        
+        # Quantidade que não responderam
+        "total_nao_responderam": total_nao_responderam,
+
+        # KPIs
+        "total_voluntarios": total_voluntarios,
+        "total_ajudantes": total_ajudantes,
+
+        # Por área
+        "por_area_lista": por_area_lista,
+
+        # Ajuda por faixa
+        "faixa_cards": faixa_cards,
+
+        # Carro
+        "total_carro": total_carro,
+        "total_nao_carro": total_nao_carro,
+        "total_carro_nao_resp": total_carro_nao_resp,
+
+        # Saúde
+        "saude": saude,
+
+        # Alimentação
+        "alimentacao_lista": alimentacao_lista,
+        "alimentacao_nao_preenchido": alimentacao_nao_preenchido,
+
+        # Talentos
+        "talentos_cards": talentos_cards,
+    }
+    return render(request, "resumo_sabado.html", context)

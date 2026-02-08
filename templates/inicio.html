@@ -18,15 +18,16 @@ Início
     --text-dark: #1f2937;
     --text-light: #6b7280;
     --white: #ffffff;
+    --border-color: #e5e7eb;
   }
 
+  /* ===== HERO ===== */
   .hero-section {
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--primary-dark) 100%);
     padding: 3rem 0 4rem;
     position: relative;
     overflow: hidden;
   }
-
   .hero-section::before {
     content: '';
     position: absolute;
@@ -37,7 +38,6 @@ Início
     background: rgba(255,255,255,0.1);
     border-radius: 50%;
   }
-
   .hero-section::after {
     content: '';
     position: absolute;
@@ -48,7 +48,6 @@ Início
     background: rgba(255,255,255,0.05);
     border-radius: 50%;
   }
-
   .hero-title {
     color: var(--white);
     font-size: 2.5rem;
@@ -58,7 +57,6 @@ Início
     position: relative;
     z-index: 1;
   }
-
   .hero-subtitle {
     color: rgba(255,255,255,0.85);
     text-align: center;
@@ -68,20 +66,19 @@ Início
     z-index: 1;
   }
 
+  /* ===== CAROUSEL ===== */
   .carousel-wrapper {
     position: relative;
     z-index: 1;
     max-width: 900px;
     margin: 0 auto;
   }
-
   .carousel-inner img {
     border-radius: 16px;
     box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);
     max-height: 420px;
     object-fit: cover;
   }
-
   .carousel-control-prev,
   .carousel-control-next {
     width: 50px;
@@ -93,35 +90,22 @@ Início
     opacity: 0;
     transition: all 0.3s ease;
   }
-
   .carousel-wrapper:hover .carousel-control-prev,
   .carousel-wrapper:hover .carousel-control-next {
     opacity: 1;
   }
-
-  .carousel-control-prev {
-    left: -25px;
-  }
-
-  .carousel-control-next {
-    right: -25px;
-  }
-
+  .carousel-control-prev { left: -25px; }
+  .carousel-control-next { right: -25px; }
   .carousel-control-prev:hover,
   .carousel-control-next:hover {
     background: var(--white);
     transform: translateY(-50%) scale(1.1);
   }
-
   .carousel-control-prev-icon,
   .carousel-control-next-icon {
     filter: invert(1) grayscale(100%) brightness(0.3);
   }
-
-  .carousel-indicators {
-    bottom: -40px;
-  }
-
+  .carousel-indicators { bottom: -40px; }
   .carousel-indicators button {
     width: 12px;
     height: 12px;
@@ -131,40 +115,285 @@ Início
     margin: 0 6px;
     transition: all 0.3s ease;
   }
-
   .carousel-indicators button.active {
     background: var(--white);
     transform: scale(1.3);
   }
 
-  .features-section {
-    padding: 5rem 0;
-    background: var(--bg-light);
-  }
-
+  /* ===== SECTION TITLES ===== */
   .section-title {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 2.5rem;
   }
-
   .section-title h2 {
     font-size: 2rem;
     font-weight: 700;
     color: var(--text-dark);
     margin-bottom: 0.5rem;
   }
-
   .section-title p {
     color: var(--text-light);
     font-size: 1.1rem;
+    margin: 0;
   }
-
   .section-title .title-line {
     width: 60px;
     height: 4px;
     background: linear-gradient(90deg, var(--primary), var(--secondary));
     margin: 1rem auto 0;
     border-radius: 2px;
+  }
+
+  /* ===== PARTICIPE SECTION ===== */
+  .participe-section {
+    padding: 4rem 0;
+    background: var(--white);
+  }
+
+  .sabado-card {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  .sabado-card:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 8px 30px rgba(124,58,237,0.12);
+    transform: translateY(-2px);
+  }
+
+  .sabado-card-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .sabado-card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+  .sabado-date-badge {
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .sabado-date-badge .day {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--white);
+  }
+  .sabado-date-badge .month {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.8);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .sabado-tema {
+    color: var(--white);
+    font-size: 1.05rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sabado-card-body {
+    padding: 1.25rem 1.5rem;
+  }
+
+  /* ===== PROGRESS BAR ===== */
+  .progress-wrapper {
+    margin-bottom: 1rem;
+  }
+  .progress-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .progress-label {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .progress-label svg {
+    width: 16px;
+    height: 16px;
+    color: var(--primary);
+  }
+  .progress-count {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dark);
+  }
+  .progress-track {
+    width: 100%;
+    height: 10px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+  .progress-fill.complete {
+    background: linear-gradient(90deg, #10b981, #34d399);
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+    animation: shimmer 2s infinite;
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .progress-complete-msg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #10b981;
+    margin-top: 6px;
+  }
+  .progress-complete-msg svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .sabado-card-footer {
+    padding: 0 1.5rem 1.25rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .btn-responder {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.65rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: var(--white);
+    border: none;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  .btn-responder:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(124,58,237,0.3);
+    color: var(--white);
+  }
+  .btn-responder svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.3s ease;
+  }
+  .btn-responder:hover svg {
+    transform: translateX(4px);
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    border: 2px dashed var(--border-color);
+    border-radius: 16px;
+    background: var(--bg-light);
+  }
+  .empty-state-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .empty-state-icon svg {
+    width: 28px;
+    height: 28px;
+    color: var(--white);
+  }
+  .empty-state h4 {
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+  }
+  .empty-state p {
+    color: var(--text-light);
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  /* Painel button */
+  .painel-link-container {
+    text-align: center;
+    margin-top: 2.5rem;
+  }
+  .btn-painel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.8rem 2rem;
+    background: var(--white);
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+  .btn-painel:hover {
+    background: var(--primary);
+    color: var(--white);
+    box-shadow: 0 8px 20px rgba(124,58,237,0.25);
+    transform: translateY(-2px);
+  }
+  .btn-painel svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.3s ease;
+  }
+  .btn-painel:hover svg {
+    transform: translateX(-4px);
+  }
+
+  /* ===== FEATURES SECTION ===== */
+  .features-section {
+    padding: 5rem 0;
+    background: var(--bg-light);
   }
 
   .feature-card {
@@ -178,7 +407,6 @@ Início
     position: relative;
     overflow: hidden;
   }
-
   .feature-card::before {
     content: '';
     position: absolute;
@@ -190,22 +418,18 @@ Início
     transform: scaleX(0);
     transition: transform 0.4s ease;
   }
-
   .feature-card:hover {
     transform: translateY(-10px);
     box-shadow: 0 20px 40px rgba(124,58,237,0.15);
   }
-
   .feature-card:hover::before {
     transform: scaleX(1);
   }
-
   .feature-image-wrapper {
     position: relative;
     display: inline-block;
     margin-bottom: 1.5rem;
   }
-
   .feature-image {
     width: 150px;
     height: 150px;
@@ -215,12 +439,10 @@ Início
     box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     transition: all 0.4s ease;
   }
-
   .feature-card:hover .feature-image {
     transform: scale(1.05);
     border-color: var(--primary-light);
   }
-
   .feature-badge {
     position: absolute;
     bottom: 5px;
@@ -233,39 +455,26 @@ Início
     justify-content: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
-
-  .feature-badge.purple {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-  }
-
-  .feature-badge.green {
-    background: linear-gradient(135deg, #10b981, #34d399);
-  }
-
-  .feature-badge.blue {
-    background: linear-gradient(135deg, #3b82f6, #60a5fa);
-  }
-
+  .feature-badge.purple { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+  .feature-badge.green { background: linear-gradient(135deg, #10b981, #34d399); }
+  .feature-badge.blue { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
   .feature-badge svg {
     width: 20px;
     height: 20px;
     color: white;
   }
-
   .feature-card h3 {
     font-size: 1.4rem;
     font-weight: 700;
     color: var(--text-dark);
     margin-bottom: 0.75rem;
   }
-
   .feature-card p {
     color: var(--text-light);
     font-size: 0.95rem;
     line-height: 1.6;
     margin-bottom: 1.5rem;
   }
-
   .feature-btn {
     display: inline-flex;
     align-items: center;
@@ -279,97 +488,36 @@ Início
     text-decoration: none;
     transition: all 0.3s ease;
   }
-
   .feature-btn:hover {
     transform: translateX(5px);
     box-shadow: 0 8px 20px rgba(124,58,237,0.3);
     color: var(--white);
   }
-
   .feature-btn svg {
     width: 18px;
     height: 18px;
     transition: transform 0.3s ease;
   }
-
   .feature-btn:hover svg {
     transform: translateX(4px);
   }
-  
-  .question-block {
-    background: var(--bg-light);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
-    margin-top: 20px;
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-  }
-  .question-block:hover {
-    border-color: var(--primary);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
-  }
-
-  .question-block:last-of-type {
-    margin-bottom: 0;
-  }
-
-  .question-block {
-      padding: 20px;
-    }
-
-  .question-label {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-weight: 600;
-    color: var(--text-dark);
-    margin-bottom: 16px;
-    font-size: 1rem;
-  }
-
-  .question-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .question-icon.purple {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  }
-
-  .question-icon svg {
-    width: 20px;
-    height: 20px;
-    color: #fff;
-  }
 
   @media (max-width: 768px) {
-    .hero-title {
-      font-size: 1.8rem;
-    }
-    
+    .hero-title { font-size: 1.8rem; }
     .carousel-control-prev,
-    .carousel-control-next {
-      display: none;
-    }
-    
-    .feature-card {
-      margin-bottom: 1.5rem;
-    }
+    .carousel-control-next { display: none; }
+    .feature-card { margin-bottom: 1.5rem; }
+    .sabado-card-header { flex-direction: column; align-items: flex-start; }
+    .sabado-card-footer { justify-content: center; }
   }
 </style>
 
-<!-- HERO SECTION COM CARROSSEL -->
+<!-- ===================== HERO SECTION ===================== -->
 <section class="hero-section">
   <div class="container">
     <h1 class="hero-title">Bem-vindo ao Nosso Projeto</h1>
     <p class="hero-subtitle">Transformando vidas através do amor e dedicação</p>
-    
+
     <div class="carousel-wrapper">
       <div id="carouselExample" class="carousel slide" data-bs-ride="carousel">
         <div class="carousel-indicators">
@@ -377,7 +525,6 @@ Início
           <button type="button" data-bs-target="#carouselExample" data-bs-slide-to="1" aria-label="Slide 2"></button>
           <button type="button" data-bs-target="#carouselExample" data-bs-slide-to="2" aria-label="Slide 3"></button>
         </div>
-        
         <div class="carousel-inner">
           <div class="carousel-item active">
             <img src="{% static 'images/foto1.jpg' %}" class="d-block w-100" alt="Foto 1">
@@ -389,7 +536,6 @@ Início
             <img src="{% static 'images/foto3.jpg' %}" class="d-block w-100" alt="Foto 3">
           </div>
         </div>
-
         <button class="carousel-control-prev" type="button" data-bs-target="#carouselExample" data-bs-slide="prev">
           <span class="carousel-control-prev-icon" aria-hidden="true"></span>
           <span class="visually-hidden">Anterior</span>
@@ -403,47 +549,102 @@ Início
   </div>
 </section>
 
-<div class="b-example-divider"></div>
-
-<!-- Lista de formulários de disponibilidade abertos -->
-<div class="question-block">
-  <div class ="question-label">
-    <div class = "question-icon purple">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    </div>
+<!-- ===================== PARTICIPE SECTION ===================== -->
+<section class="participe-section">
+  <div class="container">
     <div class="section-title">
       <h2>Participe!!</h2>
-      <p>formulários de disponibilidade abertos</p>
+      <p>Formulários de disponibilidade abertos</p>
       <div class="title-line"></div>
     </div>
-    <section class="container my-4">
-      <div class="feature-card">
-        <ul class="list-group">
-          {% for sabado in sabados_abertos %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <span>
-                <strong>{{ sabado.data|date:"d/m/Y" }}</strong> — {{ sabado.tema }}
-              </span>
-              <a class="feature-btn" href="{% url 'sabado:responder_disponibilidade' sabado.id %}">
+
+    <div class="row g-4 align-items-stretch">
+      {% for sabado in sabados_abertos %}
+        <div class="col-12">
+          <div class="sabado-card h-100 w-100">
+            <!-- Header com data e tema -->
+            <div class="sabado-card-header">
+              <div class="sabado-card-header-left">
+                <div class="sabado-date-badge">
+                  <span class="day">{{ sabado.data|date:"d" }}</span>
+                  <span class="month">{{ sabado.data|date:"M" }}</span>
+                </div>
+                <span class="sabado-tema">{{ sabado.tema }}</span>
+              </div>
+            </div>
+
+            <!-- Body com barra de progresso -->
+            <div class="sabado-card-body">
+              <div class="progress-wrapper">
+                <div class="progress-info">
+                  <span class="progress-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    Respostas dos voluntários
+                  </span>
+
+                  <span class="progress-count">
+                    {{ sabado.total_respostas_view }}/{{ sabado.total_voluntarios_ativos }}
+                    • Não responderam: {{ sabado.total_nao_responderam }}
+                  </span>
+                </div>
+
+                <div class="progress-track">
+                  <div class="progress-fill {% if sabado.percentual_respostas_int == 100 %}complete{% endif %}"
+                    data-width="{{ sabado.percentual_respostas_int }}"></div>
+
+                {% if sabado.percentual_respostas_int == 100 %}
+                  <div class="progress-complete-msg">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Todos os voluntários responderam!
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Footer com botao -->
+            <div class="sabado-card-footer">
+              <a class="btn-responder" href="{% url 'sabado:responder_disponibilidade' sabado.id %}">
                 Responder
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
                 </svg>
               </a>
-            </li>
-          {% empty %}
-            <li class="list-group-item">Nenhum formulário aberto no momento.</li>
-          {% endfor %}
-        </ul>
-    </section>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="col-12">
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              </svg>
+            </div>
+            <h4>Nenhum formulário aberto</h4>
+            <p>No momento não há formulários de disponibilidade abertos. Fique atento!</p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="painel-link-container">
+      <a class="btn-painel" href="/sabado/resumo_sabado/">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/>
+        </svg>
+        Painel do Sábado
+      </a>
+    </div>
   </div>
-</div>
+</section>
 
-<div class="b-example-divider"></div>
-
-<!-- SEÇÃO DE FEATURES -->
+<!-- ===================== FEATURES SECTION ===================== -->
 <section class="features-section">
   <div class="container">
     <div class="section-title">
@@ -451,7 +652,7 @@ Início
       <p>Dedicação e amor em cada ação</p>
       <div class="title-line"></div>
     </div>
-    
+
     <div class="row g-4">
       <div class="col-lg-4 col-md-6">
         <div class="feature-card">
@@ -459,7 +660,7 @@ Início
             <img src="{% static 'images/card1.jpg' %}" class="feature-image" alt="Crianças felizes">
             <span class="feature-badge purple">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
               </svg>
             </span>
           </div>
@@ -468,7 +669,7 @@ Início
           <a class="feature-btn" href="{% url 'semanario:semanario_view' %}">
             Ver detalhes
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
             </svg>
           </a>
         </div>
@@ -480,7 +681,7 @@ Início
             <img src="{% static 'images/card2.jpg' %}" class="feature-image" alt="Equipe voluntária">
             <span class="feature-badge green">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
               </svg>
             </span>
           </div>
@@ -489,7 +690,7 @@ Início
           <a class="feature-btn" href="{% url 'voluntario:voluntario_view' %}">
             Saiba mais
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
             </svg>
           </a>
         </div>
@@ -501,7 +702,7 @@ Início
             <img src="{% static 'images/card3.jpg' %}" class="feature-image" alt="Famílias unidas">
             <span class="feature-badge blue">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
               </svg>
             </span>
           </div>
@@ -510,7 +711,7 @@ Início
           <a class="feature-btn" href="{% url 'atendido:atendido_view' %}">
             Conhecer
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
             </svg>
           </a>
         </div>
@@ -518,5 +719,12 @@ Início
     </div>
   </div>
 </section>
-{% endblock %}
 
+<script>
+  document.querySelectorAll(".progress-fill[data-width]").forEach(el => {
+    const w = Number(el.dataset.width || 0);
+    el.style.width = Math.max(0, Math.min(100, w)) + "%";
+  });
+</script>
+
+{% endblock %}

@@ -20,12 +20,13 @@ class Sabado(models.Model):
 
     def __str__(self):
         return self.data.strftime('%d/%m/%Y')
-    
+
     @property
     def enquete_aberta(self):
         hoje = timezone.now().date()
         data_fechamento = self.data - timedelta(days=2)
         return hoje < data_fechamento
+
 
 class FaixaHorarioAjuda(models.Model):
     codigo = models.CharField(max_length=10, unique=True)
