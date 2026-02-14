@@ -98,6 +98,19 @@ LOCAIS = (
     ("OUTROS", "Outros"),
 )
 
+TIPO_LOCAL = (
+    ("MERCADO", "Mercado"),
+    ("PAPELARIA", "Papelaria"),
+    ("OUTROS", "Outros")
+)
+
+PEDIDO = (
+    ("SUPPLY", "Supply"),
+    ("RECREA", "Recrea"),
+    ("ZUERO", "Zuero"),
+    ("OUTROS", "Outros")
+)
+
 class Semanario(models.Model):
     tema = models.CharField(max_length=100, blank=True, null=True)
     sala = models.CharField(max_length=20, choices=LISTA_SALAS)
@@ -151,6 +164,10 @@ class Material(models.Model):
     nome = models.CharField(max_length=100)
     quantidade = models.DecimalField(max_digits=6, decimal_places=2, default=1)
     unidade = models.CharField(max_length=10, choices=UNIDADES, default="UN")
+    valor = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    local_compra = models.CharField(max_length=100, blank=True, null=True)
+    tipo_local = models.CharField(max_length=100, choices=TIPO_LOCAL, blank=True, null=True)
+    pedido = models.CharField(max_length=100, choices=PEDIDO, blank=True, null=True)
 
     def __str__(self):
         return f"{self.nome} ({self.atividade.semanario.sala})"

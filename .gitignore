@@ -1,3 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+.env
+*.log
+
+# VSCode
+.vscode/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Migrations cache
+**/migrations/__pycache__/
+
+# Arquivos temporários
+*.swp
+*.bak
+*.tmp
 # Arquivos do Python 
 db.sqlite3
 __pycache__/

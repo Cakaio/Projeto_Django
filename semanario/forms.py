@@ -33,7 +33,7 @@ class AtividadeForm(forms.ModelForm):
 class MaterialForm(forms.ModelForm):
     class Meta:
         model = Material
-        fields = ["nome", "quantidade", "unidade"]
+        fields = ["nome", "quantidade", "unidade", "valor", "local_compra", "tipo_local", "pedido"]
 
 
 # Cria os formsets

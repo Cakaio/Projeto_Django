@@ -68,6 +68,7 @@ def criar_semanario(request):
                         nome = m.get('nome', '').strip()
                         quantidade = m.get('quantidade', '').strip()
                         unidade = m.get('unidade', '').strip()
+                        pedido = m.get('pedido', '').strip()
                         if nome:
                             # validar quantidade, usando default 1 quando vazio ou inválido
                             if quantidade:
@@ -77,7 +78,13 @@ def criar_semanario(request):
                                     qtd = Decimal('1')
                             else:
                                 qtd = Decimal('1')
-                            Material.objects.create(atividade=atividade_obj, nome=nome, quantidade=qtd, unidade=(unidade or 'UN'))
+                            Material.objects.create(
+                                atividade=atividade_obj,
+                                nome=nome,
+                                quantidade=qtd,
+                                unidade=(unidade or 'UN'),
+                                pedido=pedido
+                            )
 
             messages.success(request, "✅ Semanário, atividades e materiais salvos com sucesso!")
             return redirect("semanario:criar_semanario")
@@ -212,7 +219,7 @@ class SemanarioListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         hoje = timezone.now().date()
         return Semanario.objects.filter(
-            data__data__gt=hoje + timezone.timedelta(days=-14)
+            data__data__gt=hoje + timezone.timedelta(days=-30)
         ).order_by("data__data")
 
     def get_context_data(self, **kwargs):
@@ -231,34 +238,38 @@ class SemanarioListView(LoginRequiredMixin, ListView):
 
 def listar_materiais(request, atividade_id):
     materiais = Material.objects.filter(atividade_id=atividade_id)
-
+    print(f"[DEBUG listar_materiais] Materiais no banco para atividade {atividade_id}: {materiais.count()}")
     data = [
         {
             "id": m.id,
             "nome": m.nome,
             "quantidade": str(m.quantidade),
             "unidade": m.unidade,
+            "pedido": m.pedido if hasattr(m, 'pedido') else ''
         }
         for m in materiais
     ]
-
     return JsonResponse(data, safe=False)
+
 
 def salvar_materiais(request):
     data = json.loads(request.body)
     atividade_id = data.get("atividade_id")
     materiais = data.get("materiais", [])
 
+    print(f"[DEBUG salvar_materiais] Antes de deletar: {Material.objects.filter(atividade_id=atividade_id).count()} materiais no banco para atividade {atividade_id}")
     Material.objects.filter(atividade_id=atividade_id).delete()
+    print(f"[DEBUG salvar_materiais] Após deletar: {Material.objects.filter(atividade_id=atividade_id).count()} materiais no banco para atividade {atividade_id}")
 
     for m in materiais:
         Material.objects.create(
             atividade_id=atividade_id,
             nome=m["nome"],
             quantidade=m["quantidade"],
-            unidade=m["unidade"]
+            unidade=m["unidade"],
+            pedido=m.get("pedido", "")
         )
-
+    print(f"[DEBUG salvar_materiais] Após inserir: {Material.objects.filter(atividade_id=atividade_id).count()} materiais no banco para atividade {atividade_id}")
     return JsonResponse({"success": True})
 
 

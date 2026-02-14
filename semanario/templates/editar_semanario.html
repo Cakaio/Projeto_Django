@@ -813,7 +813,7 @@
                 <th>Material</th>
                 <th>Quantidade</th>
                 <th>Unidade</th>
-                <th style="width: 60px;">Ação</th>
+                <th style="width: 100px;">Pedido</th>
               </tr>
             </thead>
             <tbody id="materiais-body">
@@ -859,168 +859,229 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Helpers e handlers para modal de Materiais (editar)
-const modal = document.getElementById("materiaisModal");
-let currentAtividadeId = null;
-let currentAtividadeIndex = null;
+/**
+ * Semanário - Modal Materiais
+ * - Garante que os listeners são registrados só 1 vez (mesmo se o template/script rodar de novo)
+ * - Usa APENAS 1 listener para show.bs.modal (nada de “extra” duplicando)
+ * - Faz cleanup de backdrop no hidden.bs.modal (mais seguro do que mexer no DOM no show)
+ */
 
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
+(function () {
+  // TRAVA GLOBAL: se esse script for executado duas vezes, não duplica listeners
+  if (window.__materiaisModalInit) return;
+  window.__materiaisModalInit = true;
+
+  const modal = document.getElementById("materiaisModal");
+  if (!modal) return;
+
+  const tbody = document.getElementById("materiais-body");
+  const materiaisJsonEl = document.getElementById("materiais_json");
+  const atividadeIdEl = document.getElementById("atividade-id");
+  const addBtn = document.getElementById("add-material");
+  const salvarBtn = document.getElementById("salvar-materiais");
+  const toastEl = document.getElementById("materiaisToast");
+
+  let currentAtividadeId = null;
+  let currentAtividadeIndex = null;
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  function novaLinha(material = {}) {
+    const nome = (material.nome || '').replace(/"/g, '&quot;');
+    const quantidade = material.quantidade || '';
+    const unidade = material.unidade || 'UN';
+    const pedido = material.pedido || '';
+    return `
+      <tr>
+        <td><input class="form-control mat-nome" value="${nome}" placeholder="Nome do material"></td>
+        <td><input class="form-control mat-quant" value="${quantidade}" placeholder="Qtd"></td>
+        <td>
+          <select class="form-select mat-unidade">
+            <option value="UN"${unidade==='UN' ? ' selected':''}>Unidade</option>
+            <option value="PAC"${unidade==='PAC' ? ' selected':''}>Pacote</option>
+            <option value="CX"${unidade==='CX' ? ' selected':''}>Caixa</option>
+            <option value="TUBO"${unidade==='TUBO' ? ' selected':''}>Tubo</option>
+            <option value="METRO"${unidade==='METRO' ? ' selected':''}>Metro</option>
+            <option value="L"${unidade==='L' ? ' selected':''}>Litro</option>
+            <option value="KG"${unidade==='KG' ? ' selected':''}>Quilo</option>
+            <option value="OUTROS"${unidade==='OUTROS' ? ' selected':''}>Outros</option>
+          </select>
+        </td>
+        <td>
+          <select class="form-select mat-pedido">
+            <option value="SUPPLY"${pedido==='SUPPLY' ? ' selected':''}>Supply</option>
+            <option value="RECREA"${pedido==='RECREA' ? ' selected':''}>Recrea</option>
+            <option value="ZUERO"${pedido==='ZUERO' ? ' selected':''}>Zuero</option>
+            <option value="OUTROS"${pedido==='OUTROS' ? ' selected':''}>Outros</option>
+          </select>
+        </td>
+        <td>
+          <button type="button" class="btn btn-remove remover-material">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </td>
+      </tr>`;
+  }
+
+  // ÚNICO handler do show.bs.modal
+  function materiaisModalHandler(event) {
+    console.log('[DEBUG] show.bs.modal');
+
+    const button = event.relatedTarget;
+    const atividadeId = button?.getAttribute("data-atividade-id") || null;
+    const atividadeIndex = button?.getAttribute("data-atividade-index") || null;
+
+    currentAtividadeId = atividadeId;
+    currentAtividadeIndex = atividadeIndex;
+
+    if (atividadeIdEl) atividadeIdEl.value = atividadeId || '';
+
+    if (tbody) tbody.innerHTML = "";
+
+    // Se existe atividade no banco, busca do servidor
+    if (atividadeId) {
+      fetch(`/semanario/materiais/${atividadeId}/?t=${Date.now()}`)
+        .then(res => res.json())
+        .then(data => {
+          console.log('[DEBUG] Materiais recebidos:', data);
+          if (!data || data.length === 0) {
+            tbody.insertAdjacentHTML('beforeend', novaLinha());
+          } else {
+            data.forEach(m => tbody.insertAdjacentHTML('beforeend', novaLinha(m)));
+          }
+        })
+        .catch(err => {
+          console.error('Erro ao buscar materiais:', err);
+          tbody.insertAdjacentHTML('beforeend', novaLinha());
+        });
+    } else {
+      // Se ainda não tem atividade no banco, pega do hidden JSON
+      try {
+        const parsed = JSON.parse((materiaisJsonEl?.value || '{}'));
+        const list = parsed[currentAtividadeIndex] || [];
+        if (!list || list.length === 0) tbody.insertAdjacentHTML('beforeend', novaLinha());
+        else list.forEach(m => tbody.insertAdjacentHTML('beforeend', novaLinha(m)));
+      } catch (e) {
+        tbody.insertAdjacentHTML('beforeend', novaLinha());
       }
     }
   }
-  return cookieValue;
-}
 
-function novaLinha(material = {}){
-  const nome = (material.nome || '').replace(/"/g, '&quot;');
-  const quantidade = material.quantidade || '';
-  const unidade = material.unidade || 'UN';
-  return `
-    <tr>
-      <td><input class="form-control mat-nome" value="${nome}" placeholder="Nome do material"></td>
-      <td><input class="form-control mat-quant" value="${quantidade}" placeholder="Qtd"></td>
-      <td>
-        <select class="form-select mat-unidade">
-          <option value="UN"${unidade==='UN' ? ' selected':''}>Unidade</option>
-          <option value="PAC"${unidade==='PAC' ? ' selected':''}>Pacote</option>
-          <option value="CX"${unidade==='CX' ? ' selected':''}>Caixa</option>
-        </select>
-      </td>
-      <td>
-        <button type="button" class="btn btn-remove remover-material">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
-      </td>
-    </tr>`;
-}
+  // Registrar só uma vez (como temos a trava global, isso basta)
+  modal.addEventListener("show.bs.modal", materiaisModalHandler);
 
-modal.addEventListener("show.bs.modal", function (event) {
-  const button = event.relatedTarget;
-  const atividadeId = button.getAttribute("data-atividade-id");
-  const atividadeIndex = button.getAttribute("data-atividade-index");
+  // Cleanup seguro quando o modal FECHA (evita “backdrop preso”)
+  modal.addEventListener("hidden.bs.modal", () => {
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+  });
 
-  currentAtividadeId = atividadeId;
-  currentAtividadeIndex = atividadeIndex;
+  // Adicionar linha
+  addBtn?.addEventListener('click', () => {
+    tbody?.insertAdjacentHTML('beforeend', novaLinha());
+  });
 
-  document.getElementById("atividade-id").value = atividadeId || '';
-
-  const tbody = document.getElementById("materiais-body");
-  tbody.innerHTML = "";
-
-  if (atividadeId) {
-    // Atividade já existe: buscar do servidor
-    fetch(`/semanario/materiais/${atividadeId}/`)
-      .then(res => res.json())
-      .then(data => {
-        if (!data || data.length === 0) {
-          tbody.insertAdjacentHTML('beforeend', novaLinha());
-        } else {
-          data.forEach(m => tbody.insertAdjacentHTML('beforeend', novaLinha(m)));
-        }
-      }).catch(err => {
-        console.error('Erro ao buscar materiais:', err);
-        tbody.insertAdjacentHTML('beforeend', novaLinha());
-      });
-  } else {
-    // Atividade nova: carregar materiais do hidden 'materiais_json' se houver
-    try {
-      const parsed = JSON.parse(document.getElementById('materiais_json').value || '{}');
-      const list = parsed[currentAtividadeIndex] || [];
-      if (list.length === 0) tbody.insertAdjacentHTML('beforeend', novaLinha());
-      else list.forEach(m => tbody.insertAdjacentHTML('beforeend', novaLinha(m)));
-    } catch(e){
-      tbody.insertAdjacentHTML('beforeend', novaLinha());
-    }
-  }
-});
-
-// Adicionar linha
-document.getElementById('add-material').addEventListener('click', function(){
-  document.getElementById('materiais-body').insertAdjacentHTML('beforeend', novaLinha());
-});
-
-// Delegação para remover linha
-document.getElementById('materiais-body').addEventListener('click', function(e){
-  if (e.target.closest('.remover-material')){
-    e.target.closest('tr').remove();
-  }
-});
-
-// Salvar materiais: se atividade já existe -> POST AJAX para salvar no servidor;
-// se não existe -> atualizar campo hidden 'materiais_json' para gravação quando o form principal for submetido
-document.getElementById('salvar-materiais').addEventListener('click', function(){
-  const rows = Array.from(document.querySelectorAll('#materiais-body tr'));
-  const materiais = rows.map(r => ({
-    nome: (r.querySelector('.mat-nome').value || '').trim(),
-    quantidade: (r.querySelector('.mat-quant').value || '').trim(),
-    unidade: (r.querySelector('.mat-unidade').value || '').trim() || 'UN'
-  })).filter(m => m.nome !== '');
-
-  if (currentAtividadeId) {
-    // salvar no servidor via endpoint /semanario/salvar_materiais/
-    fetch('/semanario/salvar_materiais/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCookie('csrftoken')
-      },
-      body: JSON.stringify({atividade_id: currentAtividadeId, materiais: materiais})
-    }).then(res => {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-    })
-      .then(resp => {
-        if (resp.success) {
-          const inst = bootstrap.Modal.getInstance(modal);
-          if (inst) inst.hide();
-          try {
-            const toastEl = document.getElementById('materiaisToast');
-            const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
-            toast.show();
-          } catch(e){}
-        } else {
-          alert('Não foi possível salvar os materiais: ' + (resp.error || 'erro desconhecido'));
-        }
-      }).catch(err => { console.error(err); alert('Erro ao salvar materiais: ' + err.message); });
-  } else {
-    // atualizar campo hidden para ser processado quando o semanário for salvo
-    try {
-      const parsed = JSON.parse(document.getElementById('materiais_json').value || '{}');
-      parsed[currentAtividadeIndex] = materiais;
-      document.getElementById('materiais_json').value = JSON.stringify(parsed);
-      const inst = bootstrap.Modal.getInstance(modal);
-      if (inst) inst.hide();
-    } catch(e){
-      console.error('Erro ao atualizar materiais_json', e);
-      alert('Erro ao armazenar materiais localmente.');
-    }
-  }
-});
-
-// Add form-control class to all Django form inputs
-document.addEventListener('DOMContentLoaded', function() {
-  const inputs = document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea, select');
-  inputs.forEach(input => {
-    if (input.tagName === 'SELECT') {
-      input.classList.add('form-select');
-    } else {
-      input.classList.add('form-control');
+  // Delegação para remover linha
+  tbody?.addEventListener('click', (e) => {
+    if (e.target.closest('.remover-material')) {
+      e.target.closest('tr').remove();
     }
   });
-});
+
+  // Salvar materiais
+  salvarBtn?.addEventListener('click', () => {
+    const rows = Array.from(document.querySelectorAll('#materiais-body tr'));
+    const materiais = rows.map(r => ({
+      nome: (r.querySelector('.mat-nome')?.value || '').trim(),
+      quantidade: (r.querySelector('.mat-quant')?.value || '').trim(),
+      unidade: (r.querySelector('.mat-unidade')?.value || 'UN').trim(),
+      pedido: (r.querySelector('.mat-pedido')?.value || '').trim(),
+    })).filter(m => m.nome !== '');
+
+    if (currentAtividadeId) {
+      fetch('/semanario/salvar_materiais/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ atividade_id: currentAtividadeId, materiais })
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        })
+        .then(resp => {
+          if (!resp.success) {
+            alert('Não foi possível salvar os materiais: ' + (resp.error || 'erro desconhecido'));
+            return;
+          }
+
+          // fechar modal
+          const inst = bootstrap.Modal.getInstance(modal);
+          inst?.hide();
+
+          // toast
+          try {
+            const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+            toast.show();
+          } catch (e) {}
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Erro ao salvar materiais: ' + err.message);
+        });
+    } else {
+      // salva no hidden json pra enviar quando o form principal for submetido
+      try {
+        const parsed = JSON.parse((materiaisJsonEl?.value || '{}'));
+        parsed[currentAtividadeIndex] = materiais;
+        materiaisJsonEl.value = JSON.stringify(parsed);
+
+        const inst = bootstrap.Modal.getInstance(modal);
+        inst?.hide();
+
+        try {
+          const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+          toast.show();
+        } catch (e) {}
+      } catch (e) {
+        console.error('Erro ao atualizar materiais_json', e);
+        alert('Erro ao armazenar materiais localmente.');
+      }
+    }
+  });
+
+  // (Opcional) aplicar classes nos inputs Django
+  document.addEventListener('DOMContentLoaded', () => {
+    const inputs = document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea, select');
+    inputs.forEach(input => {
+      if (input.tagName === 'SELECT') input.classList.add('form-select');
+      else input.classList.add('form-control');
+    });
+  });
+})();
 </script>
+
 
 {% endblock %}
 

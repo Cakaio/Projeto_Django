@@ -628,6 +628,7 @@
               <th>Material</th>
               <th>Quantidade</th>
               <th>Unidade</th>
+              <th>Pedido</th>
               <th style="width:60px"></th>
             </tr>
           </thead>
@@ -682,6 +683,7 @@
       const nome = material.nome || '';
       const quantidade = material.quantidade || '';
       const unidade = material.unidade || 'UN';
+      const pedido = material.pedido || '';
       return `
         <tr>
           <td><input type="text" class="form-control material-nome" value="${nome}" placeholder="Material"></td>
@@ -696,6 +698,14 @@
               <option value="L"${unidade==='L' ? ' selected':''}>Litro</option>
               <option value="KG"${unidade==='KG' ? ' selected':''}>Quilo</option>
               <option value="OUTROS"${unidade==='OUTROS' ? ' selected':''}>Outros</option>
+            </select>
+          </td>
+          <td>
+            <select class="form-select material-pedido">
+              <option value="SUPPLY"${pedido==='SUPPLY' ? ' selected':''}>Supply</option>
+              <option value="RECREA"${pedido==='RECREA' ? ' selected':''}>Recrea</option>
+              <option value="ZUERO"${pedido==='ZUERO' ? ' selected':''}>Zuero</option>
+              <option value="OUTROS"${pedido==='OUTROS' ? ' selected':''}>Outros</option>
             </select>
           </td>
           <td><button type="button" class="btn-remove-row">
@@ -757,6 +767,7 @@
         nome: r.querySelector('.material-nome').value.trim(),
         quantidade: r.querySelector('.material-quantidade').value.trim(),
         unidade: r.querySelector('.material-unidade').value,
+        pedido: r.querySelector('.material-pedido').value
       })).filter(m=>m.nome!=='');
 
       const key = (currentIndex === null || currentIndex === undefined) ? '0' : currentIndex;
