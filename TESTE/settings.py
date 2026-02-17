@@ -21,12 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-n)4$&)s^^+0j9jv75^83nso(3l=&b!pqmxp6!(0klk&mda8^ea'
+SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['pcf.pythonanywhere.com']
 
 
 # Application definition
@@ -61,7 +61,7 @@ ROOT_URLCONF = 'TESTE.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['templates'],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -82,8 +82,12 @@ WSGI_APPLICATION = 'TESTE.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': config("DATA_BASE_ENGINE"),
+        'NAME': config("DATA_BASE_NAME"),
+        'USER': config("DATA_BASE_USER"),
+        'PASSWORD': config("DATA_BASE_PASSWORD"),
+        'HOST': config("DATA_BASE_HOST"),
+        'PORT':config("DATA_BASE_PORT"),
     }
 }
 
@@ -125,11 +129,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
+STATIC_ROOT = '/home/pcf/Projeto_Django/static'
 
 MEDIA_URL = 'media/'
 
@@ -138,10 +140,10 @@ MEDIA_ROOT = BASE_DIR / "media"
 LOGIN_REDIRECT_URL = 'inicio'
 LOGIN_URL = 'login'
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = config("EMAIL_PORT")
 EMAIL_USE_TLS = config("EMAIL_USE_TLS")
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD") 
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
