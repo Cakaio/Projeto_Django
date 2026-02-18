@@ -135,6 +135,56 @@ ESCOLA = (
 ("OUTRO", "Outro"),
 )
 
+COMPORTAMENTO_SOCIAL = (
+    ("INTERAGE BEM COM COLEGAS","Interage bem com colegas"),
+    ("DIFICULDADE DE INTERAÇÃO SOCIAL","Dificuldade de interação social"),
+    ("ISOLADO","Isolado"),
+    ("AGRESSIVO","Agressivo"),
+    ("TIMÍDO","Tímido"),
+    ("DEPENDE DO AMBIENTE","Depende do ambiente"),
+    ("AINDA ESTÁ SE ADAPTANDO","Ainda está se adaptando"),
+)
+
+OPÇOES = (
+    ("SIM","Sim"),
+    ("NÃO","Não"),
+    ("ÀS VEZES","Às vezes"),
+)
+
+ACOMPANHAMENTO = (
+    ("NENHUM","Nenhum"),
+    ("PEDIATRIA","Pediatria"),
+    ("TERAPIA OCUPACIONAL","Terapia Ocupacional"),
+    ("FONOAUDIOLOGIA","Fonoaudiologia"),
+    ("PSICOLOGIA","Psicologia"),
+    ("PSIQIATRA","Psiquiatria"),
+    ("FISIOTERAPIA","Fisioterapia"),
+    ("OUTRO ACOMPANHAMENTO","Outro Acompanhamento"),
+)
+
+TIPO_MATRICULA = (
+    ("MATRÍCULA","Matrícula"),
+    ("REMATRÍCULA","Rematrícula"),
+)
+
+TIPO_IMPACTO_SOCIAL = (
+    ("APOIO NO DESENVOLVIMENTO DO ATENDIDO","Apoio no desenvolvimento do atendido"),
+    ("SUPORTE À FAMÍLIA","Suporte à família"),
+    ("ORIENTAÇÃO EDUCACIONAL","Orientação educacional"),
+    ("CONTRIBUIÇÃO PARA ROTINA FAMILIAR","Contribuição para rotina familiar"),
+    ("APOIO EMOCIONAL","Apoio emocional"),
+)
+
+
+class Mudanca(models.Model):
+    mudanca = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ['mudanca']
+
+    def __str__(self):
+        return self.mudanca
+
 class Atendido(models.Model):
     familia = models.ForeignKey("Familia", on_delete=models.SET_NULL, null=True, blank=True, related_name="atendidos", help_text="Família que o atendido pertence, caso não tenha, cadastre uma nova família.")
     responsavel = models.ManyToManyField("ResponsavelAtendido", blank=True, related_name="atendidos", help_text="Responsável(s) pelo atendido, caso não tenha, cadastre um novo responsável.")
@@ -157,7 +207,20 @@ class Atendido(models.Model):
     restricao_alimentar = models.TextField(blank=True, null=True,help_text="Restrições alimentares do atendido")
     restricao_medica = models.TextField(blank=True, null=True,help_text="Restrições médicas do atendido")
     medicacao_continua = models.TextField(blank=True, null=True,help_text="Medicação contínua do atendido")
-    deficiencia = models.TextField(blank=True, null=True,help_text="O Atendido possui alguma deficiência ou necessidade educacional especial?")
+    diagnostico = models.BooleanField(default=False,help_text="O atendido possui algum diagnóstico, laudo ou acompanhamento relacionado ao desenvolvimento, aprendizagem ou comportamento (como TEA, TDAH, dificuldades de atenção, comunicação ou socialização)? Há condições de saúde que requerem acompanhamento ou suporte especializado?")
+    diagnostico_descricao = models.TextField(blank=True, null=True,help_text="Descrição do diagnóstico, laudo ou acompanhamento relacionado ao desenvolvimento, aprendizagem ou comportamento do atendido")
+    comportamento_social = models.CharField(max_length=100, choices=COMPORTAMENTO_SOCIAL, blank=True, null=True,help_text="Como o atendido costuma se comportar em atividades em grupo e na socialização com outras pessoas da mesma idade?")
+    comportamento_regras = models.CharField(max_length=100, choices=OPÇOES, blank=True, null=True,help_text="O atendido apresenta alguma dificuldade em seguir regras ou combinados?")
+    concentracao = models.BooleanField(default=False,help_text="O atendido apresenta dificuldade de concentração em atividades mais longas?")
+    aprendizado = models.BooleanField(default=False,help_text="O atendido apresenta alguma dificuldade de aprendizado?")
+    sensibilidade = models.BooleanField(default=False,help_text="O atendido apresenta sensibilidade a sons, luzes, cheiros ou toque?")
+    sensibilidade_descricao = models.TextField(blank=True, null=True,help_text="Descrição da sensibilidade do atendido a sons, luzes, cheiros ou toque")
+    dificuldade_motora = models.BooleanField(default=False,help_text="O atendido apresenta alguma dificuldade motora ou de coordenação?")
+    dificuldade_motora_descricao = models.TextField(blank=True, null=True,help_text="Descrição da dificuldade motora ou de coordenação do atendido")
+    dificuldade_emocional = models.BooleanField(default=False,help_text="O atendido apresenta alguma dificuldade em controlar suas emoções ou comportamentos?")
+    dificuldade_emocional_descricao = models.TextField(blank=True, null=True,help_text="Descrição da dificuldade do atendido em controlar suas emoções ou comportamentos")
+    acompanhamento = models.CharField(max_length=100, choices=ACOMPANHAMENTO, blank=True, null=True,help_text="O atendido realiza acompanhamento com algum profissional? Se sim, qual?")
+    recomendacao_acompanhamento = models.TextField(blank=True, null=True,help_text="Qual é a recomendação do profissional de saúde ou educacional para melhor atender o atendido?")
     identidade_etnica = models.CharField(max_length=50, choices=IDENTIDADE_ETNICA, blank=True, null=True,help_text="Identidade étnica do atendido")
     numeracao_camisa = models.CharField(max_length=5, blank=True, null=True,help_text="Numeração da camisa do atendido")
     numeracao_calca = models.CharField(max_length=5, blank=True, null=True,help_text="Numeração da calça do atendido")
@@ -165,7 +228,13 @@ class Atendido(models.Model):
     termos_assinado = models.BooleanField(default=False, help_text="Os termos de: Ciencia do EDUC ; Dados/LGPD ; Uso de Imagem ; Saúde Bucal foram assinados?")
     registrado_por = models.ForeignKey("voluntario.Voluntario",on_delete=models.SET_NULL,null=True,blank=True,related_name="atendidos_registrados")
     comissao_inclusiva = models.BooleanField(default=False,help_text="O Atendido tem necessidade de apoio da Comissão Inclusiva?")
-    observacoes = models.TextField(blank=True, null=True)
+    expectativas_familia = models.TextField(blank=True, null=True, help_text="Quais são as expectativas da família em relação ao apoio inclusivo oferecido pelo projeto?")
+    matricula = models.CharField(max_length=20, choices=TIPO_MATRICULA, blank=True, null=True, help_text="Indica se é matrícula ou rematrícula do atendido")
+    mudancas_positivas = models.BooleanField(default=False, help_text="Desde que a criança participa do Projeto Criança Feliz, você percebeu mudanças positivas no comportamento dela?")
+    aspectos_mudancas = models.ManyToManyField("Mudanca", blank=True, help_text="Quais aspectos ou áreas de desenvolvimento você percebeu mudanças positivas na criança? (Marque todas as que se aplicam)")
+    saude_bucal = models.BooleanField(default=False, help_text="Antes de participar do Projeto Criança Feliz, o atendido já havia passado por atendimento odontológico?")
+    observacoes = models.TextField(blank=True, null=True, help_text="Adicione quaisquer outras informações relevantes sobre o atendido que não foram contempladas nos campos anteriores.")
+    campanha_vacinacao = models.BooleanField(default=False, help_text="Você apoiaria a realização de campanhas de vacinação para os atendidos do Projeto Criança Feliz?")
     data_criacao = models.DateTimeField(default=timezone.now)
     ativo = models.BooleanField(default=True, help_text="Indica que o usuário será tratado como ativo. Ao invés de excluir atendidos, desmarque isso.")
 
@@ -214,7 +283,12 @@ class Familia(models.Model):
     celular_casa = models.IntegerField(default=0,help_text="Número de celulares na residência da família")
     computador_casa = models.IntegerField(default=0,help_text="Número de computadores na residência da família")
     cesta_natal = models.BooleanField(default=False,help_text="A família recebeu cesta de Natal?")
+    impacto_social = models.CharField(max_length=100, choices=OPÇOES, blank=True, null=True, help_text="O Projeto Criança Feliz contribui positivamente para a rotina da sua família?")
+    tipo_impacto_social = models.CharField(max_length=100, choices=TIPO_IMPACTO_SOCIAL, blank=True, null=True, help_text="De que forma o Projeto Criança Feliz contribui positivamente na sua família?")
     data_criacao = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.nome}"
 
 class ResponsavelAtendido(models.Model):
     nome = models.CharField(max_length=50, blank=True, null=True, help_text="Nome do responsável pelo atendido")

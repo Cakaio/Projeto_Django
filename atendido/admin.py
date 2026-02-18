@@ -72,16 +72,18 @@ class AtendidoAdmin(ImportExportModelAdmin):
 
     fieldsets = (
         ("Identificação do Atendido", {'fields': ('nome', 'data_nascimento', 'rg', 'cpf', 'foto', 'documento')}),
-        ("Sala de Matricula", {'fields': ('sala',)}),
+        ("Matricula", {'fields': ('sala','matricula')}),
         ("Vínculos Familiares e Responsáveis", {'fields': ('familia', 'responsavel')}),
         ("Informaçoes Educacionais", {'fields': ('escolaridade', 'ano_escolar', 'escola','tipo_escola')}),
         ("Contato", {'fields': ('contato',)}),
         ("Situação Social e Atividades", {'fields': ('trabalho', 'projeto_social',)}),
-        ("Saúde e Bem-Estar", {'fields': ('convenio_medico', 'vacina_covid', 'restricao_alimentar', 'restricao_medica', 'medicacao_continua', 'deficiencia', 'comissao_inclusiva')}),
+        ("Saúde e Bem-Estar", {'fields': ('convenio_medico', 'vacina_covid', 'restricao_alimentar', 'restricao_medica', 'medicacao_continua','campanha_vacinacao')}),
+        ("PCF INCLUSIVO", {'fields': ('diagnostico', 'diagnostico_descricao', 'comportamento_social', 'comportamento_regras', 'concentracao', 'aprendizado', 'sensibilidade', 'sensibilidade_descricao', 'dificuldade_motora', 'dificuldade_motora_descricao', 'dificuldade_emocional', 'dificuldade_emocional_descricao', 'acompanhamento', 'recomendacao_acompanhamento', 'comissao_inclusiva','expectativas_familia')}),
+        ("Impacto Projeto Crianca Feliz", {'fields': ('mudancas_positivas', 'aspectos_mudancas', 'saude_bucal',)}),
         ("Identidade e Perfil", {'fields': ('identidade_etnica',)}),
         ("Informações Vestuário", {'fields': ('numeracao_camisa','numeracao_calca','numeracao_calcado')}),
         ("Termos e Autorizações", {'fields': ('termos_assinado',)}),
-        ("Observações", {'fields': ('observacoes',)}),
+        ("Observações e Informações Adicionais", {'fields': ('observacoes',)}),
         ("Controle e Auditoria do Sistema", {'fields': ('registrado_por','data_criacao','ativo')}),
     )
     list_display = ['nome', 'sala']
