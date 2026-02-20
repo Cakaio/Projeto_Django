@@ -282,7 +282,7 @@ class Familia(models.Model):
     freezer_casa = models.IntegerField(default=0,help_text="Número de freezers na residência da família")
     celular_casa = models.IntegerField(default=0,help_text="Número de celulares na residência da família")
     computador_casa = models.IntegerField(default=0,help_text="Número de computadores na residência da família")
-    cesta_natal = models.BooleanField(default=False,help_text="A família recebeu cesta de Natal?")
+    cesta_natal = models.BooleanField(default=False,help_text="A família tem interesse em receber cesta de Natal?")
     impacto_social = models.CharField(max_length=100, choices=OPÇOES, blank=True, null=True, help_text="O Projeto Criança Feliz contribui positivamente para a rotina da sua família?")
     tipo_impacto_social = models.CharField(max_length=100, choices=TIPO_IMPACTO_SOCIAL, blank=True, null=True, help_text="De que forma o Projeto Criança Feliz contribui positivamente na sua família?")
     data_criacao = models.DateTimeField(default=timezone.now)

@@ -1,6 +1,6 @@
 from import_export import resources, fields
 from django.contrib import admin
-from .models import Atendido, Familia, PresencaAtendido, ResponsavelAtendido, AtendidoInclusivo
+from .models import Atendido, Familia, PresencaAtendido, ResponsavelAtendido, AtendidoInclusivo, Mudanca
 from import_export.admin import ImportExportModelAdmin
 from import_export.formats import base_formats
 from django.utils.translation import gettext_lazy as _
@@ -201,3 +201,10 @@ class PresencaAtendidoAdmin(ImportExportModelAdmin):
         # O 'changelist' contém os filtros aplicados no GET
         cl = self.get_changelist_instance(request)
         return cl.get_queryset(request)
+
+
+
+@admin.register(Mudanca)
+class MudancaAdmin(admin.ModelAdmin):
+    list_display = ['mudanca']
+    search_fields = ['mudanca']
