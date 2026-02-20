@@ -256,7 +256,7 @@ class AtendidoInclusivo(models.Model):
     expectativas_familia = models.TextField(blank=True, null=True, help_text="Quais são as expectativas da família em relação ao apoio inclusivo oferecido pelo projeto?")
     observacoes_adicionais = models.TextField(blank=True, null=True, help_text="Adicione quaisquer outras informações relevantes sobre as necessidades inclusivas do Atendido.")
 
-    
+
 class Familia(models.Model):
     nome = models.CharField(max_length=50, blank=True, null=True,help_text="Nome da família")
     cep = models.CharField(max_length=10, blank=True, null=True,help_text="CEP da residência da família, somente números")
