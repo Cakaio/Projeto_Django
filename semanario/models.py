@@ -15,14 +15,14 @@ LISTA_SALAS = (
     ("FAMILIA_FELIZ", "Família Feliz"),
 )
 COMPETENCIAS_SALAS = {
-    "VIOLETA": ["Respeito","Sentimentos","Imaginação"],
-    "ANIL": ["Ampliação de visão de mundo e tolerância","Criatividade","Comunicação e introdução à leitura","Prática sensorial e coordenação motora","Concentração e memória",],
-    "AZUL": ["Cooperação e relações interpessoais","Empatia","Responsabilidade e consequência","Criatividade","Incentivo à leitura e escrita",],
-    "VERDE": ["Trabalho em equipe","Consciência social","Autonomia","Liderança","Autoconhecimento",],
-    "AMARELO": ["Trabalho em equipe","Consciência social","Expressão de opinião","Comunicação",],
-    "LARANJA": ["Quebra de panelinhas","Senso crítico","Responsabilidade","Vínculo","Projeção de futuro",],
-    "VERMELHO": ["Pensamento crítico","Autonomia","Relacionamento interpessoal","Visão global","Reinventar seu lugar no mundo",],
-    "FAMILIA_FELIZ": ["Cidadania","Quem sou eu?","Reinventar meu lugar no mundo","Resiliência emocional",],
+    "VIOLETA": ["Respeito","Sentimentos","Imaginação","Recreativos"],
+    "ANIL": ["Ampliação de visão de mundo e tolerância","Criatividade","Comunicação e introdução à leitura","Prática sensorial e coordenação motora","Concentração e memória","Recreativos"],
+    "AZUL": ["Cooperação e relações interpessoais","Empatia","Responsabilidade e consequência","Criatividade","Incentivo à leitura e escrita","Recreativos"],
+    "VERDE": ["Trabalho em equipe","Consciência social","Autonomia","Liderança","Autoconhecimento","Recreativos"],
+    "AMARELO": ["Trabalho em equipe","Consciência social","Expressão de opinião","Comunicação","Recreativos"],
+    "LARANJA": ["Quebra de panelinhas","Senso crítico","Responsabilidade","Vínculo","Projeção de futuro","Recreativos"],
+    "VERMELHO": ["Pensamento crítico","Autonomia","Relacionamento interpessoal","Visão global","Reinventar seu lugar no mundo","Recreativos"],
+    "FAMILIA_FELIZ": ["Cidadania","Quem sou eu?","Reinventar meu lugar no mundo","Resiliência emocional","Recreativos"],
 }
 
 DIMENSOES_COMPETENCIAS = {
@@ -73,6 +73,9 @@ DIMENSOES_COMPETENCIAS = {
         "Comunicação e introdução à leitura",
         "Concentração e memória",
         "Incentivo à leitura e escrita",
+    ],
+    "Recreativos": [
+        "Recreativos",
     ],
 }
 
