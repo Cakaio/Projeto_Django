@@ -1,6 +1,18 @@
 from django.contrib import admin
 from .models import DisponibilidadeVoluntario, Sabado, FaixaHorarioAjuda
 from import_export.admin import ImportExportModelAdmin
+from import_export import resources, fields
+
+class DisponibilidadeVoluntarioResource(resources.ModelResource):
+    voluntario = fields.Field(column_name='voluntario')
+
+    def dehydrate_voluntario(self, obj):
+        return obj.voluntario.get_full_name() or obj.voluntario.username
+
+    class Meta:
+        model = DisponibilidadeVoluntario
+        fields = ('id', 'sabado', 'voluntario', 'vai_ao_projeto', 'saude', 'vai_de_carro', 'respondido_em')
+
 
 # Register your models here.
 @admin.register(Sabado)
@@ -10,6 +22,7 @@ class SabadoAdmin(admin.ModelAdmin):
 
 @admin.register(DisponibilidadeVoluntario)
 class DisponibilidadeVoluntarioAdmin(ImportExportModelAdmin):
+    resource_class = DisponibilidadeVoluntarioResource
     list_display = ['sabado', 'voluntario', 'vai_ao_projeto']
     search_fields = ['voluntario__first_name', 'voluntario__last_name']
     list_filter = ['sabado', 'vai_ao_projeto']
