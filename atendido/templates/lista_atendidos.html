@@ -404,13 +404,26 @@
                     </div>
                     <div class="atendido-info">
                       <div class="atendido-nome">{{ atendido.nome }}</div>
-                      <div class="atendido-familia">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                          <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        Familia: {{ atendido.familia }}
-                      </div>
+                      {%for resp in atendido.responsavel.all%}
+                        <div class="atendido-familia">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                          </svg>
+                          <span>
+                            Responsável: {{ resp.nome }} <br>
+                            Telefone: <a href="https://wa.me/55{{ resp.contato }}" target="_blank" rel="noopener noreferrer">{{ resp.contato|default:"(sem contato)" }}</a>
+                          </span>
+                        </div>
+                      {% empty %}
+                        <div class="atendido-familia">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                          </svg>
+                          Sem responsável cadastrado
+                        </div>
+                      {% endfor %}
                     </div>
 
                     <button
