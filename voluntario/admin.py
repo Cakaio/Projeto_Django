@@ -31,6 +31,17 @@ class VoluntarioResource(resources.ModelResource):
         )
 
 class PresencaVoluntarioResource(resources.ModelResource):
+    voluntario = fields.Field(column_name='voluntario')
+    registrado_por = fields.Field(column_name='registrado_por')
+
+    def dehydrate_voluntario(self, obj):
+        return obj.voluntario.get_full_name() or obj.voluntario.username
+
+    def dehydrate_registrado_por(self, obj):
+        if obj.registrado_por:
+            return obj.registrado_por.get_full_name() or obj.registrado_por.username
+        return ''
+
     class Meta:
         model = PresencaVoluntario
         fields = (
