@@ -24,7 +24,7 @@ class Sabado(models.Model):
     @property
     def enquete_aberta(self):
         hoje = timezone.now().date()
-        data_fechamento = self.data - timedelta(days=2)
+        data_fechamento = self.data - timedelta(days=1)
         return hoje < data_fechamento
 
 
