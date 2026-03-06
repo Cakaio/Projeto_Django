@@ -11,7 +11,7 @@ class DisponibilidadeVoluntarioResource(resources.ModelResource):
 
     class Meta:
         model = DisponibilidadeVoluntario
-        fields = ('id', 'sabado', 'voluntario', 'vai_ao_projeto', 'saude', 'vai_de_carro', 'respondido_em')
+        fields = ('id', 'sabado', 'voluntario', 'vai_ao_projeto','pode_ajudar', 'saude', 'vai_de_carro', 'respondido_em')
 
 
 # Register your models here.
@@ -25,7 +25,7 @@ class DisponibilidadeVoluntarioAdmin(ImportExportModelAdmin):
     resource_class = DisponibilidadeVoluntarioResource
     list_display = ['sabado', 'voluntario', 'vai_ao_projeto']
     search_fields = ['voluntario__first_name', 'voluntario__last_name']
-    list_filter = ['sabado', 'vai_ao_projeto']
+    list_filter = ['sabado', 'vai_ao_projeto','pode_ajudar','vai_de_carro']
     filter_horizontal = ['pode_ajudar']
 
     def get_export_queryset(self, request):
