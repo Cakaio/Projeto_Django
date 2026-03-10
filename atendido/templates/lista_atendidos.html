@@ -245,89 +245,7 @@
     border-radius: 0.75rem;
     border: 2px dashed var(--border-color);
   }
-
-  /* Modal Customizado */
-  .modal-content {
-    border: none;
-    border-radius: 1.25rem;
-    overflow: hidden;
-  }
-
-  .modal-header {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    border: none;
-    padding: 1.5rem;
-  }
-
-  .modal-title {
-    color: white;
-    font-weight: 600;
-  }
-
-  .modal-header .btn-close {
-    filter: brightness(0) invert(1);
-    opacity: 0.8;
-  }
-
-  .modal-header .btn-close:hover {
-    opacity: 1;
-  }
-
-  .modal-body {
-    padding: 2rem;
-  }
-
-  .modal-foto-wrapper {
-    width: 140px;
-    height: 140px;
-    margin: 0 auto 1.5rem;
-    padding: 4px;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    border-radius: 50%;
-  }
-
-  .modal-foto-wrapper img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-    border: 4px solid white;
-  }
-
-  .modal-nome {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 0.5rem;
-  }
-
-  .modal-sala-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.375rem 1rem;
-    background: var(--bg-light);
-    color: var(--primary);
-    border-radius: 9999px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-bottom: 1rem;
-  }
-
-  .modal-data {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    color: var(--text-muted);
-    font-size: 0.9375rem;
-  }
-
-  .modal-footer {
-    border-top: 1px solid var(--border-color);
-    padding: 1rem 1.5rem;
-  }
-
+  
   .btn-fechar {
     padding: 0.625rem 1.5rem;
     background: var(--bg-light);
@@ -362,6 +280,288 @@
       justify-content: center;
     }
   }
+</style>
+
+<style>
+  /* ===== FONTES ===== */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  /* ===== VARIÁVEIS ===== */
+  :root {
+    --bg: #F9F9F8;
+    --bg-card: #FFFFFF;
+    --fg: #1C1C1A;
+    --fg-muted: #78776F;
+    --border: #E8E8E4;
+    --primary: #4f46e5;
+    --primary-10: rgba(74,108,111,0.1);
+    --primary-15: rgba(74,108,111,0.15);
+    --alert: #D95D39;
+    --alert-10: rgba(217,93,57,0.1);
+    --alert-15: rgba(217,93,57,0.15);
+    --alert-25: rgba(217,93,57,0.25);
+    --secondary: #7c3aed;
+  }
+  /* ===== RESET DO MODAL ===== */
+  .dossier-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(28,28,26,0.4);
+    backdrop-filter: blur(4px);
+    font-family: 'Inter', sans-serif;
+    color: var(--fg);
+  }
+  .dossier-overlay * { box-sizing: border-box; margin: 0; padding: 0; }
+  .dossier-container {
+    position: relative;
+    display: flex;
+    width: 94vw;
+    max-width: 1400px;
+    height: 92vh;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    overflow: hidden;
+  }
+  /* ===== BOTÃO FECHAR ===== */
+  .dossier-close {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .dossier-close:hover {
+    background: var(--secondary);
+    color: var(--fg);
+  }
+  /* ===== PAINEL ESQUERDO ===== */
+  .dossier-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+  .dossier-profile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 24px 16px;
+  }
+  .dossier-photo {
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    object-fit: cover;
+    margin-bottom: 16px;
+  }
+  .dossier-name {
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.3;
+    color: var(--fg);
+  }
+  .dossier-age {
+    margin-top: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  .dossier-sala-badge {
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--primary-10);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--primary);
+  }
+  .dossier-matricula {
+    margin-top: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--fg-muted);
+  }
+  /* ===== CARE TAGS ===== */
+  .dossier-care-section {
+    border-top: 1px solid var(--border);
+    padding: 16px;
+  }
+  .dossier-care-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--fg-muted);
+    margin-bottom: 8px;
+  }
+  .dossier-care-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .care-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--alert-15);
+    border: 1px solid var(--alert-25);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--alert);
+  }
+  .care-tag svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+  }
+  /* ===== NAVEGAÇÃO (ABAS) ===== */
+  .dossier-nav {
+    margin-top: auto;
+    border-top: 1px solid var(--border);
+  }
+  .dossier-nav ul {
+    list-style: none;
+    padding: 8px 0;
+  }
+  .dossier-nav button {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    border: none;
+    border-left: 2px solid transparent;
+    background: transparent;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--fg-muted);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .dossier-nav button:hover {
+    background: var(--secondary);
+    color: var(--fg);
+  }
+  .dossier-nav button.active {
+    background: var(--primary-10);
+    color: var(--primary);
+    font-weight: 500;
+    border-left-color: var(--primary);
+  }
+  .dossier-nav button svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+  /* ===== PAINEL DIREITO (CONTEÚDO) ===== */
+  .dossier-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 48px;
+  }
+  .dossier-tab { display: none; }
+  .dossier-tab.active { display: block; }
+  /* ===== COMPONENTES ===== */
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--fg-muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+  .fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 32px;
+  }
+  .field.full { grid-column: 1 / -1; }
+  .field-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--fg-muted);
+    margin-bottom: 4px;
+  }
+  .field-value {
+    font-size: 14px;
+    color: var(--fg);
+  }
+  .field-value.mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .field-value.empty {
+    color: var(--fg-muted);
+    font-style: italic;
+  }
+  /* Boolean fields */
+  .bool-field {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .bool-icon {
+    margin-top: 2px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+  }
+  .bool-icon.true { background: var(--primary-15); color: var(--primary); }
+  .bool-icon.false { background: var(--secondary); color: var(--fg-muted); }
+  .bool-icon.alert-true { background: var(--alert-15); color: var(--alert); }
+  .bool-icon svg { width: 14px; height: 14px; }
+  .bool-label {
+    font-size: 14px;
+    color: var(--fg);
+    line-height: 1.4;
+  }
+  /* Responsável cards */
+  .responsavel-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-card);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .responsavel-card .fields-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .space-y > * + * { margin-top: 16px; }
+  .space-y-sm > * + * { margin-top: 12px; }
 </style>
 
 <div class="container my-5">
@@ -428,13 +628,55 @@
 
                     <button
                       class="btn-detalhes"
-                      data-bs-toggle="modal"
-                      data-bs-target="#detalheAtendidoModal"
+                      onclick="abrirFichaAtendido(this)"
                       data-nome="{{ atendido.nome }}"
                       data-sala="{{ atendido.get_sala_display }}"
-                      data-data="{{ atendido.data_nascimento|date:'d/m/Y' }}"
-                      data-foto="{% if atendido.foto %}{{ atendido.foto.url }}{% else %}{% static 'images/sem-foto.jpg' %}{% endif %}">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      data-data="{{ atendido.data_nascimento|date:'Y-m-d' }}"
+                      data-foto="{% if atendido.foto %}{{ atendido.foto.url }}{% else %}{% static 'images/sem-foto.jpg' %}{% endif %}"
+                      data-matricula="{{ atendido.matricula }}"
+                      data-identidade-etnica="{{ atendido.identidade_etnica|default:'Não informado' }}"
+                      data-rg="{{ atendido.rg|default:'Não informado' }}"
+                      data-cpf="{{ atendido.cpf|default:'Não informado' }}"
+                      data-ativo="{% if atendido.ativo %}Ativo{% else %}Inativo{% endif %}"
+                      data-data-criacao="{{ atendido.data_criacao|date:'d/m/Y' }}"
+                      data-tipo-matricula="{{ atendido.matricula|default:'Não informado' }}"
+                      data-numeracao-camisa="{{ atendido.numeracao_camisa|default:'Não informado' }}"
+                      data-numeracao-calca="{{ atendido.numeracao_calca|default:'Não informado' }}"
+                      data-numeracao-calcado="{{ atendido.numeracao_calcado|default:'Não informado' }}"
+                      data-termos-assinado="{% if atendido.termos_assinado %}Sim{% else %}Não{% endif %}"
+                      data-projeto-social="{% if atendido.projeto_social %}Sim{% else %}Não{% endif %}"
+                      data-trabalho="{% if atendido.trabalho %}Sim{% else %}Não{% endif %}"
+                      data-familia="{{ atendido.familia|default:'Não informado' }}"
+                      data-responsaveis="{% for resp in atendido.responsavel.all %}{{ resp.nome }} ({{ resp.parentesco }}){% if not forloop.last %}, {% endif %}{% endfor %}"
+                      data-escolaridade="{{ atendido.escolaridade|default:'Não informado' }}"
+                      data-ano-escolar="{{ atendido.ano_escolar|default:'Não informado' }}"
+                      data-escola="{{ atendido.escola|default:'Não informado' }}"
+                      data-tipo-escola="{{ atendido.tipo_escola|default:'Não informado' }}"
+                      data-contato="{{ atendido.contato|default:'Não informado' }}"
+                      data-convenio-medico="{% if atendido.convenio_medico %}Sim{% else %}Não{% endif %}"
+                      data-vacina-covid="{% if atendido.vacina_covid %}Sim{% else %}Não{% endif %}"
+                      data-saude-bucal="{% if atendido.saude_bucal %}Sim{% else %}Não{% endif %}"
+                      data-campanha-vacinacao="{% if atendido.campanha_vacinacao %}Sim{% else %}Não{% endif %}"
+                      data-restricao-alimentar="{{ atendido.restricao_alimentar|default:'Não informado' }}"
+                      data-restricao-medica="{{ atendido.restricao_medica|default:'Não informado' }}"
+                      data-medicacao-continua="{{ atendido.medicacao_continua|default:'Não informado' }}"
+                      data-diagnostico-descricao="{{ atendido.diagnostico_descricao|default:'Não informado' }}"
+                      data-acompanhamento="{{ atendido.get_acompanhamento_display|default:'Não informado' }}"
+                      data-recomendacao-acompanhamento="{{ atendido.recomendacao_acompanhamento|default:'Não informado' }}"
+                      data-observacoes="{{ atendido.observacoes|default:'Não informado' }}"
+                      data-comissao-inclusiva="{% if atendido.comissao_inclusiva %}Sim{% else %}Não{% endif %}"
+                      data-comportamento-social="{{ atendido.get_comportamento_social_display|default:'Não informado' }}"
+                      data-comportamento-regras="{{ atendido.get_comportamento_regras_display|default:'Não informado' }}"
+                      data-concentracao="{% if atendido.concentracao %}Sim{% else %}Não{% endif %}"
+                      data-aprendizado="{% if atendido.aprendizado %}Sim{% else %}Não{% endif %}"
+                      data-sensibilidade="{% if atendido.sensibilidade %}Sim{% else %}Não{% endif %}"
+                      data-sensibilidade-descricao="{{ atendido.sensibilidade_descricao|default:'Não informado' }}"
+                      data-dificuldade-motora="{% if atendido.dificuldade_motora %}Sim{% else %}Não{% endif %}"
+                      data-dificuldade-motora-descricao="{{ atendido.dificuldade_motora_descricao|default:'Não informado' }}"
+                      data-dificuldade-emocional="{% if atendido.dificuldade_emocional %}Sim{% else %}Não{% endif %}"
+                      data-dificuldade-emocional-descricao="{{ atendido.dificuldade_emocional_descricao|default:'Não informado' }}"
+                      data-expectativas-familia="{{ atendido.expectativas_familia|default:'Não informado' }}"
+                      <svg  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
                       </svg>
@@ -461,57 +703,673 @@
   </div>
 </div>
 
-<!-- Modal de Detalhes do Atendido -->
-<div class="modal fade" id="detalheAtendidoModal" tabindex="-1" aria-labelledby="detalheAtendidoModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow">
-      <div class="modal-header">
-        <h5 class="modal-title" id="detalheAtendidoModalLabel">Detalhes do Atendido</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+<!-- ============================================================ -->
+{% load static %}
+
+<!-- ============================================================ -->
+<!-- MODAL DA FICHA DO ATENDIDO                                   -->
+<!-- ============================================================ -->
+<div class="dossier-overlay" id="fichaAtendidoModal" style="display:none;">
+  <div class="dossier-container">
+    <!-- Botão Fechar -->
+    <button class="dossier-close" onclick="fecharFichaAtendido()" aria-label="Fechar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <!-- ===== PAINEL ESQUERDO ===== -->
+    <aside class="dossier-sidebar">
+      <div class="dossier-profile">
+        <img class="dossier-photo" id="fichaFoto" src="{% static 'img/placeholder.svg' %}" alt="Foto do atendido">
+        <h2 class="dossier-name" id="fichaNome">{{ atendido.nome }}</h2>
+        <p class="dossier-age" id="fichaIdade"></p>
+        <span class="dossier-sala-badge">{{ atendido.sala }}</span>
+        {% if atendido.matricula %}
+          <span class="dossier-matricula">{{ atendido.matricula }}</span>
+        {% endif %}
       </div>
-      <div class="modal-body text-center">
-        <div class="modal-foto-wrapper">
-          <img id="modalFoto" src="/placeholder.svg" alt="Foto do atendido">
+      <!-- Care Tags -->
+      <div class="dossier-care-section" id="fichaCareSection">
+        <p class="dossier-care-title">Alertas de Cuidado</p>
+        <div class="dossier-care-tags" id="fichaCareTags">
+          {% if atendido.restricao_alimentar %}
+            <span class="care-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Restrição alimentar
+            </span>
+          {% endif %}
+          {% if atendido.diagnostico %}
+            <span class="care-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Diagnóstico / Laudo
+            </span>
+          {% endif %}
+          {% if atendido.sensibilidade %}
+            <span class="care-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Sensibilidade sensorial
+            </span>
+          {% endif %}
+          {% if atendido.dificuldade_motora %}
+            <span class="care-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Dificuldade motora
+            </span>
+          {% endif %}
+          {% if atendido.dificuldade_emocional %}
+            <span class="care-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Dificuldade emocional
+            </span>
+          {% endif %}
+          {% if atendido.concentracao %}
+            <span class="care-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Dificuldade de concentração
+            </span>
+          {% endif %}
+          {% if atendido.comissao_inclusiva %}
+            <span class="care-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Comissão Inclusiva
+            </span>
+          {% endif %}
+          {% if atendido.medicacao_continua %}
+            <span class="care-tag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Medicação contínua
+            </span>
+          {% endif %}
         </div>
-        <h5 class="modal-nome" id="modalNome"></h5>
-        <div class="modal-sala-badge" id="modalSala">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-          </svg>
-          <span id="modalSalaText"></span>
+      </div>
+      <!-- Navegação por Abas -->
+      <nav class="dossier-nav">
+        <ul>
+          <li>
+            <button class="active" onclick="trocarAba(this, 'tab-identificacao')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Identificação
+            </button>
+          </li>
+          <li>
+            <button onclick="trocarAba(this, 'tab-matricula')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>
+              Matrícula
+            </button>
+          </li>
+          <li>
+            <button onclick="trocarAba(this, 'tab-vinculos')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Vínculos
+            </button>
+          </li>
+          <li>
+            <button onclick="trocarAba(this, 'tab-educacional')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
+              Educacional
+            </button>
+          </li>
+          <li>
+            <button onclick="trocarAba(this, 'tab-contato')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              Contato
+            </button>
+          </li>
+          <li>
+            <button onclick="trocarAba(this, 'tab-saude')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+              Saúde
+            </button>
+          </li>
+          <li>
+            <button onclick="trocarAba(this, 'tab-inclusivo')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-6 1"/><path d="m5.14 17.86 3.79-3.79"/><circle cx="2" cy="21" r="1"/><path d="m14 7-5.5 5.5"/></svg>
+              PCF Inclusivo
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+    <!-- ===== PAINEL DIREITO — CONTEÚDO DAS ABAS ===== -->
+    <main class="dossier-content">
+      <!-- ===== ABA: IDENTIFICAÇÃO ===== -->
+      <div class="dossier-tab active" id="tab-identificacao">
+        <h3 class="section-title">Identificação do Atendido</h3>
+        <div class="fields-grid">
+          <div class="field full">
+            <div class="field-label">Nome Completo</div>
+            <div class="field-value" id="fichaCampoNome">{{ atendido.nome }}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Data de Nascimento</div>
+            <div class="field-value mono" id="fichaCampoDataNascimento">{{ atendido.data_nascimento|date:"d/m/Y" }}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Identidade Étnica</div>
+            <div class="field-value {% if not atendido.identidade_etnica %}empty{% endif %}" id="fichaCampoIdentidadeEtnica">{{ atendido.identidade_etnica|default:"Não informado" }}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">RG</div>
+            <div class="field-value mono {% if not atendido.rg %}empty{% endif %}" id="fichaCampoRG">
+              {% if atendido.rg %}{{ atendido.rg }}{% else %}Não informado{% endif %}
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">CPF</div>
+            <div class="field-value mono {% if not atendido.cpf %}empty{% endif %}" id="fichaCampoCPF">
+              {% if atendido.cpf %}{{ atendido.cpf }}{% else %}Não informado{% endif %}
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label">Status</div>
+            <div class="field-value" id="fichaCampoStatus">{% if atendido.ativo %}Ativo{% else %}Inativo{% endif %}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Data de Cadastro</div>
+            <div class="field-value mono" id="fichaCampoDataCriacao">{{ atendido.data_criacao|date:"d/m/Y" }}</div>
+          </div>
         </div>
-        <p class="modal-data">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-          <strong>Nascimento:</strong> <span id="modalData"></span>
-        </p>
       </div>
-      <div class="modal-footer justify-content-center">
-        <button type="button" class="btn-fechar" data-bs-dismiss="modal">Fechar</button>
+      <!-- ===== ABA: MATRÍCULA ===== -->
+      <div class="dossier-tab" id="tab-matricula">
+        <h3 class="section-title">Matrícula</h3>
+        <div class="fields-grid">
+          <div class="field">
+            <div class="field-label">Tipo de Matrícula</div>
+            <div class="field-value {% if not atendido.matricula %}empty{% endif %}">{{ atendido.matricula|default:"Não informado" }}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Sala</div>
+            <div class="field-value">{{ atendido.sala }}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Numeração Camisa</div>
+            <div class="field-value mono {% if not atendido.numeracao_camisa %}empty{% endif %}">{{ atendido.numeracao_camisa|default:"Não informado" }}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Numeração Calça</div>
+            <div class="field-value mono {% if not atendido.numeracao_calca %}empty{% endif %}">{{ atendido.numeracao_calca|default:"Não informado" }}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Numeração Calçado</div>
+            <div class="field-value mono {% if not atendido.numeracao_calcado %}empty{% endif %}">{{ atendido.numeracao_calcado|default:"Não informado" }}</div>
+          </div>
+        </div>
+        <div style="margin-top: 24px;" class="space-y-sm">
+          <!-- Termos assinados -->
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.termos_assinado %}true{% else %}false{% endif %}">
+              {% if atendido.termos_assinado %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Termos assinados (EDUC, LGPD, Imagem, Saúde Bucal)</span>
+          </div>
+          <!-- Projeto social -->
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.projeto_social %}true{% else %}false{% endif %}">
+              {% if atendido.projeto_social %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Já participou de projeto social</span>
+          </div>
+          <!-- Trabalha -->
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.trabalho %}true{% else %}false{% endif %}">
+              {% if atendido.trabalho %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Trabalha</span>
+          </div>
+        </div>
       </div>
-    </div>
+      <!-- ===== ABA: VÍNCULOS ===== -->
+      <div class="dossier-tab" id="tab-vinculos">
+        <h3 class="section-title">Vínculos Familiares e Responsáveis</h3>
+        <div class="fields-grid" style="margin-bottom: 24px;">
+          <div class="field">
+            <div class="field-label">Família</div>
+            <div class="field-value {% if not atendido.familia %}empty{% endif %}">{{ atendido.familia|default:"Não informado" }}</div>
+          </div>
+        </div>
+        {% if atendido.responsavel.all %}
+          <div class="field-label" style="margin-bottom: 12px;">Responsáveis</div>
+          {% for resp in atendido.responsavel.all %}
+            <div class="responsavel-card">
+              <div class="fields-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                <div class="field">
+                  <div class="field-label">Nome</div>
+                  <div class="field-value">{{ resp.nome }}</div>
+                </div>
+                <div class="field">
+                  <div class="field-label">Parentesco</div>
+                  <div class="field-value">{{ resp.parentesco }}</div>
+                </div>
+                <div class="field">
+                  <div class="field-label">Contato</div>
+                  <div class="field-value mono">{{ resp.contato }}</div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="field-value empty">Nenhum responsável cadastrado</p>
+        {% endif %}
+      </div>
+      <!-- ===== ABA: EDUCACIONAL ===== -->
+      <div class="dossier-tab" id="tab-educacional">
+        <h3 class="section-title">Informações Educacionais</h3>
+        <div class="fields-grid">
+          <div class="field">
+            <div class="field-label">Escolaridade</div>
+            <div class="field-value {% if not atendido.escolaridade %}empty{% endif %}">{{ atendido.escolaridade|default:"Não informado" }}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Ano Escolar</div>
+            <div class="field-value {% if not atendido.ano_escolar %}empty{% endif %}">{{ atendido.ano_escolar|default:"Não informado" }}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Escola</div>
+            <div class="field-value {% if not atendido.escola %}empty{% endif %}">{{ atendido.escola|default:"Não informado" }}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Tipo de Escola</div>
+            <div class="field-value {% if not atendido.tipo_escola %}empty{% endif %}">{{ atendido.tipo_escola|default:"Não informado" }}</div>
+          </div>
+        </div>
+      </div>
+      <!-- ===== ABA: CONTATO ===== -->
+      <div class="dossier-tab" id="tab-contato">
+        <h3 class="section-title">Contato</h3>
+        <div class="fields-grid">
+          <div class="field">
+            <div class="field-label">Telefone</div>
+            <div class="field-value mono {% if not atendido.contato %}empty{% endif %}">
+              {% if atendido.contato %}{{ atendido.contato }}{% else %}Não informado{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ===== ABA: SAÚDE ===== -->
+      <div class="dossier-tab" id="tab-saude">
+        <h3 class="section-title">Saúde e Bem-Estar</h3>
+        <div class="space-y-sm">
+          <!-- Convênio médico -->
+          <div class="field-label">Convenio Médico</div>
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.convenio_medico %}true{% else %}false{% endif %}">
+              {% if atendido.convenio_medico %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Convênio médico</span>
+          </div>
+          <!-- Vacina COVID -->
+          <div class="field-label">Vacina COVID-19</div>
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.vacina_covid %}true{% else %}false{% endif %}">
+              {% if atendido.vacina_covid %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Vacina COVID-19</span>
+          </div>
+          <!-- Saúde bucal -->
+          <div class="field-label">Saúde Bucal</div>
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.saude_bucal %}true{% else %}false{% endif %}">
+              {% if atendido.saude_bucal %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Atendimento odontológico prévio</span>
+          </div>
+          <!-- Campanha vacinação -->
+          <div class="field-label">Campanha de Vacinação</div>
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.campanha_vacinacao %}true{% else %}false{% endif %}">
+              {% if atendido.campanha_vacinacao %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Apoiaria campanhas de vacinação</span>
+          </div>
+        </div>
+        <div class="fields-grid" style="margin-top: 24px;">
+          <div class="field full">
+            <div class="field-label">Restrição Alimentar</div>
+            <div class="field-value {% if not atendido.restricao_alimentar %}empty{% endif %}">{{ atendido.restricao_alimentar|default:"Não informado" }}</div>
+          </div>
+          <div class="field full">
+            <div class="field-label">Restrição Médica</div>
+            <div class="field-value {% if not atendido.restricao_medica %}empty{% endif %}">{{ atendido.restricao_medica|default:"Não informado" }}</div>
+          </div>
+          <div class="field full">
+            <div class="field-label">Medicação Contínua</div>
+            <div class="field-value {% if not atendido.medicacao_continua %}empty{% endif %}">{{ atendido.medicacao_continua|default:"Não informado" }}</div>
+          </div>
+          <div class="field full">
+            <div class="field-label">Diagnóstico (Descrição)</div>
+            <div class="field-value {% if not atendido.diagnostico_descricao %}empty{% endif %}">{{ atendido.diagnostico_descricao|default:"Não informado" }}</div>
+          </div>
+          <div class="field full">
+            <div class="field-label">Acompanhamento Profissional</div>
+            <div class="field-value {% if not atendido.acompanhamento %}empty{% endif %}">{{ atendido.get_acompanhamento_display|default:"Não informado" }}</div>
+          </div>
+          <div class="field full">
+            <div class="field-label">Recomendação de Acompanhamento</div>
+            <div class="field-value {% if not atendido.recomendacao_acompanhamento %}empty{% endif %}">{{ atendido.recomendacao_acompanhamento|default:"Não informado" }}</div>
+          </div>
+        </div>
+        <!-- Alertas de saúde -->
+        <div style="margin-top: 24px;" class="space-y-sm">
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.diagnostico %}alert-true{% else %}false{% endif %}">
+              {% if atendido.diagnostico %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Possui diagnóstico / laudo</span>
+          </div>
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.restricao_alimentar %}alert-true{% else %}false{% endif %}">
+              {% if atendido.restricao_alimentar %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Restrição alimentar</span>
+          </div>
+        </div>
+        {% if atendido.observacoes %}
+        <div style="margin-top: 24px;">
+          <div class="field full">
+            <div class="field-label">Observações</div>
+            <div class="field-value">{{ atendido.observacoes }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <!-- ===== ABA: PCF INCLUSIVO ===== -->
+      <div class="dossier-tab" id="tab-inclusivo">
+        <h3 class="section-title">PCF Inclusivo</h3>
+        <div class="bool-field" style="margin-bottom: 20px;">
+          <span class="bool-icon {% if atendido.comissao_inclusiva %}alert-true{% else %}false{% endif %}">
+            {% if atendido.comissao_inclusiva %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            {% else %}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            {% endif %}
+          </span>
+          <span class="bool-label">Necessidade de apoio da Comissão Inclusiva</span>
+        </div>
+        <div class="fields-grid">
+          <div class="field full">
+            <div class="field-label">Comportamento Social</div>
+            <div class="field-value {% if not atendido.comportamento_social %}empty{% endif %}">{{ atendido.get_comportamento_social_display|default:"Não informado" }}</div>
+          </div>
+          <div class="field full">
+            <div class="field-label">Dificuldade com Regras</div>
+            <div class="field-value {% if not atendido.comportamento_regras %}empty{% endif %}">{{ atendido.get_comportamento_regras_display|default:"Não informado" }}</div>
+          </div>
+        </div>
+        <div style="margin-top: 24px;" class="space-y-sm">
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.concentracao %}alert-true{% else %}false{% endif %}">
+              {% if atendido.concentracao %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Dificuldade de concentração</span>
+          </div>
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.aprendizado %}alert-true{% else %}false{% endif %}">
+              {% if atendido.aprendizado %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Dificuldade de aprendizado</span>
+          </div>
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.sensibilidade %}alert-true{% else %}false{% endif %}">
+              {% if atendido.sensibilidade %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Sensibilidade sensorial</span>
+          </div>
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.dificuldade_motora %}alert-true{% else %}false{% endif %}">
+              {% if atendido.dificuldade_motora %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Dificuldade motora</span>
+          </div>
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.dificuldade_emocional %}alert-true{% else %}false{% endif %}">
+              {% if atendido.dificuldade_emocional %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Dificuldade emocional</span>
+          </div>
+        </div>
+        <div class="fields-grid" style="margin-top: 24px;">
+          <div class="field full">
+            <div class="field-label">Sensibilidade (Descrição)</div>
+            <div class="field-value {% if not atendido.sensibilidade_descricao %}empty{% endif %}">{{ atendido.sensibilidade_descricao|default:"Não informado" }}</div>
+          </div>
+          <div class="field full">
+            <div class="field-label">Dificuldade Motora (Descrição)</div>
+            <div class="field-value {% if not atendido.dificuldade_motora_descricao %}empty{% endif %}">{{ atendido.dificuldade_motora_descricao|default:"Não informado" }}</div>
+          </div>
+          <div class="field full">
+            <div class="field-label">Dificuldade Emocional (Descrição)</div>
+            <div class="field-value {% if not atendido.dificuldade_emocional_descricao %}empty{% endif %}">{{ atendido.dificuldade_emocional_descricao|default:"Não informado" }}</div>
+          </div>
+          <div class="field full">
+            <div class="field-label">Expectativas da Família</div>
+            <div class="field-value {% if not atendido.expectativas_familia %}empty{% endif %}">{{ atendido.expectativas_familia|default:"Não informado" }}</div>
+          </div>
+        </div>
+        <div style="margin-top: 24px;" class="space-y-sm">
+          <div class="bool-field">
+            <span class="bool-icon {% if atendido.mudancas_positivas %}true{% else %}false{% endif %}">
+              {% if atendido.mudancas_positivas %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {% endif %}
+            </span>
+            <span class="bool-label">Mudanças positivas observadas</span>
+          </div>
+          {% if atendido.aspectos_mudancas.all %}
+          <div class="field full" style="margin-top: 12px;">
+            <div class="field-label">Aspectos de Mudança</div>
+            <div class="field-value">
+              {% for mudanca in atendido.aspectos_mudancas.all %}{{ mudanca }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </main>
   </div>
 </div>
-
-<!-- Script para preencher o modal -->
+<!-- ===== JAVASCRIPT ===== -->
 <script>
-  const modal = document.getElementById('detalheAtendidoModal');
-  modal.addEventListener('show.bs.modal', event => {
-    const button = event.relatedTarget;
-    const nome = button.getAttribute('data-nome');
-    const sala = button.getAttribute('data-sala');
-    const data = button.getAttribute('data-data');
-    const foto = button.getAttribute('data-foto');
-
-    modal.querySelector('#modalNome').textContent = nome;
-    modal.querySelector('#modalSalaText').textContent = `Sala: ${sala}`;
-    modal.querySelector('#modalData').textContent = data;
-    modal.querySelector('#modalFoto').src = foto;
+  // Trocar aba ativa
+  function trocarAba(btn, tabId) {
+    // Desativar todas as abas
+    document.querySelectorAll('.dossier-tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.dossier-nav button').forEach(b => b.classList.remove('active'));
+    // Ativar a aba clicada
+    document.getElementById(tabId).classList.add('active');
+    btn.classList.add('active');
+  }
+  // Abrir modal da ficha
+  function abrirFichaAtendido(btn) {
+    const modal = document.getElementById('fichaAtendidoModal');
+    modal.style.display = 'flex';
+    // Painel esquerdo
+    document.getElementById('fichaFoto').src = btn.getAttribute('data-foto') || '{% static "img/placeholder.svg" %}';
+    document.getElementById('fichaFoto').alt = 'Foto de ' + btn.getAttribute('data-nome');
+    document.getElementById('fichaNome').textContent = btn.getAttribute('data-nome');
+    document.querySelector('.dossier-sala-badge').textContent = btn.getAttribute('data-sala');
+    const matriculaSpan = document.querySelector('.dossier-matricula');
+    if (matriculaSpan) {
+      matriculaSpan.textContent = btn.getAttribute('data-matricula') || '';
+      matriculaSpan.style.display = btn.getAttribute('data-matricula') ? 'inline' : 'none';
+    }
+    const dataNascimento = btn.getAttribute('data-data');
+    if (dataNascimento) {
+      const birth = new Date(dataNascimento);
+      const now = new Date();
+      let age = now.getFullYear() - birth.getFullYear();
+      const m = now.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+      document.getElementById('fichaIdade').textContent = age + ' anos';
+    } else {
+      document.getElementById('fichaIdade').textContent = '';
+    }
+    // Abas
+    // Identificação
+    document.getElementById('fichaCampoNome').textContent = btn.getAttribute('data-nome');
+    document.getElementById('fichaCampoDataNascimento').textContent = btn.getAttribute('data-data');
+    document.getElementById('fichaCampoIdentidadeEtnica').textContent = btn.getAttribute('data-identidade-etnica');
+    document.getElementById('fichaCampoRG').textContent = btn.getAttribute('data-rg');
+    document.getElementById('fichaCampoCPF').textContent = btn.getAttribute('data-cpf');
+    document.getElementById('fichaCampoStatus').textContent = btn.getAttribute('data-ativo');
+    document.getElementById('fichaCampoDataCriacao').textContent = btn.getAttribute('data-data-criacao');
+    // Matrícula
+    document.querySelector('#tab-matricula .field-value').textContent = btn.getAttribute('data-tipo-matricula');
+    document.querySelectorAll('#tab-matricula .field-value')[1].textContent = btn.getAttribute('data-sala');
+    document.querySelectorAll('#tab-matricula .field-value.mono')[0].textContent = btn.getAttribute('data-numeracao-camisa');
+    document.querySelectorAll('#tab-matricula .field-value.mono')[1].textContent = btn.getAttribute('data-numeracao-calca');
+    document.querySelectorAll('#tab-matricula .field-value.mono')[2].textContent = btn.getAttribute('data-numeracao-calcado');
+    // Vínculos
+    document.querySelector('#tab-vinculos .field-value').textContent = btn.getAttribute('data-familia');
+    // Preencher responsáveis
+    const responsaveisStr = btn.getAttribute('data-responsaveis');
+    const vinculosTab = document.getElementById('tab-vinculos');
+    // Remove cards antigos
+    vinculosTab.querySelectorAll('.responsavel-card').forEach(card => card.remove());
+    // Remove mensagem antiga
+    const emptyMsg = vinculosTab.querySelector('.field-value.empty');
+    if (emptyMsg) emptyMsg.style.display = 'none';
+    if (responsaveisStr && responsaveisStr.trim()) {
+      // Cria cards para cada responsável
+      responsaveisStr.split(',').forEach(resp => {
+        const div = document.createElement('div');
+        div.className = 'responsavel-card';
+        div.innerHTML = `<div class="fields-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+          <div class="field"><div class="field-label">Nome</div><div class="field-value">${resp.split('(')[0].trim()}</div></div>
+          <div class="field"><div class="field-label">Parentesco</div><div class="field-value">${resp.match(/\(([^)]+)\)/) ? resp.match(/\(([^)]+)\)/)[1] : ''}</div></div>
+          <div class="field"><div class="field-label">Contato</div><div class="field-value mono">${resp.split('|')[1] && resp.split('|')[1].trim() ? `<a href="https://wa.me/55${resp.split('|')[1].trim()}" target="_blank" rel="noopener noreferrer">${resp.split('|')[1].trim()}</a>` : 'Não informado'}</div></div>
+        </div>`;
+        vinculosTab.appendChild(div);
+      });
+      // Garante que a mensagem não apareça
+      if (emptyMsg) emptyMsg.style.display = 'none';
+    } else {
+      // Mostra mensagem de nenhum responsável
+      if (emptyMsg) emptyMsg.style.display = '';
+    }
+    // Educacional
+    document.querySelector('#tab-educacional .field-value').textContent = btn.getAttribute('data-escolaridade');
+    document.querySelectorAll('#tab-educacional .field-value')[1].textContent = btn.getAttribute('data-ano-escolar');
+    document.querySelectorAll('#tab-educacional .field-value')[2].textContent = btn.getAttribute('data-escola');
+    document.querySelectorAll('#tab-educacional .field-value')[3].textContent = btn.getAttribute('data-tipo-escola');
+    // Contato
+    document.querySelector('#tab-contato .field-value.mono').textContent = btn.getAttribute('data-contato');
+    // Saúde
+    document.querySelector('#tab-saude .bool-label').textContent = btn.getAttribute('data-convenio-medico');
+    document.querySelectorAll('#tab-saude .bool-label')[1].textContent = btn.getAttribute('data-vacina-covid');
+    document.querySelectorAll('#tab-saude .bool-label')[2].textContent = btn.getAttribute('data-saude-bucal');
+    document.querySelectorAll('#tab-saude .bool-label')[3].textContent = btn.getAttribute('data-campanha-vacinacao');
+    document.querySelectorAll('#tab-saude .field-value')[0].textContent = btn.getAttribute('data-restricao-alimentar');
+    document.querySelectorAll('#tab-saude .field-value')[1].textContent = btn.getAttribute('data-restricao-medica');
+    document.querySelectorAll('#tab-saude .field-value')[2].textContent = btn.getAttribute('data-medicacao-continua');
+    document.querySelectorAll('#tab-saude .field-value')[3].textContent = btn.getAttribute('data-diagnostico-descricao');
+    document.querySelectorAll('#tab-saude .field-value')[4].textContent = btn.getAttribute('data-acompanhamento');
+    document.querySelectorAll('#tab-saude .field-value')[5].textContent = btn.getAttribute('data-recomendacao-acompanhamento');
+    document.querySelectorAll('#tab-saude .field-value')[6].textContent = btn.getAttribute('data-observacoes');
+    // PCF Inclusivo
+    const boolFields = [
+      { key: 'comissao-inclusiva', idx: 0, alert: true },
+      { key: 'concentracao', idx: 1, alert: true },
+      { key: 'aprendizado', idx: 2, alert: true },
+      { key: 'sensibilidade', idx: 3, alert: true },
+      { key: 'dificuldade-motora', idx: 4, alert: true },
+      { key: 'dificuldade-emocional', idx: 5, alert: true }
+    ];
+    boolFields.forEach(field => {
+      const value = btn.getAttribute('data-' + field.key);
+      const iconSpan = document.querySelectorAll('#tab-inclusivo .bool-icon')[field.idx];
+      const labelSpan = document.querySelectorAll('#tab-inclusivo .bool-label')[field.idx];
+      // Remove todas as classes
+      iconSpan.classList.remove('true', 'false', 'alert-true');
+      // Define classe e SVG
+      if (value === 'Sim') {
+        iconSpan.classList.add(field.alert ? 'alert-true' : 'true');
+        iconSpan.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+        labelSpan.textContent = labelSpan.textContent.replace(/(Sim|Não)?$/, '') + ' Sim';
+      } else {
+        iconSpan.classList.add('false');
+        iconSpan.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        labelSpan.textContent = labelSpan.textContent.replace(/(Sim|Não)?$/, '') + ' Não';
+      }
+    });
+    document.querySelectorAll('#tab-inclusivo .field-value')[0].textContent = btn.getAttribute('data-comportamento-social');
+    document.querySelectorAll('#tab-inclusivo .field-value')[1].textContent = btn.getAttribute('data-comportamento-regras');
+    document.querySelectorAll('#tab-inclusivo .field-value')[2].textContent = btn.getAttribute('data-sensibilidade-descricao');
+    document.querySelectorAll('#tab-inclusivo .field-value')[3].textContent = btn.getAttribute('data-dificuldade-motora-descricao');
+    document.querySelectorAll('#tab-inclusivo .field-value')[4].textContent = btn.getAttribute('data-dificuldade-emocional-descricao');
+    document.querySelectorAll('#tab-inclusivo .field-value')[5].textContent = btn.getAttribute('data-expectativas-familia');
+    document.body.style.overflow = 'hidden';
+  }
+  // Fechar modal
+  function fecharFichaAtendido() {
+    document.getElementById('fichaAtendidoModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  // Fechar ao clicar fora
+  document.getElementById('fichaAtendidoModal').addEventListener('click', function(e) {
+    if (e.target === this) fecharFichaAtendido();
+  });
+  // Fechar com ESC
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') fecharFichaAtendido();
   });
 </script>
 
