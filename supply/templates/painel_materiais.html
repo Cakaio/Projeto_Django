@@ -1,0 +1,927 @@
+{% load l10n %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Painel de Materiais</title>
+  <style>
+    :root {
+      --primary: #F8A51B;
+      --primary-dark: #E8950B;
+      --primary-light: rgba(248, 165, 27, 0.1);
+      --secondary: #FFC857;
+      --success: #10b981;
+      --success-dark: #059669;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --text-dark: #1e293b;
+      --text-muted: #64748b;
+      --bg-light: #f8fafc;
+      --border-color: #e2e8f0;
+      --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #fef9f0 0%, #fff7e6 50%, #fef3db 100%);
+      min-height: 100vh;
+      color: var(--text-dark);
+    }
+
+    /* Decorative Background */
+    .bg-decoration {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-circle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.15;
+    }
+
+    .bg-circle-1 {
+      width: 400px;
+      height: 400px;
+      background: var(--primary);
+      top: -150px;
+      right: -100px;
+    }
+
+    .bg-circle-2 {
+      width: 300px;
+      height: 300px;
+      background: var(--secondary);
+      bottom: -100px;
+      left: -100px;
+    }
+
+    .bg-circle-3 {
+      width: 200px;
+      height: 200px;
+      background: var(--primary);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Main Container */
+    .main-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header */
+    .page-header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 40px rgba(248, 165, 27, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 400px;
+      height: 400px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+
+    .page-header-content {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .page-header-icon {
+      width: 60px;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .page-header-icon svg {
+      width: 32px;
+      height: 32px;
+      color: white;
+    }
+
+    .page-header h1 {
+      color: white;
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    .page-header p {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    /* Messages */
+    .messages-container {
+      margin-bottom: 1.5rem;
+    }
+
+    .message {
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: white;
+      border-left: 4px solid var(--primary);
+      box-shadow: var(--card-shadow);
+    }
+
+    .message svg {
+      width: 20px;
+      height: 20px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: white;
+      border-radius: 20px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .empty-state-icon {
+      width: 80px;
+      height: 80px;
+      background: var(--primary-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+
+    .empty-state-icon svg {
+      width: 40px;
+      height: 40px;
+      color: var(--primary);
+    }
+
+    .empty-state h3 {
+      color: var(--text-dark);
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+      color: var(--text-muted);
+    }
+
+    /* Filter Card */
+    .filter-card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--border-color);
+    }
+
+    .filter-form {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .filter-group {
+      flex: 1;
+      min-width: 250px;
+    }
+
+    .filter-group label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .filter-group label svg {
+      width: 18px;
+      height: 18px;
+      color: var(--primary);
+    }
+
+    .filter-group select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      color: var(--text-dark);
+      background: var(--bg-light);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 20px;
+      padding-right: 2.5rem;
+    }
+
+    .filter-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+      background-color: white;
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .btn-filter {
+      padding: 0.75rem 1.5rem;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(248, 165, 27, 0.3);
+    }
+
+    .btn-filter:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(248, 165, 27, 0.4);
+    }
+
+    .btn-filter svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stat-icon.orange {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      box-shadow: 0 4px 15px rgba(248, 165, 27, 0.3);
+    }
+
+    .stat-icon.green {
+      background: linear-gradient(135deg, var(--success), var(--success-dark));
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .stat-icon svg {
+      width: 28px;
+      height: 28px;
+      color: white;
+    }
+
+    .stat-content {
+      flex: 1;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    /* Sala Accordion */
+    .salas-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .sala-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .sala-card[open] {
+      box-shadow: 0 8px 30px rgba(248, 165, 27, 0.15);
+    }
+
+    .sala-card[open] .sala-header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    .sala-card[open] .sala-header .sala-stats {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .sala-card[open] .sala-header .chevron {
+      transform: rotate(180deg);
+      color: white;
+    }
+
+    .sala-header {
+      padding: 1.25rem 1.5rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      list-style: none;
+      transition: all 0.3s ease;
+      background: var(--bg-light);
+    }
+
+    .sala-header::-webkit-details-marker {
+      display: none;
+    }
+
+    .sala-header:hover {
+      background: linear-gradient(135deg, rgba(248, 165, 27, 0.1), rgba(255, 200, 87, 0.1));
+    }
+
+    .sala-header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .sala-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(248, 165, 27, 0.3);
+    }
+
+    .sala-card[open] .sala-icon {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .sala-icon svg {
+      width: 22px;
+      height: 22px;
+      color: white;
+    }
+
+    .sala-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text-dark);
+    }
+
+    .sala-card[open] .sala-name {
+      color: white;
+    }
+
+    .sala-header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .sala-stats {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .sala-stat {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .sala-stat strong {
+      color: var(--text-dark);
+    }
+
+    .sala-card[open] .sala-stat strong {
+      color: white;
+    }
+
+    .chevron {
+      width: 24px;
+      height: 24px;
+      color: var(--text-muted);
+      transition: transform 0.3s ease;
+    }
+
+    .sala-content {
+      padding: 1.5rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* Table Styles */
+    .materials-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .materials-table thead th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      background: var(--bg-light);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .materials-table tbody tr {
+      transition: background 0.2s ease;
+    }
+
+    .materials-table tbody tr:hover {
+      background: rgba(248, 165, 27, 0.05);
+    }
+
+    .materials-table tbody td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+    }
+
+    .material-name {
+      font-weight: 600;
+      color: var(--text-dark);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .material-name::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .material-qty {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      display: inline-block;
+    }
+
+    .material-unit {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Table Inputs */
+    .table-input {
+      padding: 0.6rem 0.75rem;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--text-dark);
+      background: white;
+      transition: all 0.3s ease;
+      width: 100%;
+    }
+
+    .table-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .table-input[type="number"] {
+      width: 110px;
+    }
+
+    .table-select {
+      padding: 0.6rem 0.75rem;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--text-dark);
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: 100%;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.5rem center;
+      background-size: 18px;
+      padding-right: 2rem;
+    }
+
+    .table-select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    /* Empty Materials */
+    .empty-materials {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .empty-materials svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Submit Section */
+    .submit-section {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-save {
+      padding: 1rem 2rem;
+      background: linear-gradient(135deg, var(--success), var(--success-dark));
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-save:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-save svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .main-container {
+        padding: 1rem;
+      }
+
+      .page-header {
+        padding: 1.5rem;
+      }
+
+      .page-header h1 {
+        font-size: 1.35rem;
+      }
+
+      .filter-form {
+        flex-direction: column;
+      }
+
+      .filter-group {
+        width: 100%;
+      }
+
+      .sala-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+
+      .sala-header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .sala-stats {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .materials-table {
+        display: block;
+        overflow-x: auto;
+      }
+
+      .btn-save {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Decoration -->
+  <div class="bg-decoration">
+    <div class="bg-circle bg-circle-1"></div>
+    <div class="bg-circle bg-circle-2"></div>
+    <div class="bg-circle bg-circle-3"></div>
+  </div>
+
+  <div class="main-container">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-content">
+        <div class="page-header-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+        </div>
+        <div>
+          <h1>Painel de Materiais</h1>
+          <p>Gerencie os materiais das salinhas (Supply)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      <div class="messages-container">
+        {% for message in messages %}
+          <div class="message">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if not sabado %}
+      <!-- Empty State -->
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h3>Nenhum sabado cadastrado</h3>
+        <p>Cadastre um sabado para comecar a gerenciar os materiais.</p>
+      </div>
+    {% else %}
+
+      <!-- Filter Card -->
+      <div class="filter-card">
+        <form method="get" class="filter-form">
+          <div class="filter-group">
+            <label>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Selecione o Sabado
+            </label>
+            <select name="sabado" onchange="this.form.submit()">
+              {% for s in sabados %}
+                <option value="{{ s.id }}" {% if sabado and s.id == sabado.id %}selected{% endif %}>
+                  {{ s.data|date:"d/m/Y" }} — {{ s.tema }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn-filter">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            Filtrar
+          </button>
+        </form>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon orange">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">Total de itens</div>
+            <div class="stat-value">{{ total_itens }}</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">Valor total gasto no sabado</div>
+            <div class="stat-value">R$ {{ total_valor|floatformat:2 }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Materials Form -->
+      <form method="post" action="{% url 'supply:salvar_materiais_lote' %}">
+        {% csrf_token %}
+        <input type="hidden" name="sabado" value="{{ sabado.id }}">
+
+        <div class="salas-container">
+          {% for sala in salas_map %}
+            <details class="sala-card" {% if forloop.first %}open{% endif %}>
+              <summary class="sala-header">
+                <div class="sala-header-left">
+                  <div class="sala-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <span class="sala-name">{{ sala.nome }}</span>
+                </div>
+                <div class="sala-header-right">
+                  <div class="sala-stats">
+                    <span class="sala-stat">Itens: <strong>{{ sala.total_itens }}</strong></span>
+                    <span class="sala-stat">Valor: <strong>R$ {{ sala.total_valor|floatformat:2 }}</strong></span>
+                  </div>
+                  <svg class="chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </summary>
+
+              <div class="sala-content">
+                {% if sala.materiais %}
+                  <table class="materials-table">
+                    <thead>
+                      <tr>
+                        <th>Material</th>
+                        <th>Qtd</th>
+                        <th>Unidade</th>
+                        <th>Valor (R$)</th>
+                        <th>Local de compra</th>
+                        <th>Tipo local</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for material in sala.materiais %}
+                        <tr>
+                          <input type="hidden" name="material_ids" value="{{ material.id }}">
+
+                          <td>
+                            <span class="material-name">{{ material.nome }}</span>
+                          </td>
+
+                          <td>
+                            <span class="material-qty">{{ material.quantidade }}</span>
+                          </td>
+
+                          <td>
+                            <span class="material-unit">{{ material.unidade }}</span>
+                          </td>
+
+                          <td>
+                            <input
+                              type="number"
+                              name="valor_{{ material.id }}"
+                              step="0.01"
+                              value="{{ material.valor|unlocalize|default_if_none:'' }}"
+                              class="table-input"
+                              placeholder="0,00"
+                            >
+                          </td>
+
+                          <td>
+                            <input
+                              type="text"
+                              name="local_compra_{{ material.id }}"
+                              value="{{ material.local_compra|default_if_none:'' }}"
+                              class="table-input"
+                              placeholder="Ex: Mercado X"
+                            >
+                          </td>
+
+                          <td>
+                            <select name="tipo_local_{{ material.id }}" class="table-select">
+                              <option value="">Selecione...</option>
+                              {% for key, nome in tipo_local_opcoes %}
+                                <option value="{{ key }}" {% if material.tipo_local == key %}selected{% endif %}>
+                                  {{ nome }}
+                                </option>
+                              {% endfor %}
+                            </select>
+                          </td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                {% else %}
+                  <div class="empty-materials">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                    Sem materiais para essa salinha no filtro selecionado.
+                  </div>
+                {% endif %}
+              </div>
+            </details>
+          {% endfor %}
+        </div>
+
+        <div class="submit-section">
+          <button type="submit" class="btn-save">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Salvar alteracoes
+          </button>
+        </div>
+      </form>
+
+    {% endif %}
+  </div>
+</body>
+</html>

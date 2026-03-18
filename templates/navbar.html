@@ -4,9 +4,9 @@
   :root {
     --navbar-bg: #ffffff;
     --navbar-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
-    --primary-color: #4f46e5;
-    --primary-hover: #4338ca;
-    --primary-light: rgba(79, 70, 229, 0.1);
+    --primary-color: #df9418;
+    --primary-hover: #c68415;
+    --primary-light: rgba(223, 148, 24, 0.1);
     --text-color: #1f2937;
     --text-muted: #6b7280;
     --border-color: #e5e7eb;
@@ -219,6 +219,7 @@
           <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
             <li><a class="dropdown-item" href="{% url 'voluntario:voluntario_view' %}">Voluntários</a></li>
             <li><a class="dropdown-item" href="{% url 'semanario:semanario_view' %}">Semanários</a></li>
+            <li><a class="dropdown-item" href="{% url 'supply:painel_materiais' %}">Supply</a></li>
             <li><a class="dropdown-item" href="{% url 'voluntario:meu_perfil' %}">Meu Perfil</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="{% url 'logout' %}">Sair</a></li>
