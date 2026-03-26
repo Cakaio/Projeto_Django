@@ -47,6 +47,7 @@ class ListaMovimentacoesView(LoginRequiredMixin, ListView):
 
 def painel_materiais(request):
     sabado_id = request.GET.get("sabado")
+    tipo_local = request.GET.get("tipo_local")
 
     sabados = Sabado.objects.order_by("-data")[:40]
 
@@ -75,6 +76,8 @@ def painel_materiais(request):
         )
         .order_by("atividade__semanario__sala", "nome")
     )
+    if tipo_local:
+        qs = qs.filter(tipo_local=tipo_local)
 
     total_itens = qs.count()
 
@@ -114,6 +117,7 @@ def painel_materiais(request):
     return render(request, "painel_materiais.html", {
         "sabados": sabados,
         "sabado": sabado,
+        "tipo_local": tipo_local,
         "tipo_local_opcoes": TIPO_LOCAL,
         "total_itens": total_itens,
         "total_valor": total_valor,
@@ -139,7 +143,7 @@ def salvar_materiais_lote(request):
 
         valor_raw = request.POST.get(f"valor_{material_id}", "").strip()
         local_compra = request.POST.get(f"local_compra_{material_id}", "").strip()
-        tipo_local = request.POST.get(f"tipo_local_{material_id}", "").strip()
+        tipo_local_material = request.POST.get(f"tipo_local_{material_id}", "").strip()
 
         if valor_raw:
             valor_raw = valor_raw.replace(",", ".")
@@ -152,7 +156,7 @@ def salvar_materiais_lote(request):
             material.valor = None
 
         material.local_compra = local_compra or None
-        material.tipo_local = tipo_local or None
+        material.tipo_local = tipo_local_material or None
         material.save()
 
         atualizados += 1
@@ -165,9 +169,18 @@ def salvar_materiais_lote(request):
 
     base_url = reverse("supply:painel_materiais")
     sabado_id = request.POST.get("sabado")
+    tipo_local_filtro = request.POST.get("tipo_local")
+
+    query_params = []
 
     if sabado_id:
-        return redirect(f"{base_url}?sabado={sabado_id}")
+        query_params.append(f"sabado={sabado_id}")
+
+    if tipo_local_filtro:
+        query_params.append(f"tipo_local={tipo_local_filtro}")
+
+    if query_params:
+        return redirect(f"{base_url}?{'&'.join(query_params)}")
 
     return redirect(base_url)
 

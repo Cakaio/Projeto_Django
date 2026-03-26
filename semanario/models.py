@@ -104,6 +104,8 @@ LOCAIS = (
 TIPO_LOCAL = (
     ("MERCADO", "Mercado"),
     ("PAPELARIA", "Papelaria"),
+    ("SALINHA", "Salinha"),
+    ("ARTIGO DE FESTA", "Artigo de Festa"),
     ("OUTROS", "Outros")
 )
 
