@@ -12,14 +12,22 @@ from django.utils.translation import gettext_lazy as _
 # =====================
 
 class AtendidoResource(resources.ModelResource):
+    responsavel_nomes = fields.Field(column_name='responsavel', attribute='responsavel', widget=resources.widgets.ManyToManyWidget(ResponsavelAtendido, field='nome'))
+    registrado_por_nome = fields.Field(column_name='registrado_por', attribute='registrado_por', widget=resources.widgets.ForeignKeyWidget('voluntario.Voluntario', 'nome'))
+    aspectos_mudancas_nomes = fields.Field(column_name='aspectos_mudancas', attribute='aspectos_mudancas', widget=resources.widgets.ManyToManyWidget(Mudanca, field='mudanca'))
+
     class Meta:
         model = Atendido
         fields = (
-            'id', 'familia', 'responsavel', 'nome', 'data_nascimento', 'sala', 'rg', 'cpf', 'contato', 'documento',
+            'id', 'familia', 'responsavel_nomes', 'nome', 'data_nascimento', 'sala', 'rg', 'cpf', 'contato', 'documento',
             'escolaridade', 'ano_escolar', 'escola', 'tipo_escola', 'trabalho', 'foto', 'projeto_social',
             'convenio_medico', 'vacina_covid', 'restricao_alimentar', 'restricao_medica', 'medicacao_continua',
-            'deficiencia', 'identidade_etnica', 'numeracao_camisa', 'numeracao_calca', 'numeracao_calcado',
-            'termos_assinado', 'registrado_por', 'comissao_inclusiva', 'observacoes', 'data_criacao', 'ativo'
+            'diagnostico', 'diagnostico_descricao', 'comportamento_social', 'comportamento_regras', 'concentracao',
+            'aprendizado', 'sensibilidade', 'sensibilidade_descricao', 'dificuldade_motora', 'dificuldade_motora_descricao',
+            'dificuldade_emocional', 'dificuldade_emocional_descricao', 'acompanhamento', 'recomendacao_acompanhamento',
+            'identidade_etnica', 'numeracao_camisa', 'numeracao_calca', 'numeracao_calcado', 'termos_assinado',
+            'registrado_por_nome', 'comissao_inclusiva', 'expectativas_familia', 'matricula', 'mudancas_positivas',
+            'aspectos_mudancas_nomes', 'saude_bucal', 'observacoes', 'campanha_vacinacao', 'data_criacao', 'ativo'
         )
 
 
