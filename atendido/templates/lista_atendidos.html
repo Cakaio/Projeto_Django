@@ -647,7 +647,7 @@
                       data-projeto-social="{% if atendido.projeto_social %}Sim{% else %}Não{% endif %}"
                       data-trabalho="{% if atendido.trabalho %}Sim{% else %}Não{% endif %}"
                       data-familia="{{ atendido.familia|default:'Não informado' }}"
-                      data-responsaveis="{% for resp in atendido.responsavel.all %}{{ resp.nome }} ({{ resp.parentesco }}){% if not forloop.last %}, {% endif %}{% endfor %}"
+                      data-responsaveis="{% for resp in atendido.responsavel.all %}{{ resp.nome }}|{{ resp.parentesco }}|{{ resp.contato|default:'' }}{% if not forloop.last %};;{% endif %}{% endfor %}"
                       data-escolaridade="{{ atendido.escolaridade|default:'Não informado' }}"
                       data-ano-escolar="{{ atendido.ano_escolar|default:'Não informado' }}"
                       data-escola="{{ atendido.escola|default:'Não informado' }}"
@@ -660,6 +660,7 @@
                       data-restricao-alimentar="{{ atendido.restricao_alimentar|default:'Não informado' }}"
                       data-restricao-medica="{{ atendido.restricao_medica|default:'Não informado' }}"
                       data-medicacao-continua="{{ atendido.medicacao_continua|default:'Não informado' }}"
+                      data-diagnostico="{% if atendido.diagnostico %}Sim{% else %}Não{% endif %}"
                       data-diagnostico-descricao="{{ atendido.diagnostico_descricao|default:'Não informado' }}"
                       data-acompanhamento="{{ atendido.get_acompanhamento_display|default:'Não informado' }}"
                       data-recomendacao-acompanhamento="{{ atendido.recomendacao_acompanhamento|default:'Não informado' }}"
@@ -676,6 +677,7 @@
                       data-dificuldade-emocional="{% if atendido.dificuldade_emocional %}Sim{% else %}Não{% endif %}"
                       data-dificuldade-emocional-descricao="{{ atendido.dificuldade_emocional_descricao|default:'Não informado' }}"
                       data-expectativas-familia="{{ atendido.expectativas_familia|default:'Não informado' }}"
+                      data-mudancas-positivas="{% if atendido.mudancas_positivas %}Sim{% else %}Não{% endif %}"
                       <svg  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
@@ -940,29 +942,8 @@
             <div class="field-value {% if not atendido.familia %}empty{% endif %}">{{ atendido.familia|default:"Não informado" }}</div>
           </div>
         </div>
-        {% if atendido.responsavel.all %}
-          <div class="field-label" style="margin-bottom: 12px;">Responsáveis</div>
-          {% for resp in atendido.responsavel.all %}
-            <div class="responsavel-card">
-              <div class="fields-grid" style="grid-template-columns: 1fr 1fr 1fr;">
-                <div class="field">
-                  <div class="field-label">Nome</div>
-                  <div class="field-value">{{ resp.nome }}</div>
-                </div>
-                <div class="field">
-                  <div class="field-label">Parentesco</div>
-                  <div class="field-value">{{ resp.parentesco }}</div>
-                </div>
-                <div class="field">
-                  <div class="field-label">Contato</div>
-                  <div class="field-value mono">{{ resp.contato }}</div>
-                </div>
-              </div>
-            </div>
-          {% endfor %}
-        {% else %}
-          <p class="field-value empty">Nenhum responsável cadastrado</p>
-        {% endif %}
+        <div class="field-label" style="margin-bottom: 12px;">Responsáveis</div>
+        <p class="field-value empty" id="vinculosEmptyMsg" style="display:none;">Nenhum responsável cadastrado</p>
       </div>
       <!-- ===== ABA: EDUCACIONAL ===== -->
       <div class="dossier-tab" id="tab-educacional">
@@ -1237,6 +1218,52 @@
     document.getElementById(tabId).classList.add('active');
     btn.classList.add('active');
   }
+  function formatDateBR(dateStr) {
+    if (!dateStr) return 'Não informado';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+
+  function formatCPF(cpf) {
+    if (!cpf || cpf === 'Não informado') return cpf || 'Não informado';
+    const d = cpf.replace(/\D/g, '');
+    if (d.length !== 11) return cpf;
+    return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  }
+
+  function formatRG(rg) {
+    if (!rg || rg === 'Não informado') return rg || 'Não informado';
+    const d = rg.replace(/\D/g, '');
+    if (d.length === 9) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
+    if (d.length === 8) return d.replace(/(\d{1})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
+    return rg;
+  }
+
+  function setBoolIcon(spanEl, value) {
+    if (!spanEl) return;
+    spanEl.classList.remove('true', 'false', 'alert-true');
+    if (value === 'Sim') {
+      spanEl.classList.add('true');
+      spanEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+    } else {
+      spanEl.classList.add('false');
+      spanEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    }
+  }
+
+  function setBoolIconAlert(spanEl, value) {
+    if (!spanEl) return;
+    spanEl.classList.remove('true', 'false', 'alert-true');
+    if (value === 'Sim') {
+      spanEl.classList.add('alert-true');
+      spanEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+    } else {
+      spanEl.classList.add('false');
+      spanEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    }
+  }
+
   // Abrir modal da ficha
   function abrirFichaAtendido(btn) {
     const modal = document.getElementById('fichaAtendidoModal');
@@ -1265,10 +1292,10 @@
     // Abas
     // Identificação
     document.getElementById('fichaCampoNome').textContent = btn.getAttribute('data-nome');
-    document.getElementById('fichaCampoDataNascimento').textContent = btn.getAttribute('data-data');
+    document.getElementById('fichaCampoDataNascimento').textContent = formatDateBR(btn.getAttribute('data-data'));
     document.getElementById('fichaCampoIdentidadeEtnica').textContent = btn.getAttribute('data-identidade-etnica');
-    document.getElementById('fichaCampoRG').textContent = btn.getAttribute('data-rg');
-    document.getElementById('fichaCampoCPF').textContent = btn.getAttribute('data-cpf');
+    document.getElementById('fichaCampoRG').textContent = formatRG(btn.getAttribute('data-rg'));
+    document.getElementById('fichaCampoCPF').textContent = formatCPF(btn.getAttribute('data-cpf'));
     document.getElementById('fichaCampoStatus').textContent = btn.getAttribute('data-ativo');
     document.getElementById('fichaCampoDataCriacao').textContent = btn.getAttribute('data-data-criacao');
     // Matrícula
@@ -1277,33 +1304,36 @@
     document.querySelectorAll('#tab-matricula .field-value.mono')[0].textContent = btn.getAttribute('data-numeracao-camisa');
     document.querySelectorAll('#tab-matricula .field-value.mono')[1].textContent = btn.getAttribute('data-numeracao-calca');
     document.querySelectorAll('#tab-matricula .field-value.mono')[2].textContent = btn.getAttribute('data-numeracao-calcado');
+    // Matrícula booleanos
+    const matriculaBools = document.querySelectorAll('#tab-matricula .bool-icon');
+    setBoolIcon(matriculaBools[0], btn.getAttribute('data-termos-assinado'));
+    setBoolIcon(matriculaBools[1], btn.getAttribute('data-projeto-social'));
+    setBoolIcon(matriculaBools[2], btn.getAttribute('data-trabalho'));
     // Vínculos
     document.querySelector('#tab-vinculos .field-value').textContent = btn.getAttribute('data-familia');
     // Preencher responsáveis
     const responsaveisStr = btn.getAttribute('data-responsaveis');
     const vinculosTab = document.getElementById('tab-vinculos');
-    // Remove cards antigos
     vinculosTab.querySelectorAll('.responsavel-card').forEach(card => card.remove());
-    // Remove mensagem antiga
-    const emptyMsg = vinculosTab.querySelector('.field-value.empty');
-    if (emptyMsg) emptyMsg.style.display = 'none';
+    const emptyMsg = document.getElementById('vinculosEmptyMsg');
     if (responsaveisStr && responsaveisStr.trim()) {
-      // Cria cards para cada responsável
-      responsaveisStr.split(',').forEach(resp => {
+      emptyMsg.style.display = 'none';
+      responsaveisStr.split(';;').forEach(resp => {
+        const parts = resp.split('|');
+        const nome = (parts[0] || '').trim();
+        const parentesco = (parts[1] || '').trim();
+        const contato = (parts[2] || '').trim();
         const div = document.createElement('div');
         div.className = 'responsavel-card';
         div.innerHTML = `<div class="fields-grid" style="grid-template-columns: 1fr 1fr 1fr;">
-          <div class="field"><div class="field-label">Nome</div><div class="field-value">${resp.split('(')[0].trim()}</div></div>
-          <div class="field"><div class="field-label">Parentesco</div><div class="field-value">${resp.match(/\(([^)]+)\)/) ? resp.match(/\(([^)]+)\)/)[1] : ''}</div></div>
-          <div class="field"><div class="field-label">Contato</div><div class="field-value mono">${resp.split('|')[1] && resp.split('|')[1].trim() ? `<a href="https://wa.me/55${resp.split('|')[1].trim()}" target="_blank" rel="noopener noreferrer">${resp.split('|')[1].trim()}</a>` : 'Não informado'}</div></div>
+          <div class="field"><div class="field-label">Nome</div><div class="field-value">${nome || 'Não informado'}</div></div>
+          <div class="field"><div class="field-label">Parentesco</div><div class="field-value">${parentesco || 'Não informado'}</div></div>
+          <div class="field"><div class="field-label">Contato</div><div class="field-value mono">${contato ? `<a href="https://wa.me/55${contato}" target="_blank" rel="noopener noreferrer">${contato}</a>` : 'Não informado'}</div></div>
         </div>`;
         vinculosTab.appendChild(div);
       });
-      // Garante que a mensagem não apareça
-      if (emptyMsg) emptyMsg.style.display = 'none';
     } else {
-      // Mostra mensagem de nenhum responsável
-      if (emptyMsg) emptyMsg.style.display = '';
+      emptyMsg.style.display = '';
     }
     // Educacional
     document.querySelector('#tab-educacional .field-value').textContent = btn.getAttribute('data-escolaridade');
@@ -1312,11 +1342,18 @@
     document.querySelectorAll('#tab-educacional .field-value')[3].textContent = btn.getAttribute('data-tipo-escola');
     // Contato
     document.querySelector('#tab-contato .field-value.mono').textContent = btn.getAttribute('data-contato');
-    // Saúde
-    document.querySelector('#tab-saude .bool-label').textContent = btn.getAttribute('data-convenio-medico');
-    document.querySelectorAll('#tab-saude .bool-label')[1].textContent = btn.getAttribute('data-vacina-covid');
-    document.querySelectorAll('#tab-saude .bool-label')[2].textContent = btn.getAttribute('data-saude-bucal');
-    document.querySelectorAll('#tab-saude .bool-label')[3].textContent = btn.getAttribute('data-campanha-vacinacao');
+    // Saúde — bool icons (convenio, vacina, saude_bucal, campanha, diagnostico, restricao_alimentar)
+    const saudeBools = document.querySelectorAll('#tab-saude .bool-icon');
+    setBoolIcon(saudeBools[0], btn.getAttribute('data-convenio-medico'));
+    setBoolIcon(saudeBools[1], btn.getAttribute('data-vacina-covid'));
+    setBoolIcon(saudeBools[2], btn.getAttribute('data-saude-bucal'));
+    setBoolIcon(saudeBools[3], btn.getAttribute('data-campanha-vacinacao'));
+    // alertas de saúde: diagnostico e restricao_alimentar usam alert-true
+    const saudeAlertBools = document.querySelectorAll('#tab-saude .bool-icon.alert-true, #tab-saude .bool-icon.false');
+    setBoolIconAlert(saudeBools[4], btn.getAttribute('data-diagnostico'));
+    const restricaoVal = btn.getAttribute('data-restricao-alimentar');
+    setBoolIconAlert(saudeBools[5], (restricaoVal && restricaoVal !== 'Não informado') ? 'Sim' : 'Não');
+    // Saúde — campos texto
     document.querySelectorAll('#tab-saude .field-value')[0].textContent = btn.getAttribute('data-restricao-alimentar');
     document.querySelectorAll('#tab-saude .field-value')[1].textContent = btn.getAttribute('data-restricao-medica');
     document.querySelectorAll('#tab-saude .field-value')[2].textContent = btn.getAttribute('data-medicacao-continua');
@@ -1324,32 +1361,16 @@
     document.querySelectorAll('#tab-saude .field-value')[4].textContent = btn.getAttribute('data-acompanhamento');
     document.querySelectorAll('#tab-saude .field-value')[5].textContent = btn.getAttribute('data-recomendacao-acompanhamento');
     document.querySelectorAll('#tab-saude .field-value')[6].textContent = btn.getAttribute('data-observacoes');
-    // PCF Inclusivo
-    const boolFields = [
-      { key: 'comissao-inclusiva', idx: 0, alert: true },
-      { key: 'concentracao', idx: 1, alert: true },
-      { key: 'aprendizado', idx: 2, alert: true },
-      { key: 'sensibilidade', idx: 3, alert: true },
-      { key: 'dificuldade-motora', idx: 4, alert: true },
-      { key: 'dificuldade-emocional', idx: 5, alert: true }
-    ];
-    boolFields.forEach(field => {
-      const value = btn.getAttribute('data-' + field.key);
-      const iconSpan = document.querySelectorAll('#tab-inclusivo .bool-icon')[field.idx];
-      const labelSpan = document.querySelectorAll('#tab-inclusivo .bool-label')[field.idx];
-      // Remove todas as classes
-      iconSpan.classList.remove('true', 'false', 'alert-true');
-      // Define classe e SVG
-      if (value === 'Sim') {
-        iconSpan.classList.add(field.alert ? 'alert-true' : 'true');
-        iconSpan.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-        labelSpan.textContent = labelSpan.textContent.replace(/(Sim|Não)?$/, '') + ' Sim';
-      } else {
-        iconSpan.classList.add('false');
-        iconSpan.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-        labelSpan.textContent = labelSpan.textContent.replace(/(Sim|Não)?$/, '') + ' Não';
-      }
-    });
+    // PCF Inclusivo — bool icons
+    const inclusivoBools = document.querySelectorAll('#tab-inclusivo .bool-icon');
+    setBoolIconAlert(inclusivoBools[0], btn.getAttribute('data-comissao-inclusiva'));
+    setBoolIconAlert(inclusivoBools[1], btn.getAttribute('data-concentracao'));
+    setBoolIconAlert(inclusivoBools[2], btn.getAttribute('data-aprendizado'));
+    setBoolIconAlert(inclusivoBools[3], btn.getAttribute('data-sensibilidade'));
+    setBoolIconAlert(inclusivoBools[4], btn.getAttribute('data-dificuldade-motora'));
+    setBoolIconAlert(inclusivoBools[5], btn.getAttribute('data-dificuldade-emocional'));
+    setBoolIcon(inclusivoBools[6], btn.getAttribute('data-mudancas-positivas') || 'Não');
+    // PCF Inclusivo — campos texto
     document.querySelectorAll('#tab-inclusivo .field-value')[0].textContent = btn.getAttribute('data-comportamento-social');
     document.querySelectorAll('#tab-inclusivo .field-value')[1].textContent = btn.getAttribute('data-comportamento-regras');
     document.querySelectorAll('#tab-inclusivo .field-value')[2].textContent = btn.getAttribute('data-sensibilidade-descricao');
