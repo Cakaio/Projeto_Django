@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container main-container">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Presença dos Atendidos</h1>
+      <p class="page-subtitle">Visualize frequência por sala e por sábados selecionados.</p>
+    </div>
+  </div>
+
+  <form method="get" class="filter-card">
+    <div class="filter-grid">
+
+      <div class="filter-group">
+        <label for="sala">Sala</label>
+        <select name="sala" id="sala" class="form-control">
+          <option value="TODAS" {% if sala_atual == "TODAS" %}selected{% endif %}>Todas</option>
+          {% for sala_item in salas_disponiveis %}
+            <option value="{{ sala_item }}" {% if sala_atual == sala_item %}selected{% endif %}>
+              {{ sala_item }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group sabados-group">
+        <div class="sabados-header">
+          <label>Sábados</label>
+          <div class="sabados-actions">
+            <button type="button" class="btn btn-light btn-sm" onclick="marcarTodos()">Marcar todos</button>
+            <button type="button" class="btn btn-light btn-sm" onclick="limparTodos()">Limpar</button>
+          </div>
+        </div>
+
+        <div class="sabados-box">
+          {% for sabado in sabados_disponiveis %}
+            <label class="checkbox-item">
+              <input
+                type="checkbox"
+                name="sabados"
+                value="{{ sabado.id }}"
+                {% if sabado.id in sabados_selecionados %}checked{% endif %}
+              >
+              <span>{{ sabado.data|date:"d/m/Y" }}</span>
+            </label>
+          {% empty %}
+            <p>Nenhum sábado cadastrado.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-primary">Aplicar filtros</button>
+    </div>
+  </form>
+
+
+  <div class="cards-grid">
+    <div class="info-card">
+      <div class="info-label">Total de atendidos</div>
+      <div class="info-value">{{ total_atendidos }}</div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-label">Sábados selecionados</div>
+      <div class="info-value">{{ total_sabados }}</div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-label">Presenças</div>
+      <div class="info-value">{{ total_presentes }}</div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-label">Ausências</div>
+      <div class="info-value">{{ total_ausentes }}</div>
+    </div>
+
+    <div class="info-card">
+      <div class="info-label">Justificadas</div>
+      <div class="info-value">{{ total_justificadas }}</div>
+    </div>
+
+    <div class="info-card destaque">
+      <div class="info-label">% Presença geral</div>
+      <div class="info-value">{{ percentual_geral }}%</div>
+    </div>
+  </div>
+
+
+  <div class="chart-card">
+    <div class="section-header">
+      <h2>Presença por sábado</h2>
+      <p>Quantidade de atendidos presentes em cada sábado selecionado.</p>
+    </div>
+
+    <div class="chart-wrapper">
+      <canvas id="graficoPresencas"></canvas>
+    </div>
+  </div>
+
+
+  <div class="table-card">
+    <div class="section-header">
+      <h2>Tabela de frequência</h2>
+      <p>Status de presença por atendido e percentual individual.</p>
+    </div>
+
+    <div class="table-responsive">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Atendido</th>
+            <th>Sala</th>
+            {% for sabado in sabados %}
+              <th>{{ sabado.data|date:"d/m" }}</th>
+            {% endfor %}
+            <th>% Presença</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for linha in dados_tabela %}
+            <tr>
+              <td class="col-nome">{{ linha.atendido.nome }}</td>
+              <td>{{ linha.sala }}</td>
+
+              {% for item in linha.presencas %}
+                <td>
+                  {% if item.status == "PRESENTE" %}
+                    <span class="status-badge status-presente">Presente</span>
+                  {% elif item.status == "AUSENTE" %}
+                    <span class="status-badge status-ausente">Ausente</span>
+                  {% elif item.status == "JUSTIFICADA" %}
+                    <span class="status-badge status-justificada">Justificada</span>
+                  {% else %}
+                    <span class="status-badge status-semregistro">-</span>
+                  {% endif %}
+                </td>
+              {% endfor %}
+
+              <td>
+                <span class="percentual-badge">{{ linha.percentual }}%</span>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="{{ sabados|length|add:3 }}" class="empty-cell">
+                Nenhum atendido encontrado com os filtros selecionados.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  function marcarTodos() {
+    document.querySelectorAll('input[name="sabados"]').forEach(cb => cb.checked = true);
+  }
+
+  function limparTodos() {
+    document.querySelectorAll('input[name="sabados"]').forEach(cb => cb.checked = false);
+  }
+
+  const labels = JSON.parse('{{ grafico_labels_json|escapejs }}');
+  const dados = JSON.parse('{{ grafico_presentes_json|escapejs }}');
+
+  const ctx = document.getElementById('graficoPresencas').getContext('2d');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Atendidos presentes',
+        data: dados,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0
+          }
+        }
+      }
+    }
+  });
+</script>
+
+
+<style>
+  .main-container {
+    padding: 2rem 0;
+  }
+
+  .page-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .page-subtitle {
+    color: #6b7280;
+    margin-top: 0.35rem;
+  }
+
+  .filter-card,
+  .chart-card,
+  .table-card,
+  .info-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  }
+
+  .filter-card {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 1.25rem;
+  }
+
+  .filter-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-control {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.95rem;
+  }
+
+  .sabados-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .sabados-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .sabados-box {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 0.85rem;
+    background: #fafafa;
+  }
+
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.55rem;
+    font-size: 0.95rem;
+  }
+
+  .checkbox-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .filter-actions {
+    margin-top: 1.2rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 12px;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .btn-sm {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .btn-primary {
+    background: #111827;
+    color: white;
+  }
+
+  .btn-light {
+    background: #f3f4f6;
+    color: #111827;
+  }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .info-card {
+    padding: 1.25rem;
+  }
+
+  .info-card.destaque {
+    border: 2px solid #111827;
+  }
+
+  .info-label {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin-bottom: 0.45rem;
+  }
+
+  .info-value {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .chart-card,
+  .table-card {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-header {
+    margin-bottom: 1rem;
+  }
+
+  .section-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .section-header p {
+    margin: 0.35rem 0 0;
+    color: #6b7280;
+  }
+
+  .chart-wrapper {
+    height: 360px;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+  }
+
+  .custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+  }
+
+  .custom-table th,
+  .custom-table td {
+    padding: 0.9rem 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .custom-table th {
+    background: #f9fafb;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .custom-table .col-nome {
+    text-align: left;
+    font-weight: 600;
+  }
+
+  .status-badge {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  .status-presente {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .status-ausente {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .status-justificada {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .status-semregistro {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .percentual-badge {
+    display: inline-block;
+    background: #111827;
+    color: #fff;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+
+  .empty-cell {
+    text-align: center;
+    color: #6b7280;
+    padding: 2rem !important;
+  }
+
+  @media (max-width: 1200px) {
+    .cards-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .filter-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .cards-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sabados-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .cards-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}

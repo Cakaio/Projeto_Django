@@ -1,5 +1,7 @@
 from django.urls import path
-from .views import MeuPerfilView, VoluntarioView, ListaVoluntario, RegistrarPresencasVoluntarios
+
+from semanario import views
+from .views import MeuPerfilView, VoluntarioView, ListaVoluntario, RegistrarPresencasVoluntarios, visualizar_presencas_voluntarios
 from django.contrib.auth import views as auth_views
 
 app_name = 'voluntario'
@@ -11,4 +13,5 @@ urlpatterns = [
     path("meu-perfil/", MeuPerfilView.as_view(), name="meu_perfil"),
     path("alterar_senha/",auth_views.PasswordChangeView.as_view(template_name="alterar_senha.html",success_url="/voluntario/alterar_senha/sucesso/"),name="alterar_senha"),
     path("alterar_senha/sucesso/",auth_views.PasswordChangeDoneView.as_view(template_name="alterar_senha_sucesso.html"),name="alterar_senha_sucesso"),
+    path("visualizar-presencas-voluntarios/",visualizar_presencas_voluntarios,name="visualizar_presencas_voluntarios"),
 ]
