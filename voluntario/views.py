@@ -1,16 +1,17 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, TemplateView, UpdateView
-from .models import Voluntario, PresencaVoluntario
+from .models import Voluntario, PresencaVoluntario, Ocorrencia
 from .forms import MeuPerfilForm
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.utils.timezone import localdate
 from django.contrib import messages
-from sabado.models import Sabado
-from django.shortcuts import render
-from .models import Voluntario, PresencaVoluntario
+from django.db.models import Count, Q
+from django.core.mail import send_mail
+from django.conf import settings
+from django.http import JsonResponse
 from sabado.models import Sabado
 import json
 
@@ -117,6 +118,21 @@ class MeuPerfilView(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, "✅ Perfil atualizado com sucesso!")
         return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        total_adv = Ocorrencia.objects.filter(advertido=user, tipo='ADVERTENCIA').count()
+        total_sus = Ocorrencia.objects.filter(advertido=user, tipo='SUSPENSAO').count()
+        adv_restantes = total_adv % 3
+        periodo_observacao = total_sus >= 3
+        context['saas_advertencias'] = adv_restantes
+        context['saas_advertencias_max'] = 3
+        context['saas_suspensoes'] = total_sus if periodo_observacao else total_sus % 3
+        context['saas_suspensoes_max'] = 3
+        context['saas_periodo_observacao'] = periodo_observacao
+        context['saas_ocorrencias'] = Ocorrencia.objects.filter(advertido=user).order_by('-criado_em')
+        return context
 
 
 
@@ -242,3 +258,199 @@ def visualizar_presencas_voluntarios(request):
     }
 
     return render(request, "visualizar_presencas_voluntarios.html", context)
+
+
+AREAS_SAAS = {"GESTAO_DE_TALENTOS", "TRIADE"}
+
+
+def _pode_ver_saas(user):
+    return user.is_authenticated and (user.is_superuser or getattr(user, 'area', '') in AREAS_SAAS)
+
+
+@login_required(login_url="/")
+def saas_view(request):
+    if not _pode_ver_saas(request.user):
+        messages.error(request, "Você não tem permissão para acessar esta página.")
+        return redirect("inicio")
+
+    voluntarios = (
+        Voluntario.objects
+        .filter(is_active=True)
+        .annotate(
+            total_advertencias=Count('ocorrencias_recebidas', filter=Q(ocorrencias_recebidas__tipo='ADVERTENCIA')),
+            total_suspensoes=Count('ocorrencias_recebidas', filter=Q(ocorrencias_recebidas__tipo='SUSPENSAO')),
+        )
+        .order_by('first_name', 'last_name')
+    )
+
+    dados = []
+    for v in voluntarios:
+        adv = v.total_advertencias
+        sus = v.total_suspensoes  # já inclui suspensões automáticas gravadas no banco
+        adv_restantes = adv % 3   # advertências desde a última suspensão gerada
+        periodo_observacao = sus >= 3
+        dados.append({
+            'voluntario': v,
+            'advertencias': adv_restantes,
+            'advertencias_max': 3,
+            'suspensoes': sus if periodo_observacao else sus % 3,
+            'suspensoes_max': 3,
+            'periodo_observacao': periodo_observacao,
+        })
+
+    context = {
+        'dados': dados,
+        'areas': LISTA_AREAS,
+    }
+    return render(request, "saas.html", context)
+
+
+@login_required(login_url="/")
+def criar_ocorrencia(request):
+    if not _pode_ver_saas(request.user):
+        messages.error(request, "Você não tem permissão para realizar esta ação.")
+        return redirect("inicio")
+
+    if request.method != "POST":
+        return redirect("voluntario:saas")
+
+    advertido_id = request.POST.get("advertido_id")
+    tipo = request.POST.get("tipo")
+    razao = request.POST.get("razao", "").strip() or None
+
+    if not advertido_id or tipo not in ("ADVERTENCIA", "SUSPENSAO"):
+        messages.error(request, "Dados inválidos.")
+        return redirect("voluntario:saas")
+
+    advertido = get_object_or_404(Voluntario, pk=advertido_id)
+
+    # Bloquear se em Período de Observação (≥ 3 suspensões)
+    total_sus_atual = Ocorrencia.objects.filter(advertido=advertido, tipo='SUSPENSAO').count()
+    if total_sus_atual >= 3:
+        messages.error(request, f"{advertido.get_full_name() or advertido.username} está em Período de Observação e não pode receber novas ocorrências.")
+        return redirect("voluntario:saas")
+
+    Ocorrencia.objects.create(
+        advertido=advertido,
+        tipo=tipo,
+        razao=razao,
+        aplicado_por=request.user,
+        automatico=False,
+    )
+
+    # Recontagem pós-criação
+    total_adv = Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA').count()
+    total_sus = Ocorrencia.objects.filter(advertido=advertido, tipo='SUSPENSAO').count()
+
+    # Auto-gerar suspensão se atingiu múltiplo de 3 advertências
+    sus_auto_esperadas = total_adv // 3
+    sus_auto_existentes = Ocorrencia.objects.filter(advertido=advertido, tipo='SUSPENSAO', automatico=True).count()
+
+    if sus_auto_esperadas > sus_auto_existentes:
+        Ocorrencia.objects.create(
+            advertido=advertido,
+            tipo='SUSPENSAO',
+            razao='Suspensão automática por acúmulo de 3 advertências.',
+            aplicado_por=request.user,
+            automatico=True,
+        )
+        total_sus += 1
+        _enviar_email_ocorrencia(advertido, 'SUSPENSAO', automatico=True)
+
+    # Checar período de observação pós-registro
+    if total_sus >= 3:
+        _enviar_email_ocorrencia(advertido, 'PERIODO_OBSERVACAO')
+    elif tipo == 'SUSPENSAO':
+        _enviar_email_ocorrencia(advertido, 'SUSPENSAO')
+    elif tipo == 'ADVERTENCIA':
+        _enviar_email_ocorrencia(advertido, 'ADVERTENCIA')
+
+    messages.success(request, f"{dict(Ocorrencia.TIPOS).get(tipo)} registrada para {advertido.get_full_name() or advertido.username}.")
+    return redirect("voluntario:saas")
+
+
+@login_required(login_url="/")
+def historico_ocorrencias(request, pk):
+    if not _pode_ver_saas(request.user):
+        return JsonResponse({'error': 'Sem permissão'}, status=403)
+    voluntario = get_object_or_404(Voluntario, pk=pk)
+    ocorrencias = Ocorrencia.objects.filter(advertido=voluntario).order_by('-criado_em')
+    data = [{
+        'id': str(o.id),
+        'tipo': o.tipo,
+        'tipo_display': dict(Ocorrencia.TIPOS).get(o.tipo, o.tipo),
+        'razao': o.razao or '',
+        'automatico': o.automatico,
+        'aplicado_por': (o.aplicado_por.get_full_name() or o.aplicado_por.username) if o.aplicado_por else '—',
+        'criado_em': o.criado_em.strftime('%d/%m/%Y %H:%M'),
+    } for o in ocorrencias]
+    return JsonResponse({
+        'ocorrencias': data,
+        'nome': voluntario.get_full_name() or voluntario.username,
+    })
+
+
+@login_required(login_url="/")
+def deletar_ocorrencia(request, ocorrencia_id):
+    if not _pode_ver_saas(request.user):
+        return JsonResponse({'error': 'Sem permissão'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método inválido'}, status=405)
+    ocorrencia = get_object_or_404(Ocorrencia, pk=ocorrencia_id)
+    advertido = ocorrencia.advertido
+    ocorrencia.delete()
+    # Retorna os novos totais para o frontend atualizar sem reload
+    total_adv = Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA').count()
+    total_sus = Ocorrencia.objects.filter(advertido=advertido, tipo='SUSPENSAO').count()
+    adv_restantes = total_adv % 3
+    periodo_observacao = total_sus >= 3
+    return JsonResponse({
+        'ok': True,
+        'advertencias': adv_restantes,
+        'suspensoes': total_sus if periodo_observacao else total_sus % 3,
+        'periodo_observacao': periodo_observacao,
+    })
+
+
+def _enviar_email_ocorrencia(advertido, tipo, automatico=False):
+    email_dest = advertido.email or getattr(advertido, 'email_alternativo', None)
+    if not email_dest:
+        return
+
+    assuntos = {
+        'ADVERTENCIA': 'Você recebeu uma advertência — Projeto Criança Feliz',
+        'SUSPENSAO': 'Você recebeu uma suspensão — Projeto Criança Feliz',
+        'PERIODO_OBSERVACAO': 'Você está em Período de Observação — Projeto Criança Feliz',
+    }
+    corpos = {
+        'ADVERTENCIA': (
+            f"Olá, {advertido.first_name or advertido.username}!\n\n"
+            "Você recebeu uma advertência no Projeto Criança Feliz.\n"
+            "Caso tenha dúvidas, entre em contato com a Gestão de Talentos ou a Tríade.\n\n"
+            "Projeto Criança Feliz"
+        ),
+        'SUSPENSAO': (
+            f"Olá, {advertido.first_name or advertido.username}!\n\n"
+            "Você recebeu uma suspensão no Projeto Criança Feliz"
+            + (" (gerada automaticamente pelo acúmulo de advertências)" if automatico else "") + ".\n"
+            "Caso tenha dúvidas, entre em contato com a Gestão de Talentos ou a Tríade.\n\n"
+            "Projeto Criança Feliz"
+        ),
+        'PERIODO_OBSERVACAO': (
+            f"Olá, {advertido.first_name or advertido.username}!\n\n"
+            "Você está em Período de Observação no Projeto Criança Feliz.\n"
+            "Isso ocorre após o acúmulo de suspensões. Entre em contato com a Gestão de Talentos ou a Tríade.\n\n"
+            "Projeto Criança Feliz"
+        ),
+    }
+
+    try:
+        send_mail(
+            subject=assuntos.get(tipo, 'Notificação — Projeto Criança Feliz'),
+            message=corpos.get(tipo, ''),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email_dest],
+            fail_silently=True,
+        )
+    except Exception:
+        pass

@@ -1,0 +1,723 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}SAAS — Gestão de Ocorrências{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --saas-primary:   #4f46e5;
+    --saas-pl:        rgba(79,70,229,.1);
+    --adv-color:      #d97706;
+    --adv-bg:         #fef3c7;
+    --sus-color:      #dc2626;
+    --sus-bg:         #fee2e2;
+    --obs-color:      #7c3aed;
+    --obs-bg:         #ede9fe;
+    --ok-color:       #059669;
+    --ok-bg:          #d1fae5;
+    --border:         #e5e7eb;
+    --text:           #111827;
+    --muted:          #6b7280;
+    --radius:         10px;
+  }
+
+  /* ── Hero ── */
+  .saas-hero {
+    background: linear-gradient(135deg,#4f46e5,#7c3aed);
+    border-radius: 1.25rem;
+    padding: 2rem 2.5rem;
+    margin-bottom: 1.75rem;
+    color: #fff;
+  }
+  .saas-hero h1 { font-size:1.6rem; font-weight:700; margin:0; }
+  .saas-hero p  { margin:.3rem 0 0; opacity:.85; font-size:.9rem; }
+
+  /* ── Toolbar ── */
+  .saas-toolbar {
+    display: flex; flex-wrap: wrap; gap:.6rem;
+    align-items: center; margin-bottom:1.1rem;
+  }
+  .saas-search { flex:1; min-width:200px; position:relative; }
+  .saas-search input {
+    width:100%; border:1.5px solid var(--border); border-radius:var(--radius);
+    padding:.45rem 1rem .45rem 2.4rem; font-size:.875rem; outline:none;
+    transition:border-color .18s;
+  }
+  .saas-search input:focus { border-color:var(--saas-primary); }
+  .saas-search .ico {
+    position:absolute; left:.7rem; top:50%; transform:translateY(-50%); color:var(--muted);
+    pointer-events:none;
+  }
+  .btn-ctrl {
+    display:inline-flex; align-items:center; gap:.35rem;
+    padding:.45rem .9rem; border:1.5px solid var(--border); border-radius:var(--radius);
+    background:#fff; font-size:.82rem; font-weight:600; cursor:pointer; color:var(--text);
+    transition:all .18s; white-space:nowrap;
+  }
+  .btn-ctrl:hover   { border-color:var(--saas-primary); color:var(--saas-primary); }
+  .btn-ctrl.active  { border-color:var(--saas-primary); color:var(--saas-primary); background:var(--saas-pl); }
+  .area-select {
+    border:1.5px solid var(--border); border-radius:var(--radius);
+    padding:.45rem .9rem; font-size:.82rem; font-weight:600;
+    background:#fff; color:var(--text); cursor:pointer; outline:none;
+  }
+  .area-select:focus { border-color:var(--saas-primary); }
+  .switch-label { font-size:.82rem; font-weight:600; cursor:pointer; white-space:nowrap; }
+
+  /* ── Table ── */
+  .saas-wrap {
+    background:#fff; border-radius:1rem;
+    box-shadow:0 1px 4px rgba(0,0,0,.07); border:1px solid var(--border); overflow:hidden;
+  }
+  .saas-table { width:100%; border-collapse:collapse; font-size:.875rem; }
+  .saas-table thead th {
+    background:#f9fafb; padding:.8rem 1.1rem;
+    font-weight:700; color:var(--muted); font-size:.75rem;
+    text-transform:uppercase; letter-spacing:.05em;
+    border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  .saas-table tbody tr { border-bottom:1px solid #f3f4f6; transition:background .12s; }
+  .saas-table tbody tr:last-child { border-bottom:none; }
+  .saas-table tbody tr:hover { background:#f9fafb; }
+  .saas-table td { padding:.8rem 1.1rem; color:var(--text); vertical-align:middle; }
+
+  /* avatar */
+  .m-avatar {
+    width:34px; height:34px; border-radius:50%;
+    background:var(--saas-pl); color:var(--saas-primary);
+    font-weight:700; font-size:.82rem; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .m-info { display:flex; align-items:center; gap:.65rem; }
+  .m-name { font-weight:600; line-height:1.2; }
+  .m-user { font-size:.75rem; color:var(--muted); }
+
+  /* area badge */
+  .area-badge {
+    display:inline-block; padding:.18rem .55rem; border-radius:999px;
+    font-size:.72rem; font-weight:700;
+    background:var(--saas-pl); color:var(--saas-primary); white-space:nowrap;
+  }
+
+  /* progress bar */
+  .occ-wrap { display:flex; align-items:center; gap:.45rem; min-width:110px; }
+  .occ-bar  { flex:1; height:6px; border-radius:3px; background:#e5e7eb; overflow:hidden; }
+  .occ-fill { height:100%; border-radius:3px; }
+  .occ-fill.adv { background:var(--adv-color); }
+  .occ-fill.sus { background:var(--sus-color); }
+  .occ-num { font-size:.78rem; font-weight:700; white-space:nowrap; }
+  .occ-num.adv { color:var(--adv-color); }
+  .occ-num.sus { color:var(--sus-color); }
+  .occ-num.ok  { color:var(--ok-color); }
+
+  /* status badge */
+  .st-badge {
+    display:inline-flex; align-items:center; gap:.28rem;
+    padding:.22rem .6rem; border-radius:999px; font-size:.73rem; font-weight:700;
+  }
+  .st-badge.ok  { background:var(--ok-bg);  color:var(--ok-color); }
+  .st-badge.obs { background:var(--obs-bg); color:var(--obs-color); }
+
+  /* apply btn */
+  .btn-apply {
+    display:inline-flex; align-items:center; gap:.3rem;
+    padding:.32rem .7rem; border-radius:8px; font-size:.78rem;
+    font-weight:600; border:none; cursor:pointer;
+    background:var(--saas-pl); color:var(--saas-primary); transition:all .18s;
+  }
+  .btn-apply:hover { background:var(--saas-primary); color:#fff; }
+  .btn-apply:disabled { opacity:.38; cursor:not-allowed; background:var(--saas-pl) !important; color:var(--saas-primary) !important; }
+
+  /* history btn */
+  .btn-hist {
+    display:inline-flex; align-items:center; gap:.3rem;
+    padding:.32rem .7rem; border-radius:8px; font-size:.78rem;
+    font-weight:600; border:1.5px solid var(--border); cursor:pointer;
+    background:#fff; color:var(--muted); transition:all .18s;
+  }
+  .btn-hist:hover { border-color:var(--muted); color:var(--text); }
+
+  /* action cell */
+  .action-cell { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+
+  /* ── Historico Modal ── */
+  .h-occ-item {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:.75rem;
+    padding:.7rem .85rem; border:1px solid var(--border); border-radius:8px; margin-bottom:.5rem;
+  }
+  .h-occ-item:last-child { margin-bottom:0; }
+  .h-occ-badge {
+    display:inline-flex; align-items:center; gap:.25rem;
+    padding:.15rem .5rem; border-radius:999px; font-size:.7rem; font-weight:700; white-space:nowrap; flex-shrink:0;
+  }
+  .h-occ-badge.adv { background:var(--adv-bg); color:var(--adv-color); }
+  .h-occ-badge.sus { background:var(--sus-bg); color:var(--sus-color); }
+  .h-occ-meta { font-size:.75rem; color:var(--muted); margin-top:.15rem; }
+  .h-occ-razao { font-size:.8rem; color:var(--text); margin-top:.25rem; font-style:italic; }
+  .btn-del-occ {
+    background:none; border:none; cursor:pointer; color:#d1d5db; padding:.25rem;
+    border-radius:6px; line-height:0; flex-shrink:0; transition:color .15s, background .15s;
+  }
+  .btn-del-occ:hover { color:var(--sus-color); background:var(--sus-bg); }
+  .h-empty { text-align:center; color:var(--muted); font-size:.85rem; padding:1.5rem 0; }
+
+  /* group header */
+  .group-header td {
+    background:#f3f4f6; padding:.5rem 1.1rem;
+    font-size:.72rem; font-weight:700; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.06em;
+    border-bottom:1px solid var(--border);
+  }
+
+  /* empty */
+  .saas-empty { display:none; text-align:center; padding:3rem; color:var(--muted); }
+  .saas-empty svg { opacity:.35; margin-bottom:.6rem; }
+
+  /* pagination */
+  .saas-footer {
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:.6rem;
+    padding:.85rem 1.1rem; border-top:1px solid var(--border);
+    background:#fafafa;
+  }
+  .pag-info { font-size:.8rem; color:var(--muted); }
+  .pag-controls { display:flex; align-items:center; gap:.35rem; }
+  .pag-btn {
+    min-width:32px; height:32px; padding:0 .5rem;
+    border:1.5px solid var(--border); border-radius:7px; background:#fff;
+    font-size:.8rem; font-weight:600; color:var(--text); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:all .15s;
+  }
+  .pag-btn:hover:not(:disabled) { border-color:var(--saas-primary); color:var(--saas-primary); }
+  .pag-btn.active { border-color:var(--saas-primary); background:var(--saas-primary); color:#fff; }
+  .pag-btn:disabled { opacity:.38; cursor:not-allowed; }
+  .pag-size {
+    border:1.5px solid var(--border); border-radius:7px; padding:.3rem .55rem;
+    font-size:.78rem; font-weight:600; background:#fff; color:var(--text);
+    cursor:pointer; outline:none;
+  }
+  .pag-size:focus { border-color:var(--saas-primary); }
+
+  /* ── Modal ── */
+  .m-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.45); z-index:9999;
+    align-items:center; justify-content:center;
+  }
+  .m-overlay.open { display:flex; }
+  .m-box {
+    background:#fff; border-radius:1rem; width:100%; max-width:460px;
+    padding:1.75rem; box-shadow:0 24px 64px rgba(0,0,0,.22);
+    animation:mIn .18s ease;
+  }
+  @keyframes mIn {
+    from { opacity:0; transform:scale(.96) translateY(-6px); }
+    to   { opacity:1; transform:scale(1)   translateY(0); }
+  }
+  .m-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:1.25rem;
+  }
+  .m-title  { font-size:1rem; font-weight:700; color:var(--text); }
+  .m-close  {
+    background:none; border:none; cursor:pointer; color:var(--muted);
+    padding:.2rem; border-radius:6px; line-height:0;
+  }
+  .m-close:hover { background:#f3f4f6; }
+  .f-label  { display:block; font-size:.78rem; font-weight:700; color:var(--muted); margin-bottom:.3rem; }
+  .f-ctrl   {
+    width:100%; border:1.5px solid var(--border); border-radius:8px;
+    padding:.5rem .8rem; font-size:.875rem; outline:none; box-sizing:border-box;
+    transition:border-color .18s; resize:vertical;
+  }
+  .f-ctrl:focus { border-color:var(--saas-primary); }
+  .f-group  { margin-bottom:.9rem; }
+  .tipo-grid { display:grid; grid-template-columns:1fr 1fr; gap:.65rem; }
+  .tipo-opt input[type="radio"] { display:none; }
+  .tipo-opt label {
+    display:flex; flex-direction:column; align-items:center; gap:.35rem;
+    padding:.75rem; border:2px solid var(--border); border-radius:10px;
+    cursor:pointer; font-weight:700; font-size:.82rem; transition:all .18s; text-align:center;
+  }
+  .tipo-opt.adv input:checked + label { border-color:var(--adv-color); background:var(--adv-bg); color:var(--adv-color); }
+  .tipo-opt.sus input:checked + label { border-color:var(--sus-color); background:var(--sus-bg); color:var(--sus-color); }
+  .m-footer { display:flex; gap:.6rem; justify-content:flex-end; margin-top:1.4rem; }
+  .btn-cancel {
+    padding:.48rem 1.1rem; border:1.5px solid var(--border); border-radius:8px;
+    background:#fff; font-weight:600; cursor:pointer; font-size:.85rem;
+  }
+  .btn-confirm {
+    padding:.48rem 1.1rem; border:none; border-radius:8px;
+    background:var(--saas-primary); color:#fff; font-weight:600;
+    cursor:pointer; font-size:.85rem;
+  }
+  .btn-confirm:hover { opacity:.88; }
+
+  .voluntario-dest {
+    background:#f9fafb; border:1px solid var(--border); border-radius:8px;
+    padding:.55rem .85rem; font-weight:600; font-size:.9rem; color:var(--text);
+  }
+</style>
+
+<div class="container py-4">
+
+  <div class="saas-hero">
+    <h1>SAAS — Advertências &amp; Suspensões</h1>
+    <p>Gerencie ocorrências dos voluntários do Projeto Criança Feliz</p>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{% if msg.tags %}{{ msg.tags }}{% else %}info{% endif %} alert-dismissible fade show mb-3" role="alert">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Toolbar -->
+  <div class="saas-toolbar">
+    <div class="saas-search">
+      <svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInput" placeholder="Buscar por nome ou apelido…" oninput="filtrar()">
+    </div>
+
+    <button class="btn-ctrl active" id="btnAZ" onclick="ordenar('az')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M7 12h10M11 18h2"/></svg>A → Z
+    </button>
+    <button class="btn-ctrl" id="btnZA" onclick="ordenar('za')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 18h18M7 12h10M11 6h2"/></svg>Z → A
+    </button>
+
+    <select class="area-select" id="areaSelect" onchange="filtrar()">
+      <option value="">Todas as áreas</option>
+      {% for codigo, label in areas %}
+        <option value="{{ codigo }}">{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <div class="d-flex align-items-center gap-2">
+      <input class="form-check-input m-0" type="checkbox" id="groupByArea" onchange="filtrar()" style="cursor:pointer;">
+      <label class="switch-label" for="groupByArea">Agrupar por área</label>
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="saas-wrap">
+    <table class="saas-table">
+      <thead>
+        <tr>
+          <th>Membro</th>
+          <th>Apelido</th>
+          <th>Área</th>
+          <th>Advertências</th>
+          <th>Suspensões</th>
+          <th>Período de Obs.</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        {% for d in dados %}
+        <tr data-nome="{{ d.voluntario.get_full_name|lower }} {{ d.voluntario.username|lower }}"
+            data-apelido="{{ d.voluntario.apelido|default:''|lower }}"
+            data-area="{{ d.voluntario.area|default:'' }}"
+            data-pk="{{ d.voluntario.pk }}"
+            data-periodo="{{ d.periodo_observacao|yesno:'1,0' }}">
+
+          <td>
+            <div class="m-info">
+              <div class="m-avatar">{{ d.voluntario.first_name|slice:":1"|upper }}{{ d.voluntario.last_name|slice:":1"|upper }}</div>
+              <div>
+                <div class="m-name">{{ d.voluntario.get_full_name|default:d.voluntario.username }}</div>
+                <div class="m-user">@{{ d.voluntario.username }}</div>
+              </div>
+            </div>
+          </td>
+
+          <td>{{ d.voluntario.apelido|default:"—" }}</td>
+
+          <td><span class="area-badge">{{ d.voluntario.get_area_display|default:"—" }}</span></td>
+
+          <!-- Advertências -->
+          <td>
+            {% if d.advertencias > 0 %}
+              <div class="occ-wrap">
+                <div class="occ-bar">
+                  <div class="occ-fill adv" style="width:{{ d.advertencias|floatformat:0 }}00%;max-width:100%"
+                       data-pct="{{ d.advertencias }}" data-max="{{ d.advertencias_max }}"></div>
+                </div>
+                <span class="occ-num adv">{{ d.advertencias }}/{{ d.advertencias_max }}</span>
+              </div>
+            {% else %}
+              <span class="occ-num ok">0/{{ d.advertencias_max }}</span>
+            {% endif %}
+          </td>
+
+          <!-- Suspensões -->
+          <td>
+            {% if d.periodo_observacao %}
+              <span class="occ-num sus">{{ d.suspensoes }}/{{ d.suspensoes_max }}</span>
+            {% elif d.suspensoes > 0 %}
+              <div class="occ-wrap">
+                <div class="occ-bar">
+                  <div class="occ-fill sus" style="width:{% widthratio d.suspensoes d.suspensoes_max 100 %}%"></div>
+                </div>
+                <span class="occ-num sus">{{ d.suspensoes }}/{{ d.suspensoes_max }}</span>
+              </div>
+            {% else %}
+              <span class="occ-num ok">0/{{ d.suspensoes_max }}</span>
+            {% endif %}
+          </td>
+
+          <!-- Período de Observação -->
+          <td>
+            {% if d.periodo_observacao %}
+              <span class="st-badge obs">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Em observação
+              </span>
+            {% else %}
+              <span class="st-badge ok">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Regular
+              </span>
+            {% endif %}
+          </td>
+
+          <!-- Ação -->
+          <td>
+            <div class="action-cell">
+              {% if d.periodo_observacao %}
+                <button class="btn-apply" disabled title="Em Período de Observação — não pode receber novas ocorrências">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                  Bloqueado
+                </button>
+              {% else %}
+                <button class="btn-apply" onclick="abrirModal('{{ d.voluntario.pk }}','{{ d.voluntario.get_full_name|default:d.voluntario.username|escapejs }}')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Aplicar
+                </button>
+              {% endif %}
+              <button class="btn-hist" onclick="abrirHistorico('{{ d.voluntario.pk }}','{{ d.voluntario.get_full_name|default:d.voluntario.username|escapejs }}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Histórico
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+          <tr><td colspan="7" class="text-center text-muted py-4">Nenhum voluntário ativo encontrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="saas-empty" id="emptyState">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <p>Nenhum membro encontrado para essa busca.</p>
+    </div>
+    <div class="saas-footer" id="pagFooter">
+      <div class="d-flex align-items-center gap-2">
+        <span class="pag-info" id="pagInfo"></span>
+        <select class="pag-size" id="pagSize" onchange="paginaAtual=1;renderPaginacao()">
+          <option value="10">10 / pág</option>
+          <option value="25" selected>25 / pág</option>
+          <option value="50">50 / pág</option>
+          <option value="9999">Todos</option>
+        </select>
+      </div>
+      <div class="pag-controls" id="pagControls"></div>
+    </div>
+  </div>
+</div>
+
+{% csrf_token %}
+
+<!-- Modal Histórico -->
+<div class="m-overlay" id="historicoModal">
+  <div class="m-box" style="max-width:520px;">
+    <div class="m-header">
+      <span class="m-title" id="histNome">Histórico de Ocorrências</span>
+      <button class="m-close" onclick="fecharHistorico()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="histBody" style="max-height:400px;overflow-y:auto;">
+      <p class="h-empty">Carregando…</p>
+    </div>
+    <div class="m-footer" style="margin-top:1rem;">
+      <button type="button" class="btn-cancel" onclick="fecharHistorico()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Aplicar Ocorrência -->
+<div class="m-overlay" id="ocorrenciaModal">
+  <div class="m-box">
+    <div class="m-header">
+      <span class="m-title">Aplicar Ocorrência</span>
+      <button class="m-close" onclick="fecharModal()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <form method="POST" action="{% url 'voluntario:criar_ocorrencia' %}">
+      {% csrf_token %}
+      <input type="hidden" name="advertido_id" id="modalId">
+
+      <div class="f-group">
+        <span class="f-label">Voluntário</span>
+        <div class="voluntario-dest" id="modalNome">—</div>
+      </div>
+
+      <div class="f-group">
+        <span class="f-label">Tipo de Ocorrência</span>
+        <div class="tipo-grid">
+          <div class="tipo-opt adv">
+            <input type="radio" name="tipo" id="tipoAdv" value="ADVERTENCIA" required>
+            <label for="tipoAdv">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Advertência
+            </label>
+          </div>
+          <div class="tipo-opt sus">
+            <input type="radio" name="tipo" id="tipoSus" value="SUSPENSAO" required>
+            <label for="tipoSus">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+              Suspensão
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="f-group">
+        <label class="f-label" for="razaoInput">
+          Razão <span style="font-weight:400;color:var(--muted)">(opcional)</span>
+        </label>
+        <textarea id="razaoInput" name="razao" class="f-ctrl" rows="3" placeholder="Descreva o motivo da ocorrência…"></textarea>
+      </div>
+
+      <div class="m-footer">
+        <button type="button" class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+        <button type="submit" class="btn-confirm">Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const areaLabels = { {% for codigo, label in areas %}"{{ codigo }}":"{{ label }}",{% endfor %} };
+
+  let ordemAtual  = 'az';
+  let paginaAtual = 1;
+  let visivelList = []; // lista ordenada e filtrada atual
+
+  /* ── Modal ── */
+  function abrirModal(id, nome) {
+    document.getElementById('modalId').value = id;
+    document.getElementById('modalNome').textContent = nome;
+    document.getElementById('tipoAdv').checked = false;
+    document.getElementById('tipoSus').checked = false;
+    document.getElementById('razaoInput').value = '';
+    document.getElementById('ocorrenciaModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharModal() {
+    document.getElementById('ocorrenciaModal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('ocorrenciaModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) fecharModal();
+  });
+
+  /* ── Ordenação ── */
+  function ordenar(dir) {
+    ordemAtual = dir;
+    paginaAtual = 1;
+    document.getElementById('btnAZ').classList.toggle('active', dir === 'az');
+    document.getElementById('btnZA').classList.toggle('active', dir === 'za');
+    filtrar();
+  }
+
+  /* ── Filtro + ordenação → atualiza visivelList e renderiza ── */
+  function filtrar() {
+    paginaAtual = 1;
+    const q       = document.getElementById('searchInput').value.toLowerCase().trim();
+    const areaSel = document.getElementById('areaSelect').value;
+    const tbody   = document.getElementById('tableBody');
+    const allRows = Array.from(tbody.querySelectorAll('tr[data-nome]'));
+
+    tbody.querySelectorAll('.group-header').forEach(h => h.remove());
+    allRows.forEach(r => r.style.display = 'none');
+
+    visivelList = allRows.filter(r => {
+      const ok = (!q || r.dataset.nome.includes(q) || r.dataset.apelido.includes(q))
+              && (!areaSel || r.dataset.area === areaSel);
+      return ok;
+    });
+
+    visivelList.sort((a, b) => {
+      const na = a.dataset.nome, nb = b.dataset.nome;
+      return ordemAtual === 'az' ? na.localeCompare(nb, 'pt') : nb.localeCompare(na, 'pt');
+    });
+
+    renderPaginacao();
+  }
+
+  /* ── Renderiza página atual ── */
+  function renderPaginacao() {
+    const tbody   = document.getElementById('tableBody');
+    const agrupar = document.getElementById('groupByArea').checked;
+    const size    = parseInt(document.getElementById('pagSize').value);
+    const total   = visivelList.length;
+    const pages   = Math.max(1, Math.ceil(total / size));
+
+    if (paginaAtual > pages) paginaAtual = pages;
+
+    const inicio = (paginaAtual - 1) * size;
+    const fim    = Math.min(inicio + size, total);
+    const pagina = visivelList.slice(inicio, fim);
+
+    /* Esconde todas as linhas de dados */
+    tbody.querySelectorAll('tr[data-nome]').forEach(r => r.style.display = 'none');
+    tbody.querySelectorAll('.group-header').forEach(h => h.remove());
+
+    /* Mostra apenas a página atual (com ou sem agrupamento) */
+    if (agrupar) {
+      const grupos = {};
+      pagina.forEach(r => {
+        const k = r.dataset.area || '';
+        (grupos[k] = grupos[k] || []).push(r);
+      });
+      Object.keys(grupos).sort().forEach(k => {
+        const hdr = document.createElement('tr');
+        hdr.className = 'group-header';
+        hdr.innerHTML = `<td colspan="7">${areaLabels[k] || k || '—'}</td>`;
+        tbody.appendChild(hdr);
+        grupos[k].forEach(r => { r.style.display = ''; tbody.appendChild(r); });
+      });
+    } else {
+      pagina.forEach(r => { r.style.display = ''; tbody.appendChild(r); });
+    }
+
+    /* Empty state */
+    document.getElementById('emptyState').style.display = total === 0 ? 'block' : 'none';
+    document.getElementById('pagFooter').style.display  = total === 0 ? 'none'  : '';
+
+    /* Info */
+    const infoEl = document.getElementById('pagInfo');
+    infoEl.textContent = total === 0 ? '' : `Exibindo ${inicio + 1}–${fim} de ${total}`;
+
+    /* Botões de página */
+    const ctrl = document.getElementById('pagControls');
+    ctrl.innerHTML = '';
+
+    const addBtn = (label, pg, disabled = false, active = false) => {
+      const btn = document.createElement('button');
+      btn.className = 'pag-btn' + (active ? ' active' : '');
+      btn.disabled  = disabled;
+      btn.innerHTML = label;
+      btn.onclick   = () => { paginaAtual = pg; renderPaginacao(); };
+      ctrl.appendChild(btn);
+    };
+
+    addBtn('‹', paginaAtual - 1, paginaAtual === 1);
+
+    /* Janela de páginas */
+    const window_ = 2;
+    for (let p = 1; p <= pages; p++) {
+      if (p === 1 || p === pages || (p >= paginaAtual - window_ && p <= paginaAtual + window_)) {
+        addBtn(p, p, false, p === paginaAtual);
+      } else if (p === paginaAtual - window_ - 1 || p === paginaAtual + window_ + 1) {
+        const dots = document.createElement('span');
+        dots.textContent = '…';
+        dots.style.cssText = 'font-size:.8rem;color:var(--muted);padding:0 .2rem;align-self:center;';
+        ctrl.appendChild(dots);
+      }
+    }
+
+    addBtn('›', paginaAtual + 1, paginaAtual === pages);
+  }
+
+  /* ── Histórico ── */
+  let histVoluntarioPk = null;
+
+  function abrirHistorico(pk, nome) {
+    histVoluntarioPk = pk;
+    document.getElementById('histNome').textContent = nome;
+    document.getElementById('histBody').innerHTML = '<p class="h-empty">Carregando…</p>';
+    document.getElementById('historicoModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    fetch(`/voluntario/saas/historico/${pk}/`)
+      .then(r => r.json())
+      .then(data => renderHistorico(data))
+      .catch(() => {
+        document.getElementById('histBody').innerHTML = '<p class="h-empty">Erro ao carregar histórico.</p>';
+      });
+  }
+
+  function fecharHistorico() {
+    document.getElementById('historicoModal').classList.remove('open');
+    document.body.style.overflow = '';
+    histVoluntarioPk = null;
+  }
+
+  document.getElementById('historicoModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) fecharHistorico();
+  });
+
+  function renderHistorico(data) {
+    const body = document.getElementById('histBody');
+    if (!data.ocorrencias || data.ocorrencias.length === 0) {
+      body.innerHTML = '<p class="h-empty">Nenhuma ocorrência registrada.</p>';
+      return;
+    }
+    body.innerHTML = data.ocorrencias.map(o => {
+      const cls   = o.tipo === 'ADVERTENCIA' ? 'adv' : 'sus';
+      const icon  = o.tipo === 'ADVERTENCIA'
+        ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>`
+        : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`;
+      const auto  = o.automatico ? ' <span style="opacity:.6;font-size:.68rem;">(automático)</span>' : '';
+      const razao = o.razao ? `<div class="h-occ-razao">"${o.razao}"</div>` : '';
+      return `
+        <div class="h-occ-item" id="occ-${o.id}">
+          <div style="flex:1;">
+            <span class="h-occ-badge ${cls}">${icon} ${o.tipo_display}${auto}</span>
+            <div class="h-occ-meta">${o.criado_em} — por ${o.aplicado_por}</div>
+            ${razao}
+          </div>
+          <button class="btn-del-occ" title="Remover esta ocorrência" onclick="deletarOcorrencia('${o.id}')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>`;
+    }).join('');
+  }
+
+  function deletarOcorrencia(id) {
+    if (!confirm('Remover esta ocorrência? Esta ação não pode ser desfeita.')) return;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    fetch(`/voluntario/saas/ocorrencia/${id}/deletar/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          document.getElementById(`occ-${id}`)?.remove();
+          const body = document.getElementById('histBody');
+          if (!body.querySelector('.h-occ-item')) {
+            body.innerHTML = '<p class="h-empty">Nenhuma ocorrência registrada.</p>';
+          }
+          // Recarregar a página para atualizar os contadores da tabela
+          window.location.reload();
+        }
+      })
+      .catch(() => alert('Erro ao remover ocorrência.'));
+  }
+
+  /* ── Init ── */
+  filtrar();
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { fecharModal(); fecharHistorico(); }
+  });
+</script>
+{% endblock %}

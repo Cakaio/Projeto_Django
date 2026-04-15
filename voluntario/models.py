@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
@@ -104,3 +105,33 @@ class Talento(models.Model):
 
     def __str__(self):
         return self.talento
+
+
+class Ocorrencia(models.Model):
+    TIPOS = (
+        ('ADVERTENCIA', 'Advertência'),
+        ('SUSPENSAO', 'Suspensão'),
+    )
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    advertido = models.ForeignKey(
+        'Voluntario', on_delete=models.CASCADE,
+        related_name='ocorrencias_recebidas'
+    )
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    razao = models.TextField(blank=True, null=True)
+    aplicado_por = models.ForeignKey(
+        'Voluntario', on_delete=models.SET_NULL,
+        null=True, related_name='ocorrencias_aplicadas'
+    )
+    automatico = models.BooleanField(
+        default=False,
+        help_text='True se a suspensão foi gerada automaticamente por 3 advertências'
+    )
+    criado_em = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} — {self.advertido}"
