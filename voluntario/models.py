@@ -109,9 +109,55 @@ class Talento(models.Model):
 
 class Ocorrencia(models.Model):
     TIPOS = (
+        ('ALERTA', 'Alerta'),
         ('ADVERTENCIA', 'Advertência'),
         ('SUSPENSAO', 'Suspensão'),
     )
+
+    REGRAS = (
+        ('Alertas', (
+            ('AL1',  'AL1 – Não respondeu o formulário de presença até quarta-feira às 23h59'),
+            ('AL2',  'AL2 – Confirmou presença e não compareceu no sábado'),
+            ('AL3',  'AL3 – Quórum mínimo: presença inferior a 50% nos sábados do semestre'),
+            ('AL4',  'AL4 – Atraso após 8h30 no DEMAR sem justificativa prévia'),
+            ('AL5',  'AL5 – Saiu antes do encerramento ou não participou da reunião final'),
+            ('AL6',  'AL6 – Atitudes inadequadas reincidentes após aviso da GT'),
+            ('AL7',  'AL7 – Não cumpriu turno de ronda durante o sábado'),
+            ('AL8',  'AL8 – Demonstrações excessivas de carinho/afeto próximo aos atendidos'),
+            ('AL9',  'AL9 – Atraso superior a 20 minutos sem justificativa'),
+            ('AL10', 'AL10 – Não respondeu formulários/enquetes disponibilizados nos Informativos'),
+            ('AL11', 'AL11 – Falta em turno de pré-evento após confirmação e sem aviso prévio'),
+            ('AL12', 'AL12 – Duas faltas seguidas em reunião de área sem justificativa'),
+            ('AL13', 'AL13 – Faltou a um sábado sem avisar e o líder julgou pertinente'),
+            ('AL14', 'AL14 – Não realizou tarefa da área'),
+            ('AL15', 'AL15 – Não respondeu o grupo da área por uma semana ou mais'),
+            ('AL16', 'AL16 – Líder não cumpriu prazos estabelecidos pela gestão'),
+            ('AL17', 'AL17 – Líder não compareceu às reuniões da Gestão sem justificar'),
+        )),
+        ('Advertências', (
+            ('AD1', 'AD1 – Estava sob influência de álcool ou substância psicoativa durante o projeto'),
+            ('AD2', 'AD2 – Dormiu durante o projeto'),
+            ('AD3', 'AD3 – Faltou à RG ou Postulação sem justificativa'),
+            ('AD4', 'AD4 – Não cumpriu turno em evento externo sem justificativa ao membro de Eventos'),
+            ('AD5', 'AD5 – Três faltas seguidas em reunião de área sem justificativa'),
+            ('AD6', 'AD6 – Não cumpriu tarefa que afetou o funcionamento do sábado ou prejudicou a área'),
+            ('AD7', 'AD7 – Somatório de 2 alertas do mesmo motivo'),
+            ('AD8', 'AD8 – Somatório de 3 alertas de diferentes motivos'),
+        )),
+        ('Períodos de Observação', (
+            ('PO1', 'PO1 – Quórum mínimo igual ou inferior a 30% no semestre'),
+            ('PO2', 'PO2 – Líder ausente e sem cumprir funções por uma semana ou mais'),
+            ('PO3', 'PO3 – Somatório de 2 advertências do mesmo motivo'),
+            ('PO4', 'PO4 – Somatório de 3 advertências de diferentes motivos'),
+        )),
+    )
+
+    # Mapa plano código → descrição para lookup rápido
+    REGRAS_DICT = {
+        code: label
+        for group, items in REGRAS
+        for code, label in items
+    }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     advertido = models.ForeignKey(
@@ -119,6 +165,7 @@ class Ocorrencia(models.Model):
         related_name='ocorrencias_recebidas'
     )
     tipo = models.CharField(max_length=20, choices=TIPOS)
+    regra = models.CharField(max_length=5, blank=True, null=True)
     razao = models.TextField(blank=True, null=True)
     aplicado_por = models.ForeignKey(
         'Voluntario', on_delete=models.SET_NULL,

@@ -315,12 +315,20 @@ def criar_ocorrencia(request):
         return redirect("voluntario:saas")
 
     advertido_id = request.POST.get("advertido_id")
-    tipo = request.POST.get("tipo")
+    regra = request.POST.get("regra", "").strip()
     razao = request.POST.get("razao", "").strip() or None
 
-    if not advertido_id or tipo not in ("ADVERTENCIA", "SUSPENSAO"):
+    if not advertido_id or regra not in Ocorrencia.REGRAS_DICT:
         messages.error(request, "Dados inválidos.")
         return redirect("voluntario:saas")
+
+    # Deriva o tipo a partir do prefixo da regra
+    if regra.startswith("AL"):
+        tipo = "ALERTA"
+    elif regra.startswith("AD"):
+        tipo = "ADVERTENCIA"
+    else:  # PO
+        tipo = "SUSPENSAO"
 
     advertido = get_object_or_404(Voluntario, pk=advertido_id)
 
@@ -333,6 +341,7 @@ def criar_ocorrencia(request):
     Ocorrencia.objects.create(
         advertido=advertido,
         tipo=tipo,
+        regra=regra,
         razao=razao,
         aplicado_por=request.user,
         automatico=False,
@@ -359,11 +368,13 @@ def criar_ocorrencia(request):
 
     # Checar período de observação pós-registro
     if total_sus >= 3:
-        _enviar_email_ocorrencia(advertido, 'PERIODO_OBSERVACAO')
+        _enviar_email_ocorrencia(advertido, 'PERIODO_OBSERVACAO', regra=regra)
     elif tipo == 'SUSPENSAO':
-        _enviar_email_ocorrencia(advertido, 'SUSPENSAO')
+        _enviar_email_ocorrencia(advertido, 'SUSPENSAO', regra=regra)
     elif tipo == 'ADVERTENCIA':
-        _enviar_email_ocorrencia(advertido, 'ADVERTENCIA')
+        _enviar_email_ocorrencia(advertido, 'ADVERTENCIA', regra=regra)
+    elif tipo == 'ALERTA':
+        _enviar_email_ocorrencia(advertido, 'ALERTA', regra=regra)
 
     messages.success(request, f"{dict(Ocorrencia.TIPOS).get(tipo)} registrada para {advertido.get_full_name() or advertido.username}.")
     return redirect("voluntario:saas")
@@ -379,6 +390,8 @@ def historico_ocorrencias(request, pk):
         'id': str(o.id),
         'tipo': o.tipo,
         'tipo_display': dict(Ocorrencia.TIPOS).get(o.tipo, o.tipo),
+        'regra': o.regra or '',
+        'regra_display': Ocorrencia.REGRAS_DICT.get(o.regra, '') if o.regra else '',
         'razao': o.razao or '',
         'automatico': o.automatico,
         'aplicado_por': (o.aplicado_por.get_full_name() or o.aplicado_por.username) if o.aplicado_por else '—',
@@ -412,42 +425,56 @@ def deletar_ocorrencia(request, ocorrencia_id):
     })
 
 
-def _enviar_email_ocorrencia(advertido, tipo, automatico=False):
+def _enviar_email_ocorrencia(advertido, tipo, automatico=False, regra=None):
     email_dest = advertido.email or getattr(advertido, 'email_alternativo', None)
     if not email_dest:
         return
 
+    from datetime import date
+    mes_atual = date.today().strftime('%B de %Y').capitalize()
+
     assuntos = {
-        'ADVERTENCIA': 'Você recebeu uma advertência — Projeto Criança Feliz',
-        'SUSPENSAO': 'Você recebeu uma suspensão — Projeto Criança Feliz',
-        'PERIODO_OBSERVACAO': 'Você está em Período de Observação — Projeto Criança Feliz',
+        'ALERTA':            f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz',
+        'ADVERTENCIA':       f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz',
+        'SUSPENSAO':         f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz',
+        'PERIODO_OBSERVACAO': f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz',
     }
-    corpos = {
-        'ADVERTENCIA': (
-            f"Olá, {advertido.first_name or advertido.username}!\n\n"
-            "Você recebeu uma advertência no Projeto Criança Feliz.\n"
-            "Caso tenha dúvidas, entre em contato com a Gestão de Talentos ou a Tríade.\n\n"
-            "Projeto Criança Feliz"
-        ),
-        'SUSPENSAO': (
-            f"Olá, {advertido.first_name or advertido.username}!\n\n"
-            "Você recebeu uma suspensão no Projeto Criança Feliz"
-            + (" (gerada automaticamente pelo acúmulo de advertências)" if automatico else "") + ".\n"
-            "Caso tenha dúvidas, entre em contato com a Gestão de Talentos ou a Tríade.\n\n"
-            "Projeto Criança Feliz"
-        ),
-        'PERIODO_OBSERVACAO': (
-            f"Olá, {advertido.first_name or advertido.username}!\n\n"
-            "Você está em Período de Observação no Projeto Criança Feliz.\n"
-            "Isso ocorre após o acúmulo de suspensões. Entre em contato com a Gestão de Talentos ou a Tríade.\n\n"
-            "Projeto Criança Feliz"
-        ),
+
+    tipo_labels = {
+        'ALERTA': 'Alerta',
+        'ADVERTENCIA': 'Advertência',
+        'SUSPENSAO': 'Suspensão' + (' (automática por acúmulo de advertências)' if automatico else ''),
+        'PERIODO_OBSERVACAO': 'Período de Observação',
     }
+
+    if regra:
+        descricao_regra = Ocorrencia.REGRAS_DICT.get(regra, regra)
+        infracao_linha = f"{regra}: {descricao_regra}"
+    else:
+        infracao_linha = tipo_labels.get(tipo, tipo)
+
+    corpo = (
+        f"Boa tarde, {advertido.first_name or advertido.username}!\n\n"
+        "Esperamos que esteja bem.\n\n"
+        "Gostaríamos de informar que, após acompanhamento das atividades do projeto, "
+        "foi registrada a seguinte ocorrência relacionada à sua participação:\n\n"
+        f"Tipo: {tipo_labels.get(tipo, tipo)}\n"
+        f"Infração registrada:\n  {infracao_linha}\n\n"
+        "Lembramos que este e-mail não tem caráter punitivo, mas sim o propósito de promover "
+        "o desenvolvimento individual e o alinhamento com os valores do projeto. "
+        "Cada ocorrência representa uma chance de crescer e fortalecer o compromisso com o grupo.\n\n"
+        "Sabemos do seu potencial e da sua importância para o projeto, e confiamos na sua "
+        "capacidade de transformar esse feedback em crescimento. Estamos aqui para apoiar nesse processo.\n\n"
+        "Qualquer dúvida ou necessidade de conversa, estamos à disposição.\n\n"
+        "Atenciosamente,\n"
+        "Gestão de Talentos\n"
+        "Projeto Criança Feliz"
+    )
 
     try:
         send_mail(
-            subject=assuntos.get(tipo, 'Notificação — Projeto Criança Feliz'),
-            message=corpos.get(tipo, ''),
+            subject=assuntos.get(tipo, f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz'),
+            message=corpo,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[email_dest],
             fail_silently=True,
