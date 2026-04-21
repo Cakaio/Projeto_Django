@@ -9,10 +9,11 @@ from django.utils import timezone
 from django.utils.timezone import localdate
 from django.contrib import messages
 from django.db.models import Count, Q
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
 from django.http import JsonResponse
 from sabado.models import Sabado
+import threading
 import json
 
 # Create your views here.
@@ -122,14 +123,20 @@ class MeuPerfilView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
+
+        def _display(n):
+            rem = n % 3
+            return 3 if (rem == 0 and n > 0) else rem
+
+        total_alt = Ocorrencia.objects.filter(advertido=user, tipo='ALERTA').count()
         total_adv = Ocorrencia.objects.filter(advertido=user, tipo='ADVERTENCIA').count()
-        total_sus = Ocorrencia.objects.filter(advertido=user, tipo='SUSPENSAO').count()
-        adv_restantes = total_adv % 3
-        periodo_observacao = total_sus >= 3
-        context['saas_advertencias'] = adv_restantes
-        context['saas_advertencias_max'] = 3
-        context['saas_suspensoes'] = total_sus if periodo_observacao else total_sus % 3
-        context['saas_suspensoes_max'] = 3
+        po_direto = Ocorrencia.objects.filter(advertido=user, regra__startswith='PO').exists()
+        periodo_observacao = po_direto or total_adv >= 3
+
+        context['saas_alertas']           = _display(total_alt)
+        context['saas_alertas_max']       = 3
+        context['saas_advertencias']      = _display(total_adv)
+        context['saas_advertencias_max']  = 3
         context['saas_periodo_observacao'] = periodo_observacao
         context['saas_ocorrencias'] = Ocorrencia.objects.filter(advertido=user).order_by('-criado_em')
         return context
@@ -277,24 +284,29 @@ def saas_view(request):
         Voluntario.objects
         .filter(is_active=True)
         .annotate(
+            total_alertas=Count('ocorrencias_recebidas', filter=Q(ocorrencias_recebidas__tipo='ALERTA')),
             total_advertencias=Count('ocorrencias_recebidas', filter=Q(ocorrencias_recebidas__tipo='ADVERTENCIA')),
-            total_suspensoes=Count('ocorrencias_recebidas', filter=Q(ocorrencias_recebidas__tipo='SUSPENSAO')),
+            total_po_direto=Count('ocorrencias_recebidas', filter=Q(ocorrencias_recebidas__regra__startswith='PO')),
         )
         .order_by('first_name', 'last_name')
     )
 
+    def _display(n):
+        """Retorna n % 3, mas mantém 3 (e não 0) quando n é múltiplo de 3 positivo."""
+        rem = n % 3
+        return 3 if (rem == 0 and n > 0) else rem
+
     dados = []
     for v in voluntarios:
+        alt = v.total_alertas
         adv = v.total_advertencias
-        sus = v.total_suspensoes  # já inclui suspensões automáticas gravadas no banco
-        adv_restantes = adv % 3   # advertências desde a última suspensão gerada
-        periodo_observacao = sus >= 3
+        periodo_observacao = v.total_po_direto > 0 or adv >= 3
         dados.append({
             'voluntario': v,
-            'advertencias': adv_restantes,
+            'alertas': _display(alt),
+            'alertas_max': 3,
+            'advertencias': _display(adv),
             'advertencias_max': 3,
-            'suspensoes': sus if periodo_observacao else sus % 3,
-            'suspensoes_max': 3,
             'periodo_observacao': periodo_observacao,
         })
 
@@ -332,9 +344,12 @@ def criar_ocorrencia(request):
 
     advertido = get_object_or_404(Voluntario, pk=advertido_id)
 
-    # Bloquear se em Período de Observação (≥ 3 suspensões)
-    total_sus_atual = Ocorrencia.objects.filter(advertido=advertido, tipo='SUSPENSAO').count()
-    if total_sus_atual >= 3:
+    # Bloquear se já em Período de Observação
+    ja_em_po = (
+        Ocorrencia.objects.filter(advertido=advertido, regra__startswith='PO').exists()
+        or Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA').count() >= 3
+    )
+    if ja_em_po:
         messages.error(request, f"{advertido.get_full_name() or advertido.username} está em Período de Observação e não pode receber novas ocorrências.")
         return redirect("voluntario:saas")
 
@@ -348,33 +363,33 @@ def criar_ocorrencia(request):
     )
 
     # Recontagem pós-criação
+    total_alt = Ocorrencia.objects.filter(advertido=advertido, tipo='ALERTA').count()
     total_adv = Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA').count()
-    total_sus = Ocorrencia.objects.filter(advertido=advertido, tipo='SUSPENSAO').count()
+    po_direto = regra.startswith('PO')
 
-    # Auto-gerar suspensão se atingiu múltiplo de 3 advertências
-    sus_auto_esperadas = total_adv // 3
-    sus_auto_existentes = Ocorrencia.objects.filter(advertido=advertido, tipo='SUSPENSAO', automatico=True).count()
+    # Auto-gerar advertência se atingiu múltiplo de 3 alertas
+    if tipo == 'ALERTA':
+        adv_auto_esperadas = total_alt // 3
+        adv_auto_existentes = Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA', automatico=True).count()
+        if adv_auto_esperadas > adv_auto_existentes:
+            Ocorrencia.objects.create(
+                advertido=advertido,
+                tipo='ADVERTENCIA',
+                razao='Advertência automática por acúmulo de 3 alertas.',
+                aplicado_por=request.user,
+                automatico=True,
+            )
+            total_adv += 1
+            threading.Thread(target=_enviar_email_ocorrencia, args=(advertido, 'ADVERTENCIA'), kwargs={'automatico': True}, daemon=True).start()
 
-    if sus_auto_esperadas > sus_auto_existentes:
-        Ocorrencia.objects.create(
-            advertido=advertido,
-            tipo='SUSPENSAO',
-            razao='Suspensão automática por acúmulo de 3 advertências.',
-            aplicado_por=request.user,
-            automatico=True,
-        )
-        total_sus += 1
-        _enviar_email_ocorrencia(advertido, 'SUSPENSAO', automatico=True)
-
-    # Checar período de observação pós-registro
-    if total_sus >= 3:
-        _enviar_email_ocorrencia(advertido, 'PERIODO_OBSERVACAO', regra=regra)
-    elif tipo == 'SUSPENSAO':
-        _enviar_email_ocorrencia(advertido, 'SUSPENSAO', regra=regra)
+    # Email em background (não bloqueia a resposta)
+    periodo_observacao = po_direto or total_adv >= 3
+    if periodo_observacao:
+        threading.Thread(target=_enviar_email_ocorrencia, args=(advertido, 'PERIODO_OBSERVACAO'), kwargs={'regra': regra}, daemon=True).start()
     elif tipo == 'ADVERTENCIA':
-        _enviar_email_ocorrencia(advertido, 'ADVERTENCIA', regra=regra)
+        threading.Thread(target=_enviar_email_ocorrencia, args=(advertido, 'ADVERTENCIA'), kwargs={'regra': regra}, daemon=True).start()
     elif tipo == 'ALERTA':
-        _enviar_email_ocorrencia(advertido, 'ALERTA', regra=regra)
+        threading.Thread(target=_enviar_email_ocorrencia, args=(advertido, 'ALERTA'), kwargs={'regra': regra}, daemon=True).start()
 
     messages.success(request, f"{dict(Ocorrencia.TIPOS).get(tipo)} registrada para {advertido.get_full_name() or advertido.username}.")
     return redirect("voluntario:saas")
@@ -412,72 +427,96 @@ def deletar_ocorrencia(request, ocorrencia_id):
     ocorrencia = get_object_or_404(Ocorrencia, pk=ocorrencia_id)
     advertido = ocorrencia.advertido
     ocorrencia.delete()
-    # Retorna os novos totais para o frontend atualizar sem reload
+    total_alt = Ocorrencia.objects.filter(advertido=advertido, tipo='ALERTA').count()
     total_adv = Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA').count()
-    total_sus = Ocorrencia.objects.filter(advertido=advertido, tipo='SUSPENSAO').count()
-    adv_restantes = total_adv % 3
-    periodo_observacao = total_sus >= 3
+    po_direto = Ocorrencia.objects.filter(advertido=advertido, regra__startswith='PO').exists()
+    periodo_observacao = po_direto or total_adv >= 3
     return JsonResponse({
         'ok': True,
-        'advertencias': adv_restantes,
-        'suspensoes': total_sus if periodo_observacao else total_sus % 3,
+        'alertas': total_alt % 3,
+        'advertencias': total_adv if periodo_observacao else total_adv % 3,
         'periodo_observacao': periodo_observacao,
     })
 
 
+EMAIL_TESTE_FALLBACK = 'viniciusgbasilio@gmail.com'
+
 def _enviar_email_ocorrencia(advertido, tipo, automatico=False, regra=None):
-    email_dest = advertido.email or getattr(advertido, 'email_alternativo', None)
-    if not email_dest:
-        return
+    import logging
+    from decouple import config as env_config
+    logger = logging.getLogger(__name__)
+    email_dest = advertido.email or getattr(advertido, 'email_alternativo', None) or EMAIL_TESTE_FALLBACK
+    from_email = env_config('EMAIL_DISPARO_ADVERTENCIAS', default=settings.DEFAULT_FROM_EMAIL)
 
     from datetime import date
-    mes_atual = date.today().strftime('%B de %Y').capitalize()
+    MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+    hoje = date.today()
+    mes_atual = f"{MESES_PT[hoje.month - 1]} de {hoje.year}"
 
-    assuntos = {
-        'ALERTA':            f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz',
-        'ADVERTENCIA':       f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz',
-        'SUSPENSAO':         f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz',
-        'PERIODO_OBSERVACAO': f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz',
-    }
+    assunto = f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz'
 
     tipo_labels = {
         'ALERTA': 'Alerta',
-        'ADVERTENCIA': 'Advertência',
-        'SUSPENSAO': 'Suspensão' + (' (automática por acúmulo de advertências)' if automatico else ''),
+        'ADVERTENCIA': 'Advertência' + (' (automática por acúmulo de 3 alertas)' if automatico else ''),
+        'SUSPENSAO': 'Suspensão',
         'PERIODO_OBSERVACAO': 'Período de Observação',
     }
 
     if regra:
         descricao_regra = Ocorrencia.REGRAS_DICT.get(regra, regra)
-        infracao_linha = f"{regra}: {descricao_regra}"
+        infracao_html = f"<li><b>{regra}:</b> {descricao_regra}</li>"
+        infracao_txt  = f"  • {regra}: {descricao_regra}"
     else:
-        infracao_linha = tipo_labels.get(tipo, tipo)
+        infracao_html = f"<li>{tipo_labels.get(tipo, tipo)}</li>"
+        infracao_txt  = f"  • {tipo_labels.get(tipo, tipo)}"
 
-    corpo = (
-        f"Boa tarde, {advertido.first_name or advertido.username}!\n\n"
+    nome = advertido.first_name or advertido.username
+
+    html = f"""
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222;font-size:15px;line-height:1.7;">
+  <p><b>Olá, {nome}!</b></p>
+  <p>Esperamos que esteja bem.</p>
+  <p>
+    Gostaríamos de informar que, após acompanhamento das atividades do projeto,
+    foi registrada a seguinte ocorrência relacionada à sua participação:
+  </p>
+  <p><b>Infração registrada:</b></p>
+  <ul style="text-align:justify;padding-left:1.4em;">
+    {infracao_html}
+  </ul>
+  <p>
+    Lembramos que este e-mail não tem caráter punitivo, mas sim o propósito de promover
+    o desenvolvimento individual e o alinhamento com os valores do projeto.
+    Cada ocorrência representa uma chance de crescer e fortalecer o compromisso com o grupo.
+  </p>
+  <p>
+    Sabemos do seu potencial e da sua importância para o projeto, e confiamos na sua
+    capacidade de transformar esse feedback em crescimento. Estamos aqui para apoiar nesse processo.
+  </p>
+  <p>Qualquer dúvida ou necessidade de conversa, estamos à disposição.</p>
+  <p>Atenciosamente,<br><b>Gestão de Talentos</b><br>Projeto Criança Feliz</p>
+</div>
+"""
+
+    txt = (
+        f"Boa tarde, {nome}!\n\n"
         "Esperamos que esteja bem.\n\n"
-        "Gostaríamos de informar que, após acompanhamento das atividades do projeto, "
+        "Gostaríamos de informar que, após acompanhamento das atividades do projeto,\n"
         "foi registrada a seguinte ocorrência relacionada à sua participação:\n\n"
-        f"Tipo: {tipo_labels.get(tipo, tipo)}\n"
-        f"Infração registrada:\n  {infracao_linha}\n\n"
+        f"Infração registrada:\n{infracao_txt}\n\n"
         "Lembramos que este e-mail não tem caráter punitivo, mas sim o propósito de promover "
-        "o desenvolvimento individual e o alinhamento com os valores do projeto. "
-        "Cada ocorrência representa uma chance de crescer e fortalecer o compromisso com o grupo.\n\n"
+        "o desenvolvimento individual e o alinhamento com os valores do projeto.\n\n"
         "Sabemos do seu potencial e da sua importância para o projeto, e confiamos na sua "
         "capacidade de transformar esse feedback em crescimento. Estamos aqui para apoiar nesse processo.\n\n"
         "Qualquer dúvida ou necessidade de conversa, estamos à disposição.\n\n"
-        "Atenciosamente,\n"
-        "Gestão de Talentos\n"
-        "Projeto Criança Feliz"
+        "Atenciosamente,\nGestão de Talentos\nProjeto Criança Feliz"
     )
 
     try:
-        send_mail(
-            subject=assuntos.get(tipo, f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz'),
-            message=corpo,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email_dest],
-            fail_silently=True,
-        )
-    except Exception:
-        pass
+        msg = EmailMultiAlternatives(assunto, txt, from_email, [email_dest])
+        msg.attach_alternative(html, 'text/html')
+        msg.send(fail_silently=False)
+        logger.info(f'[SAAs] Email enviado para {email_dest} — tipo={tipo}')
+    except Exception as e:
+        logger.error(f'[SAAs] Falha ao enviar email para {email_dest}: {e}')

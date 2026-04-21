@@ -1,730 +1,596 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block titulo %}
-Início
-{% endblock %}
+{% block titulo %}Início{% endblock %}
 
 {% block content %}
-<style>
-  :root {
-    --primary: #7c3aed;
-    --primary-light: #a78bfa;
-    --primary-dark: #5b21b6;
-    --secondary: #6366f1;
-    --accent: #10b981;
-    --bg-dark: #1e1b4b;
-    --bg-light: #f5f3ff;
-    --text-dark: #1f2937;
-    --text-light: #6b7280;
-    --white: #ffffff;
-    --border-color: #e5e7eb;
-  }
+<div class="pcf-page">
 
-  /* ===== HERO ===== */
-  .hero-section {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--primary-dark) 100%);
-    padding: 3rem 0 4rem;
-    position: relative;
-    overflow: hidden;
-  }
-  .hero-section::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 600px;
-    height: 600px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 50%;
-  }
-  .hero-section::after {
-    content: '';
-    position: absolute;
-    bottom: -30%;
-    left: -10%;
-    width: 400px;
-    height: 400px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 50%;
-  }
-  .hero-title {
-    color: var(--white);
-    font-size: 2.5rem;
-    font-weight: 700;
-    text-align: center;
-    margin-bottom: 0.5rem;
-    position: relative;
-    z-index: 1;
-  }
-  .hero-subtitle {
-    color: rgba(255,255,255,0.85);
-    text-align: center;
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* ===== CAROUSEL ===== */
-  .carousel-wrapper {
-    position: relative;
-    z-index: 1;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-  .carousel-inner img {
-    border-radius: 16px;
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);
-    max-height: 420px;
-    object-fit: cover;
-  }
-  .carousel-control-prev,
-  .carousel-control-next {
-    width: 50px;
-    height: 50px;
-    background: rgba(255,255,255,0.9);
-    border-radius: 50%;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0;
-    transition: all 0.3s ease;
-  }
-  .carousel-wrapper:hover .carousel-control-prev,
-  .carousel-wrapper:hover .carousel-control-next {
-    opacity: 1;
-  }
-  .carousel-control-prev { left: -25px; }
-  .carousel-control-next { right: -25px; }
-  .carousel-control-prev:hover,
-  .carousel-control-next:hover {
-    background: var(--white);
-    transform: translateY(-50%) scale(1.1);
-  }
-  .carousel-control-prev-icon,
-  .carousel-control-next-icon {
-    filter: invert(1) grayscale(100%) brightness(0.3);
-  }
-  .carousel-indicators { bottom: -40px; }
-  .carousel-indicators button {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.5);
-    border: none;
-    margin: 0 6px;
-    transition: all 0.3s ease;
-  }
-  .carousel-indicators button.active {
-    background: var(--white);
-    transform: scale(1.3);
-  }
-
-  /* ===== SECTION TITLES ===== */
-  .section-title {
-    text-align: center;
-    margin-bottom: 2.5rem;
-  }
-  .section-title h2 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 0.5rem;
-  }
-  .section-title p {
-    color: var(--text-light);
-    font-size: 1.1rem;
-    margin: 0;
-  }
-  .section-title .title-line {
-    width: 60px;
-    height: 4px;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    margin: 1rem auto 0;
-    border-radius: 2px;
-  }
-
-  /* ===== PARTICIPE SECTION ===== */
-  .participe-section {
-    padding: 4rem 0;
-    background: var(--white);
-  }
-
-  .sabado-card {
-    background: var(--white);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 0;
-    overflow: hidden;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-  }
-  .sabado-card:hover {
-    border-color: var(--primary-light);
-    box-shadow: 0 8px 30px rgba(124,58,237,0.12);
-    transform: translateY(-2px);
-  }
-
-  .sabado-card-header {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    padding: 1rem 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-  .sabado-card-header-left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    min-width: 0;
-  }
-  .sabado-date-badge {
-    background: rgba(255,255,255,0.2);
-    border-radius: 12px;
-    padding: 8px 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1;
-    flex-shrink: 0;
-  }
-  .sabado-date-badge .day {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--white);
-  }
-  .sabado-date-badge .month {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.8);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-  .sabado-tema {
-    color: var(--white);
-    font-size: 1.05rem;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .sabado-card-body {
-    padding: 1.25rem 1.5rem;
-  }
-
-  /* ===== PROGRESS BAR ===== */
-  .progress-wrapper {
-    margin-bottom: 1rem;
-  }
-  .progress-info {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-  }
-  .progress-label {
-    font-size: 0.85rem;
-    color: var(--text-light);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .progress-label svg {
-    width: 16px;
-    height: 16px;
-    color: var(--primary);
-  }
-  .progress-count {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-dark);
-  }
-  .progress-track {
-    width: 100%;
-    height: 10px;
-    background: #e5e7eb;
-    border-radius: 999px;
-    overflow: hidden;
-    position: relative;
-  }
-  .progress-fill {
-    height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
-    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-  }
-  .progress-fill.complete {
-    background: linear-gradient(90deg, #10b981, #34d399);
-  }
-  .progress-fill::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
-    animation: shimmer 2s infinite;
-  }
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-  .progress-complete-msg {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #10b981;
-    margin-top: 6px;
-  }
-  .progress-complete-msg svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .sabado-card-footer {
-    padding: 0 1.5rem 1.25rem;
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  .btn-responder {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0.65rem 1.5rem;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: var(--white);
-    border: none;
-    border-radius: 30px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    cursor: pointer;
-  }
-  .btn-responder:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(124,58,237,0.3);
-    color: var(--white);
-  }
-  .btn-responder svg {
-    width: 18px;
-    height: 18px;
-    transition: transform 0.3s ease;
-  }
-  .btn-responder:hover svg {
-    transform: translateX(4px);
-  }
-
-  /* Empty State */
-  .empty-state {
-    text-align: center;
-    padding: 3rem 2rem;
-    border: 2px dashed var(--border-color);
-    border-radius: 16px;
-    background: var(--bg-light);
-  }
-  .empty-state-icon {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 1rem;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .empty-state-icon svg {
-    width: 28px;
-    height: 28px;
-    color: var(--white);
-  }
-  .empty-state h4 {
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 0.5rem;
-  }
-  .empty-state p {
-    color: var(--text-light);
-    font-size: 0.95rem;
-    margin: 0;
-  }
-
-  /* Painel button */
-  .painel-link-container {
-    text-align: center;
-    margin-top: 2.5rem;
-  }
-  .btn-painel {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0.8rem 2rem;
-    background: var(--white);
-    color: var(--primary);
-    border: 2px solid var(--primary);
-    border-radius: 30px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-decoration: none;
-    transition: all 0.3s ease;
-  }
-  .btn-painel:hover {
-    background: var(--primary);
-    color: var(--white);
-    box-shadow: 0 8px 20px rgba(124,58,237,0.25);
-    transform: translateY(-2px);
-  }
-  .btn-painel svg {
-    width: 18px;
-    height: 18px;
-    transition: transform 0.3s ease;
-  }
-  .btn-painel:hover svg {
-    transform: translateX(-4px);
-  }
-
-  /* ===== FEATURES SECTION ===== */
-  .features-section {
-    padding: 5rem 0;
-    background: var(--bg-light);
-  }
-
-  .feature-card {
-    background: var(--white);
-    border-radius: 20px;
-    padding: 2.5rem 2rem;
-    text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-    transition: all 0.4s ease;
-    height: 100%;
-    position: relative;
-    overflow: hidden;
-  }
-  .feature-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    transform: scaleX(0);
-    transition: transform 0.4s ease;
-  }
-  .feature-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 20px 40px rgba(124,58,237,0.15);
-  }
-  .feature-card:hover::before {
-    transform: scaleX(1);
-  }
-  .feature-image-wrapper {
-    position: relative;
-    display: inline-block;
-    margin-bottom: 1.5rem;
-  }
-  .feature-image {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid var(--bg-light);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-    transition: all 0.4s ease;
-  }
-  .feature-card:hover .feature-image {
-    transform: scale(1.05);
-    border-color: var(--primary-light);
-  }
-  .feature-badge {
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  }
-  .feature-badge.purple { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
-  .feature-badge.green { background: linear-gradient(135deg, #10b981, #34d399); }
-  .feature-badge.blue { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
-  .feature-badge svg {
-    width: 20px;
-    height: 20px;
-    color: white;
-  }
-  .feature-card h3 {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 0.75rem;
-  }
-  .feature-card p {
-    color: var(--text-light);
-    font-size: 0.95rem;
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-  }
-  .feature-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: var(--white);
-    border: none;
-    border-radius: 30px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.3s ease;
-  }
-  .feature-btn:hover {
-    transform: translateX(5px);
-    box-shadow: 0 8px 20px rgba(124,58,237,0.3);
-    color: var(--white);
-  }
-  .feature-btn svg {
-    width: 18px;
-    height: 18px;
-    transition: transform 0.3s ease;
-  }
-  .feature-btn:hover svg {
-    transform: translateX(4px);
-  }
-
-  @media (max-width: 768px) {
-    .hero-title { font-size: 1.8rem; }
-    .carousel-control-prev,
-    .carousel-control-next { display: none; }
-    .feature-card { margin-bottom: 1.5rem; }
-    .sabado-card-header { flex-direction: column; align-items: flex-start; }
-    .sabado-card-footer { justify-content: center; }
-  }
-</style>
-
-<!-- ===================== HERO SECTION ===================== -->
-<section class="hero-section">
-  <div class="container">
-    <h1 class="hero-title">Bem-vindo ao Nosso Projeto</h1>
-    <p class="hero-subtitle">Transformando vidas através do amor e dedicação</p>
-
-    <div class="carousel-wrapper">
-      <div id="carouselExample" class="carousel slide" data-bs-ride="carousel">
-        <div class="carousel-indicators">
-          <button type="button" data-bs-target="#carouselExample" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-          <button type="button" data-bs-target="#carouselExample" data-bs-slide-to="1" aria-label="Slide 2"></button>
-          <button type="button" data-bs-target="#carouselExample" data-bs-slide-to="2" aria-label="Slide 3"></button>
+  <!-- ── HERO ── -->
+  <section class="pcf-hero">
+    <div class="pcf-hero-bg"></div>
+    <div class="pcf-container pcf-hero-inner">
+      <div class="pcf-hero-text">
+        <span class="pcf-badge">Projeto Criança Feliz</span>
+        <h1 class="pcf-hero-title">Transformando vidas<br>com amor e dedicação</h1>
+        <p class="pcf-hero-sub">Acompanhe as atividades, voluntários e sábados do projeto em um só lugar.</p>
+        <div class="pcf-hero-actions">
+          <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Painel do Sábado
+          </a>
+          <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-btn pcf-btn-ghost">
+            Ver Voluntários
+          </a>
         </div>
-        <div class="carousel-inner">
-          <div class="carousel-item active">
-            <img src="{% static 'images/foto1.jpg' %}" class="d-block w-100" alt="Foto 1">
-          </div>
-          <div class="carousel-item">
-            <img src="{% static 'images/foto2.jpg' %}" class="d-block w-100" alt="Foto 2">
-          </div>
-          <div class="carousel-item">
-            <img src="{% static 'images/foto3.jpg' %}" class="d-block w-100" alt="Foto 3">
-          </div>
-        </div>
-        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExample" data-bs-slide="prev">
-          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Anterior</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#carouselExample" data-bs-slide="next">
-          <span class="carousel-control-next-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Próximo</span>
-        </button>
+      </div>
+      <div class="pcf-hero-img-wrap">
+        <img src="{% static 'images/foto1.jpg' %}" alt="Projeto Criança Feliz" class="pcf-hero-img" onerror="this.style.display='none'">
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ===================== PARTICIPE SECTION ===================== -->
-<section class="participe-section">
-  <div class="container">
-    <div class="section-title">
-      <h2>Participe!!</h2>
-      <p>Formulários de disponibilidade abertos</p>
-      <div class="title-line"></div>
+  <!-- ── STATS RÁPIDAS ── -->
+  <section class="pcf-container pcf-stats-row">
+    <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-stat-card">
+      <div class="pcf-stat-icon pcf-stat-purple">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div>
+        <p class="pcf-stat-label">Voluntários</p>
+        <p class="pcf-stat-hint">Ver equipe →</p>
+      </div>
+    </a>
+    <a href="{% url 'atendido:atendido_view' %}" class="pcf-stat-card">
+      <div class="pcf-stat-icon pcf-stat-green">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+      </div>
+      <div>
+        <p class="pcf-stat-label">Atendidos</p>
+        <p class="pcf-stat-hint">Ver crianças →</p>
+      </div>
+    </a>
+    <a href="{% url 'semanario:semanario_view' %}" class="pcf-stat-card">
+      <div class="pcf-stat-icon pcf-stat-blue">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      </div>
+      <div>
+        <p class="pcf-stat-label">Semanários</p>
+        <p class="pcf-stat-hint">Ver atividades →</p>
+      </div>
+    </a>
+    <a href="{% url 'supply:painel_materiais' %}" class="pcf-stat-card">
+      <div class="pcf-stat-icon pcf-stat-amber">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      </div>
+      <div>
+        <p class="pcf-stat-label">Supply</p>
+        <p class="pcf-stat-hint">Ver estoque →</p>
+      </div>
+    </a>
+  </section>
+
+  <!-- ── FORMULÁRIOS ABERTOS ── -->
+  <section class="pcf-container pcf-section">
+    <div class="pcf-section-header">
+      <div>
+        <h2 class="pcf-section-title">Formulários Abertos</h2>
+        <p class="pcf-section-sub">Responda sua disponibilidade para os próximos sábados</p>
+      </div>
+      <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver todos</a>
     </div>
 
-    <div class="row g-4 align-items-stretch">
-      {% for sabado in sabados_abertos %}
-        <div class="col-12">
-          <div class="sabado-card h-100 w-100">
-            <!-- Header com data e tema -->
-            <div class="sabado-card-header">
-              <div class="sabado-card-header-left">
-                <div class="sabado-date-badge">
-                  <span class="day">{{ sabado.data|date:"d" }}</span>
-                  <span class="month">{{ sabado.data|date:"M" }}</span>
-                </div>
-                <span class="sabado-tema">{{ sabado.tema }}</span>
-              </div>
+    {% if sabados_abertos %}
+      <div class="pcf-sabado-grid">
+        {% for sabado in sabados_abertos %}
+        <div class="pcf-card pcf-sabado-card">
+          <!-- Cabeçalho do card -->
+          <div class="pcf-sabado-header">
+            <div class="pcf-date-badge">
+              <span class="pcf-date-day">{{ sabado.data|date:"d" }}</span>
+              <span class="pcf-date-month">{{ sabado.data|date:"M" }}</span>
             </div>
-
-            <!-- Body com barra de progresso -->
-            <div class="sabado-card-body">
-              <div class="progress-wrapper">
-                <div class="progress-info">
-                  <span class="progress-label">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                    Respostas dos voluntários
-                  </span>
-
-                  <span class="progress-count">
-                    {{ sabado.total_respostas_view }}/{{ sabado.total_voluntarios_ativos }}
-                    • Não responderam: {{ sabado.total_nao_responderam }}
-                  </span>
-                </div>
-
-                <div class="progress-track">
-                  <div class="progress-fill {% if sabado.percentual_respostas_int == 100 %}complete{% endif %}"
-                    data-width="{{ sabado.percentual_respostas_int }}"></div>
-
-                {% if sabado.percentual_respostas_int == 100 %}
-                  <div class="progress-complete-msg">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Todos os voluntários responderam!
-                  </div>
-                {% endif %}
-              </div>
+            <div class="pcf-sabado-info">
+              <h3 class="pcf-sabado-tema">{{ sabado.tema|default:"Sábado do Projeto" }}</h3>
+              <p class="pcf-sabado-date-full">{{ sabado.data|date:"l, d \d\e F \d\e Y" }}</p>
             </div>
+            <span class="pcf-chip pcf-chip-open">Aberto</span>
+          </div>
 
-            <!-- Footer com botao -->
-            <div class="sabado-card-footer">
-              <a class="btn-responder" href="{% url 'sabado:responder_disponibilidade' sabado.id %}">
-                Responder
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                </svg>
-              </a>
+          <!-- Progresso de respostas -->
+          <div class="pcf-progress-block">
+            <div class="pcf-progress-header">
+              <div class="pcf-progress-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Respostas dos voluntários
+              </div>
+              <span class="pcf-progress-count">{{ sabado.total_respostas_view }}/{{ sabado.total_voluntarios_ativos }}</span>
+            </div>
+            <div class="pcf-progress-bar-wrap">
+              <div class="pcf-progress-bar {% if sabado.percentual_respostas_int == 100 %}pcf-progress-full{% endif %}"
+                   style="width: {{ sabado.percentual_respostas_int }}%"></div>
+            </div>
+            <div class="pcf-progress-footer">
+              {% if sabado.percentual_respostas_int == 100 %}
+                <span class="pcf-text-success">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Todos responderam!
+                </span>
+              {% else %}
+                <span class="pcf-text-muted">{{ sabado.total_nao_responderam }} ainda não responderam</span>
+                <span class="pcf-progress-pct">{{ sabado.percentual_respostas_int }}%</span>
+              {% endif %}
             </div>
           </div>
-        </div>
-      {% empty %}
-        <div class="col-12">
-          <div class="empty-state">
-            <div class="empty-state-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-              </svg>
-            </div>
-            <h4>Nenhum formulário aberto</h4>
-            <p>No momento não há formulários de disponibilidade abertos. Fique atento!</p>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
 
-    <div class="painel-link-container">
-      <a class="btn-painel" href="/sabado/resumo_sabado/">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/>
-        </svg>
-        Painel do Sábado
+          <!-- Ação -->
+          <a href="{% url 'sabado:responder_disponibilidade' sabado.pk %}" class="pcf-btn pcf-btn-primary pcf-btn-full">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Responder formulário
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="pcf-empty">
+        <div class="pcf-empty-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <p class="pcf-empty-title">Nenhum formulário aberto</p>
+        <p class="pcf-empty-sub">Quando houver um sábado com enquete aberta, ele aparecerá aqui.</p>
+        <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-outline">Ver painel do sábado</a>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- ── ACESSO RÁPIDO ── -->
+  <section class="pcf-container pcf-section pcf-section-last">
+    <h2 class="pcf-section-title">Acesso Rápido</h2>
+    <p class="pcf-section-sub" style="margin-bottom: 1.5rem;">Navegue pelas principais áreas do projeto</p>
+
+    <div class="pcf-quick-grid">
+      <a href="{% url 'semanario:semanario_view' %}" class="pcf-quick-card">
+        <div class="pcf-quick-icon pcf-quick-purple">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <div>
+          <h3 class="pcf-quick-title">Semanário</h3>
+          <p class="pcf-quick-desc">Planejamento semanal de atividades por sala e competências.</p>
+        </div>
+        <svg class="pcf-quick-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+
+      <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-quick-card">
+        <div class="pcf-quick-icon pcf-quick-green">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div>
+          <h3 class="pcf-quick-title">Voluntários</h3>
+          <p class="pcf-quick-desc">Gerencie a equipe, talentos, presenças e áreas de atuação.</p>
+        </div>
+        <svg class="pcf-quick-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+
+      <a href="{% url 'atendido:atendido_view' %}" class="pcf-quick-card">
+        <div class="pcf-quick-icon pcf-quick-pink">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </div>
+        <div>
+          <h3 class="pcf-quick-title">Atendidos</h3>
+          <p class="pcf-quick-desc">Fichas das crianças, famílias, responsáveis e histórico.</p>
+        </div>
+        <svg class="pcf-quick-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+
+      <a href="{% url 'supply:painel_materiais' %}" class="pcf-quick-card">
+        <div class="pcf-quick-icon pcf-quick-amber">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </div>
+        <div>
+          <h3 class="pcf-quick-title">Supply</h3>
+          <p class="pcf-quick-desc">Controle de estoque, itens e movimentações de materiais.</p>
+        </div>
+        <svg class="pcf-quick-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ===================== FEATURES SECTION ===================== -->
-<section class="features-section">
-  <div class="container">
-    <div class="section-title">
-      <h2>Conheça Nosso Trabalho</h2>
-      <p>Dedicação e amor em cada ação</p>
-      <div class="title-line"></div>
-    </div>
+</div>
 
-    <div class="row g-4">
-      <div class="col-lg-4 col-md-6">
-        <div class="feature-card">
-          <div class="feature-image-wrapper">
-            <img src="{% static 'images/card1.jpg' %}" class="feature-image" alt="Crianças felizes">
-            <span class="feature-badge purple">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-              </svg>
-            </span>
-          </div>
-          <h3>Semanário</h3>
-          <p>Momentos de aprendizado e diversão que transformam o dia a dia das crianças.</p>
-          <a class="feature-btn" href="{% url 'semanario:semanario_view' %}">
-            Ver detalhes
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-            </svg>
-          </a>
-        </div>
-      </div>
+<style>
+/* ── Reset / Base ── */
+*, *::before, *::after { box-sizing: border-box; }
+.pcf-page { background: hsl(var(--background)); min-height: 100vh; }
 
-      <div class="col-lg-4 col-md-6">
-        <div class="feature-card">
-          <div class="feature-image-wrapper">
-            <img src="{% static 'images/card2.jpg' %}" class="feature-image" alt="Equipe voluntária">
-            <span class="feature-badge green">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-              </svg>
-            </span>
-          </div>
-          <h3>Voluntários</h3>
-          <p>Conheça a nossa equipe dedicada que transforma vidas com amor e carinho!</p>
-          <a class="feature-btn" href="{% url 'voluntario:voluntario_view' %}">
-            Saiba mais
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-            </svg>
-          </a>
-        </div>
-      </div>
+/* ── Container ── */
+.pcf-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
 
-      <div class="col-lg-4 col-md-6">
-        <div class="feature-card">
-          <div class="feature-image-wrapper">
-            <img src="{% static 'images/card3.jpg' %}" class="feature-image" alt="Famílias unidas">
-            <span class="feature-badge blue">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-              </svg>
-            </span>
-          </div>
-          <h3>Atendidos</h3>
-          <p>Apoio e acolhimento para fortalecer os laços familiares e construir futuros.</p>
-          <a class="feature-btn" href="{% url 'atendido:atendido_view' %}">
-            Conhecer
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-            </svg>
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+/* ── HERO ── */
+.pcf-hero {
+  position: relative;
+  background: linear-gradient(135deg, #c75f06 0%, #fe8210 60%, #ea7209 100%);
+  padding: 4rem 0 5rem;
+  overflow: hidden;
+}
+.pcf-hero-bg {
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='30'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+}
+.pcf-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0; right: 0; height: 60px;
+  background: hsl(var(--background));
+  clip-path: ellipse(55% 100% at 50% 100%);
+}
+.pcf-hero-inner {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+}
+.pcf-hero-text { color: #fff; }
+.pcf-badge {
+  display: inline-block;
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  padding: .3rem .75rem;
+  border-radius: 9999px;
+  margin-bottom: 1.25rem;
+}
+.pcf-hero-title {
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0 0 1rem;
+  color: #fff;
+}
+.pcf-hero-sub {
+  font-size: 1rem;
+  color: rgba(255,255,255,.8);
+  margin: 0 0 2rem;
+  line-height: 1.6;
+  max-width: 420px;
+}
+.pcf-hero-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+.pcf-hero-img-wrap {
+  display: flex;
+  justify-content: center;
+}
+.pcf-hero-img {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 1.25rem;
+  box-shadow: 0 25px 50px rgba(0,0,0,.35);
+  object-fit: cover;
+  aspect-ratio: 4/3;
+}
 
-<script>
-  document.querySelectorAll(".progress-fill[data-width]").forEach(el => {
-    const w = Number(el.dataset.width || 0);
-    el.style.width = Math.max(0, Math.min(100, w)) + "%";
-  });
-</script>
+/* ── BUTTONS ── */
+.pcf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .6rem 1.25rem;
+  border-radius: .5rem;
+  font-size: .875rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.pcf-btn-primary {
+  background: #fff;
+  color: #c75f06;
+}
+.pcf-btn-primary:hover { background: #f3f4f6; color: #4c1d95; transform: translateY(-1px); }
+.pcf-btn-ghost {
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.3);
+}
+.pcf-btn-ghost:hover { background: rgba(255,255,255,.2); color: #fff; }
+.pcf-btn-outline {
+  background: transparent;
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+}
+.pcf-btn-outline:hover { background: hsl(var(--accent)); color: hsl(var(--foreground)); }
+.pcf-btn-sm { padding: .4rem .9rem; font-size: .8rem; }
+.pcf-btn-full { width: 100%; justify-content: center; margin-top: auto; }
 
+/* hero btn override */
+.pcf-hero .pcf-btn-outline {
+  background: transparent;
+  color: #fff;
+  border-color: rgba(255,255,255,.4);
+}
+.pcf-hero .pcf-btn-outline:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+/* ── STATS ROW ── */
+.pcf-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: -2.5rem;
+  position: relative;
+  z-index: 2;
+  padding-bottom: .5rem;
+  /* fallback seguro em telas menores via media query abaixo */
+}
+.pcf-stat-card {
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: .875rem;
+  padding: 1rem 1.25rem;
+  text-decoration: none;
+  color: hsl(var(--foreground));
+  box-shadow: 0 1px 3px rgba(0,0,0,.07), 0 4px 12px rgba(0,0,0,.05);
+  transition: all .15s;
+}
+.pcf-stat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.12); transform: translateY(-2px); color: hsl(var(--foreground)); }
+.pcf-stat-icon {
+  width: 42px; height: 42px; border-radius: .625rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.pcf-stat-purple { background: #fff7ed; color: #fe8210; }
+.pcf-stat-green  { background: #d1fae5; color: #059669; }
+.pcf-stat-blue   { background: #dbeafe; color: #2563eb; }
+.pcf-stat-amber  { background: #fef3c7; color: #d97706; }
+.pcf-stat-label { font-size: .875rem; font-weight: 600; margin: 0; line-height: 1.2; }
+.pcf-stat-hint  { font-size: .75rem; color: hsl(var(--muted-foreground)); margin: .15rem 0 0; }
+
+/* ── SECTION ── */
+.pcf-section { padding: 3rem 0 0; }
+.pcf-section-last { padding-bottom: 4rem; }
+.pcf-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.pcf-section-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin: 0 0 .25rem;
+  color: hsl(var(--foreground));
+}
+.pcf-section-sub {
+  font-size: .875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* ── CARD base ── */
+.pcf-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+}
+
+/* ── SÁBADO GRID ── */
+.pcf-sabado-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+.pcf-sabado-card {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: box-shadow .15s, transform .15s;
+}
+.pcf-sabado-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.1); transform: translateY(-2px); }
+.pcf-sabado-header {
+  display: flex;
+  align-items: flex-start;
+  gap: .875rem;
+}
+.pcf-date-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #fff7ed;
+  border-radius: .625rem;
+  padding: .4rem .7rem;
+  min-width: 48px;
+  flex-shrink: 0;
+}
+.pcf-date-day   { font-size: 1.25rem; font-weight: 800; color: #c75f06; line-height: 1; }
+.pcf-date-month { font-size: .65rem; font-weight: 600; color: #fe8210; text-transform: uppercase; letter-spacing: .05em; }
+.pcf-sabado-info { flex: 1; min-width: 0; }
+.pcf-sabado-tema {
+  font-size: .9375rem;
+  font-weight: 700;
+  margin: 0 0 .2rem;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pcf-sabado-date-full { font-size: .78rem; color: hsl(var(--muted-foreground)); margin: 0; }
+
+/* chip */
+.pcf-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: .2rem .6rem;
+  border-radius: 9999px;
+  font-size: .7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.pcf-chip-open { background: #d1fae5; color: #065f46; }
+
+/* progress */
+.pcf-progress-block { display: flex; flex-direction: column; gap: .5rem; }
+.pcf-progress-header { display: flex; align-items: center; justify-content: space-between; }
+.pcf-progress-label {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .78rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+.pcf-progress-count { font-size: .78rem; font-weight: 700; color: hsl(var(--foreground)); }
+.pcf-progress-bar-wrap {
+  height: 6px;
+  background: hsl(var(--accent));
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.pcf-progress-bar {
+  height: 100%;
+  background: #fe8210;
+  border-radius: 9999px;
+  min-width: 4px;
+  transition: width .5s ease;
+}
+.pcf-progress-full { background: #059669; }
+.pcf-progress-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: .73rem;
+}
+.pcf-text-muted { color: hsl(var(--muted-foreground)); }
+.pcf-text-success { display: flex; align-items: center; gap: .3rem; color: #059669; font-weight: 600; }
+.pcf-progress-pct { font-weight: 700; color: #fe8210; }
+
+/* ── EMPTY ── */
+.pcf-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  padding: 4rem 2rem;
+  border: 1px dashed hsl(var(--border));
+  border-radius: 1rem;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+}
+.pcf-empty-icon {
+  width: 56px; height: 56px;
+  background: hsl(var(--accent));
+  border-radius: .875rem;
+  display: flex; align-items: center; justify-content: center;
+  color: hsl(var(--muted-foreground));
+}
+.pcf-empty-title { font-size: 1rem; font-weight: 600; color: hsl(var(--foreground)); margin: 0; }
+.pcf-empty-sub { font-size: .875rem; margin: 0; max-width: 320px; }
+.pcf-empty .pcf-btn { margin-top: .5rem; }
+.pcf-empty .pcf-btn-outline {
+  background: transparent;
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+}
+.pcf-empty .pcf-btn-outline:hover { background: hsl(var(--accent)); }
+
+/* ── QUICK ACCESS ── */
+.pcf-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+.pcf-quick-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 1.25rem 1.25rem 1.25rem 1.25rem;
+  text-decoration: none;
+  color: hsl(var(--foreground));
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  transition: all .15s;
+}
+.pcf-quick-card:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,.1);
+  transform: translateY(-2px);
+  color: hsl(var(--foreground));
+  border-color: #fe8210;
+}
+.pcf-quick-icon {
+  width: 48px; height: 48px; border-radius: .75rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.pcf-quick-purple { background: #fff7ed; color: #fe8210; }
+.pcf-quick-green  { background: #d1fae5; color: #059669; }
+.pcf-quick-pink   { background: #fce7f3; color: #db2777; }
+.pcf-quick-amber  { background: #fef3c7; color: #d97706; }
+.pcf-quick-title  { font-size: .9375rem; font-weight: 700; margin: 0 0 .2rem; }
+.pcf-quick-desc   { font-size: .8rem; color: hsl(var(--muted-foreground)); margin: 0; line-height: 1.5; }
+.pcf-quick-arrow  { color: hsl(var(--muted-foreground)); margin-left: auto; flex-shrink: 0; transition: transform .15s; }
+.pcf-quick-card:hover .pcf-quick-arrow { transform: translateX(3px); color: #fe8210; }
+
+/* ── RESPONSIVO ── */
+@media (max-width: 900px) {
+  .pcf-hero-inner { grid-template-columns: 1fr; gap: 1.5rem; }
+  .pcf-hero-img-wrap { display: none; }
+  .pcf-hero { padding: 2.5rem 0 3.5rem; }
+  .pcf-stats-row { grid-template-columns: repeat(2, 1fr); margin-top: 1.5rem; }
+}
+
+@media (max-width: 600px) {
+  .pcf-hero { padding: 2rem 0 3rem; }
+  .pcf-hero-title { font-size: 1.5rem; }
+  .pcf-hero-sub { font-size: .875rem; }
+  .pcf-hero-actions { flex-direction: column; gap: .5rem; }
+  .pcf-hero-actions .pcf-btn { width: 100%; justify-content: center; }
+
+  /* stats vira 2 colunas compactas, sem o float negativo do hero */
+  .pcf-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: .625rem;
+    margin-top: 1.25rem;
+    position: static;
+  }
+  .pcf-stat-card { padding: .75rem .875rem; gap: .625rem; }
+  .pcf-stat-icon { width: 34px; height: 34px; border-radius: .5rem; }
+  .pcf-stat-icon svg { width: 16px; height: 16px; }
+  .pcf-stat-label { font-size: .8rem; }
+  .pcf-stat-hint  { display: none; }
+
+  .pcf-sabado-grid { grid-template-columns: 1fr; }
+  .pcf-quick-grid  { grid-template-columns: 1fr; }
+  .pcf-section { padding: 2rem 0 0; }
+  .pcf-section-last { padding-bottom: 2.5rem; }
+  .pcf-section-header { flex-direction: column; align-items: flex-start; gap: .5rem; }
+  .pcf-sabado-tema { white-space: normal; }
+  .pcf-sabado-card { padding: 1.25rem; }
+  .pcf-quick-desc { display: none; }
+  .pcf-quick-card { padding: 1rem; }
+  .pcf-quick-icon { width: 40px; height: 40px; }
+}
+
+@media (max-width: 420px) {
+  .pcf-stats-row { grid-template-columns: 1fr 1fr; }
+  .pcf-badge { font-size: .68rem; }
+}
+</style>
 {% endblock %}

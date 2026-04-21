@@ -153,6 +153,23 @@
     text-transform: uppercase; color: hsl(var(--muted-foreground));
   }
 
+  /* mobile user header inside drawer */
+  .pcf-mobile-user {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .875rem .75rem 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+    margin-bottom: .5rem;
+  }
+  .pcf-mobile-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
+    font-size: .75rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .pcf-mobile-username { font-size: .875rem; font-weight: 600; color: hsl(var(--foreground)); margin: 0; }
+  .pcf-mobile-area     { font-size: .75rem; color: hsl(var(--muted-foreground)); margin: .1rem 0 0; }
+
   @media (max-width: 768px) {
     .pcf-nav-links { display: none !important; }
     .pcf-search     { display: none !important; }
@@ -285,6 +302,18 @@
 
 <!-- Mobile Drawer -->
 <div class="pcf-mobile-menu" id="mobileMenu">
+
+  <!-- usuário logado -->
+  <div class="pcf-mobile-user">
+    <div class="pcf-mobile-avatar">
+      {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+    </div>
+    <div>
+      <p class="pcf-mobile-username">{{ user.get_full_name|default:user.username }}</p>
+      <p class="pcf-mobile-area">{{ user.get_area_display|default:"" }}</p>
+    </div>
+  </div>
+
   <div class="pcf-mobile-label">Navegação</div>
   <a class="pcf-mobile-link" href="{% url 'inicio' %}">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>

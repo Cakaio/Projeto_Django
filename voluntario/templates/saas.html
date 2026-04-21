@@ -6,8 +6,8 @@
 {% block content %}
 <style>
   :root {
-    --saas-primary:   #4f46e5;
-    --saas-pl:        rgba(79,70,229,.1);
+    --saas-primary:   #fe8210;
+    --saas-pl:        rgba(254,130,16,.1);
     --adv-color:      #d97706;
     --adv-bg:         #fef3c7;
     --sus-color:      #dc2626;
@@ -24,7 +24,7 @@
 
   /* ── Hero ── */
   .saas-hero {
-    background: linear-gradient(135deg,#4f46e5,#7c3aed);
+    background: linear-gradient(135deg,#c75f06,#fe8210);
     border-radius: 1.25rem;
     padding: 2rem 2.5rem;
     margin-bottom: 1.75rem;
@@ -311,8 +311,8 @@
           <th>Membro</th>
           <th>Apelido</th>
           <th>Área</th>
+          <th>Alertas</th>
           <th>Advertências</th>
-          <th>Suspensões</th>
           <th>Período de Obs.</th>
           <th>Ação</th>
         </tr>
@@ -339,34 +339,33 @@
 
           <td><span class="area-badge">{{ d.voluntario.get_area_display|default:"—" }}</span></td>
 
-          <!-- Advertências -->
+          <!-- Alertas (AL) -->
           <td>
-            {% if d.advertencias > 0 %}
+            {% if d.alertas > 0 %}
               <div class="occ-wrap">
                 <div class="occ-bar">
-                  <div class="occ-fill adv" style="width:{{ d.advertencias|floatformat:0 }}00%;max-width:100%"
-                       data-pct="{{ d.advertencias }}" data-max="{{ d.advertencias_max }}"></div>
+                  <div class="occ-fill adv" style="width:{% widthratio d.alertas d.alertas_max 100 %}%;max-width:100%"></div>
                 </div>
-                <span class="occ-num adv">{{ d.advertencias }}/{{ d.advertencias_max }}</span>
+                <span class="occ-num adv">{{ d.alertas }}/{{ d.alertas_max }}</span>
               </div>
             {% else %}
-              <span class="occ-num ok">0/{{ d.advertencias_max }}</span>
+              <span class="occ-num ok">0/{{ d.alertas_max }}</span>
             {% endif %}
           </td>
 
-          <!-- Suspensões -->
+          <!-- Advertências (AD) -->
           <td>
             {% if d.periodo_observacao %}
-              <span class="occ-num sus">{{ d.suspensoes }}/{{ d.suspensoes_max }}</span>
-            {% elif d.suspensoes > 0 %}
+              <span class="occ-num sus">{{ d.advertencias }}/{{ d.advertencias_max }}</span>
+            {% elif d.advertencias > 0 %}
               <div class="occ-wrap">
                 <div class="occ-bar">
-                  <div class="occ-fill sus" style="width:{% widthratio d.suspensoes d.suspensoes_max 100 %}%"></div>
+                  <div class="occ-fill sus" style="width:{% widthratio d.advertencias d.advertencias_max 100 %}%"></div>
                 </div>
-                <span class="occ-num sus">{{ d.suspensoes }}/{{ d.suspensoes_max }}</span>
+                <span class="occ-num sus">{{ d.advertencias }}/{{ d.advertencias_max }}</span>
               </div>
             {% else %}
-              <span class="occ-num ok">0/{{ d.suspensoes_max }}</span>
+              <span class="occ-num ok">0/{{ d.advertencias_max }}</span>
             {% endif %}
           </td>
 
@@ -459,7 +458,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <form method="POST" action="{% url 'voluntario:criar_ocorrencia' %}">
+    <form method="POST" action="{% url 'voluntario:criar_ocorrencia' %}" id="ocorrenciaForm">
       {% csrf_token %}
       <input type="hidden" name="advertido_id" id="modalId">
 
@@ -519,7 +518,7 @@
 
       <div class="m-footer">
         <button type="button" class="btn-cancel" onclick="fecharModal()">Cancelar</button>
-        <button type="submit" class="btn-confirm">Confirmar</button>
+        <button type="submit" class="btn-confirm" id="btnConfirmar">Confirmar</button>
       </div>
     </form>
   </div>
@@ -743,6 +742,13 @@
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { fecharModal(); fecharHistorico(); }
+  });
+
+  /* ── Disable submit button while applying ── */
+  document.getElementById('ocorrenciaForm').addEventListener('submit', function() {
+    const btn = document.getElementById('btnConfirmar');
+    btn.disabled = true;
+    btn.textContent = 'Aplicando…';
   });
 </script>
 {% endblock %}
