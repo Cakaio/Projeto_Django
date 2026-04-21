@@ -1,502 +1,295 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block titulo %}Disponibilidade do Voluntário{% endblock %}
+{% block titulo %}Disponibilidade — {{ sabado.data|date:"d/m/Y" }}{% endblock %}
 
 {% block content %}
 <style>
-  :root {
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --secondary: #8b5cf6;
-    --success: #10b981;
-    --success-dark: #059669;
-    --bg-light: #f8fafc;
-    --text-dark: #1e293b;
-    --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    --card-shadow: 0 10px 40px rgba(99, 102, 241, 0.15);
-  }
-
-  .disponibilidade-page {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
-    padding: 40px 20px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .disponibilidade-page::before,
-  .disponibilidade-page::after {
-    content: '';
+  /* Esconde o input nativo mas mantém acessível */
+  .opt-wrap input[type="radio"],
+  .opt-wrap input[type="checkbox"] {
     position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
   }
 
-  .disponibilidade-page::before {
-    width: 400px;
-    height: 400px;
-    top: -100px;
-    right: -100px;
-  }
-
-  .disponibilidade-page::after {
-    width: 300px;
-    height: 300px;
-    bottom: -50px;
-    left: -50px;
-  }
-
-  .disponibilidade-container {
-    max-width: 680px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-  }
-
-  .disponibilidade-card {
-    background: #fff;
-    border-radius: 24px;
-    box-shadow: var(--card-shadow);
-    overflow: hidden;
-    animation: slideUp 0.5s ease-out;
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .card-header-custom {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    padding: 32px;
-    text-align: center;
-    position: relative;
-  }
-
-  .card-header-custom::after {
-    content: '';
-    position: absolute;
-    bottom: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 40px;
-    height: 40px;
-    background: #fff;
-    border-radius: 50%;
+  .opt-label {
     display: flex;
     align-items: center;
-    justify-content: center;
-  }
-
-  .header-icon {
-    width: 64px;
-    height: 64px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 16px;
-    backdrop-filter: blur(10px);
-  }
-
-  .header-icon svg {
-    width: 32px;
-    height: 32px;
-    color: #fff;
-  }
-
-  .card-header-custom h3 {
-    color: #fff;
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin: 0 0 8px 0;
-  }
-
-  .card-header-custom .date-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.2);
-    padding: 8px 16px;
-    border-radius: 50px;
-    color: #fff;
+    gap: .75rem;
+    padding: .75rem 1rem;
+    border: 1.5px solid #e5e7eb;
+    border-radius: .75rem;
+    background: #fff;
+    cursor: pointer;
+    font-size: .9rem;
     font-weight: 500;
-    margin-bottom: 12px;
-  }
-
-  .card-header-custom .tema {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 1rem;
-    margin: 0;
-  }
-
-  .card-body-custom {
-    padding: 40px 32px 32px;
-  }
-
-  .question-block {
-    background: var(--bg-light);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-  }
-
-  .question-block:hover {
-    border-color: var(--primary);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
-  }
-
-  .question-block:last-of-type {
-    margin-bottom: 0;
-  }
-
-  .question-label {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-weight: 600;
-    color: var(--text-dark);
-    margin-bottom: 16px;
-    font-size: 1rem;
-  }
-
-  .question-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .question-icon.purple {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  }
-
-  .question-icon.green {
-    background: linear-gradient(135deg, #10b981, #34d399);
-  }
-
-  .question-icon.blue {
-    background: linear-gradient(135deg, #3b82f6, #60a5fa);
-  }
-
-  .question-icon.pink {
-    background: linear-gradient(135deg, #ec4899, #f472b6);
-  }
-
-  .question-icon svg {
-    width: 20px;
-    height: 20px;
-    color: #fff;
-  }
-
-  /* Estilização dos selects e inputs do Django */
-  .question-block select,
-  .question-block input[type="text"],
-  .question-block input[type="number"],
-  .question-block textarea {
+    color: #374151;
+    transition: border-color .15s, background .15s;
+    user-select: none;
     width: 100%;
-    padding: 14px 16px;
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    font-size: 1rem;
-    color: var(--text-dark);
-    background: #fff;
-    transition: all 0.3s ease;
-    appearance: none;
-    cursor: pointer;
+  }
+  .opt-label:hover {
+    border-color: #fe8210;
+    background: #fff7ed;
   }
 
-  .question-block select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 20px;
-    padding-right: 44px;
-  }
-
-  .question-block select:focus,
-  .question-block input:focus,
-  .question-block textarea:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-  }
-
-  /* Estilização de checkboxes */
-  .question-block ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .question-block li {
-    display: flex;
-    align-items: center;
-  }
-
-  .question-block li label {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: #fff;
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 100%;
-    font-weight: 500;
-    color: var(--text-dark);
-  }
-
-  .question-block li label:hover {
-    border-color: var(--primary);
-    background: rgba(99, 102, 241, 0.05);
-  }
-
-  .question-block li input[type="checkbox"] {
-    width: 22px;
-    height: 22px;
-    border: 2px solid var(--border-color);
-    border-radius: 6px;
-    appearance: none;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.3s ease;
+  .opt-indicator {
+    width: 1.1rem;
+    height: 1.1rem;
     flex-shrink: 0;
-  }
-
-  .question-block li input[type="checkbox"]:checked {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-color: var(--primary);
-  }
-
-  .question-block li input[type="checkbox"]:checked::after {
-    content: '';
-    position: absolute;
-    left: 6px;
-    top: 2px;
-    width: 6px;
-    height: 12px;
-    border: solid #fff;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-  }
-
-  /* Radio buttons */
-  .question-block input[type="radio"] {
-    width: 22px;
-    height: 22px;
-    border: 2px solid var(--border-color);
-    border-radius: 50%;
-    appearance: none;
-    cursor: pointer;
-    position: relative;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-  }
-
-  .question-block input[type="radio"]:checked {
-    border-color: var(--primary);
-  }
-
-  .question-block input[type="radio"]:checked::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 12px;
-    height: 12px;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-radius: 50%;
-  }
-
-  .actions-container {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 32px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border-color);
-  }
-
-  .btn-save {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 28px;
-    background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
-    color: #fff;
-    border: none;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-  }
-
-  .btn-save:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-  }
-
-  .btn-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 28px;
+    border: 2px solid #d1d5db;
     background: #fff;
-    color: var(--text-muted);
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    font-size: 1rem;
+    display: grid;
+    place-items: center;
+    transition: border-color .15s, background .15s;
+  }
+  .opt-indicator.round  { border-radius: 50%; }
+  .opt-indicator.square { border-radius: .3rem; }
+
+  /* Estado checked via JS (classe .checked na label) */
+  .opt-label.checked {
+    border-color: #fe8210;
+    background: #fff7ed;
+    color: #c75f06;
     font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
   }
-
-  .btn-back:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: rgba(99, 102, 241, 0.05);
+  .opt-label.checked .opt-indicator {
+    border-color: #fe8210;
+    background: #fe8210;
   }
-
-  @media (max-width: 640px) {
-    .disponibilidade-page {
-      padding: 20px 16px;
-    }
-
-    .card-header-custom {
-      padding: 24px 20px;
-    }
-
-    .card-body-custom {
-      padding: 32px 20px 24px;
-    }
-
-    .question-block {
-      padding: 20px;
-    }
-
-    .actions-container {
-      flex-direction: column;
-    }
-
-    .btn-save, .btn-back {
-      width: 100%;
-      justify-content: center;
-    }
+  .opt-label.checked .opt-indicator.round::after {
+    content: '';
+    width: .45rem;
+    height: .45rem;
+    background: #fff;
+    border-radius: 50%;
+    display: block;
+  }
+  .opt-label.checked .opt-indicator.square::after {
+    content: '';
+    width: .35rem;
+    height: .6rem;
+    border: 2px solid #fff;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg) translateY(-1px);
+    display: block;
   }
 </style>
 
-<div class="disponibilidade-page">
-  <div class="disponibilidade-container">
-    <div class="disponibilidade-card">
-      <div class="card-header-custom">
-        <div class="header-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
+<div class="min-h-screen bg-gray-50 py-8 px-4">
+  <div class="max-w-xl mx-auto">
+
+    <!-- Header -->
+    <div class="rounded-2xl overflow-hidden shadow-sm mb-6"
+         style="background:linear-gradient(135deg,#c75f06 0%,#fe8210 100%)">
+      <div class="px-6 py-7 text-white">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+            <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-white/70 text-xs font-medium uppercase tracking-wider">Sábado do Projeto</p>
+            <p class="text-lg font-bold leading-tight">{{ sabado.data|date:"d \d\e F \d\e Y" }}</p>
+          </div>
         </div>
-        <h3>Disponibilidade do Voluntário</h3>
-        <div class="date-badge">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          {{ sabado.data|date:"d/m/Y" }}
-        </div>
-        <p class="tema">{{ sabado.tema }}</p>
-      </div>
-
-      <div class="card-body-custom">
-        <form method="post">
-          {% csrf_token %}
-
-          <div class="question-block">
-            <div class="question-label">
-              <div class="question-icon purple">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <span>Você vai ao projeto?</span>
-            </div>
-            {{ form.vai_ao_projeto }}
-          </div>
-
-          <div class="question-block">
-            <div class="question-label">
-              <div class="question-icon green">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <span>Você pode ajudar em quais horários?</span> 
-            </div>
-            <p style="color: red; font-weight: bold; font-size: smaller;">OBS: <u>NÃO</u> selecione que pode ajudar a própria área. (exemplo: EDUCs não selecione que pode ajudar o EDUC) </p>
-            {{ form.pode_ajudar }}
-          </div>
-
-          <div class="question-block">
-            <div class="question-label">
-              <div class="question-icon blue">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-              </div>
-              <span>Você vai de carro e pode dar carona?</span>
-            </div>
-            {{ form.vai_de_carro }}
-          </div>
-
-          <div class="question-block">
-            <div class="question-label">
-              <div class="question-icon pink">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </div>
-              <span>Como você está se sentindo essa semana?</span>
-            </div>
-            {{ form.saude }}
-          </div>
-
-          <div class="actions-container">
-            <a class="btn-back" href="/inicio/">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Voltar
-            </a>
-            <button class="btn-save" type="submit">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              Salvar
-            </button>
-          </div>
-        </form>
+        {% if sabado.tema %}
+        <p class="text-white/90 text-sm leading-relaxed border-t border-white/20 pt-4">
+          <span class="font-semibold">Tema:</span> {{ sabado.tema }}
+        </p>
+        {% endif %}
       </div>
     </div>
+
+    {% if messages %}
+      {% for msg in messages %}
+      <div class="mb-4 flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-medium
+        {% if 'error' in msg.tags %}bg-red-50 border border-red-200 text-red-700
+        {% else %}bg-green-50 border border-green-200 text-green-700{% endif %}">
+        {% if 'error' in msg.tags %}
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        {% else %}
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        {% endif %}
+        {{ msg }}
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" id="dispForm">
+      {% csrf_token %}
+
+      <!-- 1. Vai ao projeto? -->
+      <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 mb-4">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+               style="background:linear-gradient(135deg,#c75f06,#fe8210)">
+            <svg width="15" height="15" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <span class="font-semibold text-gray-900 text-sm">Você vai ao projeto?</span>
+        </div>
+        <div class="flex flex-col gap-2">
+          {% for widget in form.vai_ao_projeto %}
+          <div class="opt-wrap relative">
+            {{ widget.tag }}
+            <label for="{{ widget.id_for_label }}" class="opt-label" data-type="radio">
+              <span class="opt-indicator round"></span>
+              {{ widget.choice_label }}
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        {% if form.vai_ao_projeto.errors %}
+          <p class="text-red-500 text-xs mt-2">{{ form.vai_ao_projeto.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      <!-- 2. Horários de ajuda -->
+      <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 mb-4">
+        <div class="flex items-center gap-3 mb-1">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+               style="background:linear-gradient(135deg,#059669,#34d399)">
+            <svg width="15" height="15" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <span class="font-semibold text-gray-900 text-sm">Você pode ajudar em quais horários?</span>
+        </div>
+        <p class="text-xs text-red-600 font-medium mb-4 pl-11">
+          ⚠️ NÃO selecione que pode ajudar a sua própria área.
+        </p>
+        <div class="flex flex-col gap-2">
+          {% for widget in form.pode_ajudar %}
+          <div class="opt-wrap relative">
+            {{ widget.tag }}
+            <label for="{{ widget.id_for_label }}" class="opt-label" data-type="checkbox">
+              <span class="opt-indicator square"></span>
+              {{ widget.choice_label }}
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        {% if form.pode_ajudar.errors %}
+          <p class="text-red-500 text-xs mt-2">{{ form.pode_ajudar.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      <!-- 3. Vai de carro? -->
+      <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 mb-4">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+               style="background:linear-gradient(135deg,#2563eb,#60a5fa)">
+            <svg width="15" height="15" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24">
+              <path d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v5a2 2 0 01-2 2h-2"/>
+              <circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>
+            </svg>
+          </div>
+          <span class="font-semibold text-gray-900 text-sm">Vai de carro e pode dar carona?</span>
+        </div>
+        <div class="flex flex-col gap-2">
+          {% for widget in form.vai_de_carro %}
+          <div class="opt-wrap relative">
+            {{ widget.tag }}
+            <label for="{{ widget.id_for_label }}" class="opt-label" data-type="radio">
+              <span class="opt-indicator round"></span>
+              {{ widget.choice_label }}
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        {% if form.vai_de_carro.errors %}
+          <p class="text-red-500 text-xs mt-2">{{ form.vai_de_carro.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      <!-- 4. Saúde -->
+      <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 mb-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+               style="background:linear-gradient(135deg,#db2777,#f472b6)">
+            <svg width="15" height="15" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+          </div>
+          <span class="font-semibold text-gray-900 text-sm">Como você está se sentindo essa semana?</span>
+        </div>
+        <div class="flex flex-col gap-2">
+          {% for widget in form.saude %}
+          <div class="opt-wrap relative">
+            {{ widget.tag }}
+            <label for="{{ widget.id_for_label }}" class="opt-label" data-type="radio">
+              <span class="opt-indicator round"></span>
+              {{ widget.choice_label }}
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        {% if form.saude.errors %}
+          <p class="text-red-500 text-xs mt-2">{{ form.saude.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Ações -->
+      <div class="flex flex-col sm:flex-row gap-3">
+        <a href="/inicio/"
+           class="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl
+                  border border-gray-200 bg-white text-gray-600 font-semibold text-sm
+                  hover:bg-gray-50 hover:border-gray-300 transition-colors">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+          </svg>
+          Voltar
+        </a>
+        <button type="submit" id="btnSalvar"
+                class="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl
+                       text-white font-bold text-sm transition-all active:scale-95"
+                style="background:linear-gradient(135deg,#c75f06,#fe8210);
+                       box-shadow:0 4px 14px rgba(254,130,16,.35)">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Salvar resposta
+        </button>
+      </div>
+    </form>
+
   </div>
 </div>
+
+<script>
+  function syncLabels() {
+    document.querySelectorAll('.opt-wrap').forEach(wrap => {
+      const inp = wrap.querySelector('input');
+      const lbl = wrap.querySelector('.opt-label');
+      if (!inp || !lbl) return;
+      lbl.classList.toggle('checked', inp.checked);
+    });
+  }
+
+  // Ao clicar numa label, sincroniza todos do mesmo grupo
+  document.querySelectorAll('.opt-label').forEach(lbl => {
+    lbl.addEventListener('click', () => setTimeout(syncLabels, 0));
+  });
+
+  // Estado inicial (respostas já salvas)
+  syncLabels();
+
+  // Disable botão ao submeter
+  document.getElementById('dispForm').addEventListener('submit', function() {
+    const btn = document.getElementById('btnSalvar');
+    btn.disabled = true;
+    btn.style.opacity = '.7';
+    btn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="animate-spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Salvando…';
+  });
+</script>
 {% endblock %}
