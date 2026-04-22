@@ -5,65 +5,69 @@
 
 {% block content %}
 <style>
-  .rs-page { background: #f8fafc; min-height: 100vh; padding-bottom: 3rem; }
+  :root { --pcf: #fe8210; --pcf-d: #c75f06; }
 
-  /* Header */
+  .rs-page { background: #f8fafc; min-height: 100vh; padding-bottom: 4rem; }
+  .rs-container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+  /* Hero */
   .rs-hero {
-    background: linear-gradient(135deg,#c75f06 0%,#fe8210 100%);
-    padding: 2rem 0 3.5rem;
-    position: relative;
-    overflow: hidden;
+    background: linear-gradient(135deg, var(--pcf-d) 0%, var(--pcf) 100%);
+    padding: 2rem 0 3rem; position: relative; overflow: hidden;
   }
   .rs-hero::after {
-    content:''; position:absolute; bottom:-2px; left:0; right:0; height:48px;
+    content:''; position:absolute; bottom:-1px; left:0; right:0; height:40px;
     background:#f8fafc; clip-path:ellipse(55% 100% at 50% 100%);
   }
-  .rs-container { max-width:1200px; margin:0 auto; padding:0 1.5rem; }
 
-  /* Select sábado */
   .rs-select {
     appearance:none;
     background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23c75f06'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") no-repeat right .75rem center/18px;
-    border:1.5px solid #e5e7eb; border-radius:.75rem;
-    padding:.6rem 2.5rem .6rem 1rem;
-    font-size:.875rem; color:#1f2937; font-weight:500;
+    border:1.5px solid rgba(255,255,255,.4); border-radius:.75rem;
+    padding:.65rem 2.5rem .65rem 1rem;
+    font-size:.875rem; color:#fff; font-weight:600;
     cursor:pointer; min-width:260px; max-width:100%;
+    background-color: rgba(255,255,255,.18);
+    backdrop-filter: blur(4px);
     transition:border-color .15s;
   }
-  .rs-select:focus { outline:none; border-color:#fe8210; box-shadow:0 0 0 3px rgba(254,130,16,.15); }
+  .rs-select option { color:#1f2937; background:#fff; }
+  .rs-select:focus { outline:none; border-color:#fff; }
 
-  /* KPI cards */
-  .rs-kpi-grid {
-    display:grid; grid-template-columns:repeat(5,1fr); gap:.875rem;
-    margin-top:-2rem; position:relative; z-index:2;
+  /* KPIs */
+  .rs-kpis {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:1rem;
+    margin-top:-1.5rem; position:relative; z-index:2;
   }
   .rs-kpi {
-    background:#fff; border:1px solid #e5e7eb; border-radius:1rem;
-    padding:1rem 1.1rem; display:flex; align-items:center; gap:.875rem;
-    box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.04);
+    background:#fff; border:1px solid #e5e7eb; border-radius:1.25rem;
+    padding:1.1rem 1.25rem;
+    box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+    display:flex; flex-direction:column; gap:.3rem;
   }
   .rs-kpi-icon {
-    width:42px; height:42px; border-radius:.625rem;
-    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    width:2.25rem; height:2.25rem; border-radius:.625rem;
+    display:flex; align-items:center; justify-content:center; margin-bottom:.4rem;
   }
-  .rs-kpi-val { font-size:1.4rem; font-weight:800; color:#111827; line-height:1; }
-  .rs-kpi-lbl { font-size:.72rem; color:#6b7280; margin-top:.2rem; font-weight:500; }
-  .rs-kpi-sub { font-size:.68rem; color:#9ca3af; margin-top:.15rem; }
+  .rs-kpi-val { font-size:1.75rem; font-weight:900; color:#111827; line-height:1; }
+  .rs-kpi-lbl { font-size:.78rem; font-weight:600; color:#6b7280; }
+  .rs-kpi-sub { font-size:.72rem; color:#9ca3af; }
 
   /* Alertas */
-  .rs-alerts { display:flex; flex-direction:column; gap:.625rem; margin-top:1.5rem; }
   .rs-alert {
     display:flex; align-items:center; gap:.75rem;
-    padding:.75rem 1rem; border-radius:.875rem; font-size:.85rem; font-weight:500;
+    padding:.75rem 1rem; border-radius:.875rem; font-size:.85rem; font-weight:500; margin-top:.625rem;
   }
-  .rs-alert.danger { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; }
+  .rs-alert.danger  { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; }
   .rs-alert.warning { background:#fffbeb; border:1px solid #fde68a; color:#92400e; }
 
-  /* Seções */
-  .rs-grid {
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:1.25rem;
+  /* Layout principal */
+  .rs-main {
+    display:grid; grid-template-columns:1fr 360px; gap:1.5rem;
     margin-top:1.75rem;
   }
+
+  /* Card base */
   .rs-card {
     background:#fff; border:1px solid #e5e7eb; border-radius:1.25rem;
     box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.04);
@@ -71,105 +75,192 @@
   }
   .rs-card-head {
     display:flex; align-items:center; gap:.75rem;
-    padding:1rem 1.25rem;
-    font-weight:700; font-size:.9rem; color:#fff;
+    padding:1rem 1.25rem; font-weight:700; font-size:.9rem; color:#fff;
   }
   .rs-card-head.orange { background:linear-gradient(135deg,#c75f06,#fe8210); }
+  .rs-card-head.rose   { background:linear-gradient(135deg,#db2777,#f472b6); }
+  .rs-card-head.amber  { background:linear-gradient(135deg,#d97706,#fbbf24); }
   .rs-card-head.green  { background:linear-gradient(135deg,#059669,#34d399); }
   .rs-card-head.blue   { background:linear-gradient(135deg,#2563eb,#60a5fa); }
-  .rs-card-head.amber  { background:linear-gradient(135deg,#d97706,#fbbf24); }
-  .rs-card-head.rose   { background:linear-gradient(135deg,#db2777,#f472b6); }
-  .rs-card-head.purple { background:linear-gradient(135deg,#7c3aed,#a78bfa); }
-  .rs-card-body { padding:1.1rem 1.25rem; }
+  .rs-card-body { padding:0; }
 
-  /* Lista simples */
-  .rs-list-item {
-    display:flex; align-items:center; justify-content:space-between;
-    padding:.55rem .75rem; border-radius:.625rem;
-    font-size:.855rem; color:#374151;
-    transition:background .12s;
-  }
-  .rs-list-item:hover { background:#f9fafb; }
-  .rs-list-item + .rs-list-item { border-top:1px solid #f3f4f6; }
-  .rs-badge {
-    font-size:.75rem; font-weight:700; padding:.2rem .6rem;
-    border-radius:9999px; min-width:28px; text-align:center;
-  }
-  .rs-badge.orange { background:#fff7ed; color:#c75f06; }
-  .rs-badge.muted  { background:#f3f4f6; color:#9ca3af; }
-
-  /* Accordion */
-  .rs-accordion { display:flex; flex-direction:column; gap:.5rem; }
-  .rs-details { border:1.5px solid #e5e7eb; border-radius:.75rem; overflow:hidden; }
-  .rs-details[open] { border-color:#fe8210; }
-  .rs-summary {
-    display:flex; align-items:center; gap:.6rem;
-    padding:.75rem 1rem; cursor:pointer; list-style:none;
-    font-size:.875rem; font-weight:600; color:#374151;
-    background:#f9fafb; user-select:none;
-    transition:background .12s;
-  }
-  .rs-summary::-webkit-details-marker { display:none; }
-  .rs-summary:hover { background:#f3f4f6; }
-  .rs-details[open] > .rs-summary {
-    background:linear-gradient(135deg,#c75f06,#fe8210); color:#fff;
-  }
-  .rs-details[open] > .rs-summary .rs-acc-badge {
-    background:rgba(255,255,255,.25); color:#fff;
-  }
-  .rs-details[open] > .rs-summary .rs-acc-chevron { transform:rotate(180deg); color:#fff; }
-  .rs-acc-badge {
-    margin-left:auto; font-size:.72rem; font-weight:700;
-    padding:.15rem .5rem; border-radius:.5rem;
-    background:rgba(254,130,16,.12); color:#c75f06;
-  }
-  .rs-acc-chevron { width:16px; height:16px; flex-shrink:0; transition:transform .2s; color:#9ca3af; }
-  .rs-acc-body ul { list-style:none; padding:0; margin:0; }
-  .rs-acc-body ul li {
-    display:flex; align-items:center; gap:.6rem;
-    padding:.55rem 1rem; font-size:.855rem; color:#374151;
+  /* Área row */
+  .area-row {
     border-top:1px solid #f3f4f6;
   }
-  .rs-acc-body ul li:hover { background:#f9fafb; }
-  .rs-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-  .rs-dot.ok  { background:#10b981; }
-  .rs-dot.nok { background:#ef4444; }
-  .rs-dot.pend { background:#f59e0b; }
-  .rs-dot.def  { background:#fe8210; }
-  .rs-empty {
-    padding:.75rem 1rem; font-size:.82rem; color:#9ca3af;
-    font-style:italic; border-top:1px solid #f3f4f6;
+  .area-row:first-child { border-top:none; }
+  .area-summary {
+    display:flex; align-items:center; gap:.75rem;
+    padding:.75rem 1.25rem; cursor:pointer; list-style:none;
+    user-select:none; transition:background .12s;
+  }
+  .area-summary::-webkit-details-marker { display:none; }
+  .area-summary:hover { background:#f9fafb; }
+  .area-dot {
+    width:10px; height:10px; border-radius:50%; flex-shrink:0;
+  }
+  .area-name { flex:1; font-size:.875rem; font-weight:600; color:#374151; }
+  .area-count {
+    font-size:.75rem; font-weight:700; padding:.2rem .65rem;
+    border-radius:9999px; min-width:28px; text-align:center;
+  }
+  .area-count.has  { background:#fff7ed; color:#c75f06; }
+  .area-count.zero { background:#f3f4f6; color:#9ca3af; }
+  .area-chevron { width:14px; height:14px; color:#d1d5db; transition:transform .2s; flex-shrink:0; }
+  details[open] > .area-summary .area-chevron { transform:rotate(180deg); }
+  details[open] > .area-summary { background:#fff7ed; }
+
+  .area-vols { padding:.25rem 1.25rem .75rem 2.75rem; }
+  .area-vol-chip {
+    display:inline-flex; align-items:center; gap:.4rem;
+    background:#f9fafb; border:1px solid #e5e7eb;
+    border-radius:9999px; padding:.25rem .75rem;
+    font-size:.8rem; color:#374151; font-weight:500;
+    margin:.2rem .2rem 0 0;
+  }
+  .area-vol-chip::before {
+    content:''; width:6px; height:6px; border-radius:50%;
+    background:#fe8210; flex-shrink:0;
+  }
+  .area-empty {
+    font-size:.8rem; color:#9ca3af; font-style:italic;
+  }
+
+  /* Saúde */
+  .health-row {
+    display:flex; align-items:center; gap:.65rem;
+    padding:.65rem 1.25rem; font-size:.855rem;
+    border-top:1px solid #f3f4f6; color:#374151;
+  }
+  .health-row:first-child { border-top:none; }
+  .h-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .h-dot.ok   { background:#10b981; }
+  .h-dot.nok  { background:#ef4444; }
+  .h-dot.pend { background:#f59e0b; }
+
+  /* Seção saúde restrita */
+  .nok-section {
+    margin:0 1.25rem 1rem; padding:.875rem 1rem;
+    background:#fef2f2; border:1.5px solid #fecaca; border-radius:.875rem;
+  }
+  .nok-title {
+    font-size:.78rem; font-weight:700; color:#b91c1c;
+    text-transform:uppercase; letter-spacing:.05em; margin-bottom:.5rem;
+    display:flex; align-items:center; gap:.4rem;
+  }
+  .nok-chips { display:flex; flex-wrap:wrap; gap:.35rem; }
+  .nok-chip {
+    display:inline-flex; align-items:center; gap:.4rem;
+    background:#fff; border:1px solid #fecaca; border-radius:9999px;
+    padding:.25rem .7rem; font-size:.8rem; color:#b91c1c; font-weight:500;
+  }
+
+  /* Faixas */
+  .faixa-row { border-top:1px solid #f3f4f6; }
+  .faixa-row:first-child { border-top:none; }
+  .faixa-summary {
+    display:flex; align-items:center; gap:.75rem;
+    padding:.75rem 1.25rem; cursor:pointer; list-style:none;
+    font-size:.875rem; font-weight:600; color:#374151;
+    user-select:none; transition:background .12s;
+  }
+  .faixa-summary::-webkit-details-marker { display:none; }
+  .faixa-summary:hover { background:#fffbeb; }
+  details[open] > .faixa-summary { background:#fffbeb; color:#92400e; }
+  .faixa-name { flex:1; }
+  .faixa-badge {
+    font-size:.72rem; font-weight:700; padding:.15rem .55rem;
+    border-radius:.5rem; background:rgba(217,119,6,.12); color:#92400e;
+  }
+  details[open] > .faixa-summary .faixa-badge { background:rgba(217,119,6,.2); }
+  .faixa-chevron { width:14px; height:14px; color:#d1d5db; transition:transform .2s; }
+  details[open] > .faixa-summary .faixa-chevron { transform:rotate(180deg); color:#92400e; }
+  .faixa-vols { padding:.25rem 1.25rem .75rem 2.75rem; display:flex; flex-wrap:wrap; gap:.35rem; }
+  .faixa-chip {
+    display:inline-flex; align-items:center; gap:.35rem;
+    background:#fffbeb; border:1px solid #fde68a;
+    border-radius:9999px; padding:.25rem .7rem;
+    font-size:.8rem; color:#92400e; font-weight:500;
+  }
+  .faixa-empty { padding:.5rem 1.25rem .75rem 2.75rem; font-size:.8rem; color:#9ca3af; font-style:italic; }
+
+  /* Sidebar cards */
+  .rs-side { display:flex; flex-direction:column; gap:1.5rem; }
+
+  /* Alimentação mini */
+  .alim-row {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:.6rem 1.25rem; border-top:1px solid #f3f4f6;
+    font-size:.855rem; color:#374151;
+  }
+  .alim-row:first-child { border-top:none; }
+  .alim-badge {
+    font-size:.75rem; font-weight:700; padding:.2rem .6rem;
+    border-radius:9999px;
+  }
+  .alim-badge.has  { background:#d1fae5; color:#065f46; }
+  .alim-badge.zero { background:#f3f4f6; color:#9ca3af; }
+
+  /* Rodapé */
+  .rs-footer {
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.75rem;
+    margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid #e5e7eb;
   }
 
   /* Responsivo */
   @media (max-width:900px) {
-    .rs-kpi-grid { grid-template-columns:repeat(3,1fr); }
+    .rs-main { grid-template-columns:1fr; }
+    .rs-kpis { grid-template-columns:repeat(2,1fr); margin-top:.75rem; }
   }
-  @media (max-width:600px) {
-    .rs-hero { padding:1.5rem 0 3rem; }
-    .rs-container { padding:0 1.1rem; }
-    .rs-kpi-grid { grid-template-columns:repeat(2,1fr); margin-top:1rem; }
-    .rs-grid { grid-template-columns:1fr; }
+  @media (max-width:540px) {
+    .rs-kpis { grid-template-columns:repeat(2,1fr); }
+    .rs-hero { padding:1.5rem 0 2.5rem; }
+    .rs-container { padding:0 1rem; }
     .rs-select { min-width:auto; width:100%; }
   }
+
+  /* Cor das áreas */
+  .dot-VIOLETA      { background:#7c3aed; }
+  .dot-ANIL         { background:#1d4ed8; }
+  .dot-AZUL         { background:#0ea5e9; }
+  .dot-VERDE        { background:#059669; }
+  .dot-AMARELO      { background:#d97706; }
+  .dot-LARANJA      { background:#ea580c; }
+  .dot-VERMELHO     { background:#dc2626; }
+  .dot-FAMILIA_FELIZ{ background:#db2777; }
+  .dot-default      { background:#9ca3af; }
+
+  /* Acordeão Alimentação / Transporte */
+  .simple-details { border:1.5px solid #e5e7eb; border-radius:.875rem; overflow:hidden; }
+  .simple-details[open] { border-color:#fe8210; }
+  .simple-summary {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:.75rem 1.25rem; cursor:pointer; list-style:none;
+    font-size:.875rem; font-weight:600; color:#374151;
+    background:#fff; user-select:none; transition:background .12s;
+  }
+  .simple-summary::-webkit-details-marker { display:none; }
+  .simple-summary:hover { background:#f9fafb; }
+  .simple-details[open] > .simple-summary { background:#fff7ed; color:#c75f06; }
+  .simple-chevron { width:14px; height:14px; color:#d1d5db; transition:transform .2s; flex-shrink:0; }
+  .simple-details[open] > .simple-summary .simple-chevron { transform:rotate(180deg); color:#c75f06; }
 </style>
 
 <div class="rs-page">
 
-  <!-- Hero header -->
+  <!-- Hero -->
   <div class="rs-hero">
     <div class="rs-container">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div class="text-white">
           <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Painel do Sábado</p>
           {% if sabado %}
             <h1 class="text-2xl font-bold leading-tight">{{ sabado.data|date:"d \d\e F \d\e Y" }}</h1>
-            {% if sabado.tema %}<p class="text-white/80 text-sm mt-1">{{ sabado.tema }}</p>{% endif %}
+            {% if sabado.tema %}<p class="text-white/75 text-sm mt-1">{{ sabado.tema }}</p>{% endif %}
           {% else %}
             <h1 class="text-2xl font-bold">Resumo do Sábado</h1>
           {% endif %}
         </div>
-        <!-- Select sábado -->
         <form method="get">
           <select name="sabado" class="rs-select" onchange="this.form.submit()">
             {% for s in sabados %}
@@ -186,287 +277,342 @@
   <div class="rs-container">
 
     {% if erro %}
-      <div class="rs-alert danger mt-4">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        {{ erro }}
-      </div>
+      <div class="rs-alert danger mt-4">{{ erro }}</div>
     {% endif %}
 
     {% if not sabado %}
       <div class="bg-white border border-gray-200 rounded-2xl p-8 text-center mt-8">
-        <p class="text-gray-500">Nenhum sábado cadastrado ainda.</p>
+        <p class="text-gray-400 text-sm">Nenhum sábado cadastrado ainda.</p>
       </div>
     {% else %}
 
-      <!-- KPIs -->
-      <div class="rs-kpi-grid">
-        <div class="rs-kpi">
-          <div class="rs-kpi-icon" style="background:#fff7ed">
-            <svg width="20" height="20" fill="none" stroke="#fe8210" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          </div>
-          <div>
-            <div class="rs-kpi-val">{{ total_voluntarios }}</div>
-            <div class="rs-kpi-lbl">Vão ao projeto</div>
-          </div>
+    <!-- KPIs -->
+    <div class="rs-kpis">
+      <div class="rs-kpi">
+        <div class="rs-kpi-icon" style="background:#fff7ed">
+          <svg width="20" height="20" fill="none" stroke="#fe8210" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
-
-        <div class="rs-kpi">
-          <div class="rs-kpi-icon" style="background:#dbeafe">
-            <svg width="20" height="20" fill="none" stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          </div>
-          <div>
-            <div class="rs-kpi-val">{{ total_ajudantes }}</div>
-            <div class="rs-kpi-lbl">Podem ajudar</div>
-          </div>
-        </div>
-
-        <div class="rs-kpi">
-          <div class="rs-kpi-icon" style="background:#d1fae5">
-            <svg width="20" height="20" fill="none" stroke="#059669" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <div>
-            <div class="rs-kpi-val">{{ saude.ok.total }}</div>
-            <div class="rs-kpi-lbl">Saúde OK</div>
-          </div>
-        </div>
-
-        <div class="rs-kpi">
-          <div class="rs-kpi-icon" style="background:#fef3c7">
-            <svg width="20" height="20" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v5a2 2 0 01-2 2h-2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
-          </div>
-          <div>
-            <div class="rs-kpi-val">{{ total_carro }}</div>
-            <div class="rs-kpi-lbl">Vão de carro</div>
-            <div class="rs-kpi-sub">não: {{ total_nao_carro }}</div>
-          </div>
-        </div>
-
-        <div class="rs-kpi">
-          <div class="rs-kpi-icon" style="background:#fee2e2">
-            <svg width="20" height="20" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-          <div>
-            <div class="rs-kpi-val">{{ total_nao_responderam }}</div>
-            <div class="rs-kpi-lbl">Sem resposta</div>
-          </div>
-        </div>
+        <div class="rs-kpi-val">{{ total_voluntarios }}</div>
+        <div class="rs-kpi-lbl">Confirmados</div>
+        <div class="rs-kpi-sub">vão ao projeto</div>
       </div>
 
-      <!-- Alertas -->
-      {% if saude.nao_ok.total > 0 or saude.nao_resp.total > 0 or total_carro_nao_resp > 0 %}
-      <div class="rs-alerts">
+      <div class="rs-kpi">
+        <div class="rs-kpi-icon" style="background:#d1fae5">
+          <svg width="20" height="20" fill="none" stroke="#059669" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div class="rs-kpi-val">{{ saude.ok.total }}</div>
+        <div class="rs-kpi-lbl">Saúde OK</div>
         {% if saude.nao_ok.total > 0 %}
-          <div class="rs-alert danger">
-            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-            <strong>{{ saude.nao_ok.total }}</strong>&nbsp;voluntário(s) com saúde não OK neste sábado.
-          </div>
-        {% endif %}
-        {% if saude.nao_resp.total > 0 %}
-          <div class="rs-alert warning">
-            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <strong>{{ saude.nao_resp.total }}</strong>&nbsp;voluntário(s) não responderam sobre saúde.
-          </div>
-        {% endif %}
-        {% if total_carro_nao_resp > 0 %}
-          <div class="rs-alert warning">
-            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <strong>{{ total_carro_nao_resp }}</strong>&nbsp;voluntário(s) não responderam sobre carona.
-          </div>
+          <div class="rs-kpi-sub" style="color:#dc2626">{{ saude.nao_ok.total }} não OK</div>
         {% endif %}
       </div>
-      {% endif %}
 
-      <!-- Grid de seções -->
-      <div class="rs-grid">
+      <div class="rs-kpi">
+        <div class="rs-kpi-icon" style="background:#dbeafe">
+          <svg width="20" height="20" fill="none" stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="rs-kpi-val">{{ total_ajudantes }}</div>
+        <div class="rs-kpi-lbl">Podem ajudar</div>
+        <div class="rs-kpi-sub">marcaram faixa</div>
+      </div>
 
-        <!-- Voluntários por área -->
+      <div class="rs-kpi">
+        <div class="rs-kpi-icon" style="background:#fee2e2">
+          <svg width="20" height="20" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="rs-kpi-val">{{ total_nao_responderam }}</div>
+        <div class="rs-kpi-lbl">Sem resposta</div>
+        <div class="rs-kpi-sub">não responderam</div>
+      </div>
+    </div>
+
+    <!-- Alertas (saúde só aparece para quem tem permissão) -->
+    {% if saude.nao_ok.total > 0 and pode_ver_saude_nao_ok %}
+      <div class="rs-alert danger">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+        <strong>{{ saude.nao_ok.total }}</strong>&nbsp;voluntário(s) relataram problemas de saúde — verifique o painel de saúde.
+      </div>
+    {% endif %}
+    {% if total_nao_responderam > 0 %}
+      <div class="rs-alert warning">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <strong>{{ total_nao_responderam }}</strong>&nbsp;voluntário(s) ainda não responderam ao formulário.
+      </div>
+    {% endif %}
+
+    <!-- Conteúdo principal -->
+    <div class="rs-main">
+
+      <!-- Coluna principal: Quem vai + Faixas -->
+      <div style="display:flex;flex-direction:column;gap:1.5rem;">
+
+        <!-- Card: Quem vai por área -->
         <div class="rs-card">
           <div class="rs-card-head orange">
             <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            Voluntários por Área
+            Quem vai — por área
+            <span style="margin-left:auto;background:rgba(255,255,255,.25);border-radius:9999px;font-size:.75rem;padding:.15rem .6rem;">{{ total_voluntarios }} total</span>
           </div>
           <div class="rs-card-body">
             {% for a in por_area_lista %}
-            <div class="rs-list-item">
-              <span class="font-medium text-sm">{{ a.nome }}</span>
-              <span class="rs-badge {% if a.total > 0 %}orange{% else %}muted{% endif %}">{{ a.total }}</span>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-
-        <!-- Alimentação -->
-        <div class="rs-card">
-          <div class="rs-card-head green">
-            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
-            Alimentação
-          </div>
-          <div class="rs-card-body">
-            {% for x in alimentacao_lista %}
-            <div class="rs-list-item">
-              <span class="font-medium text-sm">{{ x.nome }}</span>
-              <span class="rs-badge {% if x.total > 0 %}orange{% else %}muted{% endif %}">{{ x.total }}</span>
-            </div>
-            {% endfor %}
-            <div class="rs-list-item">
-              <span class="text-sm text-gray-400">Não preenchido</span>
-              <span class="rs-badge muted">{{ alimentacao_nao_preenchido }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Saúde -->
-        <div class="rs-card">
-          <div class="rs-card-head blue">
-            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-            Saúde
-          </div>
-          <div class="rs-card-body">
-            <div class="rs-accordion">
-
-              <details class="rs-details" open>
-                <summary class="rs-summary">
-                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                  Saúde OK
-                  <span class="rs-acc-badge">{{ saude.ok.total }}</span>
-                  <svg class="rs-acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
-                </summary>
-                <div class="rs-acc-body">
-                  <ul>
-                    {% for v in saude.ok.voluntarios %}
-                      <li><span class="rs-dot ok"></span>{{ v.get_full_name|default:v.username }}</li>
-                    {% empty %}
-                      <li class="rs-empty">Nenhum marcado como OK.</li>
-                    {% endfor %}
-                  </ul>
-                </div>
-              </details>
-
-              {% if pode_ver_saude_nao_ok %}
-              <details class="rs-details">
-                <summary class="rs-summary">
-                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                  Saúde NÃO OK
-                  <span class="rs-acc-badge">{{ saude.nao_ok.total }}</span>
-                  <svg class="rs-acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
-                </summary>
-                <div class="rs-acc-body">
-                  <ul>
-                    {% for v in saude.nao_ok.voluntarios %}
-                      <li><span class="rs-dot nok"></span>{{ v.get_full_name|default:v.username }}</li>
-                    {% empty %}
-                      <li class="rs-empty">Ninguém marcado como não OK.</li>
-                    {% endfor %}
-                  </ul>
-                </div>
-              </details>
+            <details class="area-row">
+              <summary class="area-summary">
+                {% if a.key == "MARKETING" %}
+                  <span style="font-size:1rem;">📣</span>
+                {% elif a.key == "ADM/FIN" %}
+                  <span style="font-size:1rem;">💼</span>
+                {% elif a.key == "CR/RE" %}
+                  <span style="font-size:1rem;">🤝</span>
+                {% elif a.key == "EVENTOS" %}
+                  <span style="font-size:1rem;">🎉</span>
+                {% elif a.key == "GESTAO_DE_TALENTOS" %}
+                  <span style="font-size:1rem;">⭐</span>
+                {% elif a.key == "RECREACAO" %}
+                  <span style="font-size:1rem;">🎮</span>
+                {% elif a.key == "SUPPLY" %}
+                  <span style="font-size:1rem;">📦</span>
+                {% elif a.key == "PROJETOS" %}
+                  <span style="font-size:1rem;">🔧</span>
+                {% elif a.key == "TRIADE" %}
+                  <span style="font-size:1rem;">🔺</span>
+                {% else %}
+                  <span class="area-dot dot-{{ a.key }} {% if not a.total %}" style="background:#e5e7eb{% endif %}"></span>
+                {% endif %}
+                <span class="area-name">{{ a.nome }}</span>
+                <span class="area-count {% if a.total > 0 %}has{% else %}zero{% endif %}">{{ a.total }}</span>
+                {% if a.total > 0 %}
+                <svg class="area-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+                {% endif %}
+              </summary>
+              {% if a.total > 0 %}
+              <div class="area-vols">
+                {% for v in a.voluntarios %}
+                  <span class="area-vol-chip">{{ v.get_full_name|default:v.username }}</span>
+                {% empty %}
+                  <span class="area-empty">Nenhum.</span>
+                {% endfor %}
+              </div>
               {% endif %}
-
-              <details class="rs-details">
-                <summary class="rs-summary">
-                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  Não respondeu
-                  <span class="rs-acc-badge">{{ saude.nao_resp.total }}</span>
-                  <svg class="rs-acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
-                </summary>
-                <div class="rs-acc-body">
-                  <ul>
-                    {% for v in saude.nao_resp.voluntarios %}
-                      <li><span class="rs-dot pend"></span>{{ v.get_full_name|default:v.username }}</li>
-                    {% empty %}
-                      <li class="rs-empty">Todos responderam.</li>
-                    {% endfor %}
-                  </ul>
-                </div>
-              </details>
-
-            </div>
+            </details>
+            {% endfor %}
           </div>
         </div>
 
-        <!-- Quem pode ajudar por faixa -->
+        <!-- Card: Quem pode ajudar (faixas) -->
         <div class="rs-card">
           <div class="rs-card-head amber">
             <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Pode Ajudar (por faixa)
+            Quem pode ajudar
+            <span style="margin-left:auto;background:rgba(255,255,255,.25);border-radius:9999px;font-size:.75rem;padding:.15rem .6rem;">{{ total_ajudantes }} voluntários</span>
           </div>
           <div class="rs-card-body">
-            <div class="rs-accordion">
-              {% for c in faixa_cards %}
-              <details class="rs-details">
-                <summary class="rs-summary">
-                  {{ c.faixa.descricao }}
-                  <span class="rs-acc-badge">{{ c.total }}</span>
-                  <svg class="rs-acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
-                </summary>
-                <div class="rs-acc-body">
-                  <ul>
-                    {% for v in c.voluntarios %}
-                      <li><span class="rs-dot def"></span>{{ v.get_full_name|default:v.username }}</li>
-                    {% empty %}
-                      <li class="rs-empty">Ninguém marcou essa faixa.</li>
-                    {% endfor %}
-                  </ul>
+            {% for c in faixa_cards %}
+            <details class="faixa-row">
+              <summary class="faixa-summary">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span class="faixa-name">{{ c.faixa.descricao }}</span>
+                <span class="faixa-badge">{{ c.total }}</span>
+                <svg class="faixa-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+              </summary>
+              {% if c.total > 0 %}
+                <div class="faixa-vols">
+                  {% for v in c.voluntarios %}
+                    <span class="faixa-chip">{{ v.get_full_name|default:v.username }}</span>
+                  {% endfor %}
                 </div>
-              </details>
-              {% empty %}
-                <p class="text-sm text-gray-400 italic">Nenhuma faixa cadastrada.</p>
-              {% endfor %}
-            </div>
+              {% else %}
+                <p class="faixa-empty">Ninguém marcou essa faixa.</p>
+              {% endif %}
+            </details>
+            {% empty %}
+              <p class="text-sm text-gray-400 italic p-4">Nenhuma faixa cadastrada.</p>
+            {% endfor %}
           </div>
         </div>
 
-        <!-- Talentos dos ajudantes -->
+      </div>
+
+      <!-- Sidebar -->
+      <div class="rs-side">
+
+        <!-- Saúde -->
         <div class="rs-card">
           <div class="rs-card-head rose">
-            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
-            Talentos dos Ajudantes
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+            Saúde
           </div>
-          <div class="rs-card-body">
-            {% if talentos_cards %}
-            <div class="rs-accordion">
-              {% for t in talentos_cards %}
-              <details class="rs-details">
-                <summary class="rs-summary">
-                  {{ t.talento }}
-                  <span class="rs-acc-badge">{{ t.total }}</span>
-                  <svg class="rs-acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+          <div class="rs-card-body" style="padding-bottom:.75rem;">
+
+            <!-- Resumo visual -->
+            <div style="padding:.875rem 1.25rem .5rem; display:flex; gap:.75rem; flex-wrap:wrap;">
+              <div style="flex:1;min-width:80px;text-align:center;background:#d1fae5;border-radius:.75rem;padding:.6rem .5rem;">
+                <div style="font-size:1.4rem;font-weight:900;color:#059669;">{{ saude.ok.total }}</div>
+                <div style="font-size:.72rem;font-weight:600;color:#065f46;">Bem</div>
+              </div>
+              <div style="flex:1;min-width:80px;text-align:center;background:#fee2e2;border-radius:.75rem;padding:.6rem .5rem;">
+                <div style="font-size:1.4rem;font-weight:900;color:#dc2626;">{{ saude.nao_ok.total }}</div>
+                <div style="font-size:.72rem;font-weight:600;color:#991b1b;">Não OK</div>
+              </div>
+              <div style="flex:1;min-width:80px;text-align:center;background:#fef3c7;border-radius:.75rem;padding:.6rem .5rem;">
+                <div style="font-size:1.4rem;font-weight:900;color:#d97706;">{{ saude.nao_resp.total }}</div>
+                <div style="font-size:.72rem;font-weight:600;color:#92400e;">Sem resp.</div>
+              </div>
+            </div>
+
+            <!-- Quem está bem -->
+            {% if saude.ok.voluntarios %}
+              <details style="margin:.5rem 1.25rem 0;border:1.5px solid #d1fae5;border-radius:.75rem;overflow:hidden;">
+                <summary style="display:flex;align-items:center;gap:.6rem;padding:.6rem .875rem;cursor:pointer;background:#f0fdf4;font-size:.82rem;font-weight:600;color:#065f46;list-style:none;">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  Estão bem ({{ saude.ok.total }})
+                  <svg style="margin-left:auto;width:13px;height:13px;transition:transform .2s;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
                 </summary>
-                <div class="rs-acc-body">
-                  <ul>
-                    {% for v in t.voluntarios %}
-                      <li><span class="rs-dot def"></span>{{ v.get_full_name|default:v.username }}</li>
-                    {% endfor %}
-                  </ul>
+                <div style="padding:.5rem .875rem .75rem;display:flex;flex-wrap:wrap;gap:.3rem;">
+                  {% for v in saude.ok.voluntarios %}
+                    <span style="display:inline-flex;align-items:center;gap:.3rem;background:#fff;border:1px solid #d1fae5;border-radius:9999px;padding:.2rem .6rem;font-size:.78rem;color:#065f46;font-weight:500;">
+                      <span style="width:6px;height:6px;border-radius:50%;background:#10b981;flex-shrink:0;"></span>
+                      {{ v.get_full_name|default:v.username }}
+                    </span>
+                  {% endfor %}
                 </div>
               </details>
-              {% endfor %}
-            </div>
-            {% else %}
-              <p class="text-sm text-gray-400 italic">Ninguém marcou faixa de ajuda ou não há talentos cadastrados.</p>
             {% endif %}
+
+            <!-- Saúde NÃO OK (restrito) -->
+            {% if pode_ver_saude_nao_ok and saude.nao_ok.voluntarios %}
+              <div class="nok-section" style="margin-top:.75rem;">
+                <div class="nok-title">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                  Saúde NÃO OK — {{ saude.nao_ok.total }} voluntário(s)
+                </div>
+                <div class="nok-chips">
+                  {% for v in saude.nao_ok.voluntarios %}
+                    <span class="nok-chip">
+                      <span style="width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>
+                      {{ v.get_full_name|default:v.username }}
+                    </span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% elif pode_ver_saude_nao_ok and saude.nao_ok.total == 0 %}
+              <p style="font-size:.8rem;color:#6b7280;padding:.5rem 1.25rem .75rem;font-style:italic;">Todos estão com saúde OK.</p>
+            {% endif %}
+
           </div>
         </div>
 
-      </div><!-- /rs-grid -->
+        <!-- Alimentação (acordeão) -->
+        <details class="rs-card simple-details">
+          <summary class="simple-summary">
+            <div style="display:flex;align-items:center;gap:.6rem;">
+              <span style="font-size:1rem;">🍽️</span>
+              <span>Alimentação</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem;">
+              <span style="font-size:.75rem;font-weight:700;padding:.15rem .55rem;border-radius:9999px;background:rgba(254,130,16,.12);color:#c75f06;">{{ total_voluntarios }} confirmados</span>
+              <svg class="simple-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+            </div>
+          </summary>
+          <div style="padding:.25rem 0 .5rem;">
+            {% for x in alimentacao_lista %}
+            <div class="alim-row">
+              <span style="font-size:.875rem;font-weight:500;">{{ x.nome }}</span>
+              <span class="alim-badge {% if x.total > 0 %}has{% else %}zero{% endif %}">{{ x.total }}</span>
+            </div>
+            {% endfor %}
+            {% if alimentacao_nao_preenchido > 0 %}
+            <div class="alim-row">
+              <span style="font-size:.855rem;color:#9ca3af;">Não preenchido</span>
+              <span class="alim-badge zero">{{ alimentacao_nao_preenchido }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </details>
 
-      <!-- Rodapé -->
-      <div class="flex items-center justify-between mt-8 pt-5 border-t border-gray-200">
-        <a href="{% url 'inicio' %}"
-           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200
-                  bg-white text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-          Voltar ao início
-        </a>
-        {% if sabado.enquete_aberta %}
-        <a href="{% url 'sabado:responder_disponibilidade' sabado.pk %}"
-           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm text-white transition-all"
-           style="background:linear-gradient(135deg,#c75f06,#fe8210);box-shadow:0 4px 12px rgba(254,130,16,.3)">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          Responder formulário
-        </a>
+        <!-- Transporte (acordeão) -->
+        <details class="rs-card simple-details">
+          <summary class="simple-summary">
+            <div style="display:flex;align-items:center;gap:.6rem;">
+              <span style="font-size:1rem;">🚗</span>
+              <span>Transporte</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem;">
+              <span style="font-size:.75rem;font-weight:700;padding:.15rem .55rem;border-radius:9999px;background:#dbeafe;color:#1d4ed8;">{{ total_carro }} de carro</span>
+              <svg class="simple-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+            </div>
+          </summary>
+          <div style="padding:.25rem 0 .5rem;">
+            <div class="alim-row">
+              <span style="font-size:.875rem;font-weight:500;">Vão de carro</span>
+              <span class="alim-badge {% if total_carro > 0 %}has{% else %}zero{% endif %}">{{ total_carro }}</span>
+            </div>
+            <div class="alim-row">
+              <span style="font-size:.875rem;font-weight:500;">Não vão de carro</span>
+              <span class="alim-badge zero">{{ total_nao_carro }}</span>
+            </div>
+            {% if total_carro_nao_resp > 0 %}
+            <div class="alim-row">
+              <span style="font-size:.855rem;color:#9ca3af;">Não responderam</span>
+              <span class="alim-badge zero">{{ total_carro_nao_resp }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </details>
+
+        <!-- Talentos dos ajudantes -->
+        {% if talentos_cards %}
+        <div class="rs-card">
+          <div class="rs-card-head" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            Talentos dos Ajudantes
+            <span style="margin-left:auto;background:rgba(255,255,255,.25);border-radius:9999px;font-size:.75rem;padding:.15rem .6rem;">{{ talentos_cards|length }} talentos</span>
+          </div>
+          <div class="rs-card-body">
+            {% for t in talentos_cards %}
+            <details class="faixa-row">
+              <summary class="faixa-summary">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                <span class="faixa-name">{{ t.talento }}</span>
+                <span class="faixa-badge">{{ t.total }}</span>
+                <svg class="faixa-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+              </summary>
+              <div class="faixa-vols">
+                {% for v in t.voluntarios %}
+                  <span class="faixa-chip">{{ v.get_full_name|default:v.username }}</span>
+                {% endfor %}
+              </div>
+            </details>
+            {% endfor %}
+          </div>
+        </div>
         {% endif %}
-      </div>
+
+      </div><!-- /sidebar -->
+    </div><!-- /rs-main -->
+
+    <!-- Rodapé -->
+    <div class="rs-footer">
+      <a href="{% url 'inicio' %}"
+         style="display:inline-flex;align-items:center;gap:.5rem;padding:.65rem 1.25rem;
+                border-radius:.75rem;border:1.5px solid #e5e7eb;background:#fff;
+                color:#374151;font-weight:600;font-size:.875rem;text-decoration:none;
+                transition:background .15s;"
+         onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Voltar ao início
+      </a>
+      {% if sabado.enquete_aberta %}
+      <a href="{% url 'sabado:responder_disponibilidade' sabado.pk %}"
+         style="display:inline-flex;align-items:center;gap:.5rem;padding:.65rem 1.25rem;
+                border-radius:.75rem;color:#fff;font-weight:700;font-size:.875rem;
+                text-decoration:none;background:linear-gradient(135deg,#c75f06,#fe8210);
+                box-shadow:0 4px 12px rgba(254,130,16,.3);">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Responder formulário
+      </a>
+      {% endif %}
+    </div>
 
     {% endif %}
   </div>

@@ -90,20 +90,19 @@ def resumo_sabado(request):
     )
     
 
-    # ====== 1) Por área ======
-    por_area_qs = (
-        disp_qs.values("voluntario__area")
-        .annotate(total=Count("id"))
-        .order_by("-total")
-    )
-    por_area_map = {r["voluntario__area"]: r["total"] for r in por_area_qs}
+    # ====== 1) Por área (com lista de voluntários) ======
+    area_vols_map = defaultdict(list)
+    for d in disp_qs:
+        area_vols_map[d.voluntario.area].append(d.voluntario)
 
     por_area_lista = []
     for area_key, area_nome in LISTA_AREAS:
+        vols = sorted(area_vols_map.get(area_key, []), key=lambda v: (v.get_full_name() or v.username).lower())
         por_area_lista.append({
             "key": area_key,
             "nome": area_nome,
-            "total": por_area_map.get(area_key, 0),
+            "total": len(vols),
+            "voluntarios": vols,
         })
 
     # ====== 2) Ajuda por faixa (com nomes) ======
