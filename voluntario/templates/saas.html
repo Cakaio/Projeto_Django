@@ -470,8 +470,24 @@
           ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>`
           : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`;
       const auto  = o.automatico ? ' <span style="opacity:.6;font-size:.68rem;">(automático)</span>' : '';
-      const regra = o.regra ? `<div class="h-occ-razao" style="font-style:normal;font-weight:600;">${o.regra} <span style="font-weight:400;font-style:italic;">– ${o.regra_display.replace(/^[A-Z0-9]+ – /, '')}</span></div>` : '';
+      const regra = o.regra ? `<div class="h-occ-razao" style="font-style:normal;font-weight:600;">${o.regra} <span style="font-weight:400;font-style:italic;">– ${o.regra_display.replace(/^[A-Z0-9_]+ – /, '')}</span></div>` : '';
       const razao = o.razao ? `<div class="h-occ-razao">"${o.razao}"</div>` : '';
+
+      if (!o.ativa) {
+        // Soft-deleted: mostra riscado + log de quem removeu (não pode remover de novo)
+        const deletadoInfo = `<div class="h-occ-razao" style="color:#dc2626;font-style:normal;">
+          Removida em ${o.deleted_at} por ${o.deleted_by || '—'}
+        </div>`;
+        return `<div class="h-occ-item" id="occ-${o.id}" style="opacity:.55;background:#fef2f2;border-color:#fecaca;">
+          <div style="flex:1;text-decoration:line-through;">
+            <span class="h-occ-badge ${cls}">${icon} ${o.tipo_display}${auto}</span>
+            <div class="h-occ-meta">${o.criado_em} — por ${o.aplicado_por}</div>
+            ${regra}${razao}
+          </div>
+          ${deletadoInfo}
+        </div>`;
+      }
+
       return `<div class="h-occ-item" id="occ-${o.id}">
         <div style="flex:1;">
           <span class="h-occ-badge ${cls}">${icon} ${o.tipo_display}${auto}</span>
@@ -486,16 +502,15 @@
   }
 
   function deletarOcorrencia(id) {
-    if (!confirm('Remover esta ocorrência? Esta ação não pode ser desfeita.')) return;
+    if (!confirm('Remover esta ocorrência? Ela ficará no histórico como removida.')) return;
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     fetch(`/voluntario/saas/ocorrencia/${id}/deletar/`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } })
       .then(r => r.json())
       .then(data => {
         if (data.ok) {
-          document.getElementById(`occ-${id}`)?.remove();
-          const body = document.getElementById('histBody');
-          if (!body.querySelector('.h-occ-item')) body.innerHTML = '<p class="h-empty">Nenhuma ocorrência registrada.</p>';
           window.location.reload();
+        } else {
+          alert(data.error || 'Erro ao remover ocorrência.');
         }
       })
       .catch(() => alert('Erro ao remover ocorrência.'));

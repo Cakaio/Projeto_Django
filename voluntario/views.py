@@ -90,10 +90,16 @@ def RegistrarPresencasVoluntarios(request):
                     registrado_por=request.user
                 )
                 registros_criados += 1
+                if presenca == 'AUSENTE':
+                    threading.Thread(
+                        target=verificar_faltas_e_gerar_alertas,
+                        args=(voluntario, sabado_obj, request.user),
+                        daemon=True,
+                    ).start()
         if registros_criados > 0:
-            messages.success(request, f"✅ {registros_criados} presenças salvas com sucesso!")
+            messages.success(request, f"{registros_criados} presenças salvas com sucesso!")
         else:
-            messages.warning(request, "⚠️ Nenhuma presença selecionada.")
+            messages.warning(request, "Nenhuma presença selecionada.")
         voluntarios = Voluntario.objects.filter(is_active=True).exclude(
             presencas__data=sabado_obj
         ).order_by("first_name")
@@ -280,13 +286,14 @@ def saas_view(request):
         messages.error(request, "Você não tem permissão para acessar esta página.")
         return redirect("inicio")
 
+    ativas = Q(ocorrencias_recebidas__deleted_at__isnull=True)
     voluntarios = (
         Voluntario.objects
         .filter(is_active=True)
         .annotate(
-            total_alertas=Count('ocorrencias_recebidas', filter=Q(ocorrencias_recebidas__tipo='ALERTA')),
-            total_advertencias=Count('ocorrencias_recebidas', filter=Q(ocorrencias_recebidas__tipo='ADVERTENCIA')),
-            total_po_direto=Count('ocorrencias_recebidas', filter=Q(ocorrencias_recebidas__regra__startswith='PO')),
+            total_alertas=Count('ocorrencias_recebidas', filter=ativas & Q(ocorrencias_recebidas__tipo='ALERTA')),
+            total_advertencias=Count('ocorrencias_recebidas', filter=ativas & Q(ocorrencias_recebidas__tipo='ADVERTENCIA')),
+            total_po_direto=Count('ocorrencias_recebidas', filter=ativas & Q(ocorrencias_recebidas__regra__startswith='PO')),
         )
         .order_by('first_name', 'last_name')
     )
@@ -344,10 +351,13 @@ def criar_ocorrencia(request):
 
     advertido = get_object_or_404(Voluntario, pk=advertido_id)
 
-    # Bloquear se já em Período de Observação
+    def _ativas(qs):
+        return qs.filter(deleted_at__isnull=True)
+
+    # Bloquear se já em Período de Observação (apenas ocorrências ativas)
     ja_em_po = (
-        Ocorrencia.objects.filter(advertido=advertido, regra__startswith='PO').exists()
-        or Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA').count() >= 3
+        _ativas(Ocorrencia.objects.filter(advertido=advertido, regra__startswith='PO')).exists()
+        or _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA')).count() >= 3
     )
     if ja_em_po:
         messages.error(request, f"{advertido.get_full_name() or advertido.username} está em Período de Observação e não pode receber novas ocorrências.")
@@ -362,15 +372,19 @@ def criar_ocorrencia(request):
         automatico=False,
     )
 
-    # Recontagem pós-criação
-    total_alt = Ocorrencia.objects.filter(advertido=advertido, tipo='ALERTA').count()
-    total_adv = Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA').count()
+    # Recontagem pós-criação (só ativas)
+    total_alt = _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ALERTA')).count()
+    total_adv = _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA')).count()
     po_direto = regra.startswith('PO')
 
-    # Auto-gerar advertência se atingiu múltiplo de 3 alertas
+    # Coleta notificações a disparar em um único email
+    # tupla (tipo, regra) para carregar a descrição correta no email
+    notificacoes = [(tipo, regra)]
+
+    # Auto-gerar advertência se atingiu múltiplo de 3 alertas (ativas)
     if tipo == 'ALERTA':
         adv_auto_esperadas = total_alt // 3
-        adv_auto_existentes = Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA', automatico=True).count()
+        adv_auto_existentes = _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA', automatico=True)).count()
         if adv_auto_esperadas > adv_auto_existentes:
             Ocorrencia.objects.create(
                 advertido=advertido,
@@ -380,16 +394,19 @@ def criar_ocorrencia(request):
                 automatico=True,
             )
             total_adv += 1
-            threading.Thread(target=_enviar_email_ocorrencia, args=(advertido, 'ADVERTENCIA'), kwargs={'automatico': True}, daemon=True).start()
+            notificacoes.append('ADVERTENCIA_AUTO')
 
-    # Email em background (não bloqueia a resposta)
     periodo_observacao = po_direto or total_adv >= 3
     if periodo_observacao:
-        threading.Thread(target=_enviar_email_ocorrencia, args=(advertido, 'PERIODO_OBSERVACAO'), kwargs={'regra': regra}, daemon=True).start()
-    elif tipo == 'ADVERTENCIA':
-        threading.Thread(target=_enviar_email_ocorrencia, args=(advertido, 'ADVERTENCIA'), kwargs={'regra': regra}, daemon=True).start()
-    elif tipo == 'ALERTA':
-        threading.Thread(target=_enviar_email_ocorrencia, args=(advertido, 'ALERTA'), kwargs={'regra': regra}, daemon=True).start()
+        notificacoes.append('PERIODO_OBSERVACAO')
+
+    # Dispara um único email com todas as notificações do evento
+    threading.Thread(
+        target=_enviar_email_ocorrencia,
+        args=(advertido, notificacoes),
+        kwargs={'regra': regra},
+        daemon=True,
+    ).start()
 
     messages.success(request, f"{dict(Ocorrencia.TIPOS).get(tipo)} registrada para {advertido.get_full_name() or advertido.username}.")
     return redirect("voluntario:saas")
@@ -400,6 +417,7 @@ def historico_ocorrencias(request, pk):
     if not _pode_ver_saas(request.user):
         return JsonResponse({'error': 'Sem permissão'}, status=403)
     voluntario = get_object_or_404(Voluntario, pk=pk)
+    # Retorna TODAS (ativas + soft-deleted) — o histórico é imutável
     ocorrencias = Ocorrencia.objects.filter(advertido=voluntario).order_by('-criado_em')
     data = [{
         'id': str(o.id),
@@ -411,6 +429,9 @@ def historico_ocorrencias(request, pk):
         'automatico': o.automatico,
         'aplicado_por': (o.aplicado_por.get_full_name() or o.aplicado_por.username) if o.aplicado_por else '—',
         'criado_em': o.criado_em.strftime('%d/%m/%Y %H:%M'),
+        'ativa': o.deleted_at is None,
+        'deleted_at': o.deleted_at.strftime('%d/%m/%Y %H:%M') if o.deleted_at else None,
+        'deleted_by': (o.deleted_by.get_full_name() or o.deleted_by.username) if o.deleted_by else None,
     } for o in ocorrencias]
     return JsonResponse({
         'ocorrencias': data,
@@ -425,11 +446,14 @@ def deletar_ocorrencia(request, ocorrencia_id):
     if request.method != 'POST':
         return JsonResponse({'error': 'Método inválido'}, status=405)
     ocorrencia = get_object_or_404(Ocorrencia, pk=ocorrencia_id)
+    if ocorrencia.deleted_at is not None:
+        return JsonResponse({'error': 'Ocorrência já removida.'}, status=400)
     advertido = ocorrencia.advertido
-    ocorrencia.delete()
-    total_alt = Ocorrencia.objects.filter(advertido=advertido, tipo='ALERTA').count()
-    total_adv = Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA').count()
-    po_direto = Ocorrencia.objects.filter(advertido=advertido, regra__startswith='PO').exists()
+    ocorrencia.soft_delete(deleted_by=request.user)
+    # Recontagem apenas das ativas
+    total_alt = Ocorrencia.objects.filter(advertido=advertido, tipo='ALERTA', deleted_at__isnull=True).count()
+    total_adv = Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA', deleted_at__isnull=True).count()
+    po_direto = Ocorrencia.objects.filter(advertido=advertido, regra__startswith='PO', deleted_at__isnull=True).exists()
     periodo_observacao = po_direto or total_adv >= 3
     return JsonResponse({
         'ok': True,
@@ -439,14 +463,19 @@ def deletar_ocorrencia(request, ocorrencia_id):
     })
 
 
-def _enviar_email_ocorrencia(advertido, tipo, automatico=False, regra=None):
+def _enviar_email_ocorrencia(advertido, notificacoes, regra=None):
+    """
+    notificacoes: lista com um ou mais de ['ALERTA', 'ADVERTENCIA', 'ADVERTENCIA_AUTO',
+                  'PERIODO_OBSERVACAO', 'FALTA_AUTO']. Tudo vai num único email.
+    """
     import logging
     from decouple import config as env_config
     from django.core.mail import get_connection
     logger = logging.getLogger(__name__)
+
     email_dest = advertido.email or getattr(advertido, 'email_alternativo', None)
     if not email_dest:
-        logger.warning(f'[SAAs] Voluntario {advertido.username} sem email — notificacao nao enviada.')
+        logger.warning(f'[SAAs] {advertido.username} sem email — nao enviado.')
         return
 
     gt_user     = env_config('EMAIL_GT',       default=None)
@@ -472,63 +501,61 @@ def _enviar_email_ocorrencia(advertido, tipo, automatico=False, regra=None):
                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
     hoje = date.today()
     mes_atual = f"{MESES_PT[hoje.month - 1]} de {hoje.year}"
+    nome = advertido.first_name or advertido.username
 
-    assunto = f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz'
-
-    tipo_labels = {
-        'ALERTA': 'Alerta',
-        'ADVERTENCIA': 'Advertência' + (' (automática por acúmulo de 3 alertas)' if automatico else ''),
-        'SUSPENSAO': 'Suspensão',
+    # Monta linhas de ocorrência para o email
+    LABELS = {
+        'ALERTA':             'Alerta',
+        'ADVERTENCIA':        'Advertência',
+        'ADVERTENCIA_AUTO':   'Advertência automática (acúmulo de 3 alertas)',
         'PERIODO_OBSERVACAO': 'Período de Observação',
     }
 
-    if regra:
-        descricao_regra = Ocorrencia.REGRAS_DICT.get(regra, regra)
-        infracao_html = f"<li><b>{regra}:</b> {descricao_regra}</li>"
-        infracao_txt  = f"  • {regra}: {descricao_regra}"
-    else:
-        infracao_html = f"<li>{tipo_labels.get(tipo, tipo)}</li>"
-        infracao_txt  = f"  • {tipo_labels.get(tipo, tipo)}"
+    itens_html = []
+    itens_txt  = []
 
-    nome = advertido.first_name or advertido.username
+    for n in notificacoes:
+        # aceita string ('ALERTA') ou tupla ('ALERTA', 'AL2')
+        if isinstance(n, tuple):
+            tipo_n, regra_n = n
+        else:
+            tipo_n, regra_n = n, (regra if n == 'ALERTA' else None)
+
+        label = LABELS.get(tipo_n, tipo_n)
+        if regra_n:
+            descricao = Ocorrencia.REGRAS_DICT.get(regra_n, regra_n)
+            itens_html.append(f"<li><b>{label}:</b> {regra_n} – {descricao}</li>")
+            itens_txt.append(f"  • {label}: {regra_n} – {descricao}")
+        else:
+            itens_html.append(f"<li><b>{label}</b></li>")
+            itens_txt.append(f"  • {label}")
+
+    lista_html = "\n    ".join(itens_html)
+    lista_txt  = "\n".join(itens_txt)
+    plural     = "ocorrências" if len(notificacoes) > 1 else "ocorrência"
+
+    assunto = f'Notificação do SAAs — {mes_atual} — Projeto Criança Feliz'
 
     html = f"""
 <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222;font-size:15px;line-height:1.7;">
   <p><b>Olá, {nome}!</b></p>
   <p>Esperamos que esteja bem.</p>
-  <p>
-    Gostaríamos de informar que, após acompanhamento das atividades do projeto,
-    foi registrada a seguinte ocorrência relacionada à sua participação:
-  </p>
-  <p><b>Infração registrada:</b></p>
-  <ul style="text-align:justify;padding-left:1.4em;">
-    {infracao_html}
+  <p>Após acompanhamento das atividades do projeto, {("foram registradas as seguintes " + plural) if len(notificacoes) > 1 else ("foi registrada a seguinte " + plural)} relacionada(s) à sua participação:</p>
+  <ul style="padding-left:1.4em;">
+    {lista_html}
   </ul>
-  <p>
-    Lembramos que este e-mail não tem caráter punitivo, mas sim o propósito de promover
-    o desenvolvimento individual e o alinhamento com os valores do projeto.
-    Cada ocorrência representa uma chance de crescer e fortalecer o compromisso com o grupo.
-  </p>
-  <p>
-    Sabemos do seu potencial e da sua importância para o projeto, e confiamos na sua
-    capacidade de transformar esse feedback em crescimento. Estamos aqui para apoiar nesse processo.
-  </p>
+  <p>Lembramos que este e-mail não tem caráter punitivo, mas sim o propósito de promover o desenvolvimento individual e o alinhamento com os valores do projeto.</p>
+  <p>Sabemos do seu potencial e da sua importância para o projeto. Estamos aqui para apoiar nesse processo.</p>
   <p>Qualquer dúvida ou necessidade de conversa, estamos à disposição.</p>
   <p>Atenciosamente,<br><b>Gestão de Talentos</b><br>Projeto Criança Feliz</p>
 </div>
 """
 
     txt = (
-        f"Boa tarde, {nome}!\n\n"
-        "Esperamos que esteja bem.\n\n"
-        "Gostaríamos de informar que, após acompanhamento das atividades do projeto,\n"
-        "foi registrada a seguinte ocorrência relacionada à sua participação:\n\n"
-        f"Infração registrada:\n{infracao_txt}\n\n"
-        "Lembramos que este e-mail não tem caráter punitivo, mas sim o propósito de promover "
-        "o desenvolvimento individual e o alinhamento com os valores do projeto.\n\n"
-        "Sabemos do seu potencial e da sua importância para o projeto, e confiamos na sua "
-        "capacidade de transformar esse feedback em crescimento. Estamos aqui para apoiar nesse processo.\n\n"
-        "Qualquer dúvida ou necessidade de conversa, estamos à disposição.\n\n"
+        f"Olá, {nome}!\n\n"
+        f"Foram registradas as seguintes {plural}:\n\n"
+        f"{lista_txt}\n\n"
+        "Lembramos que este e-mail não tem caráter punitivo.\n\n"
         "Atenciosamente,\nGestão de Talentos\nProjeto Criança Feliz"
     )
 
@@ -536,6 +563,58 @@ def _enviar_email_ocorrencia(advertido, tipo, automatico=False, regra=None):
         msg = EmailMultiAlternatives(assunto, txt, from_email, [email_dest], connection=connection)
         msg.attach_alternative(html, 'text/html')
         msg.send(fail_silently=False)
-        logger.info(f'[SAAs] Email enviado para {email_dest} — tipo={tipo}')
+        logger.info(f'[SAAs] Email enviado para {email_dest} — {notificacoes}')
     except Exception as e:
-        logger.error(f'[SAAs] Falha ao enviar email para {email_dest}: {e}')
+        logger.error(f'[SAAs] Falha ao enviar para {email_dest}: {e}')
+
+
+def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
+    """
+    Chamada toda vez que uma presença AUSENTE é registrada para um voluntário.
+    A cada múltiplo de 3 faltas (não-justificadas) gera um ALERTA automático.
+    """
+    from voluntario.models import PresencaVoluntario
+    total_faltas = PresencaVoluntario.objects.filter(
+        voluntario=voluntario, presenca='AUSENTE'
+    ).count()
+
+    alertas_falta_esperados = total_faltas // 3
+    alertas_falta_existentes = Ocorrencia.objects.filter(
+        advertido=voluntario,
+        tipo='ALERTA',
+        regra='AL2',
+        deleted_at__isnull=True,
+    ).count()
+
+    if alertas_falta_esperados > alertas_falta_existentes:
+        Ocorrencia.objects.create(
+            advertido=voluntario,
+            tipo='ALERTA',
+            regra='AL2',
+            razao=f'Alerta automático: {total_faltas} faltas acumuladas (a cada 3 faltas).',
+            aplicado_por=registrado_por,
+            automatico=True,
+        )
+        # Verifica se o novo alerta gera advertência automática
+        total_alt = Ocorrencia.objects.filter(
+            advertido=voluntario, tipo='ALERTA', deleted_at__isnull=True
+        ).count()
+        adv_auto_esperadas = total_alt // 3
+        adv_auto_existentes = Ocorrencia.objects.filter(
+            advertido=voluntario, tipo='ADVERTENCIA', automatico=True, deleted_at__isnull=True
+        ).count()
+        notificacoes = [('ALERTA', 'AL2')]
+        if adv_auto_esperadas > adv_auto_existentes:
+            Ocorrencia.objects.create(
+                advertido=voluntario,
+                tipo='ADVERTENCIA',
+                razao='Advertência automática por acúmulo de 3 alertas.',
+                aplicado_por=registrado_por,
+                automatico=True,
+            )
+            notificacoes.append('ADVERTENCIA_AUTO')
+        threading.Thread(
+            target=_enviar_email_ocorrencia,
+            args=(voluntario, notificacoes),
+            daemon=True,
+        ).start()

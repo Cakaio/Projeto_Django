@@ -4,529 +4,131 @@
 {% block titulo %}Semanários por Sala{% endblock %}
 
 {% block content %}
-<style>
-  :root {
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --secondary: #8b5cf6;
-    --accent: #a78bfa;
-    --bg-light: #f5f3ff;
-    --bg-dark: #1e1b4b;
-    --text-dark: #1e1b4b;
-    --text-muted: #6b7280;
-    --white: #ffffff;
-    --success: #10b981;
-    --warning: #f59e0b;
-  }
+<div class="min-h-screen bg-gray-50 pb-10">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-6">
 
-  .page-wrapper {
-    min-height: 100vh;
-    background: linear-gradient(135deg, var(--bg-light) 0%, #ede9fe 50%, #ddd6fe 100%);
-    padding: 2rem 1rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .page-wrapper::before {
-    content: '';
-    position: absolute;
-    top: -100px;
-    right: -100px;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-  }
-
-  .page-wrapper::after {
-    content: '';
-    position: absolute;
-    bottom: -150px;
-    left: -150px;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-  }
-
-  .content-container {
-    max-width: 900px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Hero Section */
-  .hero-card {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    border-radius: 20px;
-    padding: 2.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .hero-card::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 300px;
-    height: 300px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-  }
-
-  .hero-card::after {
-    content: '';
-    position: absolute;
-    bottom: -30%;
-    left: -10%;
-    width: 200px;
-    height: 200px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 50%;
-  }
-
-  .hero-content {
-    position: relative;
-    z-index: 1;
-    text-align: center;
-    color: var(--white);
-  }
-
-  .hero-icon {
-    width: 70px;
-    height: 70px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.5rem;
-    backdrop-filter: blur(10px);
-  }
-
-  .hero-icon svg {
-    width: 35px;
-    height: 35px;
-    stroke: var(--white);
-  }
-
-  .hero-title {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  }
-
-  .hero-subtitle {
-    font-size: 1.1rem;
-    opacity: 0.9;
-  }
-
-  /* Sala Cards */
-  .sala-card {
-    background: var(--white);
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    margin-bottom: 1rem;
-    transition: all 0.3s ease;
-  }
-
-  .sala-card:hover {
-    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
-    transform: translateY(-2px);
-  }
-
-  .sala-header {
-    background: var(--white);
-    border: none;
-    padding: 1.25rem 1.5rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: left;
-  }
-
-  .sala-header:not(.collapsed) {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    color: var(--white);
-  }
-
-  .sala-header.collapsed {
-    color: var(--text-dark);
-  }
-
-  .sala-header:hover.collapsed {
-    background: var(--bg-light);
-  }
-
-  .sala-icon {
-    width: 42px;
-    height: 42px;
-    background: var(--bg-light);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-  }
-
-  .sala-header:not(.collapsed) .sala-icon {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .sala-icon svg {
-    width: 22px;
-    height: 22px;
-    stroke: var(--primary);
-    transition: all 0.3s ease;
-  }
-
-  .sala-header:not(.collapsed) .sala-icon svg {
-    stroke: var(--white);
-  }
-
-  .sala-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-  }
-
-  .sala-arrow {
-    transition: transform 0.3s ease;
-  }
-
-  .sala-header:not(.collapsed) .sala-arrow {
-    transform: rotate(180deg);
-  }
-
-  .sala-body {
-    padding: 1.5rem;
-    background: #fafafa;
-    border-top: 1px solid #f0f0f0;
-  }
-
-  /* Semanario Items */
-  .semanario-item {
-    background: var(--white);
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid #f0f0f0;
-    transition: all 0.2s ease;
-  }
-
-  .semanario-item:last-child {
-    margin-bottom: 0;
-  }
-
-  .semanario-item:hover {
-    border-color: var(--accent);
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.1);
-  }
-
-  .semanario-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .semanario-tema {
-    font-weight: 600;
-    color: var(--text-dark);
-    margin-bottom: 0.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .semanario-tema::before {
-    content: '';
-    width: 8px;
-    height: 8px;
-    background: var(--success);
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .semanario-date {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding-left: 1rem;
-  }
-
-  .semanario-date svg {
-    width: 14px;
-    height: 14px;
-    stroke: var(--text-muted);
-  }
-
-  .semanario-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-shrink: 0;
-  }
-
-  .btn-action {
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    transition: all 0.2s ease;
-    border: none;
-    cursor: pointer;
-  }
-
-  .btn-edit {
-    background: var(--bg-light);
-    color: var(--primary);
-  }
-
-  .btn-edit:hover {
-    background: var(--primary);
-    color: var(--white);
-  }
-
-  .btn-view {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    color: var(--white);
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
-  }
-
-  .btn-view:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-    color: var(--white);
-  }
-
-  .btn-action svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  /* Empty State */
-  .empty-state {
-    text-align: center;
-    padding: 2rem;
-    color: var(--text-muted);
-  }
-
-  .empty-icon {
-    width: 60px;
-    height: 60px;
-    background: var(--bg-light);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1rem;
-  }
-
-  .empty-icon svg {
-    width: 28px;
-    height: 28px;
-    stroke: var(--accent);
-  }
-  .actions-container {
-    display: flex;
-    justify-content: flex-start;
-    gap: 12px;
-    margin-top: 32px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border-color);
-    }
-    .btn-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 28px;
-    background: #fff;
-    color: var(--text-muted);
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    }
-
-    .btn-back:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.14);
-    border-color: var(--primary);
-    color: var(--primary);
-    background: rgba(255, 255, 255, 0.808);
-    }
-
-
-
-  /* Responsive */
-  @media (max-width: 640px) {
-    .hero-card {
-      padding: 1.5rem;
-    }
-
-    .hero-title {
-      font-size: 1.5rem;
-    }
-
-    .semanario-item {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .semanario-actions {
-      width: 100%;
-      margin-top: 0.75rem;
-    }
-
-    .btn-action {
-      flex: 1;
-      justify-content: center;
-    }
-  }
-
-
-</style>
-
-<div class="page-wrapper">
-  <div class="content-container">
-
-    <!-- Hero Section -->
-    <div class="hero-card">
-      <div class="hero-content">
-        <div class="hero-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+    <!-- Hero -->
+    <div class="rounded-2xl p-6 sm:p-8 mb-6 text-white relative overflow-hidden"
+         style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+      <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10"></div>
+      <div class="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/10"></div>
+      <div class="relative z-10 text-center">
+        <div class="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4">
+          <svg width="30" height="30" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
           </svg>
         </div>
-        <h1 class="hero-title">Semanários</h1>
-        <p class="hero-subtitle">Visualize os semanários organizados por sala</p>
+        <h1 class="text-2xl sm:text-3xl font-bold mb-1">Semanários</h1>
+        <p class="text-white/80 text-sm">Visualize os semanários organizados por sala</p>
       </div>
     </div>
 
-    <!-- Accordion por Sala -->
-    <div class="custom-accordion" id="accordionSalas">
-
+    <!-- Acordeons por sala -->
+    <div class="flex flex-col gap-3">
       {% for codigo, nome in salas %}
-        <div class="sala-card">
+      <details class="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm group">
 
-          <!-- Cabeçalho da Sala -->
-          <button class="sala-header collapsed w-100 d-flex align-items-center justify-content-between"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#collapse{{ forloop.counter }}"
-                  aria-expanded="false">
-
-            <div class="d-flex align-items-center gap-3">
-              <div class="sala-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                </svg>
-              </div>
-              <span class="sala-name">{{ nome }}</span>
-            </div>
-
-            <svg class="sala-arrow" width="20" height="20" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
+        <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none list-none
+                        group-open:bg-gradient-to-r group-open:from-indigo-500 group-open:to-violet-500
+                        group-open:text-white transition-colors">
+          <!-- ícone sala -->
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+                      bg-indigo-50 group-open:bg-white/20 transition-colors">
+            <svg width="20" height="20" fill="none" stroke-width="2" viewBox="0 0 24 24"
+                 class="stroke-indigo-500 group-open:stroke-white transition-colors">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
-          </button>
-
-          <!-- Corpo -->
-          <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
-               data-bs-parent="#accordionSalas">
-
-            <div class="sala-body">
-
-              {% if codigo in salas_com_semanarios %}
-                {% for semanario in semanarios %}
-                  {% if semanario.sala == codigo %}
-                  <div class="semanario-item">
-
-                    <div class="semanario-info">
-                      <div class="semanario-tema">
-                        {{ semanario.tema|default:"Sem tema" }}
-                      </div>
-                      <div class="semanario-date">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                          <line x1="16" y1="2" x2="16" y2="6"></line>
-                          <line x1="8" y1="2" x2="8" y2="6"></line>
-                          <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        {{ semanario.data.data|date:"d/m/Y" }}
-                      </div>
-                    </div>
-
-                    <div class="semanario-actions">
-                      <a href="{% url 'semanario:editar_semanario' semanario.id %}"
-                         class="btn-action btn-edit">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                        Editar
-                      </a>
-
-                      <a href="{% url 'semanario:visualizar_semanario' semanario.id %}"
-                         class="btn-action btn-view">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                        Visualizar
-                      </a>
-                    </div>
-
-                  </div>
-                  {% endif %}
-                {% endfor %}
-              {% else %}
-                <div class="empty-state">
-                  <div class="empty-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
-                  </div>
-                  <p>Nenhum semanário cadastrado para esta sala.</p>
-                </div>
-              {% endif %}
-
-            </div>
           </div>
 
-        </div>
-      {% endfor %}
+          <span class="flex-1 font-semibold text-gray-900 group-open:text-white text-sm sm:text-base transition-colors">
+            {{ nome }}
+          </span>
 
+          <svg class="w-5 h-5 text-gray-400 group-open:text-white transition-transform group-open:rotate-180"
+               fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </summary>
+
+        <div class="border-t border-gray-100 p-4 bg-gray-50">
+          {% if codigo in salas_com_semanarios %}
+            <div class="flex flex-col gap-2">
+              {% for semanario in semanarios %}
+              {% if semanario.sala == codigo %}
+              <div class="bg-white border border-gray-100 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm hover:border-indigo-200 transition-colors">
+
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 font-semibold text-gray-900 text-sm">
+                    <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                    {{ semanario.tema|default:"Sem tema" }}
+                  </div>
+                  <div class="flex items-center gap-1.5 text-xs text-gray-500 mt-1 pl-4">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    {{ semanario.data.data|date:"d/m/Y" }}
+                  </div>
+                </div>
+
+                <div class="flex gap-2 flex-shrink-0">
+                  <a href="{% url 'semanario:editar_semanario' semanario.id %}"
+                     class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold
+                            bg-indigo-50 text-indigo-600 hover:bg-indigo-500 hover:text-white transition-colors"
+                     style="text-decoration:none;">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Editar
+                  </a>
+                  <a href="{% url 'semanario:visualizar_semanario' semanario.id %}"
+                     class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold
+                            text-white transition-colors"
+                     style="background:linear-gradient(135deg,#6366f1,#8b5cf6);text-decoration:none;">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Visualizar
+                  </a>
+                </div>
+
+              </div>
+              {% endif %}
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-8 text-gray-400">
+              <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+              </div>
+              <p class="text-sm">Nenhum semanário cadastrado para esta sala.</p>
+            </div>
+          {% endif %}
+        </div>
+
+      </details>
+      {% endfor %}
     </div>
+
+    <!-- Voltar -->
+    <div class="mt-6">
+      <a href="/inicio/"
+         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
+         style="text-decoration:none;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Voltar
+      </a>
+    </div>
+
   </div>
-</div>
-<div class="actions-container">
-  <a class="btn-back" href="/inicio/">
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-    </svg>
-    Voltar
-  </a>
 </div>
 {% endblock %}

@@ -173,12 +173,28 @@ class Ocorrencia(models.Model):
     )
     automatico = models.BooleanField(
         default=False,
-        help_text='True se a suspensão foi gerada automaticamente por 3 advertências'
+        help_text='True se gerada automaticamente por acúmulo'
     )
     criado_em = models.DateTimeField(default=timezone.now)
+
+    # Soft delete — nunca remove do banco
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        'Voluntario', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='ocorrencias_deletadas'
+    )
 
     class Meta:
         ordering = ['-criado_em']
 
     def __str__(self):
         return f"{self.get_tipo_display()} — {self.advertido}"
+
+    @property
+    def ativa(self):
+        return self.deleted_at is None
+
+    def soft_delete(self, deleted_by):
+        self.deleted_at = timezone.now()
+        self.deleted_by = deleted_by
+        self.save(update_fields=['deleted_at', 'deleted_by'])
