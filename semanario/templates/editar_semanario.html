@@ -1,1087 +1,451 @@
 {% extends "base.html" %}
 {% load static %}
-
-{% block titulo %}Semanário{% endblock %}
+{% block titulo %}Editar Semanário{% endblock %}
 
 {% block content %}
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Novo Semanário</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --primary: #6366f1;
-      --primary-dark: #4f46e5;
-      --secondary: #8b5cf6;
-      --bg-light: #f8fafc;
-      --bg-card: #ffffff;
-      --text-dark: #1e293b;
-      --text-muted: #64748b;
-      --border-color: #e2e8f0;
-      --success: #10b981;
-      --success-dark: #059669;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-    }
-
-    * {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    body {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-      min-height: 100vh;
-      position: relative;
-    }
-
-    body::before,
-    body::after {
-      content: '';
-      position: fixed;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      z-index: 0;
-    }
-
-    body::before {
-      width: 400px;
-      height: 400px;
-      top: -100px;
-      right: -100px;
-    }
-
-    body::after {
-      width: 300px;
-      height: 300px;
-      bottom: -50px;
-      left: -50px;
-    }
-
-    .main-container {
-      position: relative;
-      z-index: 1;
-      padding: 2rem 0;
-    }
-
-    .page-header {
-      background: var(--bg-card);
-      border-radius: 20px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .page-header::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 5px;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-    }
-
-    .page-header-icon {
-      width: 70px;
-      height: 70px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1rem;
-      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
-    }
-
-    .page-header-icon svg {
-      width: 36px;
-      height: 36px;
-      color: white;
-    }
-
-    .page-header h2 {
-      color: var(--text-dark);
-      font-weight: 700;
-      font-size: 1.75rem;
-      margin: 0;
-    }
-
-    .section-card {
-      background: var(--bg-card);
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      margin-bottom: 1.5rem;
-      overflow: hidden;
-      border: none;
-    }
-
-    .section-header {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      padding: 1rem 1.5rem;
-      font-weight: 600;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .section-header svg {
-      width: 22px;
-      height: 22px;
-    }
-
-    .section-body {
-      padding: 1.5rem;
-    }
-
-    .form-label {
-      font-weight: 600;
-      color: var(--text-dark);
-      margin-bottom: 0.5rem;
-      font-size: 0.875rem;
-    }
-
-    .form-control,
-    .form-select {
-      border: 2px solid var(--border-color);
-      border-radius: 10px;
-      padding: 0.75rem 1rem;
-      font-size: 0.95rem;
-      transition: all 0.3s ease;
-      background-color: var(--bg-light);
-    }
-
-    .form-control:focus,
-    .form-select:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
-      background-color: white;
-    }
-
-    textarea.form-control {
-      min-height: 100px;
-      resize: vertical;
-    }
-
-    /* Accordion Styles */
-    .accordion {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .accordion-item {
-      background: var(--bg-card);
-      border: none;
-      border-radius: 16px !important;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
-      overflow: hidden;
-    }
-
-    .accordion-button {
-      background: var(--bg-light);
-      border: none;
-      padding: 1.25rem 1.5rem;
-      font-weight: 600;
-      color: var(--text-dark);
-      font-size: 1rem;
-      gap: 0.75rem;
-      transition: all 0.3s ease;
-    }
-
-    .accordion-button:not(.collapsed) {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      box-shadow: none;
-    }
-
-    .accordion-button::after {
-      background-size: 1.25rem;
-      transition: transform 0.3s ease;
-    }
-
-    .accordion-button:not(.collapsed)::after {
-      filter: brightness(0) invert(1);
-    }
-
-    .accordion-button:focus {
-      box-shadow: none;
-      border-color: transparent;
-    }
-
-    .accordion-body {
-      padding: 1.5rem;
-      background: white;
-    }
-
-    .atividade-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 0.875rem;
-    }
-
-    .accordion-button:not(.collapsed) .atividade-badge {
-      background: rgba(255, 255, 255, 0.2);
-    }
-
-    /* Buttons */
-    .btn-material {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      border: none;
-      padding: 0.625rem 1.25rem;
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 0.875rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.3s ease;
-    }
-
-    .btn-material:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
-      color: white;
-    }
-
-    .btn-submit {
-      background: linear-gradient(135deg, var(--success), var(--success-dark));
-      color: white;
-      border: none;
-      padding: 1rem 2rem;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 1rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.75rem;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-    }
-
-    .btn-submit:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-      color: white;
-    }
-
-    .btn-submit svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    /* Modal Styles */
-    .modal-content {
-      border: none;
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
-    }
-
-    .modal-header {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      border: none;
-      padding: 1.25rem 1.5rem;
-    }
-
-    .modal-title {
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .modal-title svg {
-      width: 24px;
-      height: 24px;
-    }
-
-    .btn-close {
-      filter: brightness(0) invert(1);
-      opacity: 0.8;
-    }
-
-    .btn-close:hover {
-      opacity: 1;
-    }
-
-    .modal-body {
-      padding: 1.5rem;
-    }
-
-    .modal-footer {
-      border-top: 1px solid var(--border-color);
-      padding: 1rem 1.5rem;
-      background: var(--bg-light);
-    }
-
-    /* Table Styles */
-    .materials-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-    }
-
-    .materials-table thead th {
-      background: var(--bg-light);
-      padding: 0.875rem 1rem;
-      font-weight: 600;
-      color: var(--text-dark);
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border-bottom: 2px solid var(--border-color);
-    }
-
-    .materials-table tbody td {
-      padding: 0.75rem;
-      vertical-align: middle;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .materials-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    .materials-table .form-control,
-    .materials-table .form-select {
-      padding: 0.5rem 0.75rem;
-      font-size: 0.875rem;
-    }
-
-    .btn-remove {
-      background: rgba(239, 68, 68, 0.1);
-      color: var(--danger);
-      border: none;
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-    }
-
-    .btn-remove:hover {
-      background: var(--danger);
-      color: white;
-    }
-
-    .btn-remove svg {
-      width: 18px;
-      height: 18px;
-    }
-
-    .btn-add-material {
-      background: rgba(99, 102, 241, 0.1);
-      color: var(--primary);
-      border: 2px dashed var(--primary);
-      padding: 0.625rem 1.25rem;
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 0.875rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.3s ease;
-    }
-
-    .btn-add-material:hover {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
-    }
-
-    .btn-secondary-custom {
-      background: var(--bg-light);
-      color: var(--text-muted);
-      border: 2px solid var(--border-color);
-      padding: 0.75rem 1.5rem;
-      border-radius: 10px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-
-    .btn-secondary-custom:hover {
-      background: var(--border-color);
-      color: var(--text-dark);
-    }
-
-    .btn-save-modal {
-      background: linear-gradient(135deg, var(--success), var(--success-dark));
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 10px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.3s ease;
-    }
-
-    .btn-save-modal:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-      color: white;
-    }
-
-    /* Form Group Styling */
-    .form-group-icon {
-      position: relative;
-    }
-
-    .form-group-icon .icon-left {
-      position: absolute;
-      left: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-      width: 18px;
-      height: 18px;
-    }
-
-    .form-group-icon .form-control,
-    .form-group-icon .form-select {
-      padding-left: 2.75rem;
-    }
-
-    /* Feedback field special styling */
-    .feedback-field {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(16, 185, 129, 0.1));
-      border-radius: 12px;
-      padding: 1rem;
-      border: 2px solid rgba(16, 185, 129, 0.2);
-    }
-
-    .feedback-field .form-label {
-      color: var(--success-dark);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .feedback-field .form-label svg {
-      width: 18px;
-      height: 18px;
-    }
-
-    .feedback-field textarea {
-      border-color: rgba(16, 185, 129, 0.3);
-      background: white;
-    }
-
-    .feedback-field textarea:focus {
-      border-color: var(--success);
-      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
-    }
-
-    /* Toast */
-    .toast-container {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      z-index: 9999;
-    }
-
-    .toast-success {
-      background: linear-gradient(135deg, var(--success), var(--success-dark));
-      color: white;
-      border: none;
-      border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(16, 185, 129, 0.4);
-    }
-
-    /* Custom Checkbox - Round Purple */
-    .custom-checkbox-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1rem;
-      background: var(--bg-light);
-      border: 2px solid var(--border-color);
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      height: 38%;
-      min-height: 40px;
-    }
-
-    .custom-checkbox-wrapper:hover {
-      border-color: var(--primary);
-      background: rgba(99, 102, 241, 0.05);
-    }
-
-    .custom-checkbox-wrapper input[type="checkbox"] {
-      display: none;
-    }
-
-    .custom-checkbox-circle {
-      width: 24px;
-      height: 24px;
-      border: 2px solid var(--border-color);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-      flex-shrink: 0;
-    }
-
-    .custom-checkbox-circle svg {
-      width: 14px;
-      height: 14px;
-      color: white;
-      opacity: 0;
-      transform: scale(0);
-      transition: all 0.2s ease;
-    }
-
-    .custom-checkbox-wrapper input[type="checkbox"]:checked + .custom-checkbox-circle {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-color: var(--primary);
-      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
-    }
-
-    .custom-checkbox-wrapper input[type="checkbox"]:checked + .custom-checkbox-circle svg {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    .custom-checkbox-text {
-      font-weight: 500;
-      color: var(--text-dark);
-      font-size: 0.95rem;
-    }
-
-    /* Talentos Necessarios Field */
-    .talentos-field {
-      position: relative;
-    }
-
-    .talentos-field .form-control {
-      padding-left: 2.75rem;
-      min-height: 52px;
-    }
-
-    .talentos-icon {
-      position: absolute;
-      left: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 20px;
-      height: 20px;
-      color: var(--primary);
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .page-header {
-        padding: 1.5rem;
-      }
-
-      .page-header h2 {
-        font-size: 1.5rem;
-      }
-
-      .section-body {
-        padding: 1rem;
-      }
-
-      .accordion-button {
-        padding: 1rem;
-        font-size: 0.9rem;
-      }
-
-      .accordion-body {
-        padding: 1rem;
-      }
-
-      .btn-submit {
-        width: 100%;
-        justify-content: center;
-      }
-    }
-  </style>
-</head>
-<body>
-
-<div class="container main-container">
-  <!-- Page Header -->
-  <div class="page-header">
-    <div class="page-header-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-      </svg>
-    </div>
-    <h2>{% if semanario %}Editar Semanário{% else %}Criar Semanário{% endif %}</h2>
-  </div>
-
-  <form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-
-    <!-- Informações do Semanário -->
-    <div class="section-card">
-      <div class="section-header">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        Informações do Semanário
+<div class="min-h-screen bg-gray-50 pb-12">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+
+    <!-- Hero -->
+    <div class="rounded-2xl p-6 sm:p-8 mb-6 text-white relative overflow-hidden"
+         style="background:linear-gradient(135deg,#0891b2,#06b6d4)">
+      <div class="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white/10"></div>
+      <div class="relative z-10 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Semanário</p>
+          <h1 class="text-xl sm:text-2xl font-bold">Editar Semanário</h1>
+          <p class="text-white/75 text-sm mt-1">{{ semanario.sala }} — {{ semanario.data.data|date:"d/m/Y" }}</p>
+        </div>
+        <a href="{% url 'semanario:lista_semanarios' %}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-semibold transition-colors"
+           style="text-decoration:none;">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          Voltar
+        </a>
       </div>
-      <div class="section-body">
-        <div class="row g-4">
-          <div class="col-md-4">
-            <label class="form-label">{{ semanario_form.tema.label }}</label>
+    </div>
+
+    <form method="POST" id="formSemanario">
+      {% csrf_token %}
+
+      {% if semanario_form.errors %}
+      <div class="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+        <p class="font-semibold mb-1">Erros no Semanário:</p>{{ semanario_form.errors }}
+      </div>
+      {% endif %}
+      {% if formset.non_form_errors %}
+      <div class="mb-4 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+        <p class="font-semibold mb-1">Erros nas atividades:</p>{{ formset.non_form_errors }}
+      </div>
+      {% endif %}
+
+      <!-- Informações básicas -->
+      <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden mb-4">
+        <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100"
+             style="background:linear-gradient(135deg,#ecfeff,#e0f2fe)">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+               style="background:linear-gradient(135deg,#0891b2,#06b6d4)">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+              <rect width="8" height="4" x="8" y="2" rx="1"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-semibold text-gray-900 text-sm">Informações do Semanário</p>
+            <p class="text-xs text-gray-500">Dados básicos da semana</p>
+          </div>
+        </div>
+
+        <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ semanario_form.tema.label }}</label>
             {{ semanario_form.tema }}
           </div>
-          <div class="col-md-4">
-            <label class="form-label">{{ semanario_form.sala.label }}</label>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ semanario_form.sala.label }}</label>
             {{ semanario_form.sala }}
           </div>
-          <div class="col-md-4">
-            <label class="form-label">{{ semanario_form.data.label }}</label>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ semanario_form.data.label }}</label>
             {{ semanario_form.data }}
           </div>
-          <div class="col-md-4">
-            <label class="form-label">{{ semanario_form.projetor.label }}</label>
-            <label class="custom-checkbox-wrapper">
-              <input type="checkbox" name="projetor" {% if semanario_form.projetor.value %}checked{% endif %}>
-              <span class="custom-checkbox-circle">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                </svg>
-              </span>
-              <span class="custom-checkbox-text">Preciso de projetor</span>
-            </label>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">{{ semanario_form.vagas.label }}</label>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ semanario_form.vagas.label }}</label>
             {{ semanario_form.vagas }}
           </div>
-          <div class="col-md-4">
-            <label class="form-label">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 6px; color: var(--primary);">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              {{ semanario_form.talentos_necessarios.label }}
-            </label>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ semanario_form.talentos_necessarios.label }}</label>
             {{ semanario_form.talentos_necessarios }}
           </div>
+          <div class="flex items-center gap-3 pt-2">
+            <label class="inline-flex items-center gap-3 cursor-pointer">
+              {{ semanario_form.projetor }}
+              <span class="text-sm font-medium text-gray-700">Precisa de projetor</span>
+            </label>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Atividades -->
-    {{ formset.management_form }}
+      <!-- Atividades -->
+      {{ formset.management_form }}
 
-    <div class="section-card">
-      <div class="section-header">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-        </svg>
-        Atividades
-      </div>
-      <div class="section-body p-0">
-        <div class="accordion" id="accordionAtividades">
+      <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden mb-4">
+        <div class="flex items-center gap-3 px-5 py-4 border-b border-gray-100"
+             style="background:linear-gradient(135deg,#ecfeff,#e0f2fe)">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+               style="background:linear-gradient(135deg,#0891b2,#06b6d4)">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-semibold text-gray-900 text-sm">Atividades</p>
+            <p class="text-xs text-gray-500">Edite cada atividade individualmente</p>
+          </div>
+        </div>
+
+        <div class="p-4 flex flex-col gap-3">
           {% for form in formset %}
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-              <button class="accordion-button collapsed" type="button"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#collapse{{ forloop.counter }}">
-                <span class="atividade-badge">{{ forloop.counter }}</span>
-                Atividade: {{ form.atividade.value|default:forloop.counter }}
-              </button>
-            </h2>
+          <details class="border border-gray-200 rounded-xl overflow-hidden group" open>
+            <summary class="flex items-center gap-3 px-4 py-3 cursor-pointer select-none list-none
+                            bg-gray-50 hover:bg-gray-100 group-open:bg-cyan-50 transition-colors">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-xs font-bold"
+                   style="background:linear-gradient(135deg,#0891b2,#06b6d4)">{{ forloop.counter }}</div>
+              <span class="flex-1 font-semibold text-gray-800 text-sm">
+                {{ form.instance.atividade|default:"Atividade "|add:forloop.counter|stringformat:"s" }}
+              </span>
+              <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180"
+                   fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </summary>
 
-            <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse">
-              <div class="accordion-body">
-                <div class="row g-4">
-                  <div class="col-md-6">
-                    <label class="form-label">{{ form.atividade.label }}</label>
-                    {{ form.atividade }}
-                  </div>
+            <div class="p-4 border-t border-gray-100">
+              {% if form.errors %}
+              <div class="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">{{ form.errors }}</div>
+              {% endif %}
 
-                  <div class="col-md-6">
-                    <label class="form-label">{{ form.competencia.label }}</label>
-                    {{ form.competencia }}
-                  </div>
+              {{ form.id }}
 
-                  <div class="col-md-12">
-                    <label class="form-label">{{ form.descricao.label }}</label>
-                    {{ form.descricao }}
-                  </div>
-
-                  <div class="col-md-4">
-                    <label class="form-label">{{ form.tempo_atividade.label }}</label>
-                    {{ form.tempo_atividade }}
-                  </div>
-
-                  <div class="col-md-4">
-                    <label class="form-label">{{ form.responsavel.label }}</label>
-                    {{ form.responsavel }}
-                  </div>
-
-                  <div class="col-md-4 d-flex align-items-end">
-                    <button type="button"
-                            class="btn btn-material"
-                            data-bs-toggle="modal"
-                            data-bs-target="#materiaisModal"
-                            data-atividade-id="{{ form.instance.id }}"
-                            data-atividade-index="{{ forloop.counter0 }}">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                      </svg>
-                      Materiais
-                    </button>
-                  </div>
-
-                  <div class="col-md-12">
-                    <div class="feedback-field">
-                      <label class="form-label">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                        </svg>
-                        {{ form.feedback.label }}
-                      </label>
-                      {{ form.feedback }}
-                    </div>
-                  </div>
-
-                  {{ form.id }}
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ form.atividade.label }}</label>
+                  {{ form.atividade }}
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ form.competencia.label }}</label>
+                  {{ form.competencia }}
+                </div>
+                <div class="flex flex-col gap-1 sm:col-span-2">
+                  <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ form.descricao.label }}</label>
+                  {{ form.descricao }}
                 </div>
               </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ form.tempo_atividade.label }}</label>
+                  {{ form.tempo_atividade }}
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ form.responsavel.label }}</label>
+                  {{ form.responsavel }}
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ form.local.label }}</label>
+                  {{ form.local }}
+                </div>
+              </div>
+
+              {% if form.feedback %}
+              <div class="mb-3 p-3 rounded-xl border border-green-200 bg-green-50">
+                <label class="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1 flex items-center gap-1">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                  </svg>
+                  {{ form.feedback.label }}
+                </label>
+                {{ form.feedback }}
+              </div>
+              {% endif %}
+
+              <button type="button"
+                      class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-cyan-400
+                             bg-cyan-50 text-cyan-700 text-xs font-semibold hover:bg-cyan-100 transition-colors cursor-pointer btn-materiais"
+                      data-atividade-id="{{ form.instance.id }}"
+                      data-idx="{{ forloop.counter0 }}"
+                      data-nome="Atividade {{ forloop.counter }}"
+                      onclick="abrirMateriais(this.dataset.atividadeId, this.dataset.idx, this.dataset.nome)">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+                Materiais
+                <span class="bg-cyan-600 text-white rounded-full px-1.5 py-0.5 text-[10px] font-bold" id="badge-{{ forloop.counter0 }}">...</span>
+              </button>
             </div>
-          </div>
+          </details>
           {% endfor %}
         </div>
+
+        <input type="hidden" id="materiaisJson" name="materiais_json" value="">
+
+        <div class="px-5 py-4 border-t border-gray-100 flex justify-end">
+          <button type="submit"
+                  class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-bold text-sm border-0 cursor-pointer transition-all active:scale-95"
+                  style="background:linear-gradient(135deg,#0891b2,#06b6d4);box-shadow:0 4px 14px rgba(6,182,212,.35)">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Salvar Semanário
+          </button>
+        </div>
       </div>
-    </div>
+    </form>
+  </div>
+</div>
 
-    <!-- JSON escondido para materiais -->
-    <input type="hidden" name="materiais_json" id="materiais_json">
-
-    <div class="text-end mt-4">
-      <button type="submit" class="btn btn-submit">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+<!-- Modal Materiais (vanilla) -->
+<div id="modalMateriais" class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,.45)">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <h2 class="font-bold text-gray-900 text-base">Materiais — <span id="atividadeNome" class="text-cyan-600"></span></h2>
+      <button type="button" onclick="fecharMateriais()"
+              class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors border-0 bg-transparent cursor-pointer">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"/>
         </svg>
-        Salvar Semanário
       </button>
     </div>
-  </form>
-</div>
 
-<!-- Modal Materiais -->
-<div class="modal fade" id="materiaisModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-          Materiais da Atividade
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="flex-1 overflow-y-auto px-5 py-4">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr class="bg-gray-50 border-b border-gray-200">
+              <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Material</th>
+              <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Qtd</th>
+              <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Unidade</th>
+              <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Pedido</th>
+              <th class="w-10"></th>
+            </tr>
+          </thead>
+          <tbody id="tabelaMateriais" class="divide-y divide-gray-100"></tbody>
+        </table>
       </div>
+      <button type="button" onclick="adicionarLinha()"
+              class="mt-3 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-gray-300
+                     text-gray-500 text-xs font-semibold hover:border-cyan-400 hover:text-cyan-600 transition-colors bg-transparent cursor-pointer">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Adicionar linha
+      </button>
+    </div>
 
-      <div class="modal-body">
-        <form id="materiais-form">
-          <input type="hidden" id="atividade-id">
-
-          <table class="materials-table">
-            <thead>
-              <tr>
-                <th>Material</th>
-                <th>Quantidade</th>
-                <th>Unidade</th>
-                <th style="width: 100px;">Pedido</th>
-              </tr>
-            </thead>
-            <tbody id="materiais-body">
-              <!-- preenchido via JS -->
-            </tbody>
-          </table>
-
-          <div class="mt-3">
-            <button type="button" class="btn btn-add-material" id="add-material">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Adicionar material
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">
-          Fechar
-        </button>
-        <button type="button" class="btn btn-save-modal" id="salvar-materiais">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-          Salvar
-        </button>
-      </div>
+    <div class="flex justify-end gap-2 px-5 py-4 border-t border-gray-100">
+      <button type="button" onclick="fecharMateriais()"
+              class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors cursor-pointer bg-white">
+        Cancelar
+      </button>
+      <button type="button" onclick="salvarMateriais()"
+              class="px-5 py-2 rounded-xl text-white text-sm font-bold border-0 cursor-pointer transition-all active:scale-95"
+              style="background:linear-gradient(135deg,#0891b2,#06b6d4)">
+        Salvar materiais
+      </button>
     </div>
   </div>
 </div>
 
-<!-- Toast -->
-<div class="toast-container">
-  <div class="toast toast-success" id="materiaisToast" role="alert">
-    <div class="toast-body d-flex align-items-center gap-2">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      Materiais salvos com sucesso!
-    </div>
-  </div>
-</div>
+<style>
+  #formSemanario input[type="text"],
+  #formSemanario input[type="number"],
+  #formSemanario input[type="date"],
+  #formSemanario select,
+  #formSemanario textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 0.625rem;
+    font-size: 0.875rem;
+    color: #111827;
+    background: #fff;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  #formSemanario input:focus,
+  #formSemanario select:focus,
+  #formSemanario textarea:focus {
+    border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+  }
+  #formSemanario textarea { min-height: 80px; resize: vertical; }
+  .feedback-field textarea { border-color: #bbf7d0 !important; background: #fff !important; }
+  .feedback-field textarea:focus { border-color: #16a34a !important; box-shadow: 0 0 0 3px rgba(22,163,74,.12) !important; }
+  #tabelaMateriais input, #tabelaMateriais select {
+    width: 100%; padding: 0.375rem 0.5rem;
+    border: 1.5px solid #e5e7eb; border-radius: 0.5rem; font-size: 0.8125rem; outline: none;
+  }
+  #tabelaMateriais input:focus, #tabelaMateriais select:focus {
+    border-color: #06b6d4; box-shadow: 0 0 0 2px rgba(6,182,212,.12);
+  }
+</style>
 
 <script>
-/**
- * Semanário - Modal Materiais
- * - Garante que os listeners são registrados só 1 vez (mesmo se o template/script rodar de novo)
- * - Usa APENAS 1 listener para show.bs.modal (nada de “extra” duplicando)
- * - Faz cleanup de backdrop no hidden.bs.modal (mais seguro do que mexer no DOM no show)
- */
-
-(function () {
-  // TRAVA GLOBAL: se esse script for executado duas vezes, não duplica listeners
-  if (window.__materiaisModalInit) return;
-  window.__materiaisModalInit = true;
-
-  const modal = document.getElementById("materiaisModal");
-  if (!modal) return;
-
-  const tbody = document.getElementById("materiais-body");
-  const materiaisJsonEl = document.getElementById("materiais_json");
-  const atividadeIdEl = document.getElementById("atividade-id");
-  const addBtn = document.getElementById("add-material");
-  const salvarBtn = document.getElementById("salvar-materiais");
-  const toastEl = document.getElementById("materiaisToast");
-
-  let currentAtividadeId = null;
-  let currentAtividadeIndex = null;
+  const materialsByIndex = {};
+  let currentAtividadeId   = null;
+  let currentAtividadeIdx  = null;
 
   function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
+    return document.cookie.split(';').map(c => c.trim())
+      .find(c => c.startsWith(name + '='))
+      ?.split('=')[1] || '';
   }
 
-  function novaLinha(material = {}) {
-    const nome = (material.nome || '').replace(/"/g, '&quot;');
-    const quantidade = material.quantidade || '';
-    const unidade = material.unidade || 'UN';
-    const pedido = material.pedido || '';
-    return `
-      <tr>
-        <td><input class="form-control mat-nome" value="${nome}" placeholder="Nome do material"></td>
-        <td><input class="form-control mat-quant" value="${quantidade}" placeholder="Qtd"></td>
-        <td>
-          <select class="form-select mat-unidade">
-            <option value="UN"${unidade==='UN' ? ' selected':''}>Unidade</option>
-            <option value="PAC"${unidade==='PAC' ? ' selected':''}>Pacote</option>
-            <option value="CX"${unidade==='CX' ? ' selected':''}>Caixa</option>
-            <option value="TUBO"${unidade==='TUBO' ? ' selected':''}>Tubo</option>
-            <option value="METRO"${unidade==='METRO' ? ' selected':''}>Metro</option>
-            <option value="L"${unidade==='L' ? ' selected':''}>Litro</option>
-            <option value="KG"${unidade==='KG' ? ' selected':''}>Quilo</option>
-            <option value="OUTROS"${unidade==='OUTROS' ? ' selected':''}>Outros</option>
-          </select>
-        </td>
-        <td>
-          <select class="form-select mat-pedido">
-            <option value="SUPPLY"${pedido==='SUPPLY' ? ' selected':''}>Supply</option>
-            <option value="RECREA"${pedido==='RECREA' ? ' selected':''}>Recrea</option>
-            <option value="ZUERO"${pedido==='ZUERO' ? ' selected':''}>Zuero</option>
-            <option value="OUTROS"${pedido==='OUTROS' ? ' selected':''}>Outros</option>
-          </select>
-        </td>
-        <td>
-          <button type="button" class="btn btn-remove remover-material">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-        </td>
-      </tr>`;
+  function novaLinha(m = {}) {
+    const nome = (m.nome || '').replace(/"/g, '&quot;');
+    const qtd  = m.quantidade || '';
+    const un   = m.unidade || 'UN';
+    const pd   = m.pedido  || 'SUPPLY';
+    const sel  = (v, opt) => opt === v ? ' selected' : '';
+    return `<tr>
+      <td class="px-3 py-2"><input type="text" class="mat-nome" value="${nome}" placeholder="Material"></td>
+      <td class="px-3 py-2"><input type="number" class="mat-qtd" step="0.1" min="0" value="${qtd}"></td>
+      <td class="px-3 py-2">
+        <select class="mat-unidade">
+          <option value="UN"${sel(un,'UN')}>Unidade</option>
+          <option value="PAC"${sel(un,'PAC')}>Pacote</option>
+          <option value="CX"${sel(un,'CX')}>Caixa</option>
+          <option value="TUBO"${sel(un,'TUBO')}>Tubo</option>
+          <option value="METRO"${sel(un,'METRO')}>Metro</option>
+          <option value="L"${sel(un,'L')}>Litro</option>
+          <option value="KG"${sel(un,'KG')}>Quilo</option>
+          <option value="OUTROS"${sel(un,'OUTROS')}>Outros</option>
+        </select>
+      </td>
+      <td class="px-3 py-2">
+        <select class="mat-pedido">
+          <option value="SUPPLY"${sel(pd,'SUPPLY')}>Supply</option>
+          <option value="RECREA"${sel(pd,'RECREA')}>Recrea</option>
+          <option value="ZUERO"${sel(pd,'ZUERO')}>Zuero</option>
+          <option value="OUTROS"${sel(pd,'OUTROS')}>Outros</option>
+        </select>
+      </td>
+      <td class="px-3 py-2 text-center">
+        <button type="button" onclick="this.closest('tr').remove()"
+                class="w-7 h-7 rounded-lg border border-gray-200 bg-white text-red-400 hover:bg-red-50 hover:border-red-300 flex items-center justify-center transition-colors cursor-pointer mx-auto">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </td>
+    </tr>`;
   }
 
-  // ÚNICO handler do show.bs.modal
-  function materiaisModalHandler(event) {
-    console.log('[DEBUG] show.bs.modal');
-
-    const button = event.relatedTarget;
-    const atividadeId = button?.getAttribute("data-atividade-id") || null;
-    const atividadeIndex = button?.getAttribute("data-atividade-index") || null;
-
-    currentAtividadeId = atividadeId;
-    currentAtividadeIndex = atividadeIndex;
-
-    if (atividadeIdEl) atividadeIdEl.value = atividadeId || '';
-
-    if (tbody) tbody.innerHTML = "";
-
-    // Se existe atividade no banco, busca do servidor
-    if (atividadeId) {
-      fetch(`/semanario/materiais/${atividadeId}/?t=${Date.now()}`)
-        .then(res => res.json())
-        .then(data => {
-          console.log('[DEBUG] Materiais recebidos:', data);
-          if (!data || data.length === 0) {
-            tbody.insertAdjacentHTML('beforeend', novaLinha());
-          } else {
-            data.forEach(m => tbody.insertAdjacentHTML('beforeend', novaLinha(m)));
-          }
-        })
-        .catch(err => {
-          console.error('Erro ao buscar materiais:', err);
-          tbody.insertAdjacentHTML('beforeend', novaLinha());
-        });
-    } else {
-      // Se ainda não tem atividade no banco, pega do hidden JSON
-      try {
-        const parsed = JSON.parse((materiaisJsonEl?.value || '{}'));
-        const list = parsed[currentAtividadeIndex] || [];
-        if (!list || list.length === 0) tbody.insertAdjacentHTML('beforeend', novaLinha());
-        else list.forEach(m => tbody.insertAdjacentHTML('beforeend', novaLinha(m)));
-      } catch (e) {
-        tbody.insertAdjacentHTML('beforeend', novaLinha());
-      }
-    }
+  function atualizarBadge(idx, count) {
+    const badge = document.getElementById(`badge-${idx}`);
+    if (badge) badge.textContent = count;
   }
 
-  // Registrar só uma vez (como temos a trava global, isso basta)
-  modal.addEventListener("show.bs.modal", materiaisModalHandler);
+  function abrirMateriais(atividadeId, idx, nome) {
+    currentAtividadeId  = atividadeId && atividadeId !== 'None' ? atividadeId : null;
+    currentAtividadeIdx = String(idx);
+    document.getElementById('atividadeNome').textContent = nome;
+    const tabela = document.getElementById('tabelaMateriais');
+    tabela.innerHTML = '<tr><td colspan="5" class="px-3 py-4 text-center text-xs text-gray-400">Carregando…</td></tr>';
 
-  // Cleanup seguro quando o modal FECHA (evita “backdrop preso”)
-  modal.addEventListener("hidden.bs.modal", () => {
-    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-    document.body.classList.remove('modal-open');
-    document.body.style.overflow = '';
-    document.body.style.paddingRight = '';
-  });
-
-  // Adicionar linha
-  addBtn?.addEventListener('click', () => {
-    tbody?.insertAdjacentHTML('beforeend', novaLinha());
-  });
-
-  // Delegação para remover linha
-  tbody?.addEventListener('click', (e) => {
-    if (e.target.closest('.remover-material')) {
-      e.target.closest('tr').remove();
-    }
-  });
-
-  // Salvar materiais
-  salvarBtn?.addEventListener('click', () => {
-    const rows = Array.from(document.querySelectorAll('#materiais-body tr'));
-    const materiais = rows.map(r => ({
-      nome: (r.querySelector('.mat-nome')?.value || '').trim(),
-      quantidade: (r.querySelector('.mat-quant')?.value || '').trim(),
-      unidade: (r.querySelector('.mat-unidade')?.value || 'UN').trim(),
-      pedido: (r.querySelector('.mat-pedido')?.value || '').trim(),
-    })).filter(m => m.nome !== '');
+    const modal = document.getElementById('modalMateriais');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
 
     if (currentAtividadeId) {
+      fetch(`/semanario/materiais/${currentAtividadeId}/?t=${Date.now()}`)
+        .then(r => r.json())
+        .then(data => {
+          tabela.innerHTML = '';
+          (data.length ? data : [{}]).forEach(m => tabela.insertAdjacentHTML('beforeend', novaLinha(m)));
+          atualizarBadge(idx, data.length);
+        })
+        .catch(() => { tabela.innerHTML = ''; tabela.insertAdjacentHTML('beforeend', novaLinha()); });
+    } else {
+      tabela.innerHTML = '';
+      const list = materialsByIndex[currentAtividadeIdx] || [];
+      (list.length ? list : [{}]).forEach(m => tabela.insertAdjacentHTML('beforeend', novaLinha(m)));
+    }
+  }
+
+  function fecharMateriais() {
+    const modal = document.getElementById('modalMateriais');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  function adicionarLinha() {
+    document.getElementById('tabelaMateriais').insertAdjacentHTML('beforeend', novaLinha());
+  }
+
+  function coletarMateriais() {
+    return Array.from(document.querySelectorAll('#tabelaMateriais tr')).map(r => ({
+      nome:       r.querySelector('.mat-nome')?.value.trim() || '',
+      quantidade: r.querySelector('.mat-qtd')?.value.trim() || '',
+      unidade:    r.querySelector('.mat-unidade')?.value || 'UN',
+      pedido:     r.querySelector('.mat-pedido')?.value || 'SUPPLY',
+    })).filter(m => m.nome !== '');
+  }
+
+  function salvarMateriais() {
+    const materiais = coletarMateriais();
+
+    if (currentAtividadeId) {
+      // Atividade já existe no banco → salva via API
       fetch('/semanario/salvar_materiais/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({ atividade_id: currentAtividadeId, materiais })
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ atividade_id: currentAtividadeId, materiais }),
       })
-        .then(res => {
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return res.json();
-        })
+        .then(r => r.json())
         .then(resp => {
-          if (!resp.success) {
-            alert('Não foi possível salvar os materiais: ' + (resp.error || 'erro desconhecido'));
-            return;
-          }
-
-          // fechar modal
-          const inst = bootstrap.Modal.getInstance(modal);
-          inst?.hide();
-
-          // toast
-          try {
-            const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
-            toast.show();
-          } catch (e) {}
+          if (!resp.success) { alert('Erro ao salvar: ' + (resp.error || '')); return; }
+          atualizarBadge(currentAtividadeIdx, materiais.length);
+          fecharMateriais();
+          showToast('Materiais salvos!', 'success');
         })
-        .catch(err => {
-          console.error(err);
-          alert('Erro ao salvar materiais: ' + err.message);
-        });
+        .catch(e => alert('Erro: ' + e.message));
     } else {
-      // salva no hidden json pra enviar quando o form principal for submetido
-      try {
-        const parsed = JSON.parse((materiaisJsonEl?.value || '{}'));
-        parsed[currentAtividadeIndex] = materiais;
-        materiaisJsonEl.value = JSON.stringify(parsed);
+      // Nova atividade → guarda no JSON que vai junto com o form
+      materialsByIndex[currentAtividadeIdx] = materiais;
+      const hidden = document.getElementById('materiaisJson');
+      hidden.value = JSON.stringify(materialsByIndex);
+      atualizarBadge(currentAtividadeIdx, materiais.length);
+      fecharMateriais();
+      showToast('Materiais salvos!', 'success');
+    }
+  }
 
-        const inst = bootstrap.Modal.getInstance(modal);
-        inst?.hide();
+  // Fechar ao clicar fora
+  document.getElementById('modalMateriais').addEventListener('click', function(e) {
+    if (e.target === this) fecharMateriais();
+  });
 
-        try {
-          const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
-          toast.show();
-        } catch (e) {}
-      } catch (e) {
-        console.error('Erro ao atualizar materiais_json', e);
-        alert('Erro ao armazenar materiais localmente.');
-      }
+  document.getElementById('formSemanario').addEventListener('submit', function() {
+    document.getElementById('materiaisJson').value = JSON.stringify(materialsByIndex);
+  });
+
+  // Carregar contagem de materiais nos badges ao abrir a página
+  document.querySelectorAll('.btn-materiais').forEach(btn => {
+    const atividadeId = btn.dataset.atividadeId;
+    const idx = btn.dataset.idx;
+    if (atividadeId && atividadeId !== 'None') {
+      fetch(`/semanario/materiais/${atividadeId}/?t=${Date.now()}`)
+        .then(r => r.json())
+        .then(data => atualizarBadge(idx, data.length))
+        .catch(() => atualizarBadge(idx, 0));
+    } else {
+      atualizarBadge(idx, 0);
     }
   });
-
-  // (Opcional) aplicar classes nos inputs Django
-  document.addEventListener('DOMContentLoaded', () => {
-    const inputs = document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea, select');
-    inputs.forEach(input => {
-      if (input.tagName === 'SELECT') input.classList.add('form-select');
-      else input.classList.add('form-control');
-    });
-  });
-})();
 </script>
-
-
+<script src="{% static 'js/competencias_dynamic.js' %}"></script>
 {% endblock %}
-
