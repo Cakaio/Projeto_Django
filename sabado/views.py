@@ -61,8 +61,8 @@ def resumo_sabado(request):
     if sabado_id:
         sabado = get_object_or_404(Sabado, pk=sabado_id)
     else:
-        # fallback: o mais próximo/primeiro existente
-        sabado = Sabado.objects.order_by("data").first()
+        # fallback: sábado mais recente
+        sabado = Sabado.objects.order_by("-data").first()
 
     if not sabado:
         # caso não exista nenhum sábado cadastrado ainda
@@ -194,36 +194,28 @@ def resumo_sabado(request):
         })
     talentos_cards.sort(key=lambda x: x["total"], reverse=True)
 
+    AREAS_SAUDE_RESTRITA = {"TRIADE", "GESTAO_DE_TALENTOS"}
+    pode_ver_saude_nao_ok = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or getattr(request.user, "area", None) in AREAS_SAUDE_RESTRITA
+    )
+
     context = {
         "sabados": sabados,
         "sabado": sabado,
-        
-        # Quantidade que não responderam
         "total_nao_responderam": total_nao_responderam,
-
-        # KPIs
         "total_voluntarios": total_voluntarios,
         "total_ajudantes": total_ajudantes,
-
-        # Por área
         "por_area_lista": por_area_lista,
-
-        # Ajuda por faixa
         "faixa_cards": faixa_cards,
-
-        # Carro
         "total_carro": total_carro,
         "total_nao_carro": total_nao_carro,
         "total_carro_nao_resp": total_carro_nao_resp,
-
-        # Saúde
         "saude": saude,
-
-        # Alimentação
         "alimentacao_lista": alimentacao_lista,
         "alimentacao_nao_preenchido": alimentacao_nao_preenchido,
-
-        # Talentos
         "talentos_cards": talentos_cards,
+        "pode_ver_saude_nao_ok": pode_ver_saude_nao_ok,
     }
     return render(request, "resumo_sabado.html", context)

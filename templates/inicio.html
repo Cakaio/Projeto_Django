@@ -123,11 +123,17 @@
             </div>
           </div>
 
-          <!-- Ação -->
-          <a href="{% url 'sabado:responder_disponibilidade' sabado.pk %}" class="pcf-btn pcf-btn-primary pcf-btn-full">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            Responder formulário
-          </a>
+          <!-- Ações -->
+          <div style="display:flex;gap:.625rem;margin-top:auto;">
+            <a href="{% url 'sabado:responder_disponibilidade' sabado.pk %}" class="pcf-btn pcf-btn-primary" style="flex:1;justify-content:center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Responder
+            </a>
+            <a href="{% url 'sabado:resumo_sabado' %}?sabado={{ sabado.pk }}" class="pcf-btn pcf-btn-outline" style="flex:1;justify-content:center;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+              Ver resumo
+            </a>
+          </div>
         </div>
         {% endfor %}
       </div>
@@ -206,7 +212,7 @@
 .pcf-container {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 1.25rem;
+  padding: 0 1.5rem;
 }
 
 /* ── HERO ── */
@@ -357,7 +363,7 @@
 .pcf-stat-hint  { font-size: .75rem; color: hsl(var(--muted-foreground)); margin: .15rem 0 0; }
 
 /* ── SECTION ── */
-.pcf-section { padding: 3rem 0 0; }
+.pcf-section { padding-top: 3rem; }
 .pcf-section-last { padding-bottom: 4rem; }
 .pcf-section-header {
   display: flex;
@@ -557,17 +563,18 @@
 }
 
 @media (max-width: 600px) {
+  .pcf-container { padding: 0 1.25rem; }
+
   .pcf-hero { padding: 2rem 0 3rem; }
   .pcf-hero-title { font-size: 1.5rem; }
   .pcf-hero-sub { font-size: .875rem; }
   .pcf-hero-actions { flex-direction: column; gap: .5rem; }
   .pcf-hero-actions .pcf-btn { width: 100%; justify-content: center; }
 
-  /* stats vira 2 colunas compactas, sem o float negativo do hero */
   .pcf-stats-row {
     grid-template-columns: repeat(2, 1fr);
-    gap: .625rem;
-    margin-top: 1.25rem;
+    gap: .75rem;
+    margin-top: 1.5rem;
     position: static;
   }
   .pcf-stat-card { padding: .75rem .875rem; gap: .625rem; }
@@ -577,20 +584,24 @@
   .pcf-stat-hint  { display: none; }
 
   .pcf-sabado-grid { grid-template-columns: 1fr; }
-  .pcf-quick-grid  { grid-template-columns: 1fr; }
-  .pcf-section { padding: 2rem 0 0; }
+  .pcf-sabado-card { padding: 1.25rem; }
+  .pcf-sabado-tema { white-space: normal; }
+
+  .pcf-quick-grid { grid-template-columns: 1fr; gap: .75rem; }
+  .pcf-quick-card { padding: 1rem 1.1rem; gap: .875rem; }
+  .pcf-quick-icon { width: 40px; height: 40px; border-radius: .625rem; }
+  .pcf-quick-desc { display: none; }
+
+  .pcf-section { padding-top: 2rem; }
   .pcf-section-last { padding-bottom: 2.5rem; }
   .pcf-section-header { flex-direction: column; align-items: flex-start; gap: .5rem; }
-  .pcf-sabado-tema { white-space: normal; }
-  .pcf-sabado-card { padding: 1.25rem; }
-  .pcf-quick-desc { display: none; }
-  .pcf-quick-card { padding: 1rem; }
-  .pcf-quick-icon { width: 40px; height: 40px; }
 }
 
 @media (max-width: 420px) {
-  .pcf-stats-row { grid-template-columns: 1fr 1fr; }
+  .pcf-container { padding: 0 1.1rem; }
+  .pcf-stats-row { grid-template-columns: 1fr 1fr; gap: .5rem; }
   .pcf-badge { font-size: .68rem; }
+  .pcf-quick-card { padding: .875rem 1rem; }
 }
 </style>
 {% endblock %}

@@ -1,870 +1,380 @@
-<!doctype html>
-<html lang="pt-br">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Resumo Sábado</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    :root {
-      --primary: #6366f1;
-      --primary-dark: #4f46e5;
-      --secondary: #8b5cf6;
-      --success: #10b981;
-      --success-light: #d1fae5;
-      --warning: #f59e0b;
-      --warning-light: #fef3c7;
-      --danger: #ef4444;
-      --danger-light: #fee2e2;
-      --info: #3b82f6;
-      --text-dark: #1e293b;
-      --text-muted: #64748b;
-      --text-light: #94a3b8;
-      --bg-light: #f8fafc;
-      --bg-card: #ffffff;
-      --border-color: #e2e8f0;
-    }
-
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6366f1 100%);
-      min-height: 100vh;
-      padding: 2rem 1rem;
-    }
-
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    .actions-container {
-    display: flex;
-    justify-content: flex-start;
-    gap: 12px;
-    margin-top: 32px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border-color);
-    }
-    .btn-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 28px;
-    background: #fff;
-    color: var(--text-muted);
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    }
-
-    .btn-back:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.14);
-    border-color: var(--primary);
-    color: var(--primary);
-    background: rgba(255, 255, 255, 0.808);
-    }
-
-
-
-    /* Decorative Background */
-    .bg-decoration {
-      position: fixed;
-      border-radius: 50%;
-      opacity: 0.08;
-      pointer-events: none;
-      background: white;
-    }
-    .circle-1 { width: 400px; height: 400px; top: -100px; right: -100px; }
-    .circle-2 { width: 300px; height: 300px; bottom: -50px; left: -50px; }
-    .circle-3 { width: 200px; height: 200px; top: 40%; left: 10%; }
-
-    /* Error Alert */
-    .error-banner {
-      background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.06));
-      border: 2px solid rgba(239,68,68,0.25);
-      border-radius: 16px;
-      padding: 1.25rem 1.5rem;
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      backdrop-filter: blur(10px);
-    }
-
-    .error-icon {
-      width: 44px;
-      height: 44px;
-      background: linear-gradient(135deg, var(--danger), #dc2626);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .error-icon svg {
-      width: 22px;
-      height: 22px;
-      color: white;
-    }
-
-    .error-text {
-      font-weight: 600;
-      color: var(--danger);
-      font-size: 0.95rem;
-    }
-
-    /* Header Card */
-    .header-card {
-      background: var(--bg-card);
-      border-radius: 20px;
-      padding: 2rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .header-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 5px;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-    }
-
-    .header-content {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.5rem;
-    }
-
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .header-icon {
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 8px 20px rgba(99,102,241,0.3);
-    }
-
-    .header-icon svg {
-      width: 32px;
-      height: 32px;
-      color: white;
-    }
-
-    .header-text h1 {
-      font-size: 1.75rem;
-      color: var(--text-dark);
-      font-weight: 700;
-    }
-
-    .header-text p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      margin-top: 0.25rem;
-    }
-
-    /* Select */
-    .select-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .select-wrapper label {
-      font-weight: 600;
-      color: var(--text-dark);
-      white-space: nowrap;
-    }
-
-    .custom-select {
-      appearance: none;
-      background: var(--bg-light);
-      border: 2px solid var(--border-color);
-      border-radius: 12px;
-      padding: 0.75rem 2.5rem 0.75rem 1rem;
-      font-size: 0.95rem;
-      color: var(--text-dark);
-      cursor: pointer;
-      transition: all 0.3s ease;
-      min-width: 280px;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236366f1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.75rem center;
-      background-size: 20px;
-    }
-
-    .custom-select:hover,
-    .custom-select:focus {
-      border-color: var(--primary);
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
-    }
-
-    /* Stats Grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .stat-card {
-      background: var(--bg-card);
-      border-radius: 16px;
-      padding: 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      transition: all 0.3s ease;
-    }
-
-    .stat-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-    }
-
-    .stat-icon {
-      width: 50px;
-      height: 50px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .stat-icon svg {
-      width: 24px;
-      height: 24px;
-      color: white;
-    }
-
-    .stat-icon.purple { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
-    .stat-icon.blue { background: linear-gradient(135deg, var(--info), #60a5fa); }
-    .stat-icon.green { background: linear-gradient(135deg, var(--success), #34d399); }
-    .stat-icon.orange { background: linear-gradient(135deg, var(--warning), #fbbf24); }
-    .stat-icon.red { background: linear-gradient(135deg, var(--danger), #f87171); }
-
-    .stat-info h3 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--text-dark);
-      line-height: 1.2;
-    }
-
-    .stat-info p {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-top: 0.15rem;
-    }
-
-    .stat-info .stat-sub {
-      font-size: 0.75rem;
-      color: var(--text-light);
-      margin-top: 0.1rem;
-    }
-
-    /* Alert Cards */
-    .alerts-container {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .alert-card {
-      background: var(--bg-card);
-      border-radius: 14px;
-      padding: 1rem 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: 0.85rem;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
-      border-left: 4px solid transparent;
-    }
-
-    .alert-card.danger {
-      border-left-color: var(--danger);
-      background: linear-gradient(90deg, rgba(239,68,68,0.04), var(--bg-card));
-    }
-
-    .alert-card.warning {
-      border-left-color: var(--warning);
-      background: linear-gradient(90deg, rgba(245,158,11,0.04), var(--bg-card));
-    }
-
-    .alert-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .alert-icon svg {
-      width: 20px;
-      height: 20px;
-      color: white;
-    }
-
-    .alert-icon.danger { background: linear-gradient(135deg, var(--danger), #dc2626); }
-    .alert-icon.warning { background: linear-gradient(135deg, var(--warning), #d97706); }
-
-    .alert-text {
-      font-size: 0.9rem;
-      color: var(--text-dark);
-      font-weight: 500;
-    }
-
-    .alert-text strong {
-      font-weight: 700;
-    }
-
-    /* Sections Grid */
-    .sections-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-      gap: 1.5rem;
-    }
-
-    /* Section Card */
-    .section-card {
-      background: var(--bg-card);
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-      transition: all 0.3s ease;
-    }
-
-    .section-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 50px rgba(0,0,0,0.14);
-    }
-
-    .section-header {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      padding: 1.15rem 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .section-header.green { background: linear-gradient(135deg, var(--success), #059669); }
-    .section-header.blue { background: linear-gradient(135deg, var(--info), #2563eb); }
-    .section-header.orange { background: linear-gradient(135deg, var(--warning), #d97706); }
-    .section-header.red { background: linear-gradient(135deg, var(--danger), #dc2626); }
-
-    .section-header svg {
-      width: 24px;
-      height: 24px;
-      color: white;
-      flex-shrink: 0;
-    }
-
-    .section-header h2 {
-      color: white;
-      font-size: 1.15rem;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    .section-body {
-      padding: 1.5rem;
-    }
-
-    /* List Items */
-    .list-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.75rem 1rem;
-      border-radius: 10px;
-      margin-bottom: 0.5rem;
-      background: var(--bg-light);
-      transition: all 0.2s ease;
-    }
-
-    .list-item:hover {
-      background: rgba(99,102,241,0.06);
-    }
-
-    .list-item:last-child {
-      margin-bottom: 0;
-    }
-
-    .list-item-name {
-      color: var(--text-dark);
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
-
-    .list-item-badge {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      padding: 0.25rem 0.7rem;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      min-width: 32px;
-      text-align: center;
-    }
-
-    .list-item-badge.muted {
-      background: var(--border-color);
-      color: var(--text-muted);
-    }
-
-    /* Accordion / Details */
-    .accordion-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.65rem;
-    }
-
-    .accordion-item {
-      border: 2px solid var(--border-color);
-      border-radius: 12px;
-      overflow: hidden;
-      transition: all 0.3s ease;
-    }
-
-    .accordion-item:hover {
-      border-color: rgba(99,102,241,0.3);
-    }
-
-    .accordion-item[open] {
-      border-color: var(--primary);
-      box-shadow: 0 4px 15px rgba(99,102,241,0.1);
-    }
-
-    .accordion-summary {
-      padding: 0.85rem 1.15rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: var(--text-dark);
-      background: var(--bg-light);
-      transition: all 0.3s ease;
-      list-style: none;
-      user-select: none;
-    }
-
-    .accordion-summary::-webkit-details-marker { display: none; }
-
-    .accordion-summary:hover {
-      background: rgba(99,102,241,0.06);
-    }
-
-    .accordion-item[open] > .accordion-summary {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-    }
-
-    .accordion-item[open] > .accordion-summary .accordion-badge {
-      background: rgba(255,255,255,0.25);
-      color: white;
-    }
-
-    .accordion-item[open] > .accordion-summary .accordion-emoji {
-      filter: brightness(10);
-    }
-
-    .accordion-badge {
-      background: rgba(99,102,241,0.15);
-      color: var(--primary);
-      padding: 0.2rem 0.55rem;
-      border-radius: 10px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      margin-left: auto;
-    }
-
-    .accordion-chevron {
-      width: 18px;
-      height: 18px;
-      transition: transform 0.3s ease;
-      flex-shrink: 0;
-    }
-
-    .accordion-item[open] > .accordion-summary .accordion-chevron {
-      transform: rotate(180deg);
-    }
-
-    .accordion-body {
-      padding: 0;
-    }
-
-    .accordion-body ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .accordion-body ul li {
-      padding: 0.65rem 1.15rem;
-      border-top: 1px solid var(--border-color);
-      font-size: 0.88rem;
-      color: var(--text-dark);
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      transition: background 0.2s ease;
-    }
-
-    .accordion-body ul li:hover {
-      background: var(--bg-light);
-    }
-
-    .person-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .person-dot.ok { background: var(--success); }
-    .person-dot.nok { background: var(--danger); }
-    .person-dot.pending { background: var(--warning); }
-    .person-dot.default { background: var(--primary); }
-
-    .empty-msg {
-      padding: 1rem 1.15rem;
-      text-align: center;
-      color: var(--text-light);
-      font-style: italic;
-      font-size: 0.88rem;
-      border-top: 1px solid var(--border-color);
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      body {
-        padding: 1rem 0.5rem;
-      }
-
-      .header-content {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .select-wrapper {
-        width: 100%;
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .custom-select {
-        width: 100%;
-        min-width: auto;
-      }
-
-      .stats-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .sections-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .header-text h1 {
-        font-size: 1.35rem;
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Decorative Background -->
-  <div class="bg-decoration circle-1"></div>
-  <div class="bg-decoration circle-2"></div>
-  <div class="bg-decoration circle-3"></div>
-
-  <div class="container">
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Resumo do Sábado{% endblock %}
+
+{% block content %}
+<style>
+  .rs-page { background: #f8fafc; min-height: 100vh; padding-bottom: 3rem; }
+
+  /* Header */
+  .rs-hero {
+    background: linear-gradient(135deg,#c75f06 0%,#fe8210 100%);
+    padding: 2rem 0 3.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .rs-hero::after {
+    content:''; position:absolute; bottom:-2px; left:0; right:0; height:48px;
+    background:#f8fafc; clip-path:ellipse(55% 100% at 50% 100%);
+  }
+  .rs-container { max-width:1200px; margin:0 auto; padding:0 1.5rem; }
+
+  /* Select sábado */
+  .rs-select {
+    appearance:none;
+    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23c75f06'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") no-repeat right .75rem center/18px;
+    border:1.5px solid #e5e7eb; border-radius:.75rem;
+    padding:.6rem 2.5rem .6rem 1rem;
+    font-size:.875rem; color:#1f2937; font-weight:500;
+    cursor:pointer; min-width:260px; max-width:100%;
+    transition:border-color .15s;
+  }
+  .rs-select:focus { outline:none; border-color:#fe8210; box-shadow:0 0 0 3px rgba(254,130,16,.15); }
+
+  /* KPI cards */
+  .rs-kpi-grid {
+    display:grid; grid-template-columns:repeat(5,1fr); gap:.875rem;
+    margin-top:-2rem; position:relative; z-index:2;
+  }
+  .rs-kpi {
+    background:#fff; border:1px solid #e5e7eb; border-radius:1rem;
+    padding:1rem 1.1rem; display:flex; align-items:center; gap:.875rem;
+    box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.04);
+  }
+  .rs-kpi-icon {
+    width:42px; height:42px; border-radius:.625rem;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .rs-kpi-val { font-size:1.4rem; font-weight:800; color:#111827; line-height:1; }
+  .rs-kpi-lbl { font-size:.72rem; color:#6b7280; margin-top:.2rem; font-weight:500; }
+  .rs-kpi-sub { font-size:.68rem; color:#9ca3af; margin-top:.15rem; }
+
+  /* Alertas */
+  .rs-alerts { display:flex; flex-direction:column; gap:.625rem; margin-top:1.5rem; }
+  .rs-alert {
+    display:flex; align-items:center; gap:.75rem;
+    padding:.75rem 1rem; border-radius:.875rem; font-size:.85rem; font-weight:500;
+  }
+  .rs-alert.danger { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; }
+  .rs-alert.warning { background:#fffbeb; border:1px solid #fde68a; color:#92400e; }
+
+  /* Seções */
+  .rs-grid {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:1.25rem;
+    margin-top:1.75rem;
+  }
+  .rs-card {
+    background:#fff; border:1px solid #e5e7eb; border-radius:1.25rem;
+    box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.04);
+    overflow:hidden;
+  }
+  .rs-card-head {
+    display:flex; align-items:center; gap:.75rem;
+    padding:1rem 1.25rem;
+    font-weight:700; font-size:.9rem; color:#fff;
+  }
+  .rs-card-head.orange { background:linear-gradient(135deg,#c75f06,#fe8210); }
+  .rs-card-head.green  { background:linear-gradient(135deg,#059669,#34d399); }
+  .rs-card-head.blue   { background:linear-gradient(135deg,#2563eb,#60a5fa); }
+  .rs-card-head.amber  { background:linear-gradient(135deg,#d97706,#fbbf24); }
+  .rs-card-head.rose   { background:linear-gradient(135deg,#db2777,#f472b6); }
+  .rs-card-head.purple { background:linear-gradient(135deg,#7c3aed,#a78bfa); }
+  .rs-card-body { padding:1.1rem 1.25rem; }
+
+  /* Lista simples */
+  .rs-list-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:.55rem .75rem; border-radius:.625rem;
+    font-size:.855rem; color:#374151;
+    transition:background .12s;
+  }
+  .rs-list-item:hover { background:#f9fafb; }
+  .rs-list-item + .rs-list-item { border-top:1px solid #f3f4f6; }
+  .rs-badge {
+    font-size:.75rem; font-weight:700; padding:.2rem .6rem;
+    border-radius:9999px; min-width:28px; text-align:center;
+  }
+  .rs-badge.orange { background:#fff7ed; color:#c75f06; }
+  .rs-badge.muted  { background:#f3f4f6; color:#9ca3af; }
+
+  /* Accordion */
+  .rs-accordion { display:flex; flex-direction:column; gap:.5rem; }
+  .rs-details { border:1.5px solid #e5e7eb; border-radius:.75rem; overflow:hidden; }
+  .rs-details[open] { border-color:#fe8210; }
+  .rs-summary {
+    display:flex; align-items:center; gap:.6rem;
+    padding:.75rem 1rem; cursor:pointer; list-style:none;
+    font-size:.875rem; font-weight:600; color:#374151;
+    background:#f9fafb; user-select:none;
+    transition:background .12s;
+  }
+  .rs-summary::-webkit-details-marker { display:none; }
+  .rs-summary:hover { background:#f3f4f6; }
+  .rs-details[open] > .rs-summary {
+    background:linear-gradient(135deg,#c75f06,#fe8210); color:#fff;
+  }
+  .rs-details[open] > .rs-summary .rs-acc-badge {
+    background:rgba(255,255,255,.25); color:#fff;
+  }
+  .rs-details[open] > .rs-summary .rs-acc-chevron { transform:rotate(180deg); color:#fff; }
+  .rs-acc-badge {
+    margin-left:auto; font-size:.72rem; font-weight:700;
+    padding:.15rem .5rem; border-radius:.5rem;
+    background:rgba(254,130,16,.12); color:#c75f06;
+  }
+  .rs-acc-chevron { width:16px; height:16px; flex-shrink:0; transition:transform .2s; color:#9ca3af; }
+  .rs-acc-body ul { list-style:none; padding:0; margin:0; }
+  .rs-acc-body ul li {
+    display:flex; align-items:center; gap:.6rem;
+    padding:.55rem 1rem; font-size:.855rem; color:#374151;
+    border-top:1px solid #f3f4f6;
+  }
+  .rs-acc-body ul li:hover { background:#f9fafb; }
+  .rs-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .rs-dot.ok  { background:#10b981; }
+  .rs-dot.nok { background:#ef4444; }
+  .rs-dot.pend { background:#f59e0b; }
+  .rs-dot.def  { background:#fe8210; }
+  .rs-empty {
+    padding:.75rem 1rem; font-size:.82rem; color:#9ca3af;
+    font-style:italic; border-top:1px solid #f3f4f6;
+  }
+
+  /* Responsivo */
+  @media (max-width:900px) {
+    .rs-kpi-grid { grid-template-columns:repeat(3,1fr); }
+  }
+  @media (max-width:600px) {
+    .rs-hero { padding:1.5rem 0 3rem; }
+    .rs-container { padding:0 1.1rem; }
+    .rs-kpi-grid { grid-template-columns:repeat(2,1fr); margin-top:1rem; }
+    .rs-grid { grid-template-columns:1fr; }
+    .rs-select { min-width:auto; width:100%; }
+  }
+</style>
+
+<div class="rs-page">
+
+  <!-- Hero header -->
+  <div class="rs-hero">
+    <div class="rs-container">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="text-white">
+          <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Painel do Sábado</p>
+          {% if sabado %}
+            <h1 class="text-2xl font-bold leading-tight">{{ sabado.data|date:"d \d\e F \d\e Y" }}</h1>
+            {% if sabado.tema %}<p class="text-white/80 text-sm mt-1">{{ sabado.tema }}</p>{% endif %}
+          {% else %}
+            <h1 class="text-2xl font-bold">Resumo do Sábado</h1>
+          {% endif %}
+        </div>
+        <!-- Select sábado -->
+        <form method="get">
+          <select name="sabado" class="rs-select" onchange="this.form.submit()">
+            {% for s in sabados %}
+              <option value="{{ s.id }}" {% if sabado and s.id == sabado.id %}selected{% endif %}>
+                {{ s.data|date:"d/m/Y" }}{% if s.tema %} — {{ s.tema }}{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="rs-container">
 
     {% if erro %}
-      <div class="error-banner">
-        <div class="error-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-        </div>
-        <span class="error-text">{{ erro }}</span>
+      <div class="rs-alert danger mt-4">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        {{ erro }}
       </div>
     {% endif %}
 
-    {% if sabado %}
-
-      <!-- Header Card -->
-      <div class="header-card">
-        <div class="header-content">
-          <div class="header-title">
-            <div class="header-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <div class="header-text">
-              <h1>Resumo Sabado</h1>
-              <p><strong>{{ sabado.data|date:"d/m/Y" }}</strong> &mdash; {{ sabado.tema }}</p>
-            </div>
-          </div>
-
-          <form method="get" class="select-wrapper">
-            <label for="sabado">Filtrar por sabado:</label>
-            <select id="sabado" name="sabado" class="custom-select" onchange="this.form.submit()">
-              {% for s in sabados %}
-                <option value="{{ s.id }}" {% if s.id == sabado.id %}selected{% endif %}>
-                  {{ s.data|date:"d/m/Y" }} &mdash; {{ s.tema }}
-                </option>
-              {% endfor %}
-            </select>
-            <noscript><button type="submit">Filtrar</button></noscript>
-          </form>
-        </div>
+    {% if not sabado %}
+      <div class="bg-white border border-gray-200 rounded-2xl p-8 text-center mt-8">
+        <p class="text-gray-500">Nenhum sábado cadastrado ainda.</p>
       </div>
+    {% else %}
 
-      <!-- KPI Stats -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon purple">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+      <!-- KPIs -->
+      <div class="rs-kpi-grid">
+        <div class="rs-kpi">
+          <div class="rs-kpi-icon" style="background:#fff7ed">
+            <svg width="20" height="20" fill="none" stroke="#fe8210" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
-          <div class="stat-info">
-            <h3>{{ total_voluntarios }}</h3>
-            <p>Total que vao</p>
+          <div>
+            <div class="rs-kpi-val">{{ total_voluntarios }}</div>
+            <div class="rs-kpi-lbl">Vão ao projeto</div>
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon blue">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div class="rs-kpi">
+          <div class="rs-kpi-icon" style="background:#dbeafe">
+            <svg width="20" height="20" fill="none" stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
           </div>
-          <div class="stat-info">
-            <h3>{{ total_ajudantes }}</h3>
-            <p>Podem ajudar</p>
+          <div>
+            <div class="rs-kpi-val">{{ total_ajudantes }}</div>
+            <div class="rs-kpi-lbl">Podem ajudar</div>
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon orange">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-            </svg>
+        <div class="rs-kpi">
+          <div class="rs-kpi-icon" style="background:#d1fae5">
+            <svg width="20" height="20" fill="none" stroke="#059669" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </div>
-          <div class="stat-info">
-            <h3>{{ total_carro }}</h3>
-            <p>Vao de carro</p>
-            <div class="stat-sub">nao: {{ total_nao_carro }} &middot; n/resp: {{ total_carro_nao_resp }}</div>
+          <div>
+            <div class="rs-kpi-val">{{ saude.ok.total }}</div>
+            <div class="rs-kpi-lbl">Saúde OK</div>
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon green">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div class="rs-kpi">
+          <div class="rs-kpi-icon" style="background:#fef3c7">
+            <svg width="20" height="20" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v5a2 2 0 01-2 2h-2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
           </div>
-          <div class="stat-info">
-            <h3>{{ saude.ok.total }}</h3>
-            <p>Saude OK</p>
-            <div class="stat-sub">nao ok: {{ saude.nao_ok.total }} &middot; n/resp: {{ saude.nao_resp.total }}</div>
+          <div>
+            <div class="rs-kpi-val">{{ total_carro }}</div>
+            <div class="rs-kpi-lbl">Vão de carro</div>
+            <div class="rs-kpi-sub">não: {{ total_nao_carro }}</div>
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon red">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div class="rs-kpi">
+          <div class="rs-kpi-icon" style="background:#fee2e2">
+            <svg width="20" height="20" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
-          <div class="stat-info">
-            <h3>{{ total_nao_responderam }}</h3>
-            <p>Nao responderam</p>
+          <div>
+            <div class="rs-kpi-val">{{ total_nao_responderam }}</div>
+            <div class="rs-kpi-lbl">Sem resposta</div>
           </div>
         </div>
       </div>
 
-      <!-- Alert Cards -->
-      <div class="alerts-container">
+      <!-- Alertas -->
+      {% if saude.nao_ok.total > 0 or saude.nao_resp.total > 0 or total_carro_nao_resp > 0 %}
+      <div class="rs-alerts">
         {% if saude.nao_ok.total > 0 %}
-          <div class="alert-card danger">
-            <div class="alert-icon danger">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <span class="alert-text"><strong>Atencao:</strong> {{ saude.nao_ok.total }} voluntario(s) com saude NAO OK.</span>
+          <div class="rs-alert danger">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            <strong>{{ saude.nao_ok.total }}</strong>&nbsp;voluntário(s) com saúde não OK neste sábado.
           </div>
         {% endif %}
         {% if saude.nao_resp.total > 0 %}
-          <div class="alert-card warning">
-            <div class="alert-icon warning">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span class="alert-text"><strong>Pendente:</strong> {{ saude.nao_resp.total }} nao responderam saude.</span>
+          <div class="rs-alert warning">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <strong>{{ saude.nao_resp.total }}</strong>&nbsp;voluntário(s) não responderam sobre saúde.
           </div>
         {% endif %}
         {% if total_carro_nao_resp > 0 %}
-          <div class="alert-card warning">
-            <div class="alert-icon warning">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-            </div>
-            <span class="alert-text"><strong>Pendente:</strong> {{ total_carro_nao_resp }} nao responderam se vao de carro.</span>
+          <div class="rs-alert warning">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <strong>{{ total_carro_nao_resp }}</strong>&nbsp;voluntário(s) não responderam sobre carona.
           </div>
         {% endif %}
       </div>
+      {% endif %}
 
-      <!-- Sections Grid -->
-      <div class="sections-grid">
+      <!-- Grid de seções -->
+      <div class="rs-grid">
 
-        <!-- Voluntarios por Area -->
-        <div class="section-card">
-          <div class="section-header">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            <h2>Voluntarios por area</h2>
+        <!-- Voluntários por área -->
+        <div class="rs-card">
+          <div class="rs-card-head orange">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Voluntários por Área
           </div>
-          <div class="section-body">
+          <div class="rs-card-body">
             {% for a in por_area_lista %}
-              <div class="list-item">
-                <span class="list-item-name">{{ a.nome }}</span>
-                <span class="list-item-badge">{{ a.total }}</span>
-              </div>
+            <div class="rs-list-item">
+              <span class="font-medium text-sm">{{ a.nome }}</span>
+              <span class="rs-badge {% if a.total > 0 %}orange{% else %}muted{% endif %}">{{ a.total }}</span>
+            </div>
             {% endfor %}
           </div>
         </div>
 
-        <!-- Alimentacao -->
-        <div class="section-card">
-          <div class="section-header green">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
-            </svg>
-            <h2>Alimentacao</h2>
+        <!-- Alimentação -->
+        <div class="rs-card">
+          <div class="rs-card-head green">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+            Alimentação
           </div>
-          <div class="section-body">
+          <div class="rs-card-body">
             {% for x in alimentacao_lista %}
-              <div class="list-item">
-                <span class="list-item-name">{{ x.nome }}</span>
-                <span class="list-item-badge">{{ x.total }}</span>
-              </div>
+            <div class="rs-list-item">
+              <span class="font-medium text-sm">{{ x.nome }}</span>
+              <span class="rs-badge {% if x.total > 0 %}orange{% else %}muted{% endif %}">{{ x.total }}</span>
+            </div>
             {% endfor %}
-            <div class="list-item">
-              <span class="list-item-name">Nao preenchido</span>
-              <span class="list-item-badge muted">{{ alimentacao_nao_preenchido }}</span>
+            <div class="rs-list-item">
+              <span class="text-sm text-gray-400">Não preenchido</span>
+              <span class="rs-badge muted">{{ alimentacao_nao_preenchido }}</span>
             </div>
           </div>
         </div>
 
-        <!-- Saude -->
-        <div class="section-card">
-          <div class="section-header blue">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-            <h2>Saude (quem vai ao projeto)</h2>
+        <!-- Saúde -->
+        <div class="rs-card">
+          <div class="rs-card-head blue">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+            Saúde
           </div>
-          <div class="section-body">
-            <div class="accordion-group">
+          <div class="rs-card-body">
+            <div class="rs-accordion">
 
-              <details class="accordion-item" open>
-                <summary class="accordion-summary">
-                  <span>&#x2705; Saude OK</span>
-                  <span class="accordion-badge">{{ saude.ok.total }}</span>
-                  <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
+              <details class="rs-details" open>
+                <summary class="rs-summary">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  Saúde OK
+                  <span class="rs-acc-badge">{{ saude.ok.total }}</span>
+                  <svg class="rs-acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
                 </summary>
-                <div class="accordion-body">
+                <div class="rs-acc-body">
                   <ul>
                     {% for v in saude.ok.voluntarios %}
-                      <li><span class="person-dot ok"></span> {{ v }}</li>
+                      <li><span class="rs-dot ok"></span>{{ v.get_full_name|default:v.username }}</li>
                     {% empty %}
-                      <li class="empty-msg">Ninguem marcado como OK.</li>
+                      <li class="rs-empty">Nenhum marcado como OK.</li>
                     {% endfor %}
                   </ul>
                 </div>
               </details>
 
-              <details class="accordion-item">
-                <summary class="accordion-summary">
-                  <span>&#x26A0;&#xFE0F; Saude NAO OK</span>
-                  <span class="accordion-badge">{{ saude.nao_ok.total }}</span>
-                  <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
+              {% if pode_ver_saude_nao_ok %}
+              <details class="rs-details">
+                <summary class="rs-summary">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                  Saúde NÃO OK
+                  <span class="rs-acc-badge">{{ saude.nao_ok.total }}</span>
+                  <svg class="rs-acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
                 </summary>
-                <div class="accordion-body">
+                <div class="rs-acc-body">
                   <ul>
                     {% for v in saude.nao_ok.voluntarios %}
-                      <li><span class="person-dot nok"></span> {{ v }}</li>
+                      <li><span class="rs-dot nok"></span>{{ v.get_full_name|default:v.username }}</li>
                     {% empty %}
-                      <li class="empty-msg">Ninguem marcado como NAO OK.</li>
+                      <li class="rs-empty">Ninguém marcado como não OK.</li>
                     {% endfor %}
                   </ul>
                 </div>
               </details>
+              {% endif %}
 
-              <details class="accordion-item">
-                <summary class="accordion-summary">
-                  <span>&#x2753; Nao respondeu</span>
-                  <span class="accordion-badge">{{ saude.nao_resp.total }}</span>
-                  <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
+              <details class="rs-details">
+                <summary class="rs-summary">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Não respondeu
+                  <span class="rs-acc-badge">{{ saude.nao_resp.total }}</span>
+                  <svg class="rs-acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
                 </summary>
-                <div class="accordion-body">
+                <div class="rs-acc-body">
                   <ul>
                     {% for v in saude.nao_resp.voluntarios %}
-                      <li><span class="person-dot pending"></span> {{ v }}</li>
+                      <li><span class="rs-dot pend"></span>{{ v.get_full_name|default:v.username }}</li>
                     {% empty %}
-                      <li class="empty-msg">Todos responderam.</li>
+                      <li class="rs-empty">Todos responderam.</li>
                     {% endfor %}
                   </ul>
                 </div>
@@ -875,89 +385,90 @@
         </div>
 
         <!-- Quem pode ajudar por faixa -->
-        <div class="section-card">
-          <div class="section-header orange">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h2>Quem pode ajudar (por faixa)</h2>
+        <div class="rs-card">
+          <div class="rs-card-head amber">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Pode Ajudar (por faixa)
           </div>
-          <div class="section-body">
-            <div class="accordion-group">
+          <div class="rs-card-body">
+            <div class="rs-accordion">
               {% for c in faixa_cards %}
-                <details class="accordion-item">
-                  <summary class="accordion-summary">
-                    <span>{{ c.faixa.descricao }}</span>
-                    <span class="accordion-badge">{{ c.total }}</span>
-                    <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </summary>
-                  <div class="accordion-body">
-                    <ul>
-                      {% for v in c.voluntarios %}
-                        <li><span class="person-dot default"></span> {{ v }}</li>
-                      {% empty %}
-                        <li class="empty-msg">Ninguem marcou essa faixa.</li>
-                      {% endfor %}
-                    </ul>
-                  </div>
-                </details>
+              <details class="rs-details">
+                <summary class="rs-summary">
+                  {{ c.faixa.descricao }}
+                  <span class="rs-acc-badge">{{ c.total }}</span>
+                  <svg class="rs-acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="rs-acc-body">
+                  <ul>
+                    {% for v in c.voluntarios %}
+                      <li><span class="rs-dot def"></span>{{ v.get_full_name|default:v.username }}</li>
+                    {% empty %}
+                      <li class="rs-empty">Ninguém marcou essa faixa.</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </details>
+              {% empty %}
+                <p class="text-sm text-gray-400 italic">Nenhuma faixa cadastrada.</p>
               {% endfor %}
             </div>
           </div>
         </div>
 
-        <!-- Talentos dos Ajudantes -->
-        <div class="section-card">
-          <div class="section-header red">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-            </svg>
-            <h2>Talentos dos ajudantes</h2>
+        <!-- Talentos dos ajudantes -->
+        <div class="rs-card">
+          <div class="rs-card-head rose">
+            <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            Talentos dos Ajudantes
           </div>
-          <div class="section-body">
+          <div class="rs-card-body">
             {% if talentos_cards %}
-              <div class="accordion-group">
-                {% for t in talentos_cards %}
-                  <details class="accordion-item">
-                    <summary class="accordion-summary">
-                      <span>{{ t.talento }}</span>
-                      <span class="accordion-badge">{{ t.total }}</span>
-                      <svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </summary>
-                    <div class="accordion-body">
-                      <ul>
-                        {% for v in t.voluntarios %}
-                          <li><span class="person-dot default"></span> {{ v }}</li>
-                        {% endfor %}
-                      </ul>
-                    </div>
-                  </details>
-                {% endfor %}
-              </div>
+            <div class="rs-accordion">
+              {% for t in talentos_cards %}
+              <details class="rs-details">
+                <summary class="rs-summary">
+                  {{ t.talento }}
+                  <span class="rs-acc-badge">{{ t.total }}</span>
+                  <svg class="rs-acc-chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="rs-acc-body">
+                  <ul>
+                    {% for v in t.voluntarios %}
+                      <li><span class="rs-dot def"></span>{{ v.get_full_name|default:v.username }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </details>
+              {% endfor %}
+            </div>
             {% else %}
-              <p style="color: var(--text-light); font-style: italic; font-size: 0.9rem;">Ninguem marcou faixa de ajuda (ou ninguem tem talentos cadastrados).</p>
+              <p class="text-sm text-gray-400 italic">Ninguém marcou faixa de ajuda ou não há talentos cadastrados.</p>
             {% endif %}
           </div>
         </div>
 
+      </div><!-- /rs-grid -->
+
+      <!-- Rodapé -->
+      <div class="flex items-center justify-between mt-8 pt-5 border-t border-gray-200">
+        <a href="{% url 'inicio' %}"
+           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200
+                  bg-white text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          Voltar ao início
+        </a>
+        {% if sabado.enquete_aberta %}
+        <a href="{% url 'sabado:responder_disponibilidade' sabado.pk %}"
+           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm text-white transition-all"
+           style="background:linear-gradient(135deg,#c75f06,#fe8210);box-shadow:0 4px 12px rgba(254,130,16,.3)">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Responder formulário
+        </a>
+        {% endif %}
       </div>
 
     {% endif %}
-
-  </div>
-  <div class="actions-container">
-    <a class="btn-back" href="/inicio/">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-      </svg>
-        Voltar
-    </a>
   </div>
 </div>
-
-</body>
-</html>
+{% endblock %}
