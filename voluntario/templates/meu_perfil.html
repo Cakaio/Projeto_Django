@@ -5,106 +5,72 @@
 
 {% block head %}
 <style>
-  /* Garante que os campos gerados pelo Django herdem o estilo correto */
+  /* Campos Django → herdam estilo Tailwind */
   .tw-input input, .tw-input select, .tw-input textarea {
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid hsl(var(--border));
-    border-radius: calc(var(--radius) - 2px);
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: hsl(var(--foreground));
-    background-color: hsl(var(--background));
-    box-sizing: border-box;
-    transition: box-shadow 0.15s, border-color 0.15s;
-    outline: none;
+    width: 100%; padding: .5rem .75rem;
+    border: 1px solid #e5e7eb; border-radius: .5rem;
+    font-size: .875rem; color: #111827; background: #fff;
+    box-sizing: border-box; outline: none;
+    transition: border-color .15s, box-shadow .15s;
   }
   .tw-input input:focus, .tw-input select:focus, .tw-input textarea:focus {
-    border-color: hsl(var(--ring));
-    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.15);
+    border-color: #fe8210; box-shadow: 0 0 0 3px rgba(254,130,16,.15);
   }
   .tw-input input:disabled, .tw-input select:disabled {
-    background-color: hsl(var(--muted));
-    color: hsl(var(--muted-foreground));
-    cursor: not-allowed;
-    opacity: 1;
+    background: #f3f4f6; color: #9ca3af; cursor: not-allowed;
   }
   .tw-input textarea { resize: vertical; min-height: 80px; }
-  .tw-input label {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: hsl(var(--foreground));
-    margin-bottom: 0.35rem;
-  }
+  .tw-input label { display: block; font-size: .875rem; font-weight: 500; color: #374151; margin-bottom: .35rem; }
 
-  /* Switch toggle */
-  .tw-switch { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0; cursor: pointer; }
+  /* Switch */
+  .tw-switch { display: flex; align-items: center; gap: .6rem; padding: .5rem 0; cursor: pointer; }
   .tw-switch input[type="checkbox"] { display: none; }
   .tw-track {
     width: 42px; height: 24px; border-radius: 9999px;
-    background: hsl(var(--muted-foreground) / 0.3);
-    position: relative; flex-shrink: 0;
-    transition: background 0.2s; cursor: pointer;
+    background: #d1d5db; position: relative; flex-shrink: 0; transition: background .2s;
   }
   .tw-track::after {
     content: ''; position: absolute; top: 3px; left: 3px;
     width: 18px; height: 18px; border-radius: 50%;
-    background: #fff; transition: transform 0.2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2);
   }
-  .tw-switch input:checked ~ .tw-track { background: hsl(var(--primary)); }
+  .tw-switch input:checked ~ .tw-track { background: #111827; }
   .tw-switch input:checked ~ .tw-track::after { transform: translateX(18px); }
 
-  /* Tabs underline */
-  .tw-tab { border-bottom: 2px solid transparent; }
-  .tw-tab.active { border-bottom-color: hsl(var(--foreground)); color: hsl(var(--foreground)); }
-
-  /* Occ bar */
-  .occ-bar-bg { height: 6px; border-radius: 3px; background: hsl(var(--border)); overflow: hidden; }
-  .occ-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
-
-  /* shadcn-style page bg */
-  .page-bg { background: hsl(var(--muted)); min-height: calc(100vh - 70px); }
+  /* Tabs */
+  .tw-tab { border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tw-tab.active { border-bottom-color: #111827; color: #111827; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-bg py-8 px-4">
+<div class="min-h-screen bg-gray-100 py-6 px-4 sm:px-6">
   <div class="max-w-3xl mx-auto">
 
     <!-- Page header -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-semibold tracking-tight text-foreground">Configurações de Conta</h1>
-      <p class="text-sm text-muted-foreground mt-1">Gerencie suas informações pessoais e preferências</p>
+    <div class="mb-5">
+      <h1 class="text-xl sm:text-2xl font-semibold text-gray-900 tracking-tight">Configurações de Conta</h1>
+      <p class="text-sm text-gray-500 mt-1">Gerencie suas informações pessoais e preferências</p>
     </div>
 
-    <!-- Tabs nav -->
-    <div class="flex border-b border-border mb-6 gap-0">
-      <button class="tw-tab active px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors -mb-px bg-transparent border-0 flex items-center gap-2 cursor-pointer" data-tab="perfil">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-        Perfil
-      </button>
-      <button class="tw-tab px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors -mb-px bg-transparent border-0 flex items-center gap-2 cursor-pointer" data-tab="seguranca">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Segurança
-      </button>
-      <button class="tw-tab px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors -mb-px bg-transparent border-0 flex items-center gap-2 cursor-pointer" data-tab="ocorrencias">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Ocorrências
-      </button>
+    <!-- Tabs nav (scroll horizontal no mobile) -->
+    <div class="overflow-x-auto -mx-4 sm:mx-0 mb-6">
+      <div class="flex border-b border-gray-200 px-4 sm:px-0 min-w-max sm:min-w-0">
+        <button class="tw-tab active px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors -mb-px bg-transparent border-0 flex items-center gap-2 cursor-pointer" data-tab="perfil">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Perfil
+        </button>
+        <button class="tw-tab px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors -mb-px bg-transparent border-0 flex items-center gap-2 cursor-pointer" data-tab="seguranca">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Segurança
+        </button>
+        <button class="tw-tab px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors -mb-px bg-transparent border-0 flex items-center gap-2 cursor-pointer" data-tab="ocorrencias">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Ocorrências
+        </button>
+      </div>
     </div>
 
-    <!-- Flash messages -->
-    {% if messages %}
-      {% for msg in messages %}
-        <div class="mb-4 px-4 py-3 rounded-lg text-sm font-medium
-          {% if 'success' in msg.tags %}bg-green-50 text-green-700 border border-green-200
-          {% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
-          {{ msg }}
-        </div>
-      {% endfor %}
-    {% endif %}
 
     <!-- ══════════════ PANE: PERFIL ══════════════ -->
     <div id="pane-perfil">
@@ -159,7 +125,7 @@
             <p class="text-sm text-muted-foreground mt-0.5">Seus dados básicos de identificação</p>
           </div>
           <div class="px-6 py-5">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="tw-input">{{ form.first_name.label_tag }}{{ form.first_name }}</div>
               <div class="tw-input">{{ form.last_name.label_tag }}{{ form.last_name }}</div>
               <div class="tw-input">{{ form.apelido.label_tag }}{{ form.apelido }}</div>
@@ -186,7 +152,7 @@
             <p class="text-sm text-muted-foreground mt-0.5">E-mails, redes sociais e endereço</p>
           </div>
           <div class="px-6 py-5">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="tw-input">{{ form.email.label_tag }}{{ form.email }}</div>
               <div class="tw-input">{{ form.email_alternativo.label_tag }}{{ form.email_alternativo }}</div>
               <div class="tw-input">{{ form.instagram.label_tag }}{{ form.instagram }}</div>
@@ -209,7 +175,7 @@
             <p class="text-sm text-muted-foreground mt-0.5">Dados da faculdade e USP</p>
           </div>
           <div class="px-6 py-5">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="tw-input">{{ form.email_usp.label_tag }}{{ form.email_usp }}</div>
               <div class="tw-input">{{ form.n_usp.label_tag }}{{ form.n_usp }}</div>
               <div class="tw-input">{{ form.faculdade.label_tag }}{{ form.faculdade }}</div>
@@ -232,7 +198,7 @@
             <p class="text-sm text-muted-foreground mt-0.5">Dados sobre trabalho e empresa</p>
           </div>
           <div class="px-6 py-5">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p class="text-sm font-medium text-foreground mb-2">Trabalha atualmente</p>
                 <label class="tw-switch">
@@ -259,7 +225,7 @@
             <p class="text-sm text-muted-foreground mt-0.5">Restrições alimentares, alergias e medicações</p>
           </div>
           <div class="px-6 py-5">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="tw-input">{{ form.restricao_alimentar.label_tag }}{{ form.restricao_alimentar }}</div>
               <div class="tw-input">{{ form.alimentacao.label_tag }}{{ form.alimentacao }}</div>
               <div class="tw-input">{{ form.comida_favorita.label_tag }}{{ form.comida_favorita }}</div>
@@ -299,7 +265,7 @@
             <p class="text-sm text-muted-foreground mt-0.5">Campos gerenciados pela administração — somente leitura</p>
           </div>
           <div class="px-6 py-5">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="tw-input">
                 {{ form.username.label_tag }}
                 {{ form.username }}
@@ -353,7 +319,7 @@
       {% endif %}
 
       <!-- Stats grid -->
-      <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="grid grid-cols-3 sm:grid-cols-3 gap-3 mb-4">
 
         <!-- Alertas -->
         <div class="bg-card border border-border rounded-lg shadow-sm p-4">
@@ -449,7 +415,7 @@
     </div><!-- /pane-ocorrencias -->
 
   </div><!-- /max-w-3xl -->
-</div><!-- /page-bg -->
+</div><!-- /min-h-screen -->
 
 <script>
   /* ── Tabs ── */

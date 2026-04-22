@@ -748,19 +748,6 @@
       </div>
     </div>
 
-    <!-- Messages -->
-    {% if messages %}
-      <div class="messages-container">
-        {% for message in messages %}
-          <div class="message">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
 
     {% if not sabado %}
       <!-- Empty State -->
@@ -974,5 +961,25 @@
 
     {% endif %}
   </div>
+
+  <!-- Toast container -->
+  <div id="toast-container" style="position:fixed;top:4.5rem;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;align-items:center;gap:.625rem;pointer-events:none;width:100%;max-width:420px;padding:0 1rem;"></div>
+
+  {% if messages %}
+  <div id="django-messages" hidden>
+    {% for message in messages %}
+    <span data-tags="{{ message.tags }}">{{ message }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <style>
+    @keyframes toastIn { from{opacity:0;transform:translateY(-10px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+  </style>
+  <script>
+    function showToast(text,tags){const c=document.getElementById('toast-container');if(!c)return;const e=tags&&(tags.includes('error')||tags.includes('danger')),w=tags&&tags.includes('warning');const cl=e?{bg:'#fef2f2',border:'#fecaca',icon:'#dc2626',iconBg:'#fee2e2',text:'#991b1b'}:w?{bg:'#fffbeb',border:'#fde68a',icon:'#d97706',iconBg:'#fef3c7',text:'#92400e'}:{bg:'#f0fdf4',border:'#bbf7d0',icon:'#16a34a',iconBg:'#dcfce7',text:'#166534'};const svg=e?`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`:w?`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>`:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;const t=document.createElement('div');t.style.cssText=`display:flex;align-items:flex-start;gap:.75rem;background:${cl.bg};border:1.5px solid ${cl.border};border-radius:.875rem;padding:.875rem 1rem;box-shadow:0 4px 20px rgba(0,0,0,.12);pointer-events:all;animation:toastIn .25s cubic-bezier(.34,1.56,.64,1) both;transition:opacity .3s,transform .3s;`;t.innerHTML=`<div style="width:30px;height:30px;border-radius:.5rem;background:${cl.iconBg};color:${cl.icon};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${svg}</div><p style="flex:1;font-size:.875rem;font-weight:500;color:${cl.text};margin:0;padding-top:.15rem;line-height:1.45;">${text}</p><button onclick="dismissToast(this.parentElement)" style="background:none;border:none;cursor:pointer;padding:.1rem;color:${cl.icon};opacity:.6;flex-shrink:0;"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;c.appendChild(t);setTimeout(()=>dismissToast(t),5000);}
+    function dismissToast(el){if(!el||el._d)return;el._d=true;el.style.opacity='0';el.style.transform='translateX(1rem)';setTimeout(()=>el.remove(),300);}
+    document.addEventListener('DOMContentLoaded',function(){const w=document.getElementById('django-messages');if(!w)return;w.querySelectorAll('span[data-tags]').forEach(el=>showToast(el.textContent.trim(),el.dataset.tags));});
+  </script>
 </body>
 </html>

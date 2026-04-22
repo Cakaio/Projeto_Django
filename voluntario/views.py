@@ -439,14 +439,33 @@ def deletar_ocorrencia(request, ocorrencia_id):
     })
 
 
-EMAIL_TESTE_FALLBACK = 'viniciusgbasilio@gmail.com'
-
 def _enviar_email_ocorrencia(advertido, tipo, automatico=False, regra=None):
     import logging
     from decouple import config as env_config
+    from django.core.mail import get_connection
     logger = logging.getLogger(__name__)
-    email_dest = advertido.email or getattr(advertido, 'email_alternativo', None) or EMAIL_TESTE_FALLBACK
-    from_email = env_config('EMAIL_DISPARO_ADVERTENCIAS', default=settings.DEFAULT_FROM_EMAIL)
+    email_dest = advertido.email or getattr(advertido, 'email_alternativo', None)
+    if not email_dest:
+        logger.warning(f'[SAAs] Voluntario {advertido.username} sem email — notificacao nao enviada.')
+        return
+
+    gt_user     = env_config('EMAIL_GT',       default=None)
+    gt_password = env_config('SENHA_EMAIL_GT', default=None)
+
+    if gt_user and gt_password:
+        from_email = gt_user
+        connection = get_connection(
+            backend='django.core.mail.backends.smtp.EmailBackend',
+            host='smtp.gmail.com',
+            port=587,
+            username=gt_user,
+            password=gt_password,
+            use_tls=True,
+            fail_silently=False,
+        )
+    else:
+        from_email = env_config('EMAIL_DISPARO_ADVERTENCIAS', default=settings.DEFAULT_FROM_EMAIL)
+        connection = None
 
     from datetime import date
     MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
@@ -514,7 +533,7 @@ def _enviar_email_ocorrencia(advertido, tipo, automatico=False, regra=None):
     )
 
     try:
-        msg = EmailMultiAlternatives(assunto, txt, from_email, [email_dest])
+        msg = EmailMultiAlternatives(assunto, txt, from_email, [email_dest], connection=connection)
         msg.attach_alternative(html, 'text/html')
         msg.send(fail_silently=False)
         logger.info(f'[SAAs] Email enviado para {email_dest} — tipo={tipo}')

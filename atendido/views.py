@@ -42,7 +42,6 @@ class AtendidoView(LoginRequiredMixin, TemplateView):
     template_name = "atendido_view.html"
 
 
-# ✅ view protegida com login
 @login_required(login_url="/")
 def RegistrarPresencasAtendidos(request):
     hoje = localdate()
@@ -50,55 +49,53 @@ def RegistrarPresencasAtendidos(request):
         "VIOLETA", "ANIL", "AZUL", "VERDE", "AMARELO", "LARANJA", "VERMELHO", "FAMILIA_FELIZ", "ADM/FIN", "TRIADE"
     ]
 
-    # Impede registro se usuário não tem área definida
-
     if not hasattr(request.user, 'area') or not request.user.area:
-        messages.error(request, "❌ Você não pode registrar presença sem ter uma área definida no cadastro.")
+        messages.error(request, "Você não pode registrar presença sem ter uma área definida no cadastro.")
         return redirect("inicio")
     if request.user.area not in AREAS_PERMITIDAS:
-        messages.error(request, "❌ Você não pode registrar presença. Sua área não tem permissão para este registro.")
+        messages.error(request, "Você não pode registrar presença. Sua área não tem permissão para este registro.")
         return redirect("inicio")
 
-    # Busca o sábado cadastrado para hoje (data exata)
     sabado_obj = Sabado.objects.filter(data=hoje).first()
     if not sabado_obj:
-        messages.warning(request, "Não existe sábado cadastrado para hoje. O registro de presenças só é permitido no sábado cadastrado.")
         return render(request, "presencas_atendidos.html", {"atendidos": [], "salas": LISTA_SALAS, "sabado_data": None, "hoje": hoje})
 
-    atendidos = Atendido.objects.filter(sala__in=AREAS_PERMITIDAS).exclude(
+    # Todos os atendidos ainda sem registro neste sábado
+    atendidos = Atendido.objects.filter(sala__in=[c for c, _ in LISTA_SALAS]).exclude(
         presencas__data=sabado_obj
-    ).order_by("nome")
+    ).order_by("sala", "nome")
 
     if request.method == "POST":
         registros_criados = 0
-        for atendido in atendidos:
+        for atendido in Atendido.objects.filter(sala__in=[c for c, _ in LISTA_SALAS]).exclude(presencas__data=sabado_obj):
             presenca = request.POST.get(f"presenca_{atendido.id}")
-            if presenca:
+            if presenca in ("PRESENTE", "AUSENTE", "JUSTIFICADA"):
                 PresencaAtendido.objects.create(
                     atendido=atendido,
                     presenca=presenca,
                     data=sabado_obj,
-                    registrado_por=request.user
+                    registrado_por=request.user,
                 )
                 registros_criados += 1
-        if registros_criados > 0:
-            messages.success(request, f"✅ {registros_criados} presenças salvas com sucesso!")
+        if registros_criados:
+            messages.success(request, f"{registros_criados} presenças salvas com sucesso!")
         else:
-            messages.warning(request, "⚠️ Nenhuma presença selecionada.")
-        atendidos = Atendido.objects.filter(sala__in=AREAS_PERMITIDAS).exclude(
-            presencas__data=sabado_obj
-        ).order_by("nome")
+            messages.warning(request, "Nenhuma presença selecionada.")
+        return redirect(request.path)
 
-    # Para debug: lista todos os sábados cadastrados
-    sabados_cadastrados = Sabado.objects.all().order_by('data')
+    # Agrupa atendidos por sala para o template
+    atendidos_list = list(atendidos)
+    salas_com_atendidos = []
+    for codigo, nome in LISTA_SALAS:
+        grupo = [a for a in atendidos_list if a.sala == codigo]
+        if grupo:
+            salas_com_atendidos.append({"codigo": codigo, "nome": nome, "atendidos": grupo})
+
     contexto = {
-        "atendidos": atendidos,
-        "salas": LISTA_SALAS,
+        "atendidos": atendidos_list,
+        "salas_com_atendidos": salas_com_atendidos,
         "sabado_data": sabado_obj.data,
         "hoje": hoje,
-        "sabados_cadastrados": sabados_cadastrados,
-        "sabado_encontrado": sabado_obj is not None,
-        "hoje_repr": repr(hoje),
     }
     return render(request, "presencas_atendidos.html", contexto)
 
