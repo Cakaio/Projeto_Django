@@ -123,7 +123,9 @@ class SemanarioView(LoginRequiredMixin, TemplateView):
 
 def editar_semanario(request, semanario_id):
     semanario = get_object_or_404(Semanario, id=semanario_id)
-    AtividadeFormSet = modelformset_factory(Atividade, form=AtividadeForm, extra=0, can_delete=False)
+    existing_count = semanario.atividades.count()
+    extras = max(0, 5 - existing_count)
+    AtividadeFormSet = modelformset_factory(Atividade, form=AtividadeForm, extra=extras, can_delete=False)
 
     # Verificar permissão de edição com base na sala do usuário
     if request.user.area != semanario.sala:
