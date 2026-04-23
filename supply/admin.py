@@ -2,7 +2,7 @@ from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 from import_export.formats import base_formats
 from import_export import resources
-from .models import Item, Movimentacao
+from .models import Item, Movimentacao, Pedido
 
 
 class ItemResource(resources.ModelResource):
@@ -56,3 +56,35 @@ class MovimentacaoAdmin(ImportExportModelAdmin):
         queryset = super().get_export_queryset(request)
         cl = self.get_changelist_instance(request)
         return cl.get_queryset(request)
+
+@admin.register(Pedido)
+class PedidoAdmin(admin.ModelAdmin):
+    list_display = (
+        "nome",
+        "quantidade",
+        "unidade",
+        "valor",
+        "tipo_local",
+        "local_compra",
+        "requisitado_por",
+        "sabado",
+        "area",
+    )
+
+    list_filter = (
+        "unidade",
+        "tipo_local",
+        "sabado",
+        "area",
+    )
+
+    search_fields = (
+        "nome",
+        "local_compra",
+        "requisitado_por__username",
+    )
+
+
+
+    ordering = ("-id",)
+    list_per_page = 20

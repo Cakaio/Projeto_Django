@@ -1,6 +1,9 @@
 from django.db import models
 from django.utils import timezone
 
+from semanario.models import PEDIDO, TIPO_LOCAL
+from voluntario.views import LISTA_AREAS
+
 CATEGORIAS = (
     ("PAPELARIA", "Papelaria"),
     ("LIMPEZA", "Limpeza"),
@@ -99,3 +102,18 @@ class Movimentacao(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} - {self.item.nome}: {self.quantidade}"
+
+
+class Pedido(models.Model):
+    nome = models.CharField(max_length=100)
+    quantidade = models.DecimalField(max_digits=6, decimal_places=2, default=1)
+    unidade = models.CharField(max_length=10, choices=UNIDADES, default="UN")
+    valor = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    local_compra = models.CharField(max_length=100, blank=True, null=True)
+    tipo_local = models.CharField(max_length=100, choices=TIPO_LOCAL, blank=True, null=True)
+    requisitado_por = models.ForeignKey("voluntario.Voluntario",on_delete=models.SET_NULL,null=True, blank=True,related_name="pedidos_requisitados")
+    sabado = models.ForeignKey("sabado.Sabado",on_delete=models.SET_NULL,null=True, blank=True,related_name="pedidos_do_sabado",help_text="Sábado relacionado ao pedido")
+    area = models.CharField(max_length=30, choices=LISTA_AREAS, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.nome}"
