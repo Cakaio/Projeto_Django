@@ -75,10 +75,17 @@
               <!-- Membro -->
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                       style="background:rgba(254,130,16,.12);color:#c75f06">
-                    {{ d.voluntario.first_name|slice:":1"|upper }}{{ d.voluntario.last_name|slice:":1"|upper }}
-                  </div>
+                  {% if d.voluntario.foto %}
+                    <img src="{{ d.voluntario.foto.url }}" alt="{{ d.voluntario.get_full_name }}"
+                         class="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                         onclick="abrirFoto('{{ d.voluntario.foto.url }}','{{ d.voluntario.get_full_name|default:d.voluntario.username|escapejs }}')"
+                         title="Ver foto">
+                  {% else %}
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                         style="background:rgba(254,130,16,.12);color:#c75f06">
+                      {{ d.voluntario.first_name|slice:":1"|upper }}{{ d.voluntario.last_name|slice:":1"|upper }}
+                    </div>
+                  {% endif %}
                   <div>
                     <div class="font-600 text-gray-900 leading-tight">{{ d.voluntario.get_full_name|default:d.voluntario.username }}</div>
                     <div class="text-xs text-gray-400">@{{ d.voluntario.username }}</div>
@@ -153,14 +160,16 @@
                       Bloqueado
                     </button>
                   {% else %}
-                    <button onclick="abrirModal('{{ d.voluntario.pk }}','{{ d.voluntario.get_full_name|default:d.voluntario.username|escapejs }}')"
-                      class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-600 transition-all cursor-pointer border-0"
-                      style="background:rgba(254,130,16,.1);color:#c75f06"
-                      onmouseover="this.style.background='#fe8210';this.style.color='#fff'"
-                      onmouseout="this.style.background='rgba(254,130,16,.1)';this.style.color='#c75f06'">
-                      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                      Aplicar
-                    </button>
+                    <div class="btn-aplicar-wrap inline-flex">
+                      <button onclick="abrirModal('{{ d.voluntario.pk }}','{{ d.voluntario.get_full_name|default:d.voluntario.username|escapejs }}')"
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-600 transition-all cursor-pointer border-0"
+                        style="background:rgba(254,130,16,.1);color:#c75f06"
+                        onmouseover="this.style.background='#fe8210';this.style.color='#fff'"
+                        onmouseout="this.style.background='rgba(254,130,16,.1)';this.style.color='#c75f06'">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Aplicar
+                      </button>
+                    </div>
                   {% endif %}
                   <button onclick="abrirHistorico('{{ d.voluntario.pk }}','{{ d.voluntario.get_full_name|default:d.voluntario.username|escapejs }}')"
                     class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-600 bg-white border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-all cursor-pointer">
@@ -203,6 +212,17 @@
 </div>
 
 {% csrf_token %}
+
+<!-- Modal Foto -->
+<div id="fotoModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,.7)">
+  <div class="relative max-w-sm w-full" style="animation:mIn .18s ease;">
+    <button onclick="fecharFoto()" class="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-500 hover:text-gray-800 border-0 cursor-pointer z-10">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <img id="fotoImg" src="" alt="" class="w-full rounded-2xl shadow-2xl object-cover">
+    <p id="fotoNome" class="text-center text-white font-semibold mt-3 text-sm"></p>
+  </div>
+</div>
 
 <!-- Modal Histórico -->
 <div id="historicoModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,.45)">
@@ -329,6 +349,24 @@
   let paginaAtual = 1;
   let visivelList = [];
 
+  /* ── Modal Foto ── */
+  function abrirFoto(url, nome) {
+    document.getElementById('fotoImg').src = url;
+    document.getElementById('fotoImg').alt = nome;
+    document.getElementById('fotoNome').textContent = nome;
+    const m = document.getElementById('fotoModal');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharFoto() {
+    const m = document.getElementById('fotoModal');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('fotoModal').addEventListener('click', e => { if (e.target === e.currentTarget) fecharFoto(); });
+
   /* ── Modais ── */
   function abrirModal(id, nome) {
     document.getElementById('modalId').value = id;
@@ -403,7 +441,8 @@
   function renderPaginacao() {
     const tbody   = document.getElementById('tableBody');
     const agrupar = document.getElementById('groupByArea').checked;
-    const size    = parseInt(document.getElementById('pagSize').value);
+    // Ao agrupar, exibe todos sem paginação para não separar membros da mesma área
+    const size    = agrupar ? 9999 : parseInt(document.getElementById('pagSize').value);
     const total   = visivelList.length;
     const pages   = Math.max(1, Math.ceil(total / size));
     if (paginaAtual > pages) paginaAtual = pages;
@@ -508,12 +547,89 @@
       .then(r => r.json())
       .then(data => {
         if (data.ok) {
-          window.location.reload();
+          // Atualiza o item no modal sem fechar
+          if (histVoluntarioPk) {
+            fetch(`/voluntario/saas/historico/${histVoluntarioPk}/`)
+              .then(r => r.json())
+              .then(d => renderHistorico(d));
+          }
+          // Atualiza a linha da tabela sem reload de página
+          if (histVoluntarioPk) _atualizarLinha(histVoluntarioPk, data);
         } else {
           alert(data.error || 'Erro ao remover ocorrência.');
         }
       })
       .catch(() => alert('Erro ao remover ocorrência.'));
+  }
+
+  function _atualizarLinha(pk, data) {
+    const row = document.querySelector(`tr[data-pk="${pk}"]`);
+    if (!row) return;
+
+    const po = data.periodo_observacao;
+    row.dataset.periodo = po ? '1' : '0';
+    const cells = row.querySelectorAll('td');
+    if (cells.length < 7) return;
+
+    // Célula 3: alertas
+    const alt = data.alertas;
+    if (alt > 0) {
+      cells[3].innerHTML = `<div class="flex items-center gap-2 min-w-24">
+        <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div class="h-full bg-amber-500 rounded-full" style="width:${Math.round(alt/3*100)}%;max-width:100%"></div>
+        </div>
+        <span class="text-xs font-700 text-amber-600 whitespace-nowrap">${alt}/3</span></div>`;
+    } else {
+      cells[3].innerHTML = `<span class="text-xs font-700 text-green-600">0/3</span>`;
+    }
+
+    // Célula 4: advertências
+    const adv = data.advertencias;
+    if (po) {
+      cells[4].innerHTML = `<span class="text-xs font-700 text-red-600">${adv}/3</span>`;
+    } else if (adv > 0) {
+      cells[4].innerHTML = `<div class="flex items-center gap-2 min-w-24">
+        <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div class="h-full bg-red-500 rounded-full" style="width:${Math.round(adv/3*100)}%"></div>
+        </div>
+        <span class="text-xs font-700 text-red-600 whitespace-nowrap">${adv}/3</span></div>`;
+    } else {
+      cells[4].innerHTML = `<span class="text-xs font-700 text-green-600">0/3</span>`;
+    }
+
+    // Célula 5: status
+    if (po) {
+      cells[5].innerHTML = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-700 bg-violet-100 text-violet-700 whitespace-nowrap">
+        <svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Em observação</span>`;
+    } else {
+      cells[5].innerHTML = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-700 bg-green-100 text-green-700 whitespace-nowrap">
+        <svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Regular</span>`;
+    }
+
+    // Célula 6: ação — atualiza botão Aplicar/Bloqueado mantendo o botão Histórico
+    const nomeCel = cells[0].querySelector('.font-600')?.textContent || '';
+    const pkEsc = pk;
+    const nomeEsc = nomeCel.replace(/'/g, "\\'");
+    if (po) {
+      cells[6].querySelector('.btn-aplicar-wrap')?.remove();
+    } else {
+      // garante que o botão aplicar existe e está habilitado
+      let aplicarWrap = cells[6].querySelector('.btn-aplicar-wrap');
+      if (!aplicarWrap) {
+        aplicarWrap = document.createElement('div');
+        aplicarWrap.className = 'btn-aplicar-wrap inline-flex';
+        cells[6].querySelector('.flex').prepend(aplicarWrap);
+      }
+      aplicarWrap.innerHTML = `<button onclick="abrirModal('${pkEsc}','${nomeEsc}')"
+        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-600 transition-all cursor-pointer border-0"
+        style="background:rgba(254,130,16,.1);color:#c75f06"
+        onmouseover="this.style.background='#fe8210';this.style.color='#fff'"
+        onmouseout="this.style.background='rgba(254,130,16,.1)';this.style.color='#c75f06'">
+        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Aplicar</button>`;
+    }
   }
 
   /* ── Init ── */

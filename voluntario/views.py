@@ -134,9 +134,9 @@ class MeuPerfilView(LoginRequiredMixin, UpdateView):
             rem = n % 3
             return 3 if (rem == 0 and n > 0) else rem
 
-        total_alt = Ocorrencia.objects.filter(advertido=user, tipo='ALERTA').count()
-        total_adv = Ocorrencia.objects.filter(advertido=user, tipo='ADVERTENCIA').count()
-        po_direto = Ocorrencia.objects.filter(advertido=user, regra__startswith='PO').exists()
+        total_alt = Ocorrencia.objects.filter(advertido=user, tipo='ALERTA', deleted_at__isnull=True).count()
+        total_adv = Ocorrencia.objects.filter(advertido=user, tipo='ADVERTENCIA', deleted_at__isnull=True).count()
+        po_direto = Ocorrencia.objects.filter(advertido=user, regra__startswith='PO', deleted_at__isnull=True).exists()
         periodo_observacao = po_direto or total_adv >= 3
 
         context['saas_alertas']           = _display(total_alt)
@@ -455,11 +455,20 @@ def deletar_ocorrencia(request, ocorrencia_id):
     total_adv = Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA', deleted_at__isnull=True).count()
     po_direto = Ocorrencia.objects.filter(advertido=advertido, regra__startswith='PO', deleted_at__isnull=True).exists()
     periodo_observacao = po_direto or total_adv >= 3
+
+    def _disp(n):
+        rem = n % 3
+        return 3 if (rem == 0 and n > 0) else rem
+
     return JsonResponse({
         'ok': True,
-        'alertas': total_alt % 3,
-        'advertencias': total_adv if periodo_observacao else total_adv % 3,
+        'alertas': _disp(total_alt),
+        'alertas_raw': total_alt,
+        'advertencias': _disp(total_adv),
+        'advertencias_raw': total_adv,
         'periodo_observacao': periodo_observacao,
+        'deleted_at': ocorrencia.deleted_at.strftime('%d/%m/%Y %H:%M'),
+        'deleted_by': (ocorrencia.deleted_by.get_full_name() or ocorrencia.deleted_by.username) if ocorrencia.deleted_by else None,
     })
 
 
