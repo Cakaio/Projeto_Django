@@ -28,9 +28,29 @@ class ListaAtendido(LoginRequiredMixin, ListView):
     template_name = 'lista_atendidos.html'
     context_object_name = 'atendidos'
 
+    def get_queryset(self):
+        return (
+            Atendido.objects
+            .filter(sala__in=[c for c, _ in LISTA_SALAS])
+            .prefetch_related('responsavel')
+            .order_by('sala', 'nome')
+        )
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["salas"] = LISTA_SALAS
+        atendidos = context['atendidos']
+
+        # Pré-agrupa por sala para evitar O(n²) no template
+        salas_map = {codigo: [] for codigo, _ in LISTA_SALAS}
+        for a in atendidos:
+            if a.sala in salas_map:
+                salas_map[a.sala].append(a)
+
+        context['salas_com_atendidos'] = [
+            {'codigo': codigo, 'nome': nome, 'atendidos': salas_map[codigo]}
+            for codigo, nome in LISTA_SALAS
+        ]
+        context['total_atendidos'] = atendidos.count()
         return context
 
 

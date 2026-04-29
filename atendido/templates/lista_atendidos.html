@@ -5,21 +5,29 @@
 
 {% block content %}
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
   :root {
     --primary: #4f46e5;
     --primary-dark: #4338ca;
     --primary-light: #818cf8;
     --secondary: #7c3aed;
-    --bg-light: #f8fafc;
-    --text-dark: #1e293b;
-    --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --bg: #F9F9F8;
+    --bg-card: #FFFFFF;
+    --fg: #1C1C1A;
+    --fg-muted: #78776F;
+    --border: #E8E8E4;
+    --alert: #D95D39;
+    --alert-10: rgba(217,93,57,0.1);
+    --alert-15: rgba(217,93,57,0.15);
+    --alert-25: rgba(217,93,57,0.25);
+    --primary-10: rgba(79,70,229,0.1);
+    --primary-15: rgba(79,70,229,0.15);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0/.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0/.1),0 2px 4px -2px rgb(0 0 0/.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1);
   }
 
-  /* Hero Section */
+  /* ===== HERO ===== */
   .hero-section {
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     border-radius: 1.5rem;
@@ -28,1370 +36,688 @@
     position: relative;
     overflow: hidden;
   }
-
-  .hero-section::before,
-  .hero-section::after {
+  .hero-section::before, .hero-section::after {
     content: '';
     position: absolute;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255,255,255,.1);
   }
+  .hero-section::before { width:200px;height:200px;top:-50px;right:-50px; }
+  .hero-section::after  { width:150px;height:150px;bottom:-30px;left:-30px; }
+  .hero-title    { color:#fff;font-size:2rem;font-weight:700;margin:0;position:relative;z-index:1; }
+  .hero-subtitle { color:rgba(255,255,255,.85);font-size:1rem;margin-top:.5rem;position:relative;z-index:1; }
 
-  .hero-section::before {
-    width: 200px;
-    height: 200px;
-    top: -50px;
-    right: -50px;
+  /* ===== SEARCH ===== */
+  .search-wrap {
+    display:flex;align-items:center;gap:.75rem;
+    background:#fff;border:1px solid var(--border);border-radius:.75rem;
+    padding:.625rem 1rem;margin-bottom:1.5rem;
+    box-shadow:var(--shadow-sm);
   }
+  .search-wrap input {
+    border:none;outline:none;flex:1;font-size:.9375rem;color:var(--fg);background:transparent;
+    font-family:'Inter',sans-serif;
+  }
+  .search-wrap input::placeholder { color:var(--fg-muted); }
+  #searchCount { font-size:.8125rem;color:var(--fg-muted);white-space:nowrap; }
 
-  .hero-section::after {
-    width: 150px;
-    height: 150px;
-    bottom: -30px;
-    left: -30px;
-  }
-
-  .hero-title {
-    color: white;
-    font-size: 2rem;
-    font-weight: 700;
-    margin: 0;
-    position: relative;
-    z-index: 1;
-  }
-
-  .hero-subtitle {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 1rem;
-    margin-top: 0.5rem;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Accordion Customizado */
-  .custom-accordion {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
+  /* ===== ACCORDION (details/summary) ===== */
+  .custom-accordion { display:flex;flex-direction:column;gap:1rem; }
 
   .sala-card {
-    background: white;
-    border-radius: 1rem;
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
+    background:#fff;border-radius:1rem;border:1px solid var(--border);
+    box-shadow:var(--shadow-md);overflow:hidden;transition:box-shadow .2s;
   }
+  .sala-card:hover { box-shadow:var(--shadow-lg); }
 
-  .sala-card:hover {
-    box-shadow: var(--shadow-lg);
+  .sala-card summary {
+    display:flex;align-items:center;gap:1rem;padding:1.25rem 1.5rem;
+    cursor:pointer;list-style:none;user-select:none;
+    background:#fff;transition:background .2s;
   }
-
-  .sala-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.25rem 1.5rem;
-    background: white;
-    border: none;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.3s ease;
+  .sala-card summary::-webkit-details-marker { display:none; }
+  .sala-card[open] > summary {
+    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
   }
-
-  .sala-header:hover {
-    background: var(--bg-light);
-  }
-
-  .sala-header:not(.collapsed) {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  }
-
-  .sala-header:not(.collapsed) .sala-icon {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-  }
-
-  .sala-header:not(.collapsed) .sala-nome {
-    color: white;
-  }
-
-  .sala-header:not(.collapsed) .sala-arrow {
-    color: white;
-    transform: rotate(180deg);
-  }
+  .sala-card[open] > summary .sala-nome   { color:#fff; }
+  .sala-card[open] > summary .sala-icon   { background:rgba(255,255,255,.2);color:#fff; }
+  .sala-card[open] > summary .sala-arrow  { color:#fff;transform:rotate(180deg); }
+  .sala-card[open] > summary .sala-count  { background:rgba(255,255,255,.2);color:#fff; }
 
   .sala-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    flex-shrink: 0;
-    transition: all 0.3s ease;
+    width:48px;height:48px;border-radius:12px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--primary-light) 0%,var(--primary) 100%);
+    display:flex;align-items:center;justify-content:center;color:#fff;transition:all .2s;
   }
+  .sala-nome  { font-size:1.125rem;font-weight:600;color:var(--fg);flex-grow:1; }
+  .sala-count {
+    font-size:.75rem;font-weight:600;padding:.25rem .625rem;border-radius:9999px;
+    background:var(--primary-10);color:var(--primary);transition:all .2s;
+  }
+  .sala-arrow { color:var(--fg-muted);transition:transform .25s; }
 
-  .sala-nome {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-dark);
-    flex-grow: 1;
-    transition: color 0.3s ease;
-  }
+  .sala-body { padding:1.5rem;background:var(--bg); }
 
-  .sala-arrow {
-    color: var(--text-muted);
-    transition: all 0.3s ease;
-  }
-
-  .sala-body {
-    padding: 1.5rem;
-    background: var(--bg-light);
-  }
-
-  /* Lista de Atendidos */
-  .atendidos-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
+  /* ===== ATENDIDO CARDS ===== */
+  .atendidos-list { display:flex;flex-direction:column;gap:.75rem; }
 
   .atendido-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
+    display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;
+    background:#fff;border-radius:.75rem;border:1px solid var(--border);
+    box-shadow:var(--shadow-sm);transition:all .2s;
   }
-
-  .atendido-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-  }
+  .atendido-card:hover { box-shadow:var(--shadow-md);transform:translateY(-2px); }
+  .atendido-card.hidden-search { display:none !important; }
 
   .atendido-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 1.25rem;
-    flex-shrink: 0;
-    text-transform: uppercase;
+    width:50px;height:50px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:1.25rem;text-transform:uppercase;
   }
-
-  .atendido-info {
-    flex-grow: 1;
-  }
-
-  .atendido-nome {
-    font-weight: 600;
-    color: var(--text-dark);
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-  }
-
+  .atendido-info { flex-grow:1;min-width:0; }
+  .atendido-nome   { font-weight:600;color:var(--fg);font-size:1rem;margin-bottom:.25rem; }
   .atendido-familia {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
+    font-size:.875rem;color:var(--fg-muted);
+    display:flex;align-items:center;gap:.375rem;
   }
 
   .btn-detalhes {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow-sm);
+    display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;
+    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
+    color:#fff;border:none;border-radius:.5rem;font-size:.875rem;font-weight:500;
+    cursor:pointer;transition:all .2s;box-shadow:var(--shadow-sm);white-space:nowrap;
+    font-family:'Inter',sans-serif;
   }
-
-  .btn-detalhes:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    opacity: 0.95;
-  }
+  .btn-detalhes:hover { transform:translateY(-2px);box-shadow:var(--shadow-md);opacity:.95; }
 
   .empty-message {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 2rem;
-    color: var(--text-muted);
-    background: white;
-    border-radius: 0.75rem;
-    border: 2px dashed var(--border-color);
-  }
-  
-  .btn-fechar {
-    padding: 0.625rem 1.5rem;
-    background: var(--bg-light);
-    color: var(--text-dark);
-    border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    display:flex;align-items:center;justify-content:center;gap:.75rem;padding:2rem;
+    color:var(--fg-muted);background:#fff;border-radius:.75rem;border:2px dashed var(--border);
   }
 
-  .btn-fechar:hover {
-    background: var(--border-color);
-  }
-
-  @media (max-width: 768px) {
-    .hero-section {
-      padding: 2rem 1.5rem;
-    }
-
-    .hero-title {
-      font-size: 1.5rem;
-    }
-
-    .atendido-card {
-      flex-direction: column;
-      text-align: center;
-    }
-
-    .btn-detalhes {
-      width: 100%;
-      justify-content: center;
-    }
-  }
-</style>
-
-<style>
-  /* ===== FONTES ===== */
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
-  /* ===== VARIÁVEIS ===== */
-  :root {
-    --bg: #F9F9F8;
-    --bg-card: #FFFFFF;
-    --fg: #1C1C1A;
-    --fg-muted: #78776F;
-    --border: #E8E8E4;
-    --primary: #4f46e5;
-    --primary-10: rgba(74,108,111,0.1);
-    --primary-15: rgba(74,108,111,0.15);
-    --alert: #D95D39;
-    --alert-10: rgba(217,93,57,0.1);
-    --alert-15: rgba(217,93,57,0.15);
-    --alert-25: rgba(217,93,57,0.25);
-    --secondary: #7c3aed;
-  }
-  /* ===== RESET DO MODAL ===== */
+  /* ===== DOSSIER MODAL ===== */
   .dossier-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(28,28,26,0.4);
-    backdrop-filter: blur(4px);
-    font-family: 'Inter', sans-serif;
-    color: var(--fg);
+    position:fixed;inset:0;z-index:9999;display:flex;
+    align-items:center;justify-content:center;
+    background:rgba(28,28,26,.4);backdrop-filter:blur(4px);
+    font-family:'Inter',sans-serif;color:var(--fg);
   }
-  .dossier-overlay * { box-sizing: border-box; margin: 0; padding: 0; }
+  .dossier-overlay * { box-sizing:border-box;margin:0;padding:0; }
   .dossier-container {
-    position: relative;
-    display: flex;
-    width: 94vw;
-    max-width: 1400px;
-    height: 92vh;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-    overflow: hidden;
+    position:relative;display:flex;width:94vw;max-width:1400px;height:92vh;
+    border-radius:8px;border:1px solid var(--border);background:var(--bg);
+    box-shadow:0 25px 50px -12px rgba(0,0,0,.25);overflow:hidden;
   }
-  /* ===== BOTÃO FECHAR ===== */
   .dossier-close {
-    position: absolute;
-    right: 16px;
-    top: 16px;
-    z-index: 10;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: var(--fg-muted);
-    cursor: pointer;
-    transition: all 0.15s;
+    position:absolute;right:16px;top:16px;z-index:10;width:32px;height:32px;
+    display:flex;align-items:center;justify-content:center;
+    border:none;border-radius:4px;background:transparent;color:var(--fg-muted);
+    cursor:pointer;transition:all .15s;
   }
-  .dossier-close:hover {
-    background: var(--secondary);
-    color: var(--fg);
-  }
-  /* ===== PAINEL ESQUERDO ===== */
+  .dossier-close:hover { background:var(--border);color:var(--fg); }
+
   .dossier-sidebar {
-    width: 280px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--border);
-    background: var(--bg-card);
+    width:280px;flex-shrink:0;display:flex;flex-direction:column;
+    border-right:1px solid var(--border);background:var(--bg-card);
   }
-  .dossier-profile {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 32px 24px 16px;
-  }
-  .dossier-photo {
-    width: 128px;
-    height: 128px;
-    border-radius: 50%;
-    border: 2px solid var(--border);
-    object-fit: cover;
-    margin-bottom: 16px;
-  }
-  .dossier-name {
-    font-size: 16px;
-    font-weight: 600;
-    text-align: center;
-    line-height: 1.3;
-    color: var(--fg);
-  }
-  .dossier-age {
-    margin-top: 4px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    color: var(--fg-muted);
-  }
+  .dossier-profile { display:flex;flex-direction:column;align-items:center;padding:32px 24px 16px; }
+  .dossier-photo { width:128px;height:128px;border-radius:50%;border:2px solid var(--border);object-fit:cover;margin-bottom:16px; }
+  .dossier-name  { font-size:16px;font-weight:600;text-align:center;line-height:1.3;color:var(--fg); }
+  .dossier-age   { margin-top:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--fg-muted); }
   .dossier-sala-badge {
-    margin-top: 8px;
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 10px;
-    border-radius: 4px;
-    background: var(--primary-10);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--primary);
+    margin-top:8px;display:inline-flex;align-items:center;padding:4px 10px;
+    border-radius:4px;background:var(--primary-10);font-size:12px;font-weight:500;color:var(--primary);
   }
-  .dossier-matricula {
-    margin-top: 6px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--fg-muted);
-  }
-  /* ===== CARE TAGS ===== */
-  .dossier-care-section {
-    border-top: 1px solid var(--border);
-    padding: 16px;
-  }
-  .dossier-care-title {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: var(--fg-muted);
-    margin-bottom: 8px;
-  }
-  .dossier-care-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+  .dossier-matricula { margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--fg-muted); }
+
+  .dossier-care-section { border-top:1px solid var(--border);padding:16px; }
+  .dossier-care-title   { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.15em;color:var(--fg-muted);margin-bottom:8px; }
+  .dossier-care-tags    { display:flex;flex-wrap:wrap;gap:6px; }
   .care-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    background: var(--alert-15);
-    border: 1px solid var(--alert-25);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--alert);
+    display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;
+    background:var(--alert-15);border:1px solid var(--alert-25);font-size:12px;font-weight:500;color:var(--alert);
   }
-  .care-tag svg {
-    width: 12px;
-    height: 12px;
-    flex-shrink: 0;
-  }
-  /* ===== NAVEGAÇÃO (ABAS) ===== */
-  .dossier-nav {
-    margin-top: auto;
-    border-top: 1px solid var(--border);
-  }
-  .dossier-nav ul {
-    list-style: none;
-    padding: 8px 0;
-  }
+  .care-tag svg { width:12px;height:12px;flex-shrink:0; }
+
+  .dossier-nav { margin-top:auto;border-top:1px solid var(--border); }
+  .dossier-nav ul { list-style:none;padding:8px 0; }
   .dossier-nav button {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 20px;
-    border: none;
-    border-left: 2px solid transparent;
-    background: transparent;
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    color: var(--fg-muted);
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.15s;
+    display:flex;width:100%;align-items:center;gap:10px;padding:10px 20px;
+    border:none;border-left:2px solid transparent;background:transparent;
+    font-family:'Inter',sans-serif;font-size:14px;color:var(--fg-muted);
+    cursor:pointer;text-align:left;transition:all .15s;
   }
-  .dossier-nav button:hover {
-    background: var(--secondary);
-    color: var(--fg);
+  .dossier-nav button:hover { background:var(--bg);color:var(--fg); }
+  .dossier-nav button.active { background:var(--primary-10);color:var(--primary);font-weight:500;border-left-color:var(--primary); }
+  .dossier-nav button svg { width:16px;height:16px;flex-shrink:0; }
+
+  .dossier-content { flex:1;overflow-y:auto;padding:32px 48px; }
+  .dossier-tab { display:none; }
+  .dossier-tab.active { display:block; }
+
+  .section-title { font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--fg-muted);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:16px; }
+  .fields-grid   { display:grid;grid-template-columns:1fr 1fr;gap:16px 32px; }
+  .field.full    { grid-column:1/-1; }
+  .field-label   { font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-muted);margin-bottom:4px; }
+  .field-value   { font-size:14px;color:var(--fg); }
+  .field-value.mono  { font-family:'IBM Plex Mono',monospace; }
+  .field-value.empty { color:var(--fg-muted);font-style:italic; }
+
+  .bool-field { display:flex;align-items:flex-start;gap:8px;margin-bottom:8px; }
+  .bool-icon  { margin-top:2px;width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:4px; }
+  .bool-icon.true       { background:var(--primary-15);color:var(--primary); }
+  .bool-icon.false      { background:#f3f4f6;color:var(--fg-muted); }
+  .bool-icon.alert-true { background:var(--alert-15);color:var(--alert); }
+  .bool-icon svg  { width:14px;height:14px; }
+  .bool-label { font-size:14px;color:var(--fg);line-height:1.4; }
+
+  .responsavel-card { border:1px solid var(--border);border-radius:6px;background:var(--bg-card);padding:16px;margin-bottom:12px; }
+  .responsavel-card .fields-grid { grid-template-columns:1fr 1fr 1fr; }
+  .space-y   > * + * { margin-top:16px; }
+  .space-y-sm > * + * { margin-top:12px; }
+
+  @media (max-width:768px) {
+    .hero-section { padding:2rem 1.5rem; }
+    .hero-title   { font-size:1.5rem; }
+    .atendido-card { flex-direction:column;text-align:center; }
+    .btn-detalhes  { width:100%;justify-content:center; }
+    .dossier-container { flex-direction:column;height:96vh; }
+    .dossier-sidebar   { width:100%;flex-direction:row;flex-wrap:wrap;border-right:none;border-bottom:1px solid var(--border); }
+    .dossier-content   { padding:16px; }
   }
-  .dossier-nav button.active {
-    background: var(--primary-10);
-    color: var(--primary);
-    font-weight: 500;
-    border-left-color: var(--primary);
-  }
-  .dossier-nav button svg {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-  }
-  /* ===== PAINEL DIREITO (CONTEÚDO) ===== */
-  .dossier-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 32px 48px;
-  }
-  .dossier-tab { display: none; }
-  .dossier-tab.active { display: block; }
-  /* ===== COMPONENTES ===== */
-  .section-title {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--fg-muted);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 8px;
-    margin-bottom: 16px;
-  }
-  .fields-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px 32px;
-  }
-  .field.full { grid-column: 1 / -1; }
-  .field-label {
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--fg-muted);
-    margin-bottom: 4px;
-  }
-  .field-value {
-    font-size: 14px;
-    color: var(--fg);
-  }
-  .field-value.mono {
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  .field-value.empty {
-    color: var(--fg-muted);
-    font-style: italic;
-  }
-  /* Boolean fields */
-  .bool-field {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-  .bool-icon {
-    margin-top: 2px;
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-  }
-  .bool-icon.true { background: var(--primary-15); color: var(--primary); }
-  .bool-icon.false { background: var(--secondary); color: var(--fg-muted); }
-  .bool-icon.alert-true { background: var(--alert-15); color: var(--alert); }
-  .bool-icon svg { width: 14px; height: 14px; }
-  .bool-label {
-    font-size: 14px;
-    color: var(--fg);
-    line-height: 1.4;
-  }
-  /* Responsável cards */
-  .responsavel-card {
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg-card);
-    padding: 16px;
-    margin-bottom: 12px;
-  }
-  .responsavel-card .fields-grid {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-  .space-y > * + * { margin-top: 16px; }
-  .space-y-sm > * + * { margin-top: 12px; }
 </style>
 
 <div class="container my-5">
-  <!-- Hero Section -->
+  <!-- Hero -->
   <div class="hero-section text-center">
     <h2 class="hero-title">Salas e Atendidos</h2>
-    <p class="hero-subtitle">Visualize os atendidos organizados por sala</p>
+    <p class="hero-subtitle">{{ total_atendidos }} atendido{{ total_atendidos|pluralize }} cadastrado{{ total_atendidos|pluralize }}</p>
   </div>
 
-  <!-- Accordion Customizado -->
-  <div class="custom-accordion" id="accordionSalas">
-    {% for codigo, nome in salas %}
-      <div class="sala-card">
-        <button class="sala-header collapsed" type="button" data-bs-toggle="collapse"
-                data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
-                aria-controls="collapse{{ forloop.counter }}">
+  <!-- Search -->
+  <div class="search-wrap">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--fg-muted);flex-shrink:0">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input id="searchInput" type="text" placeholder="Buscar atendido por nome…" autocomplete="off">
+    <span id="searchCount"></span>
+  </div>
+
+  <!-- Accordion -->
+  <div class="custom-accordion">
+    {% for sala in salas_com_atendidos %}
+      <details class="sala-card" {% if sala.atendidos %}open{% endif %}>
+        <summary>
           <div class="sala-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
           </div>
-          <span class="sala-nome">{{ nome }}</span>
+          <span class="sala-nome">{{ sala.nome }}</span>
+          <span class="sala-count">{{ sala.atendidos|length }}</span>
           <svg class="sala-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
+            <polyline points="6 9 12 15 18 9"/>
           </svg>
-        </button>
-
-        <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
-             data-bs-parent="#accordionSalas">
-          <div class="sala-body">
-            <div class="atendidos-list">
-              {% for atendido in atendidos %}
-                {% if atendido.sala == codigo %}
-                  <div class="atendido-card">
-                    <div class="atendido-avatar">
-                      {{ atendido.nome|slice:":1" }}
-                    </div>
-                    <div class="atendido-info">
-                      <div class="atendido-nome">{{ atendido.nome }}</div>
-                      {%for resp in atendido.responsavel.all%}
-                        <div class="atendido-familia">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                          </svg>
-                          <span>
-                            Responsável: {{ resp.nome }} <br>
-                            Telefone: <a href="https://wa.me/55{{ resp.contato }}" target="_blank" rel="noopener noreferrer">{{ resp.contato|default:"(sem contato)" }}</a>
-                          </span>
-                        </div>
-                      {% empty %}
-                        <div class="atendido-familia">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                          </svg>
-                          Sem responsável cadastrado
-                        </div>
-                      {% endfor %}
-                    </div>
-
-                    <button
-                      class="btn-detalhes"
-                      onclick="abrirFichaAtendido(this)"
-                      data-nome="{{ atendido.nome }}"
-                      data-sala="{{ atendido.get_sala_display }}"
-                      data-data="{{ atendido.data_nascimento|date:'Y-m-d' }}"
-                      data-foto="{% if atendido.foto %}{{ atendido.foto.url }}{% else %}{% static 'images/sem-foto.jpg' %}{% endif %}"
-                      data-matricula="{{ atendido.matricula }}"
-                      data-identidade-etnica="{{ atendido.identidade_etnica|default:'Não informado' }}"
-                      data-rg="{{ atendido.rg|default:'Não informado' }}"
-                      data-cpf="{{ atendido.cpf|default:'Não informado' }}"
-                      data-ativo="{% if atendido.ativo %}Ativo{% else %}Inativo{% endif %}"
-                      data-data-criacao="{{ atendido.data_criacao|date:'d/m/Y' }}"
-                      data-tipo-matricula="{{ atendido.matricula|default:'Não informado' }}"
-                      data-numeracao-camisa="{{ atendido.numeracao_camisa|default:'Não informado' }}"
-                      data-numeracao-calca="{{ atendido.numeracao_calca|default:'Não informado' }}"
-                      data-numeracao-calcado="{{ atendido.numeracao_calcado|default:'Não informado' }}"
-                      data-termos-assinado="{% if atendido.termos_assinado %}Sim{% else %}Não{% endif %}"
-                      data-projeto-social="{% if atendido.projeto_social %}Sim{% else %}Não{% endif %}"
-                      data-trabalho="{% if atendido.trabalho %}Sim{% else %}Não{% endif %}"
-                      data-familia="{{ atendido.familia|default:'Não informado' }}"
-                      data-responsaveis="{% for resp in atendido.responsavel.all %}{{ resp.nome }}|{{ resp.parentesco }}|{{ resp.contato|default:'' }}{% if not forloop.last %};;{% endif %}{% endfor %}"
-                      data-escolaridade="{{ atendido.escolaridade|default:'Não informado' }}"
-                      data-ano-escolar="{{ atendido.ano_escolar|default:'Não informado' }}"
-                      data-escola="{{ atendido.escola|default:'Não informado' }}"
-                      data-tipo-escola="{{ atendido.tipo_escola|default:'Não informado' }}"
-                      data-contato="{{ atendido.contato|default:'Não informado' }}"
-                      data-convenio-medico="{% if atendido.convenio_medico %}Sim{% else %}Não{% endif %}"
-                      data-vacina-covid="{% if atendido.vacina_covid %}Sim{% else %}Não{% endif %}"
-                      data-saude-bucal="{% if atendido.saude_bucal %}Sim{% else %}Não{% endif %}"
-                      data-campanha-vacinacao="{% if atendido.campanha_vacinacao %}Sim{% else %}Não{% endif %}"
-                      data-restricao-alimentar="{{ atendido.restricao_alimentar|default:'Não informado' }}"
-                      data-restricao-medica="{{ atendido.restricao_medica|default:'Não informado' }}"
-                      data-medicacao-continua="{{ atendido.medicacao_continua|default:'Não informado' }}"
-                      data-diagnostico="{% if atendido.diagnostico %}Sim{% else %}Não{% endif %}"
-                      data-diagnostico-descricao="{{ atendido.diagnostico_descricao|default:'Não informado' }}"
-                      data-acompanhamento="{{ atendido.get_acompanhamento_display|default:'Não informado' }}"
-                      data-recomendacao-acompanhamento="{{ atendido.recomendacao_acompanhamento|default:'Não informado' }}"
-                      data-observacoes="{{ atendido.observacoes|default:'Não informado' }}"
-                      data-comissao-inclusiva="{% if atendido.comissao_inclusiva %}Sim{% else %}Não{% endif %}"
-                      data-comportamento-social="{{ atendido.get_comportamento_social_display|default:'Não informado' }}"
-                      data-comportamento-regras="{{ atendido.get_comportamento_regras_display|default:'Não informado' }}"
-                      data-concentracao="{% if atendido.concentracao %}Sim{% else %}Não{% endif %}"
-                      data-aprendizado="{% if atendido.aprendizado %}Sim{% else %}Não{% endif %}"
-                      data-sensibilidade="{% if atendido.sensibilidade %}Sim{% else %}Não{% endif %}"
-                      data-sensibilidade-descricao="{{ atendido.sensibilidade_descricao|default:'Não informado' }}"
-                      data-dificuldade-motora="{% if atendido.dificuldade_motora %}Sim{% else %}Não{% endif %}"
-                      data-dificuldade-motora-descricao="{{ atendido.dificuldade_motora_descricao|default:'Não informado' }}"
-                      data-dificuldade-emocional="{% if atendido.dificuldade_emocional %}Sim{% else %}Não{% endif %}"
-                      data-dificuldade-emocional-descricao="{{ atendido.dificuldade_emocional_descricao|default:'Não informado' }}"
-                      data-expectativas-familia="{{ atendido.expectativas_familia|default:'Não informado' }}"
-                      data-mudancas-positivas="{% if atendido.mudancas_positivas %}Sim{% else %}Não{% endif %}"
-                      <svg  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
+        </summary>
+        <div class="sala-body">
+          <div class="atendidos-list" data-sala="{{ sala.codigo }}">
+            {% for atendido in sala.atendidos %}
+              <div class="atendido-card" data-nome="{{ atendido.nome|lower }}">
+                <div class="atendido-avatar">{{ atendido.nome|slice:":1" }}</div>
+                <div class="atendido-info">
+                  <div class="atendido-nome">{{ atendido.nome }}</div>
+                  {% for resp in atendido.responsavel.all %}
+                    <div class="atendido-familia">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                       </svg>
-                      Ver detalhes
-                    </button>
-                  </div>
-                {% endif %}
-              {% endfor %}
-              {% if not atendidos %}
-                <div class="empty-message">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                  </svg>
-                  Nenhum atendido encontrado.
+                      <span>{{ resp.nome }} &nbsp;·&nbsp; <a href="https://wa.me/55{{ resp.contato }}" target="_blank" rel="noopener noreferrer">{{ resp.contato|default:"sem contato" }}</a></span>
+                    </div>
+                  {% empty %}
+                    <div class="atendido-familia">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                      </svg>
+                      Sem responsável cadastrado
+                    </div>
+                  {% endfor %}
                 </div>
-              {% endif %}
-            </div>
+                <button
+                  class="btn-detalhes"
+                  onclick="abrirFichaAtendido(this)"
+                  data-nome="{{ atendido.nome }}"
+                  data-sala="{{ atendido.get_sala_display }}"
+                  data-data="{{ atendido.data_nascimento|date:'Y-m-d' }}"
+                  data-foto="{% if atendido.foto %}{{ atendido.foto.url }}{% else %}{% static 'images/sem-foto.jpg' %}{% endif %}"
+                  data-matricula="{{ atendido.matricula }}"
+                  data-identidade-etnica="{{ atendido.identidade_etnica|default:'Não informado' }}"
+                  data-rg="{{ atendido.rg|default:'Não informado' }}"
+                  data-cpf="{{ atendido.cpf|default:'Não informado' }}"
+                  data-ativo="{% if atendido.ativo %}Ativo{% else %}Inativo{% endif %}"
+                  data-data-criacao="{{ atendido.data_criacao|date:'d/m/Y' }}"
+                  data-tipo-matricula="{{ atendido.matricula|default:'Não informado' }}"
+                  data-numeracao-camisa="{{ atendido.numeracao_camisa|default:'Não informado' }}"
+                  data-numeracao-calca="{{ atendido.numeracao_calca|default:'Não informado' }}"
+                  data-numeracao-calcado="{{ atendido.numeracao_calcado|default:'Não informado' }}"
+                  data-termos-assinado="{% if atendido.termos_assinado %}Sim{% else %}Não{% endif %}"
+                  data-projeto-social="{% if atendido.projeto_social %}Sim{% else %}Não{% endif %}"
+                  data-trabalho="{% if atendido.trabalho %}Sim{% else %}Não{% endif %}"
+                  data-familia="{{ atendido.familia|default:'Não informado' }}"
+                  data-responsaveis="{% for resp in atendido.responsavel.all %}{{ resp.nome }}|{{ resp.parentesco }}|{{ resp.contato|default:'' }}{% if not forloop.last %};;{% endif %}{% endfor %}"
+                  data-escolaridade="{{ atendido.escolaridade|default:'Não informado' }}"
+                  data-ano-escolar="{{ atendido.ano_escolar|default:'Não informado' }}"
+                  data-escola="{{ atendido.escola|default:'Não informado' }}"
+                  data-tipo-escola="{{ atendido.tipo_escola|default:'Não informado' }}"
+                  data-contato="{{ atendido.contato|default:'Não informado' }}"
+                  data-convenio-medico="{% if atendido.convenio_medico %}Sim{% else %}Não{% endif %}"
+                  data-vacina-covid="{% if atendido.vacina_covid %}Sim{% else %}Não{% endif %}"
+                  data-saude-bucal="{% if atendido.saude_bucal %}Sim{% else %}Não{% endif %}"
+                  data-campanha-vacinacao="{% if atendido.campanha_vacinacao %}Sim{% else %}Não{% endif %}"
+                  data-restricao-alimentar="{{ atendido.restricao_alimentar|default:'Não informado' }}"
+                  data-restricao-medica="{{ atendido.restricao_medica|default:'Não informado' }}"
+                  data-medicacao-continua="{{ atendido.medicacao_continua|default:'Não informado' }}"
+                  data-diagnostico="{% if atendido.diagnostico %}Sim{% else %}Não{% endif %}"
+                  data-diagnostico-descricao="{{ atendido.diagnostico_descricao|default:'Não informado' }}"
+                  data-acompanhamento="{{ atendido.get_acompanhamento_display|default:'Não informado' }}"
+                  data-recomendacao-acompanhamento="{{ atendido.recomendacao_acompanhamento|default:'Não informado' }}"
+                  data-observacoes="{{ atendido.observacoes|default:'Não informado' }}"
+                  data-comissao-inclusiva="{% if atendido.comissao_inclusiva %}Sim{% else %}Não{% endif %}"
+                  data-comportamento-social="{{ atendido.get_comportamento_social_display|default:'Não informado' }}"
+                  data-comportamento-regras="{{ atendido.get_comportamento_regras_display|default:'Não informado' }}"
+                  data-concentracao="{% if atendido.concentracao %}Sim{% else %}Não{% endif %}"
+                  data-aprendizado="{% if atendido.aprendizado %}Sim{% else %}Não{% endif %}"
+                  data-sensibilidade="{% if atendido.sensibilidade %}Sim{% else %}Não{% endif %}"
+                  data-sensibilidade-descricao="{{ atendido.sensibilidade_descricao|default:'Não informado' }}"
+                  data-dificuldade-motora="{% if atendido.dificuldade_motora %}Sim{% else %}Não{% endif %}"
+                  data-dificuldade-motora-descricao="{{ atendido.dificuldade_motora_descricao|default:'Não informado' }}"
+                  data-dificuldade-emocional="{% if atendido.dificuldade_emocional %}Sim{% else %}Não{% endif %}"
+                  data-dificuldade-emocional-descricao="{{ atendido.dificuldade_emocional_descricao|default:'Não informado' }}"
+                  data-expectativas-familia="{{ atendido.expectativas_familia|default:'Não informado' }}"
+                  data-mudancas-positivas="{% if atendido.mudancas_positivas %}Sim{% else %}Não{% endif %}">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  Ver detalhes
+                </button>
+              </div>
+            {% empty %}
+              <div class="empty-message">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                Nenhum atendido nesta sala.
+              </div>
+            {% endfor %}
           </div>
         </div>
-      </div>
+      </details>
     {% endfor %}
   </div>
 </div>
 
-<!-- ============================================================ -->
-{% load static %}
-
-<!-- ============================================================ -->
-<!-- MODAL DA FICHA DO ATENDIDO                                   -->
-<!-- ============================================================ -->
+<!-- ===== MODAL DA FICHA DO ATENDIDO ===== -->
 <div class="dossier-overlay" id="fichaAtendidoModal" style="display:none;">
   <div class="dossier-container">
-    <!-- Botão Fechar -->
     <button class="dossier-close" onclick="fecharFichaAtendido()" aria-label="Fechar">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
       </svg>
     </button>
-    <!-- ===== PAINEL ESQUERDO ===== -->
+    <!-- PAINEL ESQUERDO -->
     <aside class="dossier-sidebar">
       <div class="dossier-profile">
-        <img class="dossier-photo" id="fichaFoto" src="{% static 'img/placeholder.svg' %}" alt="Foto do atendido">
-        <h2 class="dossier-name" id="fichaNome">{{ atendido.nome }}</h2>
+        <img class="dossier-photo" id="fichaFoto" src="{% static 'images/sem-foto.jpg' %}" alt="Foto do atendido">
+        <h2 class="dossier-name" id="fichaNome">—</h2>
         <p class="dossier-age" id="fichaIdade"></p>
-        <span class="dossier-sala-badge">{{ atendido.sala }}</span>
-        {% if atendido.matricula %}
-          <span class="dossier-matricula">{{ atendido.matricula }}</span>
-        {% endif %}
+        <span class="dossier-sala-badge" id="fichaSalaBadge">—</span>
+        <span class="dossier-matricula" id="fichaMatricula" style="display:none;"></span>
       </div>
-      <!-- Care Tags -->
-      <div class="dossier-care-section" id="fichaCareSection">
+      <div class="dossier-care-section">
         <p class="dossier-care-title">Alertas de Cuidado</p>
-        <div class="dossier-care-tags" id="fichaCareTags">
-          {% if atendido.restricao_alimentar %}
-            <span class="care-tag">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              Restrição alimentar
-            </span>
-          {% endif %}
-          {% if atendido.diagnostico %}
-            <span class="care-tag">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              Diagnóstico / Laudo
-            </span>
-          {% endif %}
-          {% if atendido.sensibilidade %}
-            <span class="care-tag">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              Sensibilidade sensorial
-            </span>
-          {% endif %}
-          {% if atendido.dificuldade_motora %}
-            <span class="care-tag">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              Dificuldade motora
-            </span>
-          {% endif %}
-          {% if atendido.dificuldade_emocional %}
-            <span class="care-tag">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              Dificuldade emocional
-            </span>
-          {% endif %}
-          {% if atendido.concentracao %}
-            <span class="care-tag">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              Dificuldade de concentração
-            </span>
-          {% endif %}
-          {% if atendido.comissao_inclusiva %}
-            <span class="care-tag">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              Comissão Inclusiva
-            </span>
-          {% endif %}
-          {% if atendido.medicacao_continua %}
-            <span class="care-tag">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              Medicação contínua
-            </span>
-          {% endif %}
-        </div>
+        <div class="dossier-care-tags" id="fichaCareTags"></div>
       </div>
-      <!-- Navegação por Abas -->
       <nav class="dossier-nav">
         <ul>
-          <li>
-            <button class="active" onclick="trocarAba(this, 'tab-identificacao')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              Identificação
-            </button>
-          </li>
-          <li>
-            <button onclick="trocarAba(this, 'tab-matricula')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>
-              Matrícula
-            </button>
-          </li>
-          <li>
-            <button onclick="trocarAba(this, 'tab-vinculos')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              Vínculos
-            </button>
-          </li>
-          <li>
-            <button onclick="trocarAba(this, 'tab-educacional')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
-              Educacional
-            </button>
-          </li>
-          <li>
-            <button onclick="trocarAba(this, 'tab-contato')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              Contato
-            </button>
-          </li>
-          <li>
-            <button onclick="trocarAba(this, 'tab-saude')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-              Saúde
-            </button>
-          </li>
-          <li>
-            <button onclick="trocarAba(this, 'tab-inclusivo')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-6 1"/><path d="m5.14 17.86 3.79-3.79"/><circle cx="2" cy="21" r="1"/><path d="m14 7-5.5 5.5"/></svg>
-              PCF Inclusivo
-            </button>
-          </li>
+          <li><button class="active" onclick="trocarAba(this,'tab-identificacao')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Identificação
+          </button></li>
+          <li><button onclick="trocarAba(this,'tab-matricula')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>
+            Matrícula
+          </button></li>
+          <li><button onclick="trocarAba(this,'tab-vinculos')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Vínculos
+          </button></li>
+          <li><button onclick="trocarAba(this,'tab-educacional')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
+            Educacional
+          </button></li>
+          <li><button onclick="trocarAba(this,'tab-contato')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Contato
+          </button></li>
+          <li><button onclick="trocarAba(this,'tab-saude')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            Saúde
+          </button></li>
+          <li><button onclick="trocarAba(this,'tab-inclusivo')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-6 1"/><path d="m5.14 17.86 3.79-3.79"/><circle cx="2" cy="21" r="1"/><path d="m14 7-5.5 5.5"/></svg>
+            PCF Inclusivo
+          </button></li>
         </ul>
       </nav>
     </aside>
-    <!-- ===== PAINEL DIREITO — CONTEÚDO DAS ABAS ===== -->
+    <!-- PAINEL DIREITO -->
     <main class="dossier-content">
-      <!-- ===== ABA: IDENTIFICAÇÃO ===== -->
+      <!-- ABA: IDENTIFICAÇÃO -->
       <div class="dossier-tab active" id="tab-identificacao">
         <h3 class="section-title">Identificação do Atendido</h3>
         <div class="fields-grid">
-          <div class="field full">
-            <div class="field-label">Nome Completo</div>
-            <div class="field-value" id="fichaCampoNome">{{ atendido.nome }}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Data de Nascimento</div>
-            <div class="field-value mono" id="fichaCampoDataNascimento">{{ atendido.data_nascimento|date:"d/m/Y" }}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Identidade Étnica</div>
-            <div class="field-value {% if not atendido.identidade_etnica %}empty{% endif %}" id="fichaCampoIdentidadeEtnica">{{ atendido.identidade_etnica|default:"Não informado" }}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">RG</div>
-            <div class="field-value mono {% if not atendido.rg %}empty{% endif %}" id="fichaCampoRG">
-              {% if atendido.rg %}{{ atendido.rg }}{% else %}Não informado{% endif %}
-            </div>
-          </div>
-          <div class="field">
-            <div class="field-label">CPF</div>
-            <div class="field-value mono {% if not atendido.cpf %}empty{% endif %}" id="fichaCampoCPF">
-              {% if atendido.cpf %}{{ atendido.cpf }}{% else %}Não informado{% endif %}
-            </div>
-          </div>
-          <div class="field">
-            <div class="field-label">Status</div>
-            <div class="field-value" id="fichaCampoStatus">{% if atendido.ativo %}Ativo{% else %}Inativo{% endif %}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Data de Cadastro</div>
-            <div class="field-value mono" id="fichaCampoDataCriacao">{{ atendido.data_criacao|date:"d/m/Y" }}</div>
-          </div>
+          <div class="field full"><div class="field-label">Nome Completo</div><div class="field-value" id="fichaCampoNome">—</div></div>
+          <div class="field"><div class="field-label">Data de Nascimento</div><div class="field-value mono" id="fichaCampoDataNascimento">—</div></div>
+          <div class="field"><div class="field-label">Identidade Étnica</div><div class="field-value" id="fichaCampoIdentidadeEtnica">—</div></div>
+          <div class="field"><div class="field-label">RG</div><div class="field-value mono" id="fichaCampoRG">—</div></div>
+          <div class="field"><div class="field-label">CPF</div><div class="field-value mono" id="fichaCampoCPF">—</div></div>
+          <div class="field"><div class="field-label">Status</div><div class="field-value" id="fichaCampoStatus">—</div></div>
+          <div class="field"><div class="field-label">Data de Cadastro</div><div class="field-value mono" id="fichaCampoDataCriacao">—</div></div>
         </div>
       </div>
-      <!-- ===== ABA: MATRÍCULA ===== -->
+      <!-- ABA: MATRÍCULA -->
       <div class="dossier-tab" id="tab-matricula">
         <h3 class="section-title">Matrícula</h3>
         <div class="fields-grid">
-          <div class="field">
-            <div class="field-label">Tipo de Matrícula</div>
-            <div class="field-value {% if not atendido.matricula %}empty{% endif %}">{{ atendido.matricula|default:"Não informado" }}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Sala</div>
-            <div class="field-value">{{ atendido.sala }}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Numeração Camisa</div>
-            <div class="field-value mono {% if not atendido.numeracao_camisa %}empty{% endif %}">{{ atendido.numeracao_camisa|default:"Não informado" }}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Numeração Calça</div>
-            <div class="field-value mono {% if not atendido.numeracao_calca %}empty{% endif %}">{{ atendido.numeracao_calca|default:"Não informado" }}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Numeração Calçado</div>
-            <div class="field-value mono {% if not atendido.numeracao_calcado %}empty{% endif %}">{{ atendido.numeracao_calcado|default:"Não informado" }}</div>
-          </div>
+          <div class="field"><div class="field-label">Tipo de Matrícula</div><div class="field-value" id="mTipo">—</div></div>
+          <div class="field"><div class="field-label">Sala</div><div class="field-value" id="mSala">—</div></div>
+          <div class="field"><div class="field-label">Numeração Camisa</div><div class="field-value mono" id="mCamisa">—</div></div>
+          <div class="field"><div class="field-label">Numeração Calça</div><div class="field-value mono" id="mCalca">—</div></div>
+          <div class="field"><div class="field-label">Numeração Calçado</div><div class="field-value mono" id="mCalcado">—</div></div>
         </div>
-        <div style="margin-top: 24px;" class="space-y-sm">
-          <!-- Termos assinados -->
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.termos_assinado %}true{% else %}false{% endif %}">
-              {% if atendido.termos_assinado %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Termos assinados (EDUC, LGPD, Imagem, Saúde Bucal)</span>
-          </div>
-          <!-- Projeto social -->
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.projeto_social %}true{% else %}false{% endif %}">
-              {% if atendido.projeto_social %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Já participou de projeto social</span>
-          </div>
-          <!-- Trabalha -->
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.trabalho %}true{% else %}false{% endif %}">
-              {% if atendido.trabalho %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Trabalha</span>
-          </div>
+        <div style="margin-top:24px;" class="space-y-sm">
+          <div class="bool-field"><span class="bool-icon" id="mTermos"></span><span class="bool-label">Termos assinados (EDUC, LGPD, Imagem, Saúde Bucal)</span></div>
+          <div class="bool-field"><span class="bool-icon" id="mProjeto"></span><span class="bool-label">Já participou de projeto social</span></div>
+          <div class="bool-field"><span class="bool-icon" id="mTrabalho"></span><span class="bool-label">Trabalha</span></div>
         </div>
       </div>
-      <!-- ===== ABA: VÍNCULOS ===== -->
+      <!-- ABA: VÍNCULOS -->
       <div class="dossier-tab" id="tab-vinculos">
         <h3 class="section-title">Vínculos Familiares e Responsáveis</h3>
-        <div class="fields-grid" style="margin-bottom: 24px;">
-          <div class="field">
-            <div class="field-label">Família</div>
-            <div class="field-value {% if not atendido.familia %}empty{% endif %}">{{ atendido.familia|default:"Não informado" }}</div>
-          </div>
+        <div class="fields-grid" style="margin-bottom:24px;">
+          <div class="field"><div class="field-label">Família</div><div class="field-value" id="vFamilia">—</div></div>
         </div>
-        <div class="field-label" style="margin-bottom: 12px;">Responsáveis</div>
+        <div class="field-label" style="margin-bottom:12px;">Responsáveis</div>
         <p class="field-value empty" id="vinculosEmptyMsg" style="display:none;">Nenhum responsável cadastrado</p>
+        <div id="vinculosCards"></div>
       </div>
-      <!-- ===== ABA: EDUCACIONAL ===== -->
+      <!-- ABA: EDUCACIONAL -->
       <div class="dossier-tab" id="tab-educacional">
         <h3 class="section-title">Informações Educacionais</h3>
         <div class="fields-grid">
-          <div class="field">
-            <div class="field-label">Escolaridade</div>
-            <div class="field-value {% if not atendido.escolaridade %}empty{% endif %}">{{ atendido.escolaridade|default:"Não informado" }}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Ano Escolar</div>
-            <div class="field-value {% if not atendido.ano_escolar %}empty{% endif %}">{{ atendido.ano_escolar|default:"Não informado" }}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Escola</div>
-            <div class="field-value {% if not atendido.escola %}empty{% endif %}">{{ atendido.escola|default:"Não informado" }}</div>
-          </div>
-          <div class="field">
-            <div class="field-label">Tipo de Escola</div>
-            <div class="field-value {% if not atendido.tipo_escola %}empty{% endif %}">{{ atendido.tipo_escola|default:"Não informado" }}</div>
-          </div>
+          <div class="field"><div class="field-label">Escolaridade</div><div class="field-value" id="edEscolaridade">—</div></div>
+          <div class="field"><div class="field-label">Ano Escolar</div><div class="field-value" id="edAno">—</div></div>
+          <div class="field"><div class="field-label">Escola</div><div class="field-value" id="edEscola">—</div></div>
+          <div class="field"><div class="field-label">Tipo de Escola</div><div class="field-value" id="edTipo">—</div></div>
         </div>
       </div>
-      <!-- ===== ABA: CONTATO ===== -->
+      <!-- ABA: CONTATO -->
       <div class="dossier-tab" id="tab-contato">
         <h3 class="section-title">Contato</h3>
         <div class="fields-grid">
-          <div class="field">
-            <div class="field-label">Telefone</div>
-            <div class="field-value mono {% if not atendido.contato %}empty{% endif %}">
-              {% if atendido.contato %}{{ atendido.contato }}{% else %}Não informado{% endif %}
-            </div>
-          </div>
+          <div class="field"><div class="field-label">Telefone</div><div class="field-value mono" id="ctTel">—</div></div>
         </div>
       </div>
-      <!-- ===== ABA: SAÚDE ===== -->
+      <!-- ABA: SAÚDE -->
       <div class="dossier-tab" id="tab-saude">
         <h3 class="section-title">Saúde e Bem-Estar</h3>
         <div class="space-y-sm">
-          <!-- Convênio médico -->
-          <div class="field-label">Convenio Médico</div>
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.convenio_medico %}true{% else %}false{% endif %}">
-              {% if atendido.convenio_medico %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Convênio médico</span>
-          </div>
-          <!-- Vacina COVID -->
-          <div class="field-label">Vacina COVID-19</div>
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.vacina_covid %}true{% else %}false{% endif %}">
-              {% if atendido.vacina_covid %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Vacina COVID-19</span>
-          </div>
-          <!-- Saúde bucal -->
-          <div class="field-label">Saúde Bucal</div>
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.saude_bucal %}true{% else %}false{% endif %}">
-              {% if atendido.saude_bucal %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Atendimento odontológico prévio</span>
-          </div>
-          <!-- Campanha vacinação -->
-          <div class="field-label">Campanha de Vacinação</div>
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.campanha_vacinacao %}true{% else %}false{% endif %}">
-              {% if atendido.campanha_vacinacao %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Apoiaria campanhas de vacinação</span>
-          </div>
+          <div class="bool-field"><span class="bool-icon" id="sConvenio"></span><span class="bool-label">Convênio médico</span></div>
+          <div class="bool-field"><span class="bool-icon" id="sVacina"></span><span class="bool-label">Vacina COVID-19</span></div>
+          <div class="bool-field"><span class="bool-icon" id="sBucal"></span><span class="bool-label">Atendimento odontológico prévio</span></div>
+          <div class="bool-field"><span class="bool-icon" id="sCampanha"></span><span class="bool-label">Apoiaria campanhas de vacinação</span></div>
+          <div class="bool-field"><span class="bool-icon" id="sDiagnostico"></span><span class="bool-label">Possui diagnóstico / laudo</span></div>
+          <div class="bool-field"><span class="bool-icon" id="sRestricao"></span><span class="bool-label">Restrição alimentar</span></div>
         </div>
-        <div class="fields-grid" style="margin-top: 24px;">
-          <div class="field full">
-            <div class="field-label">Restrição Alimentar</div>
-            <div class="field-value {% if not atendido.restricao_alimentar %}empty{% endif %}">{{ atendido.restricao_alimentar|default:"Não informado" }}</div>
-          </div>
-          <div class="field full">
-            <div class="field-label">Restrição Médica</div>
-            <div class="field-value {% if not atendido.restricao_medica %}empty{% endif %}">{{ atendido.restricao_medica|default:"Não informado" }}</div>
-          </div>
-          <div class="field full">
-            <div class="field-label">Medicação Contínua</div>
-            <div class="field-value {% if not atendido.medicacao_continua %}empty{% endif %}">{{ atendido.medicacao_continua|default:"Não informado" }}</div>
-          </div>
-          <div class="field full">
-            <div class="field-label">Diagnóstico (Descrição)</div>
-            <div class="field-value {% if not atendido.diagnostico_descricao %}empty{% endif %}">{{ atendido.diagnostico_descricao|default:"Não informado" }}</div>
-          </div>
-          <div class="field full">
-            <div class="field-label">Acompanhamento Profissional</div>
-            <div class="field-value {% if not atendido.acompanhamento %}empty{% endif %}">{{ atendido.get_acompanhamento_display|default:"Não informado" }}</div>
-          </div>
-          <div class="field full">
-            <div class="field-label">Recomendação de Acompanhamento</div>
-            <div class="field-value {% if not atendido.recomendacao_acompanhamento %}empty{% endif %}">{{ atendido.recomendacao_acompanhamento|default:"Não informado" }}</div>
-          </div>
+        <div class="fields-grid" style="margin-top:24px;">
+          <div class="field full"><div class="field-label">Restrição Alimentar</div><div class="field-value" id="sRestricaoTxt">—</div></div>
+          <div class="field full"><div class="field-label">Restrição Médica</div><div class="field-value" id="sRestricaoMed">—</div></div>
+          <div class="field full"><div class="field-label">Medicação Contínua</div><div class="field-value" id="sMedicacao">—</div></div>
+          <div class="field full"><div class="field-label">Diagnóstico (Descrição)</div><div class="field-value" id="sDiagDesc">—</div></div>
+          <div class="field full"><div class="field-label">Acompanhamento Profissional</div><div class="field-value" id="sAcomp">—</div></div>
+          <div class="field full"><div class="field-label">Recomendação de Acompanhamento</div><div class="field-value" id="sRecomend">—</div></div>
+          <div class="field full"><div class="field-label">Observações</div><div class="field-value" id="sObs">—</div></div>
         </div>
-        <!-- Alertas de saúde -->
-        <div style="margin-top: 24px;" class="space-y-sm">
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.diagnostico %}alert-true{% else %}false{% endif %}">
-              {% if atendido.diagnostico %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Possui diagnóstico / laudo</span>
-          </div>
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.restricao_alimentar %}alert-true{% else %}false{% endif %}">
-              {% if atendido.restricao_alimentar %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Restrição alimentar</span>
-          </div>
-        </div>
-        {% if atendido.observacoes %}
-        <div style="margin-top: 24px;">
-          <div class="field full">
-            <div class="field-label">Observações</div>
-            <div class="field-value">{{ atendido.observacoes }}</div>
-          </div>
-        </div>
-        {% endif %}
       </div>
-      <!-- ===== ABA: PCF INCLUSIVO ===== -->
+      <!-- ABA: PCF INCLUSIVO -->
       <div class="dossier-tab" id="tab-inclusivo">
         <h3 class="section-title">PCF Inclusivo</h3>
-        <div class="bool-field" style="margin-bottom: 20px;">
-          <span class="bool-icon {% if atendido.comissao_inclusiva %}alert-true{% else %}false{% endif %}">
-            {% if atendido.comissao_inclusiva %}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            {% else %}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            {% endif %}
-          </span>
-          <span class="bool-label">Necessidade de apoio da Comissão Inclusiva</span>
+        <div class="space-y-sm">
+          <div class="bool-field"><span class="bool-icon" id="iComissao"></span><span class="bool-label">Necessidade de apoio da Comissão Inclusiva</span></div>
+          <div class="bool-field"><span class="bool-icon" id="iConcentracao"></span><span class="bool-label">Dificuldade de concentração</span></div>
+          <div class="bool-field"><span class="bool-icon" id="iAprendizado"></span><span class="bool-label">Dificuldade de aprendizado</span></div>
+          <div class="bool-field"><span class="bool-icon" id="iSensibilidade"></span><span class="bool-label">Sensibilidade sensorial</span></div>
+          <div class="bool-field"><span class="bool-icon" id="iMotora"></span><span class="bool-label">Dificuldade motora</span></div>
+          <div class="bool-field"><span class="bool-icon" id="iEmocional"></span><span class="bool-label">Dificuldade emocional</span></div>
+          <div class="bool-field"><span class="bool-icon" id="iMudancas"></span><span class="bool-label">Mudanças positivas observadas</span></div>
         </div>
-        <div class="fields-grid">
-          <div class="field full">
-            <div class="field-label">Comportamento Social</div>
-            <div class="field-value {% if not atendido.comportamento_social %}empty{% endif %}">{{ atendido.get_comportamento_social_display|default:"Não informado" }}</div>
-          </div>
-          <div class="field full">
-            <div class="field-label">Dificuldade com Regras</div>
-            <div class="field-value {% if not atendido.comportamento_regras %}empty{% endif %}">{{ atendido.get_comportamento_regras_display|default:"Não informado" }}</div>
-          </div>
-        </div>
-        <div style="margin-top: 24px;" class="space-y-sm">
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.concentracao %}alert-true{% else %}false{% endif %}">
-              {% if atendido.concentracao %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Dificuldade de concentração</span>
-          </div>
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.aprendizado %}alert-true{% else %}false{% endif %}">
-              {% if atendido.aprendizado %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Dificuldade de aprendizado</span>
-          </div>
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.sensibilidade %}alert-true{% else %}false{% endif %}">
-              {% if atendido.sensibilidade %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Sensibilidade sensorial</span>
-          </div>
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.dificuldade_motora %}alert-true{% else %}false{% endif %}">
-              {% if atendido.dificuldade_motora %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Dificuldade motora</span>
-          </div>
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.dificuldade_emocional %}alert-true{% else %}false{% endif %}">
-              {% if atendido.dificuldade_emocional %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Dificuldade emocional</span>
-          </div>
-        </div>
-        <div class="fields-grid" style="margin-top: 24px;">
-          <div class="field full">
-            <div class="field-label">Sensibilidade (Descrição)</div>
-            <div class="field-value {% if not atendido.sensibilidade_descricao %}empty{% endif %}">{{ atendido.sensibilidade_descricao|default:"Não informado" }}</div>
-          </div>
-          <div class="field full">
-            <div class="field-label">Dificuldade Motora (Descrição)</div>
-            <div class="field-value {% if not atendido.dificuldade_motora_descricao %}empty{% endif %}">{{ atendido.dificuldade_motora_descricao|default:"Não informado" }}</div>
-          </div>
-          <div class="field full">
-            <div class="field-label">Dificuldade Emocional (Descrição)</div>
-            <div class="field-value {% if not atendido.dificuldade_emocional_descricao %}empty{% endif %}">{{ atendido.dificuldade_emocional_descricao|default:"Não informado" }}</div>
-          </div>
-          <div class="field full">
-            <div class="field-label">Expectativas da Família</div>
-            <div class="field-value {% if not atendido.expectativas_familia %}empty{% endif %}">{{ atendido.expectativas_familia|default:"Não informado" }}</div>
-          </div>
-        </div>
-        <div style="margin-top: 24px;" class="space-y-sm">
-          <div class="bool-field">
-            <span class="bool-icon {% if atendido.mudancas_positivas %}true{% else %}false{% endif %}">
-              {% if atendido.mudancas_positivas %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              {% else %}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              {% endif %}
-            </span>
-            <span class="bool-label">Mudanças positivas observadas</span>
-          </div>
-          {% if atendido.aspectos_mudancas.all %}
-          <div class="field full" style="margin-top: 12px;">
-            <div class="field-label">Aspectos de Mudança</div>
-            <div class="field-value">
-              {% for mudanca in atendido.aspectos_mudancas.all %}{{ mudanca }}{% if not forloop.last %}, {% endif %}{% endfor %}
-            </div>
-          </div>
-          {% endif %}
+        <div class="fields-grid" style="margin-top:24px;">
+          <div class="field full"><div class="field-label">Comportamento Social</div><div class="field-value" id="iCSocial">—</div></div>
+          <div class="field full"><div class="field-label">Dificuldade com Regras</div><div class="field-value" id="iCRegras">—</div></div>
+          <div class="field full"><div class="field-label">Sensibilidade (Descrição)</div><div class="field-value" id="iSensDesc">—</div></div>
+          <div class="field full"><div class="field-label">Dificuldade Motora (Descrição)</div><div class="field-value" id="iMotoraDesc">—</div></div>
+          <div class="field full"><div class="field-label">Dificuldade Emocional (Descrição)</div><div class="field-value" id="iEmocionalDesc">—</div></div>
+          <div class="field full"><div class="field-label">Expectativas da Família</div><div class="field-value" id="iExpect">—</div></div>
         </div>
       </div>
     </main>
   </div>
 </div>
-<!-- ===== JAVASCRIPT ===== -->
+
 <script>
-  // Trocar aba ativa
-  function trocarAba(btn, tabId) {
-    // Desativar todas as abas
-    document.querySelectorAll('.dossier-tab').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.dossier-nav button').forEach(b => b.classList.remove('active'));
-    // Ativar a aba clicada
-    document.getElementById(tabId).classList.add('active');
-    btn.classList.add('active');
-  }
-  function formatDateBR(dateStr) {
-    if (!dateStr) return 'Não informado';
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
+const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+const ICON_X     = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 
-  function formatCPF(cpf) {
-    if (!cpf || cpf === 'Não informado') return cpf || 'Não informado';
-    const d = cpf.replace(/\D/g, '');
-    if (d.length !== 11) return cpf;
-    return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+function setBool(id, val, alertStyle) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('true','false','alert-true');
+  if (val === 'Sim') {
+    el.classList.add(alertStyle ? 'alert-true' : 'true');
+    el.innerHTML = ICON_CHECK;
+  } else {
+    el.classList.add('false');
+    el.innerHTML = ICON_X;
   }
+}
 
-  function formatRG(rg) {
-    if (!rg || rg === 'Não informado') return rg || 'Não informado';
-    const d = rg.replace(/\D/g, '');
-    if (d.length === 9) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
-    if (d.length === 8) return d.replace(/(\d{1})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4');
-    return rg;
-  }
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val || 'Não informado';
+}
 
-  function setBoolIcon(spanEl, value) {
-    if (!spanEl) return;
-    spanEl.classList.remove('true', 'false', 'alert-true');
-    if (value === 'Sim') {
-      spanEl.classList.add('true');
-      spanEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-    } else {
-      spanEl.classList.add('false');
-      spanEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    }
-  }
+function formatDateBR(s) {
+  if (!s) return 'Não informado';
+  const p = s.split('-');
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : s;
+}
 
-  function setBoolIconAlert(spanEl, value) {
-    if (!spanEl) return;
-    spanEl.classList.remove('true', 'false', 'alert-true');
-    if (value === 'Sim') {
-      spanEl.classList.add('alert-true');
-      spanEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-    } else {
-      spanEl.classList.add('false');
-      spanEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    }
-  }
+function formatCPF(cpf) {
+  if (!cpf || cpf === 'Não informado') return cpf || 'Não informado';
+  const d = cpf.replace(/\D/g,'');
+  return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : cpf;
+}
 
-  // Abrir modal da ficha
-  function abrirFichaAtendido(btn) {
-    const modal = document.getElementById('fichaAtendidoModal');
-    modal.style.display = 'flex';
-    // Painel esquerdo
-    document.getElementById('fichaFoto').src = btn.getAttribute('data-foto') || '{% static "img/placeholder.svg" %}';
-    document.getElementById('fichaFoto').alt = 'Foto de ' + btn.getAttribute('data-nome');
-    document.getElementById('fichaNome').textContent = btn.getAttribute('data-nome');
-    document.querySelector('.dossier-sala-badge').textContent = btn.getAttribute('data-sala');
-    const matriculaSpan = document.querySelector('.dossier-matricula');
-    if (matriculaSpan) {
-      matriculaSpan.textContent = btn.getAttribute('data-matricula') || '';
-      matriculaSpan.style.display = btn.getAttribute('data-matricula') ? 'inline' : 'none';
+function trocarAba(btn, tabId) {
+  document.querySelectorAll('.dossier-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.dossier-nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+}
+
+function abrirFichaAtendido(btn) {
+  const d = attr => btn.getAttribute('data-' + attr);
+
+  // Sidebar
+  document.getElementById('fichaFoto').src = d('foto') || '{% static "images/sem-foto.jpg" %}';
+  document.getElementById('fichaNome').textContent = d('nome');
+  document.getElementById('fichaSalaBadge').textContent = d('sala');
+  const matEl = document.getElementById('fichaMatricula');
+  const mat = d('matricula');
+  matEl.textContent = mat || '';
+  matEl.style.display = mat ? 'inline' : 'none';
+  const birth = new Date(d('data'));
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+  document.getElementById('fichaIdade').textContent = isNaN(age) ? '' : age + ' anos';
+
+  // Care tags
+  const tags = [];
+  const careMap = [
+    ['restricao-alimentar','Restrição alimentar'],
+    ['diagnostico','Diagnóstico / Laudo'],
+    ['sensibilidade','Sensibilidade sensorial'],
+    ['dificuldade-motora','Dificuldade motora'],
+    ['dificuldade-emocional','Dificuldade emocional'],
+    ['concentracao','Dificuldade de concentração'],
+    ['comissao-inclusiva','Comissão Inclusiva'],
+    ['medicacao-continua','Medicação contínua'],
+  ];
+  const alertSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  careMap.forEach(([key, label]) => {
+    const val = d(key);
+    if (val === 'Sim' || (val && val !== 'Não informado' && key === 'restricao-alimentar' && val !== 'Não')) {
+      tags.push(`<span class="care-tag">${alertSVG}${label}</span>`);
     }
-    const dataNascimento = btn.getAttribute('data-data');
-    if (dataNascimento) {
-      const birth = new Date(dataNascimento);
-      const now = new Date();
-      let age = now.getFullYear() - birth.getFullYear();
-      const m = now.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
-      document.getElementById('fichaIdade').textContent = age + ' anos';
-    } else {
-      document.getElementById('fichaIdade').textContent = '';
-    }
-    // Abas
-    // Identificação
-    document.getElementById('fichaCampoNome').textContent = btn.getAttribute('data-nome');
-    document.getElementById('fichaCampoDataNascimento').textContent = formatDateBR(btn.getAttribute('data-data'));
-    document.getElementById('fichaCampoIdentidadeEtnica').textContent = btn.getAttribute('data-identidade-etnica');
-    document.getElementById('fichaCampoRG').textContent = formatRG(btn.getAttribute('data-rg'));
-    document.getElementById('fichaCampoCPF').textContent = formatCPF(btn.getAttribute('data-cpf'));
-    document.getElementById('fichaCampoStatus').textContent = btn.getAttribute('data-ativo');
-    document.getElementById('fichaCampoDataCriacao').textContent = btn.getAttribute('data-data-criacao');
-    // Matrícula
-    document.querySelector('#tab-matricula .field-value').textContent = btn.getAttribute('data-tipo-matricula');
-    document.querySelectorAll('#tab-matricula .field-value')[1].textContent = btn.getAttribute('data-sala');
-    document.querySelectorAll('#tab-matricula .field-value.mono')[0].textContent = btn.getAttribute('data-numeracao-camisa');
-    document.querySelectorAll('#tab-matricula .field-value.mono')[1].textContent = btn.getAttribute('data-numeracao-calca');
-    document.querySelectorAll('#tab-matricula .field-value.mono')[2].textContent = btn.getAttribute('data-numeracao-calcado');
-    // Matrícula booleanos
-    const matriculaBools = document.querySelectorAll('#tab-matricula .bool-icon');
-    setBoolIcon(matriculaBools[0], btn.getAttribute('data-termos-assinado'));
-    setBoolIcon(matriculaBools[1], btn.getAttribute('data-projeto-social'));
-    setBoolIcon(matriculaBools[2], btn.getAttribute('data-trabalho'));
-    // Vínculos
-    document.querySelector('#tab-vinculos .field-value').textContent = btn.getAttribute('data-familia');
-    // Preencher responsáveis
-    const responsaveisStr = btn.getAttribute('data-responsaveis');
-    const vinculosTab = document.getElementById('tab-vinculos');
-    vinculosTab.querySelectorAll('.responsavel-card').forEach(card => card.remove());
-    const emptyMsg = document.getElementById('vinculosEmptyMsg');
-    if (responsaveisStr && responsaveisStr.trim()) {
-      emptyMsg.style.display = 'none';
-      responsaveisStr.split(';;').forEach(resp => {
-        const parts = resp.split('|');
-        const nome = (parts[0] || '').trim();
-        const parentesco = (parts[1] || '').trim();
-        const contato = (parts[2] || '').trim();
-        const div = document.createElement('div');
-        div.className = 'responsavel-card';
-        div.innerHTML = `<div class="fields-grid" style="grid-template-columns: 1fr 1fr 1fr;">
-          <div class="field"><div class="field-label">Nome</div><div class="field-value">${nome || 'Não informado'}</div></div>
-          <div class="field"><div class="field-label">Parentesco</div><div class="field-value">${parentesco || 'Não informado'}</div></div>
-          <div class="field"><div class="field-label">Contato</div><div class="field-value mono">${contato ? `<a href="https://wa.me/55${contato}" target="_blank" rel="noopener noreferrer">${contato}</a>` : 'Não informado'}</div></div>
-        </div>`;
-        vinculosTab.appendChild(div);
-      });
-    } else {
-      emptyMsg.style.display = '';
-    }
-    // Educacional
-    document.querySelector('#tab-educacional .field-value').textContent = btn.getAttribute('data-escolaridade');
-    document.querySelectorAll('#tab-educacional .field-value')[1].textContent = btn.getAttribute('data-ano-escolar');
-    document.querySelectorAll('#tab-educacional .field-value')[2].textContent = btn.getAttribute('data-escola');
-    document.querySelectorAll('#tab-educacional .field-value')[3].textContent = btn.getAttribute('data-tipo-escola');
-    // Contato
-    document.querySelector('#tab-contato .field-value.mono').textContent = btn.getAttribute('data-contato');
-    // Saúde — bool icons (convenio, vacina, saude_bucal, campanha, diagnostico, restricao_alimentar)
-    const saudeBools = document.querySelectorAll('#tab-saude .bool-icon');
-    setBoolIcon(saudeBools[0], btn.getAttribute('data-convenio-medico'));
-    setBoolIcon(saudeBools[1], btn.getAttribute('data-vacina-covid'));
-    setBoolIcon(saudeBools[2], btn.getAttribute('data-saude-bucal'));
-    setBoolIcon(saudeBools[3], btn.getAttribute('data-campanha-vacinacao'));
-    // alertas de saúde: diagnostico e restricao_alimentar usam alert-true
-    const saudeAlertBools = document.querySelectorAll('#tab-saude .bool-icon.alert-true, #tab-saude .bool-icon.false');
-    setBoolIconAlert(saudeBools[4], btn.getAttribute('data-diagnostico'));
-    const restricaoVal = btn.getAttribute('data-restricao-alimentar');
-    setBoolIconAlert(saudeBools[5], (restricaoVal && restricaoVal !== 'Não informado') ? 'Sim' : 'Não');
-    // Saúde — campos texto
-    document.querySelectorAll('#tab-saude .field-value')[0].textContent = btn.getAttribute('data-restricao-alimentar');
-    document.querySelectorAll('#tab-saude .field-value')[1].textContent = btn.getAttribute('data-restricao-medica');
-    document.querySelectorAll('#tab-saude .field-value')[2].textContent = btn.getAttribute('data-medicacao-continua');
-    document.querySelectorAll('#tab-saude .field-value')[3].textContent = btn.getAttribute('data-diagnostico-descricao');
-    document.querySelectorAll('#tab-saude .field-value')[4].textContent = btn.getAttribute('data-acompanhamento');
-    document.querySelectorAll('#tab-saude .field-value')[5].textContent = btn.getAttribute('data-recomendacao-acompanhamento');
-    document.querySelectorAll('#tab-saude .field-value')[6].textContent = btn.getAttribute('data-observacoes');
-    // PCF Inclusivo — bool icons
-    const inclusivoBools = document.querySelectorAll('#tab-inclusivo .bool-icon');
-    setBoolIconAlert(inclusivoBools[0], btn.getAttribute('data-comissao-inclusiva'));
-    setBoolIconAlert(inclusivoBools[1], btn.getAttribute('data-concentracao'));
-    setBoolIconAlert(inclusivoBools[2], btn.getAttribute('data-aprendizado'));
-    setBoolIconAlert(inclusivoBools[3], btn.getAttribute('data-sensibilidade'));
-    setBoolIconAlert(inclusivoBools[4], btn.getAttribute('data-dificuldade-motora'));
-    setBoolIconAlert(inclusivoBools[5], btn.getAttribute('data-dificuldade-emocional'));
-    setBoolIcon(inclusivoBools[6], btn.getAttribute('data-mudancas-positivas') || 'Não');
-    // PCF Inclusivo — campos texto
-    document.querySelectorAll('#tab-inclusivo .field-value')[0].textContent = btn.getAttribute('data-comportamento-social');
-    document.querySelectorAll('#tab-inclusivo .field-value')[1].textContent = btn.getAttribute('data-comportamento-regras');
-    document.querySelectorAll('#tab-inclusivo .field-value')[2].textContent = btn.getAttribute('data-sensibilidade-descricao');
-    document.querySelectorAll('#tab-inclusivo .field-value')[3].textContent = btn.getAttribute('data-dificuldade-motora-descricao');
-    document.querySelectorAll('#tab-inclusivo .field-value')[4].textContent = btn.getAttribute('data-dificuldade-emocional-descricao');
-    document.querySelectorAll('#tab-inclusivo .field-value')[5].textContent = btn.getAttribute('data-expectativas-familia');
-    document.body.style.overflow = 'hidden';
-  }
-  // Fechar modal
-  function fecharFichaAtendido() {
-    document.getElementById('fichaAtendidoModal').style.display = 'none';
-    document.body.style.overflow = '';
-  }
-  // Fechar ao clicar fora
-  document.getElementById('fichaAtendidoModal').addEventListener('click', function(e) {
-    if (e.target === this) fecharFichaAtendido();
   });
-  // Fechar com ESC
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') fecharFichaAtendido();
+  document.getElementById('fichaCareTags').innerHTML = tags.join('');
+
+  // Identificação
+  set('fichaCampoNome', d('nome'));
+  set('fichaCampoDataNascimento', formatDateBR(d('data')));
+  set('fichaCampoIdentidadeEtnica', d('identidade-etnica'));
+  set('fichaCampoRG', d('rg'));
+  set('fichaCampoCPF', formatCPF(d('cpf')));
+  set('fichaCampoStatus', d('ativo'));
+  set('fichaCampoDataCriacao', d('data-criacao'));
+
+  // Matrícula
+  set('mTipo', d('tipo-matricula'));
+  set('mSala', d('sala'));
+  set('mCamisa', d('numeracao-camisa'));
+  set('mCalca', d('numeracao-calca'));
+  set('mCalcado', d('numeracao-calcado'));
+  setBool('mTermos',  d('termos-assinado'),  false);
+  setBool('mProjeto', d('projeto-social'),   false);
+  setBool('mTrabalho',d('trabalho'),         false);
+
+  // Vínculos
+  set('vFamilia', d('familia'));
+  const respStr = d('responsaveis');
+  const cards = document.getElementById('vinculosCards');
+  const emptyMsg = document.getElementById('vinculosEmptyMsg');
+  cards.innerHTML = '';
+  if (respStr && respStr.trim()) {
+    emptyMsg.style.display = 'none';
+    respStr.split(';;').forEach(r => {
+      const [nome, parentesco, contato] = r.split('|');
+      const div = document.createElement('div');
+      div.className = 'responsavel-card';
+      div.innerHTML = `<div class="fields-grid" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="field"><div class="field-label">Nome</div><div class="field-value">${nome||'Não informado'}</div></div>
+        <div class="field"><div class="field-label">Parentesco</div><div class="field-value">${parentesco||'Não informado'}</div></div>
+        <div class="field"><div class="field-label">Contato</div><div class="field-value mono">${contato?`<a href="https://wa.me/55${contato}" target="_blank" rel="noopener noreferrer">${contato}</a>`:'Não informado'}</div></div>
+      </div>`;
+      cards.appendChild(div);
+    });
+  } else {
+    emptyMsg.style.display = '';
+  }
+
+  // Educacional
+  set('edEscolaridade', d('escolaridade'));
+  set('edAno', d('ano-escolar'));
+  set('edEscola', d('escola'));
+  set('edTipo', d('tipo-escola'));
+
+  // Contato
+  set('ctTel', d('contato'));
+
+  // Saúde
+  setBool('sConvenio',  d('convenio-medico'),    false);
+  setBool('sVacina',    d('vacina-covid'),        false);
+  setBool('sBucal',     d('saude-bucal'),         false);
+  setBool('sCampanha',  d('campanha-vacinacao'),  false);
+  setBool('sDiagnostico', d('diagnostico'),       true);
+  const restVal = d('restricao-alimentar');
+  setBool('sRestricao', (restVal && restVal !== 'Não informado') ? 'Sim' : 'Não', true);
+  set('sRestricaoTxt', d('restricao-alimentar'));
+  set('sRestricaoMed', d('restricao-medica'));
+  set('sMedicacao',    d('medicacao-continua'));
+  set('sDiagDesc',     d('diagnostico-descricao'));
+  set('sAcomp',        d('acompanhamento'));
+  set('sRecomend',     d('recomendacao-acompanhamento'));
+  set('sObs',          d('observacoes'));
+
+  // PCF Inclusivo
+  setBool('iComissao',    d('comissao-inclusiva'),         true);
+  setBool('iConcentracao',d('concentracao'),               true);
+  setBool('iAprendizado', d('aprendizado'),                true);
+  setBool('iSensibilidade',d('sensibilidade'),             true);
+  setBool('iMotora',      d('dificuldade-motora'),         true);
+  setBool('iEmocional',   d('dificuldade-emocional'),      true);
+  setBool('iMudancas',    d('mudancas-positivas'),         false);
+  set('iCSocial',     d('comportamento-social'));
+  set('iCRegras',     d('comportamento-regras'));
+  set('iSensDesc',    d('sensibilidade-descricao'));
+  set('iMotoraDesc',  d('dificuldade-motora-descricao'));
+  set('iEmocionalDesc',d('dificuldade-emocional-descricao'));
+  set('iExpect',      d('expectativas-familia'));
+
+  // Reset to first tab
+  trocarAba(document.querySelector('.dossier-nav button'), 'tab-identificacao');
+
+  document.getElementById('fichaAtendidoModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharFichaAtendido() {
+  document.getElementById('fichaAtendidoModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('fichaAtendidoModal').addEventListener('click', function(e) {
+  if (e.target === this) fecharFichaAtendido();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharFichaAtendido(); });
+
+// ===== SEARCH =====
+(function() {
+  const input = document.getElementById('searchInput');
+  const countEl = document.getElementById('searchCount');
+  const total = {{ total_atendidos }};
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('.atendido-card').forEach(card => {
+      const match = !q || card.dataset.nome.includes(q);
+      card.classList.toggle('hidden-search', !match);
+      if (match) visible++;
+    });
+    // Open sala that has results; keep others
+    document.querySelectorAll('.sala-card').forEach(sala => {
+      if (!q) return;
+      const hasVisible = sala.querySelector('.atendido-card:not(.hidden-search)');
+      if (hasVisible) sala.setAttribute('open','');
+    });
+    countEl.textContent = q ? `${visible} de ${total}` : '';
   });
+})();
 </script>
-
 {% endblock %}
