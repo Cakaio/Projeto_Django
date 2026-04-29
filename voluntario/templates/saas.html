@@ -242,76 +242,56 @@
   </div>
 </div>
 
+<!-- Opções de regra (usadas pelo JS para montar os selects dinâmicos) -->
+<template id="regraOpcoesTemplate">
+  <option value="" disabled selected>Selecione a regra…</option>
+  {% regroup regras by tipo as grupos_regra %}
+  {% for grupo in grupos_regra %}
+    {% if grupo.grouper == 'ALERTA' %}<optgroup label="Alertas (AL)">
+    {% elif grupo.grouper == 'ADVERTENCIA' %}<optgroup label="Advertências (AD)">
+    {% else %}<optgroup label="Períodos de Observação (PO)">
+    {% endif %}
+      {% for r in grupo.list %}
+        <option value="{{ r.codigo }}">{{ r.codigo }} – {{ r.descricao }}</option>
+      {% endfor %}
+    </optgroup>
+  {% endfor %}
+</template>
+
 <!-- Modal Aplicar Ocorrência -->
 <div id="ocorrenciaModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,.45)">
-  <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl" style="animation:mIn .18s ease;">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-      <span class="font-700 text-gray-900 text-base">Aplicar Ocorrência</span>
-      <button onclick="fecharModal()" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 border-0 bg-transparent cursor-pointer">
+  <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl" style="animation:mIn .18s ease;max-height:92vh;display:flex;flex-direction:column;">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+      <div>
+        <span class="font-700 text-gray-900 text-base">Aplicar Ocorrências</span>
+        <p class="text-xs text-gray-400 mt-0.5">Adicione uma ou mais regras — todas serão enviadas num único e-mail.</p>
+      </div>
+      <button onclick="fecharModal()" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 border-0 bg-transparent cursor-pointer flex-shrink-0">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <form method="POST" action="{% url 'voluntario:criar_ocorrencia' %}" id="ocorrenciaForm" class="px-6 py-5 space-y-4">
+    <form method="POST" action="{% url 'voluntario:criar_ocorrencia' %}" id="ocorrenciaForm" class="flex flex-col overflow-hidden flex-1">
       {% csrf_token %}
       <input type="hidden" name="advertido_id" id="modalId">
 
-      <div>
+      <div class="px-6 pt-4 pb-2 flex-shrink-0">
         <p class="text-xs font-700 text-gray-500 uppercase tracking-wide mb-1.5">Voluntário</p>
         <div id="modalNome" class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-600 text-gray-800">—</div>
       </div>
 
-      <div>
-        <label for="regraSelect" class="text-xs font-700 text-gray-500 uppercase tracking-wide block mb-1.5">Regra Aplicada</label>
-        <select id="regraSelect" name="regra" required
-          class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-800 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all cursor-pointer">
-          <option value="" disabled selected>Selecione a regra…</option>
-          <optgroup label="Alertas (AL)">
-            <option value="AL1">AL1 – Não respondeu o formulário de presença até quarta às 23h59</option>
-            <option value="AL2">AL2 – Confirmou presença e não compareceu no sábado</option>
-            <option value="AL3">AL3 – Quórum mínimo: presença inferior a 50% nos sábados</option>
-            <option value="AL4">AL4 – Atraso após 8h30 no DEMAR sem justificativa prévia</option>
-            <option value="AL5">AL5 – Saiu antes do encerramento ou não participou da reunião final</option>
-            <option value="AL6">AL6 – Atitudes inadequadas reincidentes após aviso da GT</option>
-            <option value="AL7">AL7 – Não cumpriu turno de ronda durante o sábado</option>
-            <option value="AL8">AL8 – Demonstrações excessivas de carinho/afeto próximo aos atendidos</option>
-            <option value="AL9">AL9 – Atraso superior a 20 minutos sem justificativa</option>
-            <option value="AL10">AL10 – Não respondeu formulários/enquetes dos Informativos</option>
-            <option value="AL11">AL11 – Falta em turno de pré-evento após confirmação e sem aviso</option>
-            <option value="AL12">AL12 – Duas faltas seguidas em reunião de área sem justificativa</option>
-            <option value="AL13">AL13 – Faltou a um sábado sem avisar (líder julgou pertinente)</option>
-            <option value="AL14">AL14 – Não realizou tarefa da área</option>
-            <option value="AL15">AL15 – Não respondeu o grupo da área por uma semana ou mais</option>
-            <option value="AL16">AL16 – Líder não cumpriu prazos estabelecidos pela gestão</option>
-            <option value="AL17">AL17 – Líder não compareceu às reuniões da Gestão sem justificar</option>
-          </optgroup>
-          <optgroup label="Advertências (AD)">
-            <option value="AD1">AD1 – Estava sob influência de álcool ou substância psicoativa</option>
-            <option value="AD2">AD2 – Dormiu durante o projeto</option>
-            <option value="AD3">AD3 – Faltou à RG ou Postulação sem justificativa</option>
-            <option value="AD4">AD4 – Não cumpriu turno em evento externo sem justificativa</option>
-            <option value="AD5">AD5 – Três faltas seguidas em reunião de área sem justificativa</option>
-            <option value="AD6">AD6 – Não cumpriu tarefa que afetou o funcionamento do sábado</option>
-            <option value="AD7">AD7 – Somatório de 2 alertas do mesmo motivo</option>
-            <option value="AD8">AD8 – Somatório de 3 alertas de diferentes motivos</option>
-          </optgroup>
-          <optgroup label="Períodos de Observação (PO)">
-            <option value="PO1">PO1 – Quórum mínimo igual ou inferior a 30% no semestre</option>
-            <option value="PO2">PO2 – Líder ausente e sem cumprir funções por uma semana ou mais</option>
-            <option value="PO3">PO3 – Somatório de 2 advertências do mesmo motivo</option>
-            <option value="PO4">PO4 – Somatório de 3 advertências de diferentes motivos</option>
-          </optgroup>
-        </select>
+      <!-- Lista de regras (scroll) -->
+      <div id="regrasList" class="px-6 py-2 space-y-3 overflow-y-auto flex-1" style="max-height:380px;"></div>
+
+      <!-- Botão adicionar -->
+      <div class="px-6 py-2 flex-shrink-0">
+        <button type="button" onclick="addRegraRow()"
+          class="w-full flex items-center justify-center gap-1.5 py-2 border border-dashed border-gray-300 rounded-xl text-sm font-600 text-gray-500 hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50 transition-all cursor-pointer bg-transparent">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar outra regra
+        </button>
       </div>
 
-      <div>
-        <label for="razaoInput" class="text-xs font-700 text-gray-500 uppercase tracking-wide block mb-1.5">
-          Observação <span class="normal-case font-normal text-gray-400">(opcional)</span>
-        </label>
-        <textarea id="razaoInput" name="razao" rows="2" placeholder="Contexto adicional, se necessário…"
-          class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white text-gray-800 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all resize-none"></textarea>
-      </div>
-
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 flex-shrink-0">
         <button type="button" onclick="fecharModal()"
           class="px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors cursor-pointer">Cancelar</button>
         <button type="submit" id="btnConfirmar"
@@ -340,6 +320,14 @@
   .pag-btn:hover:not(:disabled) { border-color:#fe8210;color:#c75f06; }
   .pag-btn.active { border-color:#fe8210;background:#fe8210;color:#fff; }
   .pag-btn:disabled { opacity:.38;cursor:not-allowed; }
+  .regra-row { border:1px solid #e5e7eb;border-radius:.75rem;padding:.75rem;background:#fafafa;position:relative; }
+  .regra-row select { width:100%;padding:.45rem .65rem;border:1px solid #e5e7eb;border-radius:.5rem;font-size:.8rem;background:#fff;color:#1f2937;outline:none;cursor:pointer; }
+  .regra-row select:focus { border-color:#fe8210;box-shadow:0 0 0 2px rgba(254,130,16,.12); }
+  .regra-row textarea { width:100%;padding:.4rem .65rem;border:1px solid #e5e7eb;border-radius:.5rem;font-size:.8rem;background:#fff;color:#374151;outline:none;resize:none;margin-top:.5rem;box-sizing:border-box; }
+  .regra-row textarea:focus { border-color:#fe8210;box-shadow:0 0 0 2px rgba(254,130,16,.12); }
+  .regra-row .row-num { font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem; }
+  .btn-remove-row { position:absolute;top:.5rem;right:.5rem;background:none;border:none;cursor:pointer;color:#d1d5db;padding:.2rem;border-radius:.35rem;line-height:0;transition:color .15s,background .15s; }
+  .btn-remove-row:hover { color:#dc2626;background:#fee2e2; }
 </style>
 
 <script>
@@ -367,12 +355,47 @@
   }
   document.getElementById('fotoModal').addEventListener('click', e => { if (e.target === e.currentTarget) fecharFoto(); });
 
+  /* ── Opções de regra (extraídas do <template>) ── */
+  const _regraOpcoesHTML = document.getElementById('regraOpcoesTemplate').innerHTML;
+
+  /* ── Rows de regra ── */
+  function addRegraRow() {
+    const list  = document.getElementById('regrasList');
+    const idx   = list.children.length + 1;
+    const div   = document.createElement('div');
+    div.className = 'regra-row';
+    div.innerHTML = `
+      <button type="button" class="btn-remove-row" onclick="removeRegraRow(this)" title="Remover">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="row-num">Regra ${idx}</div>
+      <select name="regra" required>${_regraOpcoesHTML}</select>
+      <textarea name="razao" rows="2" placeholder="Observação (opcional)…"></textarea>`;
+    list.appendChild(div);
+    _atualizarNumeracao();
+  }
+
+  function removeRegraRow(btn) {
+    const list = document.getElementById('regrasList');
+    if (list.children.length <= 1) return; // mantém pelo menos 1
+    btn.closest('.regra-row').remove();
+    _atualizarNumeracao();
+  }
+
+  function _atualizarNumeracao() {
+    document.querySelectorAll('#regrasList .regra-row').forEach((row, i) => {
+      const numEl = row.querySelector('.row-num');
+      if (numEl) numEl.textContent = `Regra ${i + 1}`;
+    });
+  }
+
   /* ── Modais ── */
   function abrirModal(id, nome) {
     document.getElementById('modalId').value = id;
     document.getElementById('modalNome').textContent = nome;
-    document.getElementById('regraSelect').value = '';
-    document.getElementById('razaoInput').value = '';
+    // Reinicia com 1 linha em branco
+    document.getElementById('regrasList').innerHTML = '';
+    addRegraRow();
     const m = document.getElementById('ocorrenciaModal');
     m.classList.remove('hidden');
     m.classList.add('flex');
@@ -608,37 +631,42 @@
         Regular</span>`;
     }
 
-    // Célula 6: ação — atualiza botão Aplicar/Bloqueado mantendo o botão Histórico
-    const nomeCel = cells[0].querySelector('.font-600')?.textContent || '';
-    const pkEsc = pk;
-    const nomeEsc = nomeCel.replace(/'/g, "\\'");
-    if (po) {
-      cells[6].querySelector('.btn-aplicar-wrap')?.remove();
-    } else {
-      // garante que o botão aplicar existe e está habilitado
-      let aplicarWrap = cells[6].querySelector('.btn-aplicar-wrap');
-      if (!aplicarWrap) {
-        aplicarWrap = document.createElement('div');
-        aplicarWrap.className = 'btn-aplicar-wrap inline-flex';
-        cells[6].querySelector('.flex').prepend(aplicarWrap);
-      }
-      aplicarWrap.innerHTML = `<button onclick="abrirModal('${pkEsc}','${nomeEsc}')"
-        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-600 transition-all cursor-pointer border-0"
-        style="background:rgba(254,130,16,.1);color:#c75f06"
-        onmouseover="this.style.background='#fe8210';this.style.color='#fff'"
-        onmouseout="this.style.background='rgba(254,130,16,.1)';this.style.color='#c75f06'">
-        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Aplicar</button>`;
-    }
+    // Célula 6: reconstrói toda a célula para evitar botão Bloqueado residual
+    const nomeCel = cells[0].querySelector('.font-600')?.textContent?.trim() || '';
+    const nomeEsc = nomeCel.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const btnAplicar = po ? '' : `
+      <div class="btn-aplicar-wrap inline-flex">
+        <button onclick="abrirModal('${pk}','${nomeEsc}')"
+          class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-600 transition-all cursor-pointer border-0"
+          style="background:rgba(254,130,16,.1);color:#c75f06"
+          onmouseover="this.style.background='#fe8210';this.style.color='#fff'"
+          onmouseout="this.style.background='rgba(254,130,16,.1)';this.style.color='#c75f06'">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Aplicar</button>
+      </div>`;
+    cells[6].innerHTML = `<div class="flex items-center gap-1.5 flex-wrap">
+      ${btnAplicar}
+      <button onclick="abrirHistorico('${pk}','${nomeEsc}')"
+        class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-600 bg-white border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-all cursor-pointer">
+        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Histórico</button>
+    </div>`;
   }
 
   /* ── Init ── */
   ordenar('az');
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { fecharModal(); fecharHistorico(); } });
-  document.getElementById('ocorrenciaForm').addEventListener('submit', function() {
+  document.getElementById('ocorrenciaForm').addEventListener('submit', function(e) {
+    // Valida que todos os selects têm valor
+    const selects = this.querySelectorAll('select[name="regra"]');
+    for (const s of selects) {
+      if (!s.value) { e.preventDefault(); s.focus(); s.style.borderColor = '#dc2626'; return; }
+      s.style.borderColor = '';
+    }
     const btn = document.getElementById('btnConfirmar');
     btn.disabled = true;
-    btn.textContent = 'Aplicando…';
+    const n = selects.length;
+    btn.textContent = n > 1 ? `Aplicando ${n} regras…` : 'Aplicando…';
   });
 </script>
 {% endblock %}

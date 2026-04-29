@@ -116,8 +116,10 @@
     display: flex; align-items: center; justify-content: center;
     border: 2px solid hsl(var(--border)); cursor: pointer; flex-shrink: 0;
     transition: opacity 0.15s; font-family: inherit;
+    overflow: hidden; padding: 0;
   }
   .pcf-avatar-btn:hover { opacity: 0.82; }
+  .pcf-avatar-btn img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
 
   /* hamburger (mobile only) */
   .pcf-hamburger {
@@ -165,8 +167,9 @@
     background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
     font-size: .75rem; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+    flex-shrink: 0; overflow: hidden; padding: 0;
   }
+  .pcf-mobile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
   .pcf-mobile-username { font-size: .875rem; font-weight: 600; color: hsl(var(--foreground)); margin: 0; }
   .pcf-mobile-area     { font-size: .75rem; color: hsl(var(--muted-foreground)); margin: .1rem 0 0; }
 
@@ -270,7 +273,11 @@
       <!-- User avatar dropdown -->
       <div class="pcf-nav-item" style="position:relative;">
         <button class="pcf-avatar-btn" onclick="toggleDD(this)">
-          {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+          {% if user.foto %}
+            <img src="{{ user.foto.url }}" alt="{{ user.get_full_name }}">
+          {% else %}
+            {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+          {% endif %}
         </button>
         <div class="pcf-dropdown" style="left:auto;right:0;min-width:190px;">
           <div class="pcf-dd-label">{{ user.get_full_name|default:user.username }}</div>
@@ -306,7 +313,11 @@
   <!-- usuário logado -->
   <div class="pcf-mobile-user">
     <div class="pcf-mobile-avatar">
-      {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+      {% if user.foto %}
+        <img src="{{ user.foto.url }}" alt="{{ user.get_full_name }}">
+      {% else %}
+        {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+      {% endif %}
     </div>
     <div>
       <p class="pcf-mobile-username">{{ user.get_full_name|default:user.username }}</p>

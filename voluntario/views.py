@@ -1,14 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, TemplateView, UpdateView
-from .models import Voluntario, PresencaVoluntario, Ocorrencia
+from .models import Voluntario, PresencaVoluntario, Ocorrencia, Regra
 from .forms import MeuPerfilForm
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.utils.timezone import localdate
 from django.contrib import messages
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Case, When, IntegerField
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
 from django.http import JsonResponse
@@ -317,9 +317,18 @@ def saas_view(request):
             'periodo_observacao': periodo_observacao,
         })
 
+    _tipo_order = Case(
+        When(tipo='ALERTA',      then=0),
+        When(tipo='ADVERTENCIA', then=1),
+        When(tipo='SUSPENSAO',   then=2),
+        default=3,
+        output_field=IntegerField(),
+    )
+    regras_db = Regra.objects.filter(ativo=True).order_by(_tipo_order, 'ordem', 'codigo')
     context = {
         'dados': dados,
         'areas': LISTA_AREAS,
+        'regras': regras_db,
     }
     return render(request, "saas.html", context)
 
@@ -334,27 +343,19 @@ def criar_ocorrencia(request):
         return redirect("voluntario:saas")
 
     advertido_id = request.POST.get("advertido_id")
-    regra = request.POST.get("regra", "").strip()
-    razao = request.POST.get("razao", "").strip() or None
+    regras_raw   = [r.strip() for r in request.POST.getlist("regra") if r.strip()]
+    razoes_raw   = request.POST.getlist("razao")
 
-    if not advertido_id or regra not in Ocorrencia.REGRAS_DICT:
+    if not advertido_id or not regras_raw:
         messages.error(request, "Dados inválidos.")
         return redirect("voluntario:saas")
-
-    # Deriva o tipo a partir do prefixo da regra
-    if regra.startswith("AL"):
-        tipo = "ALERTA"
-    elif regra.startswith("AD"):
-        tipo = "ADVERTENCIA"
-    else:  # PO
-        tipo = "SUSPENSAO"
 
     advertido = get_object_or_404(Voluntario, pk=advertido_id)
 
     def _ativas(qs):
         return qs.filter(deleted_at__isnull=True)
 
-    # Bloquear se já em Período de Observação (apenas ocorrências ativas)
+    # Bloquear se já em Período de Observação
     ja_em_po = (
         _ativas(Ocorrencia.objects.filter(advertido=advertido, regra__startswith='PO')).exists()
         or _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA')).count() >= 3
@@ -363,52 +364,73 @@ def criar_ocorrencia(request):
         messages.error(request, f"{advertido.get_full_name() or advertido.username} está em Período de Observação e não pode receber novas ocorrências.")
         return redirect("voluntario:saas")
 
-    Ocorrencia.objects.create(
-        advertido=advertido,
-        tipo=tipo,
-        regra=regra,
-        razao=razao,
-        aplicado_por=request.user,
-        automatico=False,
-    )
+    # Valida cada regra e resolve tipo
+    regras_validas = []
+    regras_db_map  = {r.codigo: r for r in Regra.objects.filter(codigo__in=regras_raw, ativo=True)}
+    for idx, codigo in enumerate(regras_raw):
+        regra_obj = regras_db_map.get(codigo)
+        if not regra_obj and codigo not in Ocorrencia.REGRAS_DICT:
+            messages.error(request, f"Regra inválida: {codigo}")
+            return redirect("voluntario:saas")
 
-    # Recontagem pós-criação (só ativas)
-    total_alt = _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ALERTA')).count()
-    total_adv = _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA')).count()
-    po_direto = regra.startswith('PO')
+        if regra_obj:
+            tipo = regra_obj.tipo
+        elif codigo.startswith("AL"):
+            tipo = "ALERTA"
+        elif codigo.startswith("AD"):
+            tipo = "ADVERTENCIA"
+        else:
+            tipo = "SUSPENSAO"
 
-    # Coleta notificações a disparar em um único email
-    # tupla (tipo, regra) para carregar a descrição correta no email
-    notificacoes = [(tipo, regra)]
+        razao = razoes_raw[idx].strip() if idx < len(razoes_raw) else None
+        regras_validas.append((codigo, tipo, razao or None))
 
-    # Auto-gerar advertência se atingiu múltiplo de 3 alertas (ativas)
-    if tipo == 'ALERTA':
-        adv_auto_esperadas = total_alt // 3
-        adv_auto_existentes = _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA', automatico=True)).count()
-        if adv_auto_esperadas > adv_auto_existentes:
-            Ocorrencia.objects.create(
-                advertido=advertido,
-                tipo='ADVERTENCIA',
-                razao='Advertência automática por acúmulo de 3 alertas.',
-                aplicado_por=request.user,
-                automatico=True,
-            )
-            total_adv += 1
-            notificacoes.append('ADVERTENCIA_AUTO')
+    # Cria todas as ocorrências da leva
+    notificacoes = []
+    for codigo, tipo, razao in regras_validas:
+        Ocorrencia.objects.create(
+            advertido=advertido,
+            tipo=tipo,
+            regra=codigo,
+            razao=razao,
+            aplicado_por=request.user,
+            automatico=False,
+        )
+        notificacoes.append((tipo, codigo))
+
+    # Recontagem única após toda a leva (só ativas)
+    total_alt  = _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ALERTA')).count()
+    total_adv  = _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA')).count()
+    po_direto  = any(c.startswith('PO') for c, _, __ in regras_validas)
+
+    # Auto-gerar advertências por acúmulo de alertas (uma por múltiplo de 3)
+    adv_auto_esperadas  = total_alt // 3
+    adv_auto_existentes = _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA', automatico=True)).count()
+    for _ in range(adv_auto_esperadas - adv_auto_existentes):
+        Ocorrencia.objects.create(
+            advertido=advertido,
+            tipo='ADVERTENCIA',
+            razao='Advertência automática por acúmulo de 3 alertas.',
+            aplicado_por=request.user,
+            automatico=True,
+        )
+        total_adv += 1
+        notificacoes.append('ADVERTENCIA_AUTO')
 
     periodo_observacao = po_direto or total_adv >= 3
     if periodo_observacao:
         notificacoes.append('PERIODO_OBSERVACAO')
 
-    # Dispara um único email com todas as notificações do evento
+    # Um único email com tudo
     threading.Thread(
         target=_enviar_email_ocorrencia,
         args=(advertido, notificacoes),
-        kwargs={'regra': regra},
         daemon=True,
     ).start()
 
-    messages.success(request, f"{dict(Ocorrencia.TIPOS).get(tipo)} registrada para {advertido.get_full_name() or advertido.username}.")
+    n = len(regras_validas)
+    nome = advertido.get_full_name() or advertido.username
+    messages.success(request, f"{n} ocorrência(s) registrada(s) para {nome}.")
     return redirect("voluntario:saas")
 
 
@@ -532,7 +554,14 @@ def _enviar_email_ocorrencia(advertido, notificacoes, regra=None):
 
         label = LABELS.get(tipo_n, tipo_n)
         if regra_n:
-            descricao = Ocorrencia.REGRAS_DICT.get(regra_n, regra_n)
+            # Busca descrição no banco; fallback para REGRAS_DICT
+            regra_obj_email = Regra.objects.filter(codigo=regra_n).first()
+            if regra_obj_email:
+                descricao = regra_obj_email.descricao
+            else:
+                raw = Ocorrencia.REGRAS_DICT.get(regra_n, regra_n)
+                # REGRAS_DICT inclui o código no valor (ex: "AL12 – Desc"), remove o prefixo
+                descricao = raw.split(' – ', 1)[1] if ' – ' in raw else raw
             itens_html.append(f"<li><b>{label}:</b> {regra_n} – {descricao}</li>")
             itens_txt.append(f"  • {label}: {regra_n} – {descricao}")
         else:

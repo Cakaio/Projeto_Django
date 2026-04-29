@@ -107,6 +107,27 @@ class Talento(models.Model):
         return self.talento
 
 
+class Regra(models.Model):
+    TIPOS = (
+        ('ALERTA', 'Alerta'),
+        ('ADVERTENCIA', 'Advertência'),
+        ('SUSPENSAO', 'Suspensão'),
+    )
+    codigo    = models.CharField(max_length=10, unique=True, help_text='Código curto, ex: AL1, AD2, PO1')
+    descricao = models.TextField(help_text='Descrição completa exibida no painel e nos emails')
+    tipo      = models.CharField(max_length=20, choices=TIPOS)
+    ativo     = models.BooleanField(default=True, help_text='Disponível para aplicação no painel')
+    ordem     = models.PositiveSmallIntegerField(default=0, help_text='Ordem de exibição dentro do grupo')
+
+    class Meta:
+        ordering  = ['tipo', 'ordem', 'codigo']
+        verbose_name = 'Regra'
+        verbose_name_plural = 'Regras'
+
+    def __str__(self):
+        return f'{self.codigo} – {self.descricao}'
+
+
 class Ocorrencia(models.Model):
     TIPOS = (
         ('ALERTA', 'Alerta'),
