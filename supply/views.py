@@ -2,7 +2,8 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
-
+from django.forms import modelformset_factory
+from .forms import MeuPedidoForm
 from supply.forms import PedidoFormSet
 from .models import Item, Movimentacao, Pedido
 from django.shortcuts import render, redirect
@@ -54,6 +55,10 @@ class ListaMovimentacoesView(LoginRequiredMixin, ListView):
 
 
 def painel_materiais(request):
+    if request.user.area not in ["SUPPLY","TRIADE",]:
+        messages.error(request, "Você não tem permissão para acessar esta página.")
+        return redirect("/supply/")
+    
     sabado_id = request.GET.get("sabado")
     tipo_local = request.GET.get("tipo_local")
     tipo_painel = request.GET.get("painel", "material")
@@ -233,7 +238,8 @@ def salvar_materiais_lote(request):
 
 def painel_materiais_visualizacao(request):
     sabado_id = request.GET.get("sabado")
-    pedido = request.GET.get("pedido")
+    tipo_local = request.GET.get("tipo_local")
+    tipo_painel = request.GET.get("painel", "material")
 
     sabados = Sabado.objects.order_by("-data")[:40]
     pedidos_opcoes = PEDIDO
@@ -247,25 +253,81 @@ def painel_materiais_visualizacao(request):
         return render(request, "painel_materiais_visualizacao.html", {
             "sabados": sabados,
             "sabado": None,
-            "pedido": pedido,
-            "pedidos_opcoes": pedidos_opcoes,
+            "tipo_local": tipo_local,
+            "tipo_painel": tipo_painel,
+            "tipo_local_opcoes": TIPO_LOCAL,
             "total_itens": 0,
             "total_valor": Decimal("0.00"),
             "salas_map": [],
+            "pedidos_map": [],
+        })
+
+    if tipo_painel == "pedido":
+        qs = (
+            Pedido.objects
+            .select_related("requisitado_por", "sabado")
+            .filter(sabado=sabado)
+            .order_by("area", "nome")
+        )
+
+        if tipo_local:
+            qs = qs.filter(tipo_local=tipo_local)
+
+        total_itens = qs.count()
+        total_valor = qs.aggregate(
+            total=Coalesce(
+                Sum("valor"),
+                Value(0, output_field=DecimalField(max_digits=12, decimal_places=2))
+            )
+        )["total"] or Decimal("0.00")
+
+        nomes_areas = dict(LISTA_AREAS)
+        pedidos_map = OrderedDict()
+
+        for item in qs:
+            area_key = item.area or "SEM_AREA"
+            area_nome = nomes_areas.get(area_key, "Sem área" if area_key == "SEM_AREA" else area_key)
+
+            if area_key not in pedidos_map:
+                pedidos_map[area_key] = {
+                    "key": area_key,
+                    "nome": area_nome,
+                    "pedidos": [],
+                    "total_itens": 0,
+                    "total_valor": Decimal("0.00"),
+                }
+
+            pedidos_map[area_key]["pedidos"].append(item)
+            pedidos_map[area_key]["total_itens"] += 1
+            pedidos_map[area_key]["total_valor"] += item.valor or Decimal("0.00")
+
+        return render(request, "painel_materiais_visualizacao.html", {
+            "sabados": sabados,
+            "sabado": sabado,
+            "tipo_local": tipo_local,
+            "tipo_painel": tipo_painel,
+            "pedidos_opcoes": pedidos_opcoes,
+            "tipo_local_opcoes": TIPO_LOCAL,
+            "total_itens": total_itens,
+            "total_valor": total_valor,
+            "salas_map": [],
+            "pedidos_map": list(pedidos_map.values()),
         })
 
     qs = (
-        Material.objects
-        .select_related("atividade__semanario", "atividade__semanario__data")
-        .filter(atividade__semanario__data=sabado)
-        .order_by("atividade__semanario__sala", "nome")
+    Material.objects
+    .select_related("atividade__semanario", "atividade__semanario__data")
+    .filter(
+        atividade__semanario__data=sabado,
+        pedido="SUPPLY"
     )
+    .order_by("atividade__semanario__sala", "nome")
+)
 
-    if pedido:
-        qs = qs.filter(pedido=pedido)
+    if tipo_local:
+        qs = qs.filter(tipo_local=tipo_local)
 
     total_itens = qs.count()
-
     total_valor = qs.aggregate(
         total=Coalesce(
             Sum("valor"),
@@ -273,23 +335,17 @@ def painel_materiais_visualizacao(request):
         )
     )["total"] or Decimal("0.00")
 
+    nomes_salas = dict(LISTA_SALAS)
     salas_map = OrderedDict()
-    for key, nome in LISTA_SALAS:
-        salas_map[key] = {
-            "key": key,
-            "nome": nome,
-            "materiais": [],
-            "total_itens": 0,
-            "total_valor": Decimal("0.00"),
-        }
 
     for material in qs:
         sala_key = material.atividade.semanario.sala
+        sala_nome = nomes_salas.get(sala_key, sala_key)
 
         if sala_key not in salas_map:
             salas_map[sala_key] = {
                 "key": sala_key,
-                "nome": sala_key,
+                "nome": sala_nome,
                 "materiais": [],
                 "total_itens": 0,
                 "total_valor": Decimal("0.00"),
@@ -302,18 +358,25 @@ def painel_materiais_visualizacao(request):
     return render(request, "painel_materiais_visualizacao.html", {
         "sabados": sabados,
         "sabado": sabado,
-        "pedido": pedido,
+        "tipo_local": tipo_local,
+        "tipo_painel": tipo_painel,
         "pedidos_opcoes": pedidos_opcoes,
+        "tipo_local_opcoes": TIPO_LOCAL,
         "total_itens": total_itens,
         "total_valor": total_valor,
         "salas_map": list(salas_map.values()),
+        "pedidos_map": [],
     })
-
 
 
 
 @login_required
 def adicionar_pedidos(request):
+
+    if request.user.area not in ["SUPPLY","TRIADE","PROJETOS","EVENTOS","GESTAO_DE_TALENTOS","RECREACAO","ADM/FIN","CR/RE","MARKETING",]:
+        messages.error(request, "Você não tem permissão para acessar esta página.")
+        return redirect("/supply/")
+
     queryset = Pedido.objects.none()
 
     if request.method == "POST":
@@ -379,3 +442,57 @@ def adicionar_pedidos(request):
     
 class SupplyView(LoginRequiredMixin, TemplateView):
     template_name = "supply_view.html"
+
+
+@login_required
+def meus_pedidos(request):
+
+    if request.user.area not in ["SUPPLY","TRIADE","PROJETOS","EVENTOS","GESTAO_DE_TALENTOS","RECREACAO","ADM/FIN","CR/RE","MARKETING",]:
+        messages.error(request, "Você não tem permissão para acessar esta página.")
+        return redirect("/supply/")
+    
+    sabado_id = request.GET.get("sabado")
+
+    sabados = Sabado.objects.order_by("-data")[:40]
+
+    qs = Pedido.objects.filter(requisitado_por=request.user).order_by("-id")
+
+    if sabado_id:
+        qs = qs.filter(sabado_id=sabado_id)
+
+    PedidoFormSet = modelformset_factory(
+        Pedido,
+        form=MeuPedidoForm,
+        extra=1,
+        can_delete=True
+    )
+
+    if request.method == "POST":
+        formset = PedidoFormSet(
+            request.POST,
+            queryset=Pedido.objects.filter(requisitado_por=request.user)
+        )
+
+        if formset.is_valid():
+            instances = formset.save(commit=False)
+
+            for obj in formset.deleted_objects:
+                if obj.requisitado_por == request.user:
+                    obj.delete()
+
+            for pedido in instances:
+                pedido.requisitado_por = request.user
+                pedido.save()
+
+            messages.success(request, "Pedidos atualizados com sucesso.")
+            return redirect("supply:meus_pedidos")
+
+        messages.error(request, "Corrija os erros antes de salvar.")
+    else:
+        formset = PedidoFormSet(queryset=qs)
+
+    return render(request, "meus_pedidos.html", {
+        "formset": formset,
+        "sabados": sabados,
+        "sabado_id": sabado_id,
+    })

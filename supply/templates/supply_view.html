@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block titulo %}Semanários{% endblock %}
+{% block titulo %}Supply{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 pb-12">
@@ -18,9 +18,9 @@
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
           </svg>
         </div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold mb-2">Painel de Semanários</h1>
+        <h1 class="text-2xl sm:text-3xl font-extrabold mb-2">Painel de Pedidos</h1>
         <p class="text-white/80 text-sm sm:text-base max-w-md mx-auto">
-          Crie, edite e visualize os semanários das salinhas do Projeto Criança Feliz.
+          Crie, edite e visualize os pedidos para supply do Projeto Criança Feliz.
         </p>
       </div>
     </div>
@@ -28,7 +28,7 @@
     <!-- Cards de ação -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
 
-      <!-- Fazer um pedido -->
+      <!-- Novo pedido -->
       <a href="{% url 'supply:adicionar_pedidos' %}" style="text-decoration:none;">
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center
                     hover:-translate-y-1 hover:shadow-md hover:border-indigo-300 transition-all group cursor-pointer h-full">
@@ -38,7 +38,7 @@
               <path d="M12 5v14M5 12h14"/>
             </svg>
           </div>
-          <h3 class="font-bold text-gray-900 text-base mb-1">Pedido Supply</h3>
+          <h3 class="font-bold text-gray-900 text-base mb-1">Novo Pedido</h3>
           <p class="text-gray-500 text-sm mb-4">Registre um novo pedido para a sua área.</p>
           <span class="mt-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold"
                 style="background:linear-gradient(135deg,#4f46e5,#6366f1)">
@@ -50,8 +50,30 @@
         </div>
       </a>
 
-      <!-- Visualizar / Editar -->
-      <a href="{% url 'supply:adicionar_pedidos' %}" style="text-decoration:none;">
+      <!-- Meus pedidos -->
+      <a href="{% url 'supply:meus_pedidos' %}" style="text-decoration:none;">
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center
+                    hover:-translate-y-1 hover:shadow-md hover:border-indigo-300 transition-all group cursor-pointer h-full">
+          <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"
+               style="background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:0 8px 20px rgba(79,70,229,.3)">
+            <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </div>
+          <h3 class="font-bold text-gray-900 text-base mb-1">Meus Pedidos</h3>
+          <p class="text-gray-500 text-sm mb-4">Visualize e gerencie seus pedidos.</p>
+          <span class="mt-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold"
+                style="background:linear-gradient(135deg,#f59e0b,#fbbf24)">
+            Ver pedidos
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- Visualizar  -->
+      <a href="{% url 'supply:painel_materiais_visualizacao' %}" style="text-decoration:none;">
         <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center
                     hover:-translate-y-1 hover:shadow-md hover:border-emerald-300 transition-all group cursor-pointer h-full">
           <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"
@@ -60,8 +82,8 @@
               <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
             </svg>
           </div>
-          <h3 class="font-bold text-gray-900 text-base mb-1">Visualizar / Editar</h3>
-          <p class="text-gray-500 text-sm mb-4">Veja e edite os pedidos da sua área.</p>
+          <h3 class="font-bold text-gray-900 text-base mb-1">Visualizar</h3>
+          <p class="text-gray-500 text-sm mb-4">Veja os pedidos das áreas por sábado.</p>
           <span class="mt-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold"
                 style="background:linear-gradient(135deg,#10b981,#34d399)">
             Acessar
@@ -72,28 +94,29 @@
         </div>
       </a>
 
-      <!-- Administração de Pedidos -->
-      <a href="{% url 'supply:painel_materiais' %}" style="text-decoration:none;">
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center
-                    hover:-translate-y-1 hover:shadow-md hover:border-amber-300 transition-all group cursor-pointer h-full">
-          <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"
-               style="background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:0 8px 20px rgba(245,158,11,.3)">
+    </div>
+
+    <!-- Administração de Pedidos -->
+    <div class="bg-white border border-indigo-100 rounded-2xl shadow-sm p-5 flex flex-col sm:flex-row items-center gap-4 
+    hover:-translate-y-1 hover:shadow-md hover:border-emerald-300 transition-all group cursor-pointer h-full">
+      <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"
+               style="background:linear-gradient(135deg,#4f46e5,#6366f1);box-shadow:0 8px 20px rgba(245,158,11,.3)">
             <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
               <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
           </div>
-          <h3 class="font-bold text-gray-900 text-base mb-1">Administração de Pedidos</h3>
-          <p class="text-gray-500 text-sm mb-4">Gerencie e acompanhe os pedidos das áreas.</p>
-          <span class="mt-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-                style="background:linear-gradient(135deg,#f59e0b,#fbbf24)">
-            Painel de Pedidos
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-            </svg>
-          </span>
-        </div>
+      <div class="flex-1 text-center sm:text-left">
+        <p class="font-semibold text-gray-900 text-sm">Administração de Pedidos</p>
+        <p class="text-gray-500 text-xs mt-0.5">Gerencie e acompanhe os pedidos das áreas.</p>
+      </div>
+      <a href="{% url 'supply:painel_materiais' %}"
+         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold flex-shrink-0 transition-all hover:opacity-90"
+         style="background:linear-gradient(135deg,#4f46e5,#7c3aed);text-decoration:none;">
+        Acessar painel
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+        </svg>
       </a>
-
     </div>
 
   </div>

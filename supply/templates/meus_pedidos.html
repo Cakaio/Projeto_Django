@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+  .main-container { max-width: 1280px; margin: 2rem auto; padding: 0 1rem; }
+  .page-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .page-title-group { display: flex; align-items: center; gap: 0.9rem; }
+  .page-header-icon { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; box-shadow: 0 10px 25px rgba(79, 70, 229, 0.25); }
+  .page-title { margin: 0; font-size: 1.8rem; font-weight: 700; color: #1f2937; }
+  .page-subtitle { margin: 0.2rem 0 0 0; color: #6b7280; font-size: 0.98rem; }
+
+  .actions-top { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+  .btn-back, .btn-add, .btn-save, .btn-remove {
+    border: none; border-radius: 14px; padding: 0.85rem 1.2rem; font-weight: 600;
+    cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;
+    justify-content: center; gap: 0.5rem; transition: 0.2s ease; font-size: 0.95rem;
+  }
+
+  .btn-back { background: #f3f4f6; color: #111827; }
+  .btn-back:hover { background: #e5e7eb; }
+  .btn-add { background: linear-gradient(135deg, #2563eb, #4f46e5); color: white; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.20); }
+  .btn-save { background: linear-gradient(135deg, #059669, #10b981); color: white; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.20); }
+  .btn-remove { background: #fee2e2; color: #b91c1c; padding: 0.65rem 0.9rem; border-radius: 12px; }
+
+  .filter-card {
+    background: white; border-radius: 20px; padding: 1.2rem 1.4rem;
+    border: 1px solid #eef2f7; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    margin-bottom: 1rem;
+  }
+
+  .filter-form { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+  .filter-group { min-width: 260px; flex: 1; }
+  .filter-group label { display: block; font-weight: 700; color: #374151; margin-bottom: 0.4rem; }
+  .filter-group select { width: 100%; border: 1px solid #d1d5db; border-radius: 12px; padding: 0.75rem 0.85rem; }
+
+  .messages { margin-bottom: 1rem; }
+  .alert { padding: 1rem 1.2rem; border-radius: 14px; margin-bottom: 0.8rem; font-weight: 500; }
+  .alert-success { background: #dcfce7; color: #166534; }
+  .alert-error, .alert-danger { background: #fee2e2; color: #991b1b; }
+
+  .table-card { background: white; border-radius: 24px; border: 1px solid #eef2f7; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); overflow: hidden; }
+  .table-card-header { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.4rem; border-bottom: 1px solid #eef2f7; background: linear-gradient(180deg, #fafbff 0%, #ffffff 100%); gap: 1rem; flex-wrap: wrap; }
+  .table-card-title { margin: 0; font-size: 1.05rem; font-weight: 700; color: #1f2937; }
+  .table-card-subtitle { margin: 0.25rem 0 0 0; color: #6b7280; font-size: 0.92rem; }
+
+  .table-wrapper { width: 100%; overflow-x: auto; }
+  .pedido-table { width: 100%; border-collapse: collapse; min-width: 1050px; }
+  .pedido-table thead th { text-align: left; font-size: 0.82rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.03em; background: #f8fafc; padding: 1rem 0.9rem; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+  .pedido-table tbody td { padding: 0.85rem 0.9rem; border-bottom: 1px solid #eef2f7; vertical-align: middle; background: #fff; }
+  .pedido-table tbody tr:hover td { background: #fafbff; }
+
+  .col-index { width: 70px; text-align: center; }
+  .col-nome { min-width: 280px; }
+  .col-quantidade { width: 140px; }
+  .col-unidade { width: 150px; }
+  .col-sabado { width: 220px; }
+  .col-area { width: 220px; }
+  .col-acoes { width: 120px; text-align: center; }
+
+  .form-control { width: 100%; border: 1px solid #d1d5db; border-radius: 12px; padding: 0.75rem 0.85rem; font-size: 0.95rem; outline: none; background: #fff; box-sizing: border-box; }
+  .form-control:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12); }
+
+  .row-number-badge { width: 34px; height: 34px; margin: 0 auto; border-radius: 10px; background: #eef2ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; }
+
+  .table-footer { padding: 1.2rem 1.4rem; border-top: 1px solid #eef2f7; background: #fcfcfd; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .table-footer-note { color: #6b7280; font-size: 0.93rem; }
+  .error-list { margin-top: 0.35rem; font-size: 0.82rem; color: #b91c1c; font-weight: 600; }
+  .delete-checkbox { display: none; }
+</style>
+
+<div class="container main-container">
+  <div class="page-header">
+    <div class="page-title-group">
+      <div class="page-header-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="26" height="26">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"/>
+        </svg>
+      </div>
+
+      <div>
+        <h1 class="page-title">Meus pedidos</h1>
+        <p class="page-subtitle">Edite, remova ou adicione pedidos criados por você.</p>
+      </div>
+    </div>
+
+    <div class="actions-top">
+      <a class="btn-back" href="/supply/">Voltar</a>
+      <button type="button" class="btn-add" id="add-form-btn">Adicionar novo</button>
+    </div>
+  </div>
+
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="filter-card">
+    <form method="get" class="filter-form">
+      <div class="filter-group">
+        <label>Filtrar por sábado</label>
+        <select name="sabado" onchange="this.form.submit()">
+          <option value="">Todos os sábados</option>
+          {% for s in sabados %}
+            <option value="{{ s.id }}" {% if sabado_id|stringformat:"s" == s.id|stringformat:"s" %}selected{% endif %}>
+              {{ s.data|date:"d/m/Y" }} — {{ s.tema }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" class="btn-add">Filtrar</button>
+    </form>
+  </div>
+
+  <form method="post" id="pedido-formset">
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    <div class="table-card">
+      <div class="table-card-header">
+        <div>
+          <h2 class="table-card-title">Lista de pedidos</h2>
+          <p class="table-card-subtitle">As alterações são salvas todas juntas ao clicar em salvar.</p>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="pedido-table">
+          <thead>
+            <tr>
+              <th class="col-index">#</th>
+              <th class="col-nome">Nome</th>
+              <th class="col-quantidade">Quantidade</th>
+              <th class="col-unidade">Unidade</th>
+              <th class="col-sabado">Sábado</th>
+              <th class="col-area">Área</th>
+              <th class="col-acoes">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody id="forms-container">
+            {% for form in formset %}
+              <tr class="pedido-form-row">
+                <td class="col-index">
+                  <div class="row-number-badge row-number">{{ forloop.counter }}</div>
+                  {{ form.id }}
+                  <span class="delete-checkbox">{{ form.DELETE }}</span>
+                </td>
+
+                <td class="col-nome">
+                  {{ form.nome }}
+                  {% if form.nome.errors %}<div class="error-list">{{ form.nome.errors }}</div>{% endif %}
+                </td>
+
+                <td class="col-quantidade">
+                  {{ form.quantidade }}
+                  {% if form.quantidade.errors %}<div class="error-list">{{ form.quantidade.errors }}</div>{% endif %}
+                </td>
+
+                <td class="col-unidade">
+                  {{ form.unidade }}
+                  {% if form.unidade.errors %}<div class="error-list">{{ form.unidade.errors }}</div>{% endif %}
+                </td>
+
+                <td class="col-sabado">
+                  {{ form.sabado }}
+                  {% if form.sabado.errors %}<div class="error-list">{{ form.sabado.errors }}</div>{% endif %}
+                </td>
+
+                <td class="col-area">
+                  {{ form.area }}
+                  {% if form.area.errors %}<div class="error-list">{{ form.area.errors }}</div>{% endif %}
+                </td>
+
+                <td class="col-acoes">
+                  <button type="button" class="btn-remove remove-btn">Remover</button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <div class="table-footer-note">
+          Só aparecem pedidos criados por você.
+        </div>
+
+        <button type="submit" class="btn-save">Salvar alterações</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+  const addButton = document.getElementById("add-form-btn");
+  const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+  const formsContainer = document.getElementById("forms-container");
+
+  function updateRowNumbers() {
+    document.querySelectorAll(".pedido-form-row:not(.row-hidden)").forEach((row, index) => {
+      const badge = row.querySelector(".row-number");
+      if (badge) badge.textContent = index + 1;
+    });
+  }
+
+  function clearRowValues(row) {
+    row.querySelectorAll("input, textarea").forEach((input) => {
+      if (input.type !== "hidden" && input.type !== "checkbox") {
+        input.value = "";
+      }
+      if (input.type === "checkbox") {
+        input.checked = false;
+      }
+    });
+
+    row.querySelectorAll("select").forEach((select) => {
+      select.selectedIndex = 0;
+    });
+
+    row.querySelectorAll(".error-list").forEach((error) => error.remove());
+  }
+
+  function updateElementIndexes(row, newIndex) {
+    row.querySelectorAll("input, select, textarea, label").forEach((element) => {
+      if (element.name) {
+        element.name = element.name.replace(/form-\d+-/g, `form-${newIndex}-`);
+      }
+      if (element.id) {
+        element.id = element.id.replace(/form-\d+-/g, `form-${newIndex}-`);
+      }
+      if (element.htmlFor) {
+        element.htmlFor = element.htmlFor.replace(/form-\d+-/g, `form-${newIndex}-`);
+      }
+    });
+  }
+
+  function attachRemoveEvents() {
+    document.querySelectorAll(".remove-btn").forEach((button) => {
+      button.onclick = function () {
+        const row = this.closest(".pedido-form-row");
+        const deleteInput = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        const idInput = row.querySelector('input[type="hidden"][name$="-id"]');
+
+        if (idInput && idInput.value && deleteInput) {
+          deleteInput.checked = true;
+          row.style.display = "none";
+          row.classList.add("row-hidden");
+        } else {
+          row.remove();
+          const rows = document.querySelectorAll(".pedido-form-row");
+          rows.forEach((r, index) => updateElementIndexes(r, index));
+          totalForms.value = rows.length;
+        }
+
+        updateRowNumbers();
+      };
+    });
+  }
+
+  function addNewRow() {
+    const formCount = parseInt(totalForms.value, 10);
+    const firstRow = document.querySelector(".pedido-form-row");
+
+    if (!firstRow) return;
+
+    const newRow = firstRow.cloneNode(true);
+
+    updateElementIndexes(newRow, formCount);
+    clearRowValues(newRow);
+
+    const idInput = newRow.querySelector('input[type="hidden"][name$="-id"]');
+    if (idInput) idInput.value = "";
+
+    newRow.style.display = "";
+    newRow.classList.remove("row-hidden");
+
+    formsContainer.appendChild(newRow);
+    totalForms.value = formCount + 1;
+
+    updateRowNumbers();
+    attachRemoveEvents();
+  }
+
+  addButton.addEventListener("click", addNewRow);
+  attachRemoveEvents();
+  updateRowNumbers();
+</script>
+{% endblock %}

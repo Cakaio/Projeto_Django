@@ -47,3 +47,15 @@ PedidoFormSet = modelformset_factory(
     extra=1,
     can_delete=False
 )
+
+class MeuPedidoForm(forms.ModelForm):
+    class Meta:
+        model = Pedido
+        fields = ["nome", "quantidade", "unidade", "sabado", "area"]
+        widgets = {
+            "nome": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex.: Cola branca"}),
+            "quantidade": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+            "unidade": forms.Select(attrs={"class": "form-control"}),
+            "sabado": forms.Select(attrs={"class": "form-control"}),
+            "area": forms.Select(attrs={"class": "form-control"}),
+        }

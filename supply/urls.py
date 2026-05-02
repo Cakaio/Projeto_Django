@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import adicionar_pedidos, painel_materiais
+from .views import adicionar_pedidos, painel_materiais, meus_pedidos
 
 app_name = 'supply'
 
@@ -11,4 +11,5 @@ urlpatterns = [
     path("painel_materiais/salvar-lote/", views.salvar_materiais_lote, name="salvar_materiais_lote"),
     path("painel_materiais/visualizacao/", views.painel_materiais_visualizacao, name="painel_materiais_visualizacao"),
     path("pedidos/adicionar/", adicionar_pedidos, name="adicionar_pedidos"),
+    path("meus_pedidos/", meus_pedidos, name="meus_pedidos"),
 ]
