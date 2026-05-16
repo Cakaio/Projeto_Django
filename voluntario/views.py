@@ -630,38 +630,44 @@ def _enviar_email_ocorrencia(advertido, notificacoes, regra=None):
 
 def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
     """
-    Chamada toda vez que uma presença AUSENTE é registrada.
-    Dispara AL13 a cada 3 faltas CONSECUTIVAS nos sábados (não acumuladas no semestre).
+    Dispara alertas automáticos por faltas CONSECUTIVAS nos sábados:
+      3 consecutivas → 1º alerta
+      6 consecutivas → 2º alerta
+      9 consecutivas → 3º alerta + 1 advertência automática
+      (e assim por diante a cada múltiplo de 3)
+
+    A sequência é reiniciada sempre que a pessoa comparecer (Presente ou Justificada).
     """
     from voluntario.models import PresencaVoluntario
 
-    # Conta a sequência de faltas consecutivas até o sábado atual (inclusive), do mais recente ao mais antigo
+    # Percorre os sábados do mais recente ao mais antigo e conta a sequência atual de ausências
     sabados_ordenados = Sabado.objects.filter(data__lte=sabado.data).order_by('-data')
 
     consecutivas = 0
+    streak_inicio = None  # data do primeiro sábado ausente da sequência atual
     for s in sabados_ordenados:
         presenca = PresencaVoluntario.objects.filter(voluntario=voluntario, data=s).first()
         if presenca and presenca.presenca == 'AUSENTE':
             consecutivas += 1
+            streak_inicio = s.data  # avança para o mais antigo da sequência
         else:
-            # Quebrou a sequência (presente, justificada ou sem registro)
-            break
+            break  # sequência quebrada — para
 
-    # Dispara alerta a cada múltiplo de 3 faltas consecutivas (3, 6, 9...)
     alertas_esperados = consecutivas // 3
     if alertas_esperados == 0:
-        return
+        return  # menos de 3 consecutivas, nada a fazer
 
-    # Conta alertas automáticos AL13 já existentes (incluindo os removidos para evitar re-disparo
-    # no mesmo ciclo — usamos count total, não apenas ativos)
-    alertas_existentes = Ocorrencia.objects.filter(
+    # Conta alertas automáticos já criados DENTRO desta sequência específica
+    # (a partir da data do primeiro ausente da sequência atual)
+    # Isso garante que, se a sequência quebrar e recomeçar, o contador zera.
+    alertas_na_sequencia = Ocorrencia.objects.filter(
         advertido=voluntario,
         tipo='ALERTA',
-        regra='AL13',
         automatico=True,
+        criado_em__date__gte=streak_inicio,
     ).count()
 
-    if alertas_esperados <= alertas_existentes:
+    if alertas_esperados <= alertas_na_sequencia:
         return
 
     Ocorrencia.objects.create(
@@ -673,21 +679,21 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
         automatico=True,
     )
 
-    # Verifica se o novo alerta gera advertência automática (a cada 3 alertas ativos)
-    total_alt = Ocorrencia.objects.filter(
+    # Verifica se o total de alertas ativos gera advertência automática (a cada 3 alertas ativos)
+    total_alt_ativos = Ocorrencia.objects.filter(
         advertido=voluntario, tipo='ALERTA', deleted_at__isnull=True
     ).count()
-    adv_auto_esperadas = total_alt // 3
-    adv_auto_existentes = Ocorrencia.objects.filter(
+    adv_esperadas = total_alt_ativos // 3
+    adv_existentes = Ocorrencia.objects.filter(
         advertido=voluntario, tipo='ADVERTENCIA', automatico=True, deleted_at__isnull=True
     ).count()
 
     notificacoes = [('ALERTA', 'AL13')]
-    if adv_auto_esperadas > adv_auto_existentes:
+    if adv_esperadas > adv_existentes:
         Ocorrencia.objects.create(
             advertido=voluntario,
             tipo='ADVERTENCIA',
-            razao='Advertência automática por acúmulo de 3 alertas.',
+            razao=f'Advertência automática: {total_alt_ativos} alertas ativos acumulados.',
             aplicado_por=registrado_por,
             automatico=True,
         )
