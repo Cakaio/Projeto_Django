@@ -1,25 +1,29 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block titulo %}Salas e Atendidos{% endblock %}
+{% block titulo %}Áreas e Voluntários{% endblock %}
 
 {% block content %}
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
   :root {
     --primary: #4f46e5;
     --primary-dark: #4338ca;
     --primary-light: #818cf8;
     --secondary: #7c3aed;
-    --bg-light: #f8fafc;
-    --text-dark: #1e293b;
-    --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --bg: #F9F9F8;
+    --bg-card: #FFFFFF;
+    --fg: #1C1C1A;
+    --fg-muted: #78776F;
+    --border: #E8E8E4;
+    --primary-10: rgba(79,70,229,0.1);
+    --primary-15: rgba(79,70,229,0.15);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0/.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0/.1),0 2px 4px -2px rgb(0 0 0/.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1);
   }
 
-  /* Hero Section */
+  /* ===== HERO ===== */
   .hero-section {
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     border-radius: 1.5rem;
@@ -28,462 +32,309 @@
     position: relative;
     overflow: hidden;
   }
-
-  .hero-section::before,
-  .hero-section::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
+  .hero-section::before,.hero-section::after {
+    content:'';position:absolute;border-radius:50%;background:rgba(255,255,255,.1);
   }
+  .hero-section::before { width:200px;height:200px;top:-50px;right:-50px; }
+  .hero-section::after  { width:150px;height:150px;bottom:-30px;left:-30px; }
+  .hero-title    { color:#fff;font-size:2rem;font-weight:700;margin:0;position:relative;z-index:1; }
+  .hero-subtitle { color:rgba(255,255,255,.85);font-size:1rem;margin-top:.5rem;position:relative;z-index:1; }
 
-  .hero-section::before {
-    width: 200px;
-    height: 200px;
-    top: -50px;
-    right: -50px;
+  /* ===== SEARCH ===== */
+  .search-wrap {
+    display:flex;align-items:center;gap:.75rem;
+    background:#fff;border:1px solid var(--border);border-radius:.75rem;
+    padding:.625rem 1rem;margin-bottom:1.5rem;box-shadow:var(--shadow-sm);
   }
+  .search-wrap input {
+    border:none;outline:none;flex:1;font-size:.9375rem;color:var(--fg);
+    background:transparent;font-family:'Inter',sans-serif;
+  }
+  .search-wrap input::placeholder { color:var(--fg-muted); }
+  #searchCount { font-size:.8125rem;color:var(--fg-muted);white-space:nowrap; }
 
-  .hero-section::after {
-    width: 150px;
-    height: 150px;
-    bottom: -30px;
-    left: -30px;
-  }
+  /* ===== ACCORDION ===== */
+  .custom-accordion { display:flex;flex-direction:column;gap:1rem; }
 
-  .hero-title {
-    color: white;
-    font-size: 2rem;
-    font-weight: 700;
-    margin: 0;
-    position: relative;
-    z-index: 1;
+  .area-card {
+    background:#fff;border-radius:1rem;border:1px solid var(--border);
+    box-shadow:var(--shadow-md);overflow:hidden;transition:box-shadow .2s;
   }
+  .area-card:hover { box-shadow:var(--shadow-lg); }
 
-  .hero-subtitle {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 1rem;
-    margin-top: 0.5rem;
-    position: relative;
-    z-index: 1;
+  .area-card summary {
+    display:flex;align-items:center;gap:1rem;padding:1.25rem 1.5rem;
+    cursor:pointer;list-style:none;user-select:none;
+    background:#fff;transition:background .2s;
   }
+  .area-card summary::-webkit-details-marker { display:none; }
+  .area-card[open] > summary {
+    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
+  }
+  .area-card[open] > summary .area-nome  { color:#fff; }
+  .area-card[open] > summary .area-icon  { background:rgba(255,255,255,.2);color:#fff; }
+  .area-card[open] > summary .area-arrow { color:#fff;transform:rotate(180deg); }
+  .area-card[open] > summary .area-count { background:rgba(255,255,255,.2);color:#fff; }
 
-  /* Accordion Customizado */
-  .custom-accordion {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+  .area-icon {
+    width:48px;height:48px;border-radius:12px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--primary-light) 0%,var(--primary) 100%);
+    display:flex;align-items:center;justify-content:center;color:#fff;transition:all .2s;
   }
+  .area-nome  { font-size:1.125rem;font-weight:600;color:var(--fg);flex-grow:1; }
+  .area-count {
+    font-size:.75rem;font-weight:600;padding:.25rem .625rem;border-radius:9999px;
+    background:var(--primary-10);color:var(--primary);transition:all .2s;
+  }
+  .area-arrow { color:var(--fg-muted);transition:transform .25s; }
 
-  .sala-card {
-    background: white;
-    border-radius: 1rem;
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-  }
+  .area-body { padding:1.5rem;background:var(--bg); }
 
-  .sala-card:hover {
-    box-shadow: var(--shadow-lg);
-  }
+  /* ===== VOLUNTÁRIO CARDS ===== */
+  .voluntarios-list { display:flex;flex-direction:column;gap:.75rem; }
 
-  .sala-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.25rem 1.5rem;
-    background: white;
-    border: none;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.3s ease;
+  .vol-card {
+    display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;
+    background:#fff;border-radius:.75rem;border:1px solid var(--border);
+    box-shadow:var(--shadow-sm);transition:all .2s;
   }
+  .vol-card:hover { box-shadow:var(--shadow-md);transform:translateY(-2px); }
+  .vol-card.hidden-search { display:none !important; }
 
-  .sala-header:hover {
-    background: var(--bg-light);
+  .vol-avatar {
+    width:50px;height:50px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:1.25rem;text-transform:uppercase;
+    overflow:hidden;
   }
-
-  .sala-header:not(.collapsed) {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  }
-
-  .sala-header:not(.collapsed) .sala-icon {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-  }
-
-  .sala-header:not(.collapsed) .sala-nome {
-    color: white;
-  }
-
-  .sala-header:not(.collapsed) .sala-arrow {
-    color: white;
-    transform: rotate(180deg);
-  }
-
-  .sala-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    flex-shrink: 0;
-    transition: all 0.3s ease;
-  }
-
-  .sala-nome {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-dark);
-    flex-grow: 1;
-    transition: color 0.3s ease;
-  }
-
-  .sala-arrow {
-    color: var(--text-muted);
-    transition: all 0.3s ease;
-  }
-
-  .sala-body {
-    padding: 1.5rem;
-    background: var(--bg-light);
-  }
-
-  /* Lista de Atendidos */
-  .atendidos-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .atendido-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-  }
-
-  .atendido-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-  }
-
-  .atendido-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 1.25rem;
-    flex-shrink: 0;
-    text-transform: uppercase;
-  }
-
-  .atendido-info {
-    flex-grow: 1;
-  }
-
-  .atendido-nome {
-    font-weight: 600;
-    color: var(--text-dark);
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-  }
-
-  .atendido-familia {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-  }
+  .vol-avatar img { width:100%;height:100%;object-fit:cover; }
+  .vol-info { flex-grow:1;min-width:0; }
+  .vol-nome { font-weight:600;color:var(--fg);font-size:1rem;margin-bottom:.25rem; }
+  .vol-sub  { font-size:.875rem;color:var(--fg-muted);display:flex;align-items:center;gap:.375rem; }
 
   .btn-detalhes {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow-sm);
+    display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;
+    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
+    color:#fff;border:none;border-radius:.5rem;font-size:.875rem;font-weight:500;
+    cursor:pointer;transition:all .2s;box-shadow:var(--shadow-sm);white-space:nowrap;
+    font-family:'Inter',sans-serif;
   }
-
-  .btn-detalhes:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    opacity: 0.95;
-  }
+  .btn-detalhes:hover { transform:translateY(-2px);box-shadow:var(--shadow-md);opacity:.95; }
 
   .empty-message {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 2rem;
-    color: var(--text-muted);
-    background: white;
-    border-radius: 0.75rem;
-    border: 2px dashed var(--border-color);
+    display:flex;align-items:center;justify-content:center;gap:.75rem;padding:2rem;
+    color:var(--fg-muted);background:#fff;border-radius:.75rem;border:2px dashed var(--border);
   }
 
-  /* Modal Customizado */
-  .modal-content {
-    border: none;
-    border-radius: 1.25rem;
-    overflow: hidden;
+  /* ===== MODAL ===== */
+  .vol-overlay {
+    position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+    background:rgba(28,28,26,.45);backdrop-filter:blur(4px);font-family:'Inter',sans-serif;
   }
-
-  .modal-header {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    border: none;
-    padding: 1.5rem;
+  .vol-modal {
+    background:#fff;border-radius:1.25rem;width:92vw;max-width:420px;
+    box-shadow:0 25px 50px -12px rgba(0,0,0,.3);overflow:hidden;
+    animation:slideUp .2s ease;
   }
+  @keyframes slideUp { from{transform:translateY(24px);opacity:0} to{transform:none;opacity:1} }
 
-  .modal-title {
-    color: white;
-    font-weight: 600;
+  .vol-modal-header {
+    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
+    padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;
   }
-
-  .modal-header .btn-close {
-    filter: brightness(0) invert(1);
-    opacity: 0.8;
+  .vol-modal-title { color:#fff;font-size:1rem;font-weight:600;margin:0; }
+  .vol-modal-close {
+    background:rgba(255,255,255,.2);border:none;border-radius:.5rem;width:32px;height:32px;
+    display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;
+    transition:background .15s;
   }
+  .vol-modal-close:hover { background:rgba(255,255,255,.35); }
 
-  .modal-header .btn-close:hover {
-    opacity: 1;
+  .vol-modal-body { padding:2rem;text-align:center; }
+  .vol-modal-foto-wrap {
+    width:120px;height:120px;border-radius:50%;margin:0 auto 1.25rem;
+    padding:3px;
+    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
   }
-
-  .modal-body {
-    padding: 2rem;
+  .vol-modal-foto-wrap img {
+    width:100%;height:100%;border-radius:50%;object-fit:cover;border:3px solid #fff;
   }
-
-  .modal-foto-wrapper {
-    width: 140px;
-    height: 140px;
-    margin: 0 auto 1.5rem;
-    padding: 4px;
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    border-radius: 50%;
+  .vol-modal-nome { font-size:1.375rem;font-weight:700;color:var(--fg);margin-bottom:.375rem; }
+  .vol-modal-area {
+    display:inline-flex;align-items:center;padding:.375rem 1rem;
+    background:var(--primary-10);color:var(--primary);border-radius:9999px;
+    font-size:.875rem;font-weight:500;margin-bottom:1rem;
   }
+  .vol-modal-meta { color:var(--fg-muted);font-size:.9375rem; }
+  .vol-modal-meta strong { color:var(--fg); }
 
-  .modal-foto-wrapper img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-    border: 4px solid white;
-  }
-
-  .modal-nome {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 0.5rem;
-  }
-
-  .modal-sala-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.375rem 1rem;
-    background: var(--bg-light);
-    color: var(--primary);
-    border-radius: 9999px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-bottom: 1rem;
-  }
-
-  .modal-data {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    color: var(--text-muted);
-    font-size: 0.9375rem;
-  }
-
-  .modal-footer {
-    border-top: 1px solid var(--border-color);
-    padding: 1rem 1.5rem;
-  }
-
+  .vol-modal-footer { border-top:1px solid var(--border);padding:1rem 1.5rem;display:flex;justify-content:flex-end; }
   .btn-fechar {
-    padding: 0.625rem 1.5rem;
-    background: var(--bg-light);
-    color: var(--text-dark);
-    border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    padding:.5rem 1.25rem;background:var(--bg);color:var(--fg);
+    border:1px solid var(--border);border-radius:.5rem;font-weight:500;
+    cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s;
   }
+  .btn-fechar:hover { background:var(--border); }
 
-  .btn-fechar:hover {
-    background: var(--border-color);
-  }
-
-  @media (max-width: 768px) {
-    .hero-section {
-      padding: 2rem 1.5rem;
-    }
-
-    .hero-title {
-      font-size: 1.5rem;
-    }
-
-    .atendido-card {
-      flex-direction: column;
-      text-align: center;
-    }
-
-    .btn-detalhes {
-      width: 100%;
-      justify-content: center;
-    }
+  @media (max-width:768px) {
+    .hero-section { padding:2rem 1.5rem; }
+    .hero-title   { font-size:1.5rem; }
+    .vol-card { flex-direction:column;text-align:center; }
+    .btn-detalhes { width:100%;justify-content:center; }
   }
 </style>
 
 <div class="container my-5">
-  <!-- Hero Section -->
+  <!-- Hero -->
   <div class="hero-section text-center">
     <h2 class="hero-title">Áreas e Voluntários</h2>
-    <p class="hero-subtitle">Visualize os voluntários organizados por área</p>
+    <p class="hero-subtitle">{{ total_voluntarios }} voluntário{{ total_voluntarios|pluralize }} ativo{{ total_voluntarios|pluralize }}</p>
   </div>
 
-  <!-- Accordion Customizado -->
-  <div class="custom-accordion" id="accordionAreas">
-    {% for codigo, nome in areas %}
-      <div class="sala-card">
-        <button class="sala-header collapsed" type="button" data-bs-toggle="collapse"
-                data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
-                aria-controls="collapse{{ forloop.counter }}">
-          <div class="sala-icon">
+  <!-- Search -->
+  <div class="search-wrap">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--fg-muted);flex-shrink:0">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input id="searchInput" type="text" placeholder="Buscar voluntário por nome…" autocomplete="off">
+    <span id="searchCount"></span>
+  </div>
+
+  <!-- Accordion -->
+  <div class="custom-accordion">
+    {% for area in areas_com_voluntarios %}
+      <details class="area-card" {% if area.voluntarios %}open{% endif %}>
+        <summary>
+          <div class="area-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
           </div>
-          <span class="sala-nome">{{ nome }}</span>
-          <svg class="sala-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
+          <span class="area-nome">{{ area.nome }}</span>
+          <span class="area-count">{{ area.voluntarios|length }}</span>
+          <svg class="area-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
           </svg>
-        </button>
-
-        <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
-             data-bs-parent="#accordionAreas">
-          <div class="sala-body">
-            <div class="atendidos-list">
-              {% for voluntario in voluntarios %}
-                {% if voluntario.area == codigo %}
-                  <div class="atendido-card">
-                    <div class="atendido-avatar">
-                      {{ voluntario.get_full_name|default:voluntario.username|slice:':1' }}
-                    </div>
-                    <div class="atendido-info">
-                      <div class="atendido-nome">{{ voluntario.get_full_name|default:voluntario.username }}</div>
-                      <div class="atendido-familia">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                          <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        {% if voluntario.celular %}Celular: {{ voluntario.celular }}{% else %}Sem celular{% endif %}
-                      </div>
-                    </div>
-
-                    <button
-                      class="btn-detalhes"
-                      data-bs-toggle="modal"
-                      data-bs-target="#detalheVoluntarioModal"
-                      data-nome="{{ voluntario.get_full_name|default:voluntario.username }}"
-                      data-area="{{ voluntario.get_area_display }}"
-                      data-data="{{ voluntario.data_nascimento|date:'d/m/Y' }}"
-                      data-foto="{% if voluntario.foto %}{{ voluntario.foto.url }}{% else %}{% static 'images/sem-foto.jpg' %}{% endif %}">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                      </svg>
-                      Ver detalhes
-                    </button>
-                  </div>
-                {% endif %}
-              {% endfor %}
-              {% if not voluntarios %}
-                <div class="empty-message">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                  </svg>
-                  Nenhum voluntário encontrado.
+        </summary>
+        <div class="area-body">
+          <div class="voluntarios-list">
+            {% for vol in area.voluntarios %}
+              <div class="vol-card" data-nome="{{ vol.get_full_name|default:vol.username|lower }}">
+                <div class="vol-avatar">
+                  {% if vol.foto %}
+                    <img src="{{ vol.foto.url }}" alt="{{ vol.get_full_name|default:vol.username }}">
+                  {% else %}
+                    {{ vol.get_full_name|default:vol.username|slice:":1" }}
+                  {% endif %}
                 </div>
-              {% endif %}
-            </div>
+                <div class="vol-info">
+                  <div class="vol-nome">{{ vol.get_full_name|default:vol.username }}</div>
+                  <div class="vol-sub">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                    {% if vol.celular %}{{ vol.celular }}{% else %}Sem celular{% endif %}
+                  </div>
+                </div>
+                <button
+                  class="btn-detalhes"
+                  onclick="abrirModal(this)"
+                  data-nome="{{ vol.get_full_name|default:vol.username }}"
+                  data-area="{{ vol.get_area_display }}"
+                  data-nascimento="{{ vol.data_nascimento|date:'d/m/Y'|default:'Não informado' }}"
+                  data-celular="{{ vol.celular|default:'Não informado' }}"
+                  data-foto="{% if vol.foto %}{{ vol.foto.url }}{% else %}{% static 'images/sem-foto.jpg' %}{% endif %}">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  Ver detalhes
+                </button>
+              </div>
+            {% empty %}
+              <div class="empty-message">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                Nenhum voluntário nesta área.
+              </div>
+            {% endfor %}
           </div>
         </div>
-      </div>
+      </details>
     {% endfor %}
   </div>
 </div>
 
-<!-- Modal de Detalhes do Voluntário -->
-<div class="modal fade" id="detalheVoluntarioModal" tabindex="-1" aria-labelledby="detalheVoluntarioModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow">
-      <div class="modal-header">
-        <h5 class="modal-title" id="detalheVoluntarioModalLabel">Detalhes do Voluntário</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+<!-- ===== MODAL ===== -->
+<div class="vol-overlay" id="volOverlay" style="display:none;" onclick="fecharModal(event)">
+  <div class="vol-modal" id="volModal">
+    <div class="vol-modal-header">
+      <h5 class="vol-modal-title">Detalhes do Voluntário</h5>
+      <button class="vol-modal-close" onclick="fecharModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="vol-modal-body">
+      <div class="vol-modal-foto-wrap">
+        <img id="mFoto" src="" alt="Foto">
       </div>
-      <div class="modal-body text-center">
-        <img id="modalFoto" src="" alt="Foto do voluntário" class="img-fluid rounded-circle mb-3" width="120" height="120">
-        <h5 id="modalNome" class="fw-bold"></h5>
-        <p class="text-muted" id="modalArea"></p>
-        <p><strong>Data de Nascimento:</strong> <span id="modalData"></span></p>
+      <div class="vol-modal-nome" id="mNome"></div>
+      <div class="vol-modal-area" id="mArea"></div>
+      <div class="vol-modal-meta">
+        <p><strong>Nascimento:</strong> <span id="mNascimento"></span></p>
+        <p><strong>Celular:</strong> <span id="mCelular"></span></p>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-      </div>
+    </div>
+    <div class="vol-modal-footer">
+      <button class="btn-fechar" onclick="fecharModal()">Fechar</button>
     </div>
   </div>
 </div>
 
-<!-- Script para preencher o modal -->
 <script>
-  const modal = document.getElementById('detalheVoluntarioModal');
-  modal.addEventListener('show.bs.modal', event => {
-    const button = event.relatedTarget;
-    const nome = button.getAttribute('data-nome');
-    const area = button.getAttribute('data-area');
-    const data = button.getAttribute('data-data');
-    const foto = button.getAttribute('data-foto');
+function abrirModal(btn) {
+  document.getElementById('mFoto').src        = btn.dataset.foto;
+  document.getElementById('mNome').textContent = btn.dataset.nome;
+  document.getElementById('mArea').textContent = btn.dataset.area;
+  document.getElementById('mNascimento').textContent = btn.dataset.nascimento;
+  document.getElementById('mCelular').textContent    = btn.dataset.celular;
+  document.getElementById('volOverlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
 
-    modal.querySelector('#modalNome').textContent = nome;
-    modal.querySelector('#modalArea').textContent = `Área: ${area}`;
-    modal.querySelector('#modalData').textContent = data;
-    modal.querySelector('#modalFoto').src = foto;
+function fecharModal(e) {
+  if (e && e.target !== document.getElementById('volOverlay')) return;
+  document.getElementById('volOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.getElementById('volOverlay').style.display='none'; document.body.style.overflow=''; } });
+
+// ===== SEARCH =====
+(function() {
+  const input = document.getElementById('searchInput');
+  const countEl = document.getElementById('searchCount');
+  const total = {{ total_voluntarios }};
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('.vol-card').forEach(card => {
+      const match = !q || card.dataset.nome.includes(q);
+      card.classList.toggle('hidden-search', !match);
+      if (match) visible++;
+    });
+    document.querySelectorAll('.area-card').forEach(card => {
+      if (!q) return;
+      if (card.querySelector('.vol-card:not(.hidden-search)')) card.setAttribute('open','');
+    });
+    countEl.textContent = q ? `${visible} de ${total}` : '';
   });
+})();
 </script>
-
 {% endblock %}

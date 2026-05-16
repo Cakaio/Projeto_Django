@@ -46,12 +46,22 @@ class ListaVoluntario(LoginRequiredMixin, ListView):
     context_object_name = 'voluntarios'
 
     def get_queryset(self):
-        # 🔹 Retorna apenas os voluntários ativos
-        return Voluntario.objects.filter(is_active=True).order_by('first_name')
+        return Voluntario.objects.filter(is_active=True).order_by('first_name', 'last_name')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["areas"] = LISTA_AREAS
+        voluntarios = context['voluntarios']
+
+        areas_map = {codigo: [] for codigo, _ in LISTA_AREAS}
+        for v in voluntarios:
+            if v.area in areas_map:
+                areas_map[v.area].append(v)
+
+        context['areas_com_voluntarios'] = [
+            {'codigo': codigo, 'nome': nome, 'voluntarios': areas_map[codigo]}
+            for codigo, nome in LISTA_AREAS
+        ]
+        context['total_voluntarios'] = voluntarios.count()
         return context
 
 # ✅ view protegida com login
