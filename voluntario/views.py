@@ -630,51 +630,71 @@ def _enviar_email_ocorrencia(advertido, notificacoes, regra=None):
 
 def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
     """
-    Chamada toda vez que uma presença AUSENTE é registrada para um voluntário.
-    A cada múltiplo de 3 faltas (não-justificadas) gera um ALERTA automático.
+    Chamada toda vez que uma presença AUSENTE é registrada.
+    Dispara AL13 a cada 3 faltas CONSECUTIVAS nos sábados (não acumuladas no semestre).
     """
     from voluntario.models import PresencaVoluntario
-    total_faltas = PresencaVoluntario.objects.filter(
-        voluntario=voluntario, presenca='AUSENTE'
-    ).count()
 
-    alertas_falta_esperados = total_faltas // 3
-    alertas_falta_existentes = Ocorrencia.objects.filter(
+    # Conta a sequência de faltas consecutivas até o sábado atual (inclusive), do mais recente ao mais antigo
+    sabados_ordenados = Sabado.objects.filter(data__lte=sabado.data).order_by('-data')
+
+    consecutivas = 0
+    for s in sabados_ordenados:
+        presenca = PresencaVoluntario.objects.filter(voluntario=voluntario, data=s).first()
+        if presenca and presenca.presenca == 'AUSENTE':
+            consecutivas += 1
+        else:
+            # Quebrou a sequência (presente, justificada ou sem registro)
+            break
+
+    # Dispara alerta a cada múltiplo de 3 faltas consecutivas (3, 6, 9...)
+    alertas_esperados = consecutivas // 3
+    if alertas_esperados == 0:
+        return
+
+    # Conta alertas automáticos AL13 já existentes (incluindo os removidos para evitar re-disparo
+    # no mesmo ciclo — usamos count total, não apenas ativos)
+    alertas_existentes = Ocorrencia.objects.filter(
         advertido=voluntario,
         tipo='ALERTA',
-        regra='AL2',
-        deleted_at__isnull=True,
+        regra='AL13',
+        automatico=True,
     ).count()
 
-    if alertas_falta_esperados > alertas_falta_existentes:
+    if alertas_esperados <= alertas_existentes:
+        return
+
+    Ocorrencia.objects.create(
+        advertido=voluntario,
+        tipo='ALERTA',
+        regra='AL13',
+        razao=f'Alerta automático: {consecutivas} faltas consecutivas nos sábados.',
+        aplicado_por=registrado_por,
+        automatico=True,
+    )
+
+    # Verifica se o novo alerta gera advertência automática (a cada 3 alertas ativos)
+    total_alt = Ocorrencia.objects.filter(
+        advertido=voluntario, tipo='ALERTA', deleted_at__isnull=True
+    ).count()
+    adv_auto_esperadas = total_alt // 3
+    adv_auto_existentes = Ocorrencia.objects.filter(
+        advertido=voluntario, tipo='ADVERTENCIA', automatico=True, deleted_at__isnull=True
+    ).count()
+
+    notificacoes = [('ALERTA', 'AL13')]
+    if adv_auto_esperadas > adv_auto_existentes:
         Ocorrencia.objects.create(
             advertido=voluntario,
-            tipo='ALERTA',
-            regra='AL2',
-            razao=f'Alerta automático: {total_faltas} faltas acumuladas (a cada 3 faltas).',
+            tipo='ADVERTENCIA',
+            razao='Advertência automática por acúmulo de 3 alertas.',
             aplicado_por=registrado_por,
             automatico=True,
         )
-        # Verifica se o novo alerta gera advertência automática
-        total_alt = Ocorrencia.objects.filter(
-            advertido=voluntario, tipo='ALERTA', deleted_at__isnull=True
-        ).count()
-        adv_auto_esperadas = total_alt // 3
-        adv_auto_existentes = Ocorrencia.objects.filter(
-            advertido=voluntario, tipo='ADVERTENCIA', automatico=True, deleted_at__isnull=True
-        ).count()
-        notificacoes = [('ALERTA', 'AL2')]
-        if adv_auto_esperadas > adv_auto_existentes:
-            Ocorrencia.objects.create(
-                advertido=voluntario,
-                tipo='ADVERTENCIA',
-                razao='Advertência automática por acúmulo de 3 alertas.',
-                aplicado_por=registrado_por,
-                automatico=True,
-            )
-            notificacoes.append('ADVERTENCIA_AUTO')
-        threading.Thread(
-            target=_enviar_email_ocorrencia,
-            args=(voluntario, notificacoes),
-            daemon=True,
-        ).start()
+        notificacoes.append('ADVERTENCIA_AUTO')
+
+    threading.Thread(
+        target=_enviar_email_ocorrencia,
+        args=(voluntario, notificacoes),
+        daemon=True,
+    ).start()
