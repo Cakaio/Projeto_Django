@@ -5,258 +5,129 @@
 
 {% block content %}
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-  :root {
-    --primary: #4f46e5;
-    --primary-dark: #4338ca;
-    --primary-light: #818cf8;
-    --secondary: #7c3aed;
-    --bg: #F9F9F8;
-    --bg-card: #FFFFFF;
-    --fg: #1C1C1A;
-    --fg-muted: #78776F;
-    --border: #E8E8E4;
-    --primary-10: rgba(79,70,229,0.1);
-    --primary-15: rgba(79,70,229,0.15);
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0/.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0/.1),0 2px 4px -2px rgb(0 0 0/.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1);
-  }
+  /* details/summary reset */
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
 
-  /* ===== HERO ===== */
-  .hero-section {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    border-radius: 1.5rem;
-    padding: 3rem 2rem;
-    margin-bottom: 2rem;
-    position: relative;
-    overflow: hidden;
-  }
-  .hero-section::before,.hero-section::after {
-    content:'';position:absolute;border-radius:50%;background:rgba(255,255,255,.1);
-  }
-  .hero-section::before { width:200px;height:200px;top:-50px;right:-50px; }
-  .hero-section::after  { width:150px;height:150px;bottom:-30px;left:-30px; }
-  .hero-title    { color:#fff;font-size:2rem;font-weight:700;margin:0;position:relative;z-index:1; }
-  .hero-subtitle { color:rgba(255,255,255,.85);font-size:1rem;margin-top:.5rem;position:relative;z-index:1; }
+  /* arrow rotation */
+  details[open] .summary-arrow { transform: rotate(180deg); }
+  .summary-arrow { transition: transform 0.25s; }
 
-  /* ===== SEARCH ===== */
-  .search-wrap {
-    display:flex;align-items:center;gap:.75rem;
-    background:#fff;border:1px solid var(--border);border-radius:.75rem;
-    padding:.625rem 1rem;margin-bottom:1.5rem;box-shadow:var(--shadow-sm);
-  }
-  .search-wrap input {
-    border:none;outline:none;flex:1;font-size:.9375rem;color:var(--fg);
-    background:transparent;font-family:'Inter',sans-serif;
-  }
-  .search-wrap input::placeholder { color:var(--fg-muted); }
-  #searchCount { font-size:.8125rem;color:var(--fg-muted);white-space:nowrap; }
+  /* summary active state */
+  details[open] > summary { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+  details[open] > summary .area-nome,
+  details[open] > summary .summary-arrow { color: white; }
+  details[open] > summary .area-icon-wrap { background: rgba(255,255,255,0.2); }
+  details[open] > summary .area-count    { background: rgba(255,255,255,0.2); color: white; }
 
-  /* ===== ACCORDION ===== */
-  .custom-accordion { display:flex;flex-direction:column;gap:1rem; }
+  /* card hover lift */
+  .vol-card:hover { transform: translateY(-2px); }
 
-  .area-card {
-    background:#fff;border-radius:1rem;border:1px solid var(--border);
-    box-shadow:var(--shadow-md);overflow:hidden;transition:box-shadow .2s;
-  }
-  .area-card:hover { box-shadow:var(--shadow-lg); }
-
-  .area-card summary {
-    display:flex;align-items:center;gap:1rem;padding:1.25rem 1.5rem;
-    cursor:pointer;list-style:none;user-select:none;
-    background:#fff;transition:background .2s;
-  }
-  .area-card summary::-webkit-details-marker { display:none; }
-  .area-card[open] > summary {
-    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
-  }
-  .area-card[open] > summary .area-nome  { color:#fff; }
-  .area-card[open] > summary .area-icon  { background:rgba(255,255,255,.2);color:#fff; }
-  .area-card[open] > summary .area-arrow { color:#fff;transform:rotate(180deg); }
-  .area-card[open] > summary .area-count { background:rgba(255,255,255,.2);color:#fff; }
-
-  .area-icon {
-    width:48px;height:48px;border-radius:12px;flex-shrink:0;
-    background:linear-gradient(135deg,var(--primary-light) 0%,var(--primary) 100%);
-    display:flex;align-items:center;justify-content:center;color:#fff;transition:all .2s;
-  }
-  .area-nome  { font-size:1.125rem;font-weight:600;color:var(--fg);flex-grow:1; }
-  .area-count {
-    font-size:.75rem;font-weight:600;padding:.25rem .625rem;border-radius:9999px;
-    background:var(--primary-10);color:var(--primary);transition:all .2s;
-  }
-  .area-arrow { color:var(--fg-muted);transition:transform .25s; }
-
-  .area-body { padding:1.5rem;background:var(--bg); }
-
-  /* ===== VOLUNTÁRIO CARDS ===== */
-  .voluntarios-list { display:flex;flex-direction:column;gap:.75rem; }
-
-  .vol-card {
-    display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;
-    background:#fff;border-radius:.75rem;border:1px solid var(--border);
-    box-shadow:var(--shadow-sm);transition:all .2s;
-  }
-  .vol-card:hover { box-shadow:var(--shadow-md);transform:translateY(-2px); }
-  .vol-card.hidden-search { display:none !important; }
-
-  .vol-avatar {
-    width:50px;height:50px;border-radius:50%;flex-shrink:0;
-    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
-    display:flex;align-items:center;justify-content:center;
-    color:#fff;font-weight:700;font-size:1.25rem;text-transform:uppercase;
-    overflow:hidden;
-  }
-  .vol-avatar img { width:100%;height:100%;object-fit:cover; }
-  .vol-info { flex-grow:1;min-width:0; }
-  .vol-nome { font-weight:600;color:var(--fg);font-size:1rem;margin-bottom:.25rem; }
-  .vol-sub  { font-size:.875rem;color:var(--fg-muted);display:flex;align-items:center;gap:.375rem; }
-
-  .btn-detalhes {
-    display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;
-    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
-    color:#fff;border:none;border-radius:.5rem;font-size:.875rem;font-weight:500;
-    cursor:pointer;transition:all .2s;box-shadow:var(--shadow-sm);white-space:nowrap;
-    font-family:'Inter',sans-serif;
-  }
-  .btn-detalhes:hover { transform:translateY(-2px);box-shadow:var(--shadow-md);opacity:.95; }
-
-  .empty-message {
-    display:flex;align-items:center;justify-content:center;gap:.75rem;padding:2rem;
-    color:var(--fg-muted);background:#fff;border-radius:.75rem;border:2px dashed var(--border);
-  }
-
-  /* ===== MODAL ===== */
-  .vol-overlay {
-    position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
-    background:rgba(28,28,26,.45);backdrop-filter:blur(4px);font-family:'Inter',sans-serif;
-  }
-  .vol-modal {
-    background:#fff;border-radius:1.25rem;width:92vw;max-width:420px;
-    box-shadow:0 25px 50px -12px rgba(0,0,0,.3);overflow:hidden;
-    animation:slideUp .2s ease;
-  }
-  @keyframes slideUp { from{transform:translateY(24px);opacity:0} to{transform:none;opacity:1} }
-
-  .vol-modal-header {
-    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
-    padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;
-  }
-  .vol-modal-title { color:#fff;font-size:1rem;font-weight:600;margin:0; }
-  .vol-modal-close {
-    background:rgba(255,255,255,.2);border:none;border-radius:.5rem;width:32px;height:32px;
-    display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;
-    transition:background .15s;
-  }
-  .vol-modal-close:hover { background:rgba(255,255,255,.35); }
-
-  .vol-modal-body { padding:2rem;text-align:center; }
-  .vol-modal-foto-wrap {
-    width:120px;height:120px;border-radius:50%;margin:0 auto 1.25rem;
-    padding:3px;
-    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
-  }
-  .vol-modal-foto-wrap img {
-    width:100%;height:100%;border-radius:50%;object-fit:cover;border:3px solid #fff;
-  }
-  .vol-modal-nome { font-size:1.375rem;font-weight:700;color:var(--fg);margin-bottom:.375rem; }
-  .vol-modal-area {
-    display:inline-flex;align-items:center;padding:.375rem 1rem;
-    background:var(--primary-10);color:var(--primary);border-radius:9999px;
-    font-size:.875rem;font-weight:500;margin-bottom:1rem;
-  }
-  .vol-modal-meta { color:var(--fg-muted);font-size:.9375rem; }
-  .vol-modal-meta strong { color:var(--fg); }
-
-  .vol-modal-footer { border-top:1px solid var(--border);padding:1rem 1.5rem;display:flex;justify-content:flex-end; }
-  .btn-fechar {
-    padding:.5rem 1.25rem;background:var(--bg);color:var(--fg);
-    border:1px solid var(--border);border-radius:.5rem;font-weight:500;
-    cursor:pointer;font-family:'Inter',sans-serif;transition:background .15s;
-  }
-  .btn-fechar:hover { background:var(--border); }
-
-  @media (max-width:768px) {
-    .hero-section { padding:2rem 1.5rem; }
-    .hero-title   { font-size:1.5rem; }
-    .vol-card { flex-direction:column;text-align:center; }
-    .btn-detalhes { width:100%;justify-content:center; }
-  }
+  /* modal animation */
+  @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:none;opacity:1} }
+  #volModal { animation: slideUp 0.2s ease; }
 </style>
 
 <div class="container my-5">
+
   <!-- Hero -->
-  <div class="hero-section text-center">
-    <h2 class="hero-title">Áreas e Voluntários</h2>
-    <p class="hero-subtitle">{{ total_voluntarios }} voluntário{{ total_voluntarios|pluralize }} ativo{{ total_voluntarios|pluralize }}</p>
+  <div class="rounded-2xl p-12 mb-8 text-center relative overflow-hidden"
+       style="background: linear-gradient(135deg, #4f46e5, #7c3aed);">
+    <div class="absolute w-48 h-48 rounded-full bg-white/10 -top-12 -right-12"></div>
+    <div class="absolute w-36 h-36 rounded-full bg-white/10 -bottom-8 -left-8"></div>
+    <h2 class="text-3xl font-bold text-white relative z-10 m-0">Áreas e Voluntários</h2>
+    <p class="text-white/85 mt-2 relative z-10">
+      {{ total_voluntarios }} voluntário{{ total_voluntarios|pluralize }} ativo{{ total_voluntarios|pluralize }}
+    </p>
   </div>
 
   <!-- Search -->
-  <div class="search-wrap">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--fg-muted);flex-shrink:0">
+  <div class="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 mb-6 shadow-sm">
+    <svg class="text-gray-400 shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
     </svg>
-    <input id="searchInput" type="text" placeholder="Buscar voluntário por nome…" autocomplete="off">
-    <span id="searchCount"></span>
+    <input id="searchInput" type="text" placeholder="Buscar voluntário por nome…" autocomplete="off"
+           class="border-none outline-none flex-1 text-sm text-gray-800 bg-transparent"
+           data-total="{{ total_voluntarios }}">
+    <span id="searchCount" class="text-xs text-gray-400 whitespace-nowrap"></span>
   </div>
 
   <!-- Accordion -->
-  <div class="custom-accordion">
+  <div class="flex flex-col gap-4">
     {% for area in areas_com_voluntarios %}
-      <details class="area-card" {% if area.voluntarios %}open{% endif %}>
-        <summary>
-          <div class="area-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <details class="bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+               {% if area.voluntarios %}open{% endif %}>
+
+        <summary class="flex items-center gap-4 px-6 py-5 cursor-pointer select-none bg-white transition-colors">
+          <!-- icon -->
+          <div class="area-icon-wrap w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-white transition-all"
+               style="background: linear-gradient(135deg, #818cf8, #4f46e5);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
               <circle cx="9" cy="7" r="4"/>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
           </div>
-          <span class="area-nome">{{ area.nome }}</span>
-          <span class="area-count">{{ area.voluntarios|length }}</span>
-          <svg class="area-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <!-- name -->
+          <span class="area-nome text-lg font-semibold text-gray-800 grow">{{ area.nome }}</span>
+          <!-- count badge -->
+          <span class="area-count text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 transition-all">
+            {{ area.voluntarios|length }}
+          </span>
+          <!-- chevron -->
+          <svg class="summary-arrow text-gray-400 shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </summary>
-        <div class="area-body">
-          <div class="voluntarios-list">
+
+        <div class="p-6 bg-gray-50">
+          <div class="flex flex-col gap-3">
             {% for vol in area.voluntarios %}
-              <div class="vol-card" data-nome="{{ vol.get_full_name|default:vol.username|lower }}">
-                <div class="vol-avatar">
+              <div class="vol-card flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-200 shadow-sm transition-all"
+                   data-nome="{{ vol.get_full_name|default:vol.username|lower }}">
+
+                <!-- avatar -->
+                <div class="w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-white font-bold text-xl uppercase overflow-hidden"
+                     style="background: linear-gradient(135deg, #4f46e5, #7c3aed);">
                   {% if vol.foto %}
-                    <img src="{{ vol.foto.url }}" alt="{{ vol.get_full_name|default:vol.username }}">
+                    <img src="{{ vol.foto.url }}" alt="{{ vol.get_full_name|default:vol.username }}" class="w-full h-full object-cover">
                   {% else %}
                     {{ vol.get_full_name|default:vol.username|slice:":1" }}
                   {% endif %}
                 </div>
-                <div class="vol-info">
-                  <div class="vol-nome">{{ vol.get_full_name|default:vol.username }}</div>
-                  <div class="vol-sub">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+                <!-- info -->
+                <div class="grow min-w-0">
+                  <div class="font-semibold text-gray-800">{{ vol.get_full_name|default:vol.username }}</div>
+                  <div class="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
                     </svg>
                     {% if vol.celular %}{{ vol.celular }}{% else %}Sem celular{% endif %}
                   </div>
                 </div>
+
+                <!-- button -->
                 <button
-                  class="btn-detalhes"
+                  class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-lg border-none cursor-pointer whitespace-nowrap shadow-sm hover:opacity-90 hover:-translate-y-0.5 transition-all"
+                  style="background: linear-gradient(135deg, #4f46e5, #7c3aed);"
                   onclick="abrirModal(this)"
                   data-nome="{{ vol.get_full_name|default:vol.username }}"
                   data-area="{{ vol.get_area_display }}"
                   data-nascimento="{{ vol.data_nascimento|date:'d/m/Y'|default:'Não informado' }}"
                   data-celular="{{ vol.celular|default:'Não informado' }}"
                   data-foto="{% if vol.foto %}{{ vol.foto.url }}{% else %}{% static 'images/sem-foto.jpg' %}{% endif %}">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                   </svg>
                   Ver detalhes
                 </button>
               </div>
+
             {% empty %}
-              <div class="empty-message">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <div class="flex items-center justify-center gap-3 p-8 bg-white rounded-xl border-2 border-dashed border-gray-200 text-gray-400">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
                 Nenhum voluntário nesta área.
@@ -270,40 +141,53 @@
 </div>
 
 <!-- ===== MODAL ===== -->
-<div class="vol-overlay" id="volOverlay" style="display:none;" onclick="fecharModal(event)">
-  <div class="vol-modal" id="volModal">
-    <div class="vol-modal-header">
-      <h5 class="vol-modal-title">Detalhes do Voluntário</h5>
-      <button class="vol-modal-close" onclick="fecharModal()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<div id="volOverlay" style="display:none;"
+     class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+     onclick="fecharModal(event)">
+  <div id="volModal" class="bg-white rounded-2xl w-11/12 max-w-sm shadow-2xl overflow-hidden">
+
+    <!-- header -->
+    <div class="flex items-center justify-between px-6 py-4"
+         style="background: linear-gradient(135deg, #4f46e5, #7c3aed);">
+      <h5 class="text-white font-semibold text-base m-0">Detalhes do Voluntário</h5>
+      <button onclick="fecharModal()"
+              class="bg-white/20 border-none rounded-lg w-8 h-8 flex items-center justify-center text-white cursor-pointer hover:bg-white/35 transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
     </div>
-    <div class="vol-modal-body">
-      <div class="vol-modal-foto-wrap">
-        <img id="mFoto" src="" alt="Foto">
+
+    <!-- body -->
+    <div class="p-8 text-center">
+      <div class="w-28 h-28 rounded-full mx-auto mb-4 p-0.5" style="background: linear-gradient(135deg, #4f46e5, #7c3aed);">
+        <img id="mFoto" src="" alt="Foto" class="w-full h-full rounded-full object-cover border-4 border-white">
       </div>
-      <div class="vol-modal-nome" id="mNome"></div>
-      <div class="vol-modal-area" id="mArea"></div>
-      <div class="vol-modal-meta">
-        <p><strong>Nascimento:</strong> <span id="mNascimento"></span></p>
-        <p><strong>Celular:</strong> <span id="mCelular"></span></p>
+      <div id="mNome" class="text-xl font-bold text-gray-800 mb-1"></div>
+      <div id="mArea" class="inline-block px-3 py-1 rounded-full text-sm font-medium text-indigo-600 bg-indigo-50 mb-4"></div>
+      <div class="text-sm text-gray-500 space-y-1">
+        <p><span class="font-medium text-gray-700">Nascimento:</span> <span id="mNascimento"></span></p>
+        <p><span class="font-medium text-gray-700">Celular:</span> <span id="mCelular"></span></p>
       </div>
     </div>
-    <div class="vol-modal-footer">
-      <button class="btn-fechar" onclick="fecharModal()">Fechar</button>
+
+    <!-- footer -->
+    <div class="border-t border-gray-100 px-6 py-3 flex justify-end">
+      <button onclick="fecharModal()"
+              class="px-5 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-100 transition-colors">
+        Fechar
+      </button>
     </div>
   </div>
 </div>
 
 <script>
 function abrirModal(btn) {
-  document.getElementById('mFoto').src        = btn.dataset.foto;
-  document.getElementById('mNome').textContent = btn.dataset.nome;
-  document.getElementById('mArea').textContent = btn.dataset.area;
+  document.getElementById('mFoto').src              = btn.dataset.foto;
+  document.getElementById('mNome').textContent      = btn.dataset.nome;
+  document.getElementById('mArea').textContent      = btn.dataset.area;
   document.getElementById('mNascimento').textContent = btn.dataset.nascimento;
-  document.getElementById('mCelular').textContent    = btn.dataset.celular;
+  document.getElementById('mCelular').textContent   = btn.dataset.celular;
   document.getElementById('volOverlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
@@ -314,24 +198,28 @@ function fecharModal(e) {
   document.body.style.overflow = '';
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.getElementById('volOverlay').style.display='none'; document.body.style.overflow=''; } });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('volOverlay').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+});
 
-// ===== SEARCH =====
 (function() {
-  const input = document.getElementById('searchInput');
+  const input   = document.getElementById('searchInput');
   const countEl = document.getElementById('searchCount');
-  const total = {{ total_voluntarios }};
+  const total   = parseInt(input.dataset.total, 10) || 0;
   input.addEventListener('input', () => {
     const q = input.value.trim().toLowerCase();
     let visible = 0;
     document.querySelectorAll('.vol-card').forEach(card => {
       const match = !q || card.dataset.nome.includes(q);
-      card.classList.toggle('hidden-search', !match);
+      card.style.display = match ? '' : 'none';
       if (match) visible++;
     });
-    document.querySelectorAll('.area-card').forEach(card => {
+    document.querySelectorAll('details').forEach(det => {
       if (!q) return;
-      if (card.querySelector('.vol-card:not(.hidden-search)')) card.setAttribute('open','');
+      if (det.querySelector('.vol-card:not([style*="display: none"])')) det.open = true;
     });
     countEl.textContent = q ? `${visible} de ${total}` : '';
   });
