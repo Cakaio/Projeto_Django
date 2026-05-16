@@ -1,4 +1,3 @@
-
 {% extends 'base.html' %}
 {% load static %}
 
@@ -6,456 +5,165 @@
 
 {% block content %}
 <style>
-  :root {
-    --primary: #4f46e5;
-    --primary-dark: #4338ca;
-    --primary-light: #818cf8;
-    --secondary: #7c3aed;
-    --bg-light: #f8fafc;
-    --text-dark: #1e293b;
-    --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    --success: #10b981;
-    --success-dark: #059669;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  }
-  .page-wrapper {
-    min-height: 100vh;
-    background: var(--bg-light);
-    padding: 2rem 1rem;
-  }
-  .hero-section {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    border-radius: 1.5rem;
-    padding: 2.5rem 2rem;
-    margin-bottom: 2rem;
-    position: relative;
-    overflow: hidden;
-  }
-  .hero-section::before,
-  .hero-section::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-  }
-  .hero-section::before {
-    width: 200px;
-    height: 200px;
-    top: -50px;
-    right: -50px;
-  }
-  .hero-section::after {
-    width: 150px;
-    height: 150px;
-    bottom: -30px;
-    left: -30px;
-  }
-  .hero-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    position: relative;
-    z-index: 1;
-  }
-  .hero-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  .hero-icon {
-    width: 56px;
-    height: 56px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .hero-icon svg {
-    width: 28px;
-    height: 28px;
-    color: white;
-  }
-  .hero-title {
-    color: white;
-    font-size: 1.75rem;
-    font-weight: 700;
-    margin: 0;
-  }
-  .hero-subtitle {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 0.9375rem;
-    margin-top: 0.25rem;
-  }
-  .date-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.2);
-    padding: 0.75rem 1.25rem;
-    border-radius: 0.75rem;
-    color: white;
-    font-weight: 600;
-  }
-  .date-badge svg {
-    width: 18px;
-    height: 18px;
-  }
-  .custom-accordion {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .sala-card {
-    background: white;
-    border-radius: 1rem;
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-  }
-  .sala-card:hover {
-    box-shadow: var(--shadow-lg);
-  }
-  .sala-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.25rem 1.5rem;
-    background: white;
-    border: none;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-  .sala-header:hover {
-    background: var(--bg-light);
-  }
-  .sala-header:not(.collapsed) {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  }
-  .sala-header:not(.collapsed) .sala-icon {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-  }
-  .sala-header:not(.collapsed) .sala-nome {
-    color: white;
-  }
-  .sala-header:not(.collapsed) .sala-subtitle {
-    color: rgba(255, 255, 255, 0.8);
-  }
-  .sala-header:not(.collapsed) .sala-arrow {
-    color: white;
-    transform: rotate(180deg);
-  }
-  .sala-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    flex-shrink: 0;
-    transition: all 0.3s ease;
-  }
-  .sala-icon svg {
-    width: 24px;
-    height: 24px;
-  }
-  .sala-info {
-    flex-grow: 1;
-  }
-  .sala-nome {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-dark);
-    transition: color 0.3s ease;
-  }
-  .sala-subtitle {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    margin-top: 0.125rem;
-  }
-  .sala-arrow {
-    width: 40px;
-    height: 40px;
-    background: var(--bg-light);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    transition: all 0.3s ease;
-  }
-  .sala-arrow svg {
-    width: 20px;
-    height: 20px;
-  }
-  .sala-body {
-    padding: 1.5rem;
-    background: var(--bg-light);
-  }
-  .atendidos-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  .atendido-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem 1.25rem;
-    background: white;
-    border-radius: 0.75rem;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-    flex-wrap: wrap;
-  }
-  .atendido-card:hover {
-    box-shadow: var(--shadow-md);
-    border-color: var(--primary-light);
-    transform: translateY(-2px);
-  }
-  .atendido-avatar {
-    position: relative;
-    flex-shrink: 0;
-  }
-  .atendido-avatar img {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid var(--bg-light);
-  }
-  .atendido-avatar::after {
-    content: '';
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    width: 14px;
-    height: 14px;
-    background: var(--success);
-    border-radius: 50%;
-    border: 2px solid white;
-  }
-  .atendido-info {
-    flex-grow: 1;
-    min-width: 150px;
-  }
-  .atendido-nome {
-    font-weight: 600;
-    color: var(--text-dark);
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-  }
-  .atendido-familia {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-  }
-  .atendido-familia svg {
-    width: 14px;
-    height: 14px;
-  }
-  .custom-select {
-    min-width: 180px;
-    padding: 0.75rem 2.5rem 0.75rem 1rem;
-    background: var(--bg-light);
-    border: 2px solid var(--border-color);
-    border-radius: 0.625rem;
-    font-size: 0.9375rem;
-    font-weight: 500;
-    color: var(--text-dark);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-  }
-  .custom-select:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-  }
-  .custom-select:hover {
-    border-color: var(--primary-light);
-  }
-  .btn-submit {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 2rem;
-    background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
-    color: white;
-    border: none;
-    border-radius: 0.75rem;
-    font-size: 1.0625rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.3);
-  }
-  .btn-submit:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.4);
-  }
-  .btn-submit svg {
-    width: 22px;
-    height: 22px;
-  }
-  .submit-wrapper {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 2rem;
-  }
-  .empty-message {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 2rem;
-    color: var(--text-muted);
-    background: white;
-    border-radius: 0.75rem;
-    border: 2px dashed var(--border-color);
-  }
-  @media (max-width: 768px) {
-    .hero-section {
-      padding: 1.5rem;
-    }
-    .hero-title {
-      font-size: 1.375rem;
-    }
-    .hero-content {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-    .atendido-card {
-      flex-direction: column;
-      text-align: center;
-    }
-    .atendido-info {
-      text-align: center;
-    }
-    .atendido-familia {
-      justify-content: center;
-    }
-    .custom-select {
-      width: 100%;
-    }
-  }
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  .summary-arrow { transition: transform 0.25s; }
+  details[open] .summary-arrow { transform: rotate(180deg); }
+  details[open] > summary { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+  details[open] > summary .area-nome,
+  details[open] > summary .summary-arrow { color: white; }
+  details[open] > summary .area-icon-wrap { background: rgba(255,255,255,0.2); }
+  details[open] > summary .area-count { background: rgba(255,255,255,0.2); color: white; }
+  .vol-card:hover { transform: translateY(-2px); }
+  select:focus { outline: 2px solid #4f46e5; outline-offset: 2px; }
 </style>
 
-<div class="page-wrapper">
-  <div class="container" style="max-width: 900px;">
-    <!-- Hero Section -->
-    <div class="hero-section">
-      <div class="hero-content">
-        <div class="hero-left">
-          <div class="hero-icon">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-            </svg>
-          </div>
-          <div>
-            <h2 class="hero-title">Registro de Presenças</h2>
-            <p class="hero-subtitle">Controle de frequência dos voluntários</p>
-          </div>
-        </div>
-        <div class="date-badge">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+<div class="container my-5" style="max-width:960px;">
+
+  <!-- Hero -->
+  <div class="rounded-2xl p-10 mb-8 relative overflow-hidden"
+       style="background: linear-gradient(135deg, #4f46e5, #7c3aed);">
+    <div class="absolute w-48 h-48 rounded-full bg-white/10 -top-12 -right-12"></div>
+    <div class="absolute w-36 h-36 rounded-full bg-white/10 -bottom-8 -left-8"></div>
+    <div class="relative z-10 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+          <svg class="text-white" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+            <rect x="9" y="3" width="6" height="4" rx="1"/>
+            <path d="m9 14 2 2 4-4"/>
           </svg>
-          {{ hoje|date:"d/m/Y" }}
         </div>
+        <div>
+          <h2 class="text-2xl font-bold text-white m-0">Registro de Presenças</h2>
+          <p class="text-white/80 mt-1 text-sm">
+            {% if total_pendentes %}
+              {{ total_pendentes }} voluntário{{ total_pendentes|pluralize }} aguardando registro
+            {% else %}
+              Todos os voluntários já foram registrados
+            {% endif %}
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 bg-white/20 px-4 py-2.5 rounded-xl text-white font-semibold text-sm">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        {{ hoje|date:"d/m/Y" }}
       </div>
     </div>
-    <!-- Form -->
+  </div>
+
+  {% if not areas_com_voluntarios %}
+    <!-- Sem sábado ou todos registrados -->
+    <div class="flex flex-col items-center justify-center gap-4 p-16 bg-white rounded-2xl border border-gray-200 shadow-md text-center">
+      <div class="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
+        <svg class="text-green-500" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-gray-800 font-semibold text-lg">Nada pendente!</p>
+        <p class="text-gray-500 text-sm mt-1">
+          {% if sabado_data is None %}
+            Não existe sábado cadastrado para hoje.
+          {% else %}
+            Todos os voluntários já tiveram presença registrada hoje.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+  {% else %}
     <form method="POST">
       {% csrf_token %}
-      <div class="custom-accordion" id="accordionAreas">
-        {% for codigo, nome in areas %}
-          <div class="sala-card">
-            <button class="sala-header collapsed" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
-                    aria-controls="collapse{{ forloop.counter }}">
-              <div class="sala-icon">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      <div class="flex flex-col gap-4">
+
+        {% for area in areas_com_voluntarios %}
+          <details class="bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden hover:shadow-lg transition-shadow" open>
+
+            <summary class="flex items-center gap-4 px-6 py-5 cursor-pointer select-none bg-white transition-colors">
+              <div class="area-icon-wrap w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-white transition-all"
+                   style="background: linear-gradient(135deg, #818cf8, #4f46e5);">
+                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
               </div>
-              <div class="sala-info">
-                <span class="sala-nome">{{ nome }}</span>
-                <p class="sala-subtitle">Clique para expandir</p>
+              <div class="grow">
+                <span class="area-nome text-lg font-semibold text-gray-800">{{ area.nome }}</span>
+                <p class="text-gray-400 text-xs mt-0.5">{{ area.voluntarios|length }} voluntário{{ area.voluntarios|length|pluralize }} pendente{{ area.voluntarios|length|pluralize }}</p>
               </div>
-              <div class="sala-arrow">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </div>
-            </button>
-            <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
-                 aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#accordionAreas">
-              <div class="sala-body">
-                <div class="atendidos-list">
-                  {% for voluntario in voluntarios %}
-                    {% if voluntario.area == codigo %}
-                      <div class="atendido-card">
-                        <div class="atendido-avatar">
-                          {% if voluntario.foto %}
-                            <img src="{{ voluntario.foto.url }}" alt="{{ voluntario.get_full_name }}">
-                          {% else %}
-                            <img src="{% static 'images/sem-foto.jpg' %}" alt="Sem foto">
-                          {% endif %}
+              <span class="area-count text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 transition-all">
+                {{ area.voluntarios|length }}
+              </span>
+              <svg class="summary-arrow text-gray-400 shrink-0" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </summary>
+
+            <div class="p-6 bg-gray-50">
+              <div class="flex flex-col gap-3">
+                {% for vol in area.voluntarios %}
+                  <div class="vol-card flex items-center gap-4 flex-wrap p-4 bg-white rounded-xl border border-gray-200 shadow-sm transition-all">
+
+                    <!-- avatar -->
+                    <div class="w-14 h-14 rounded-full shrink-0 overflow-hidden border-2 border-gray-100">
+                      {% if vol.foto %}
+                        <img src="{{ vol.foto.url }}" alt="{{ vol.get_full_name }}" class="w-full h-full object-cover">
+                      {% else %}
+                        <div class="w-full h-full flex items-center justify-center text-white font-bold text-xl uppercase"
+                             style="background: linear-gradient(135deg, #4f46e5, #7c3aed);">
+                          {{ vol.get_full_name|default:vol.username|slice:":1" }}
                         </div>
-                        <div class="atendido-info">
-                          <div class="atendido-nome">{{ voluntario.get_full_name }}</div>
-                          <div class="atendido-familia">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            </svg>
-                            Apelido: {{ voluntario.apelido|default:"—" }}
-                          </div>
-                        </div>
-                        <select name="presenca_{{ voluntario.id }}" class="custom-select">
-                          <option value="">-- Selecione --</option>
-                          <option value="PRESENTE">Presente</option>
-                          <option value="AUSENTE">Ausente</option>
-                          <option value="JUSTIFICADA">Falta Justificada</option>
-                        </select>
+                      {% endif %}
+                    </div>
+
+                    <!-- info -->
+                    <div class="grow min-w-0">
+                      <div class="font-semibold text-gray-800">{{ vol.get_full_name|default:vol.username }}</div>
+                      <div class="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        {{ vol.apelido|default:"—" }}
                       </div>
-                    {% endif %}
-                  {% endfor %}
-                </div>
+                    </div>
+
+                    <!-- select -->
+                    <select name="presenca_{{ vol.id }}"
+                            class="min-w-44 px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm font-medium text-gray-700 bg-gray-50 cursor-pointer appearance-none transition-colors hover:border-indigo-300"
+                            style="background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 10px center;padding-right:36px;">
+                      <option value="">-- Selecione --</option>
+                      <option value="PRESENTE">✅ Presente</option>
+                      <option value="AUSENTE">❌ Ausente</option>
+                      <option value="JUSTIFICADA">⚠️ Falta Justificada</option>
+                    </select>
+                  </div>
+                {% endfor %}
               </div>
             </div>
-          </div>
+          </details>
         {% endfor %}
+
       </div>
-      <div class="submit-wrapper">
-        <button type="submit" class="btn-submit">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+
+      <!-- Submit -->
+      <div class="flex justify-end mt-8">
+        <button type="submit"
+                class="inline-flex items-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl border-none cursor-pointer text-base transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M5 13l4 4L19 7"/>
           </svg>
           Salvar Presenças
         </button>
       </div>
     </form>
-  </div>
+  {% endif %}
+
 </div>
 {% endblock %}

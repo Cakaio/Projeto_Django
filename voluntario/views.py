@@ -82,7 +82,7 @@ def RegistrarPresencasVoluntarios(request):
     sabado_obj = Sabado.objects.filter(data=hoje).first()
     if not sabado_obj:
         messages.warning(request, "Não existe sábado cadastrado para hoje. O registro de presenças só é permitido no sábado cadastrado.")
-        return render(request, "presencas_voluntarios.html", {"voluntarios": [], "areas": LISTA_AREAS, "hoje": hoje})
+        return render(request, "presencas_voluntarios.html", {"areas_com_voluntarios": [], "total_pendentes": 0, "hoje": hoje, "sabado_data": None})
 
     voluntarios = Voluntario.objects.filter(is_active=True).exclude(
         presencas__data=sabado_obj
@@ -114,10 +114,22 @@ def RegistrarPresencasVoluntarios(request):
             presencas__data=sabado_obj
         ).order_by("first_name")
 
+    vols_list = list(voluntarios)
+    areas_map = {codigo: [] for codigo, _ in LISTA_AREAS}
+    for v in vols_list:
+        if v.area in areas_map:
+            areas_map[v.area].append(v)
+    areas_com_voluntarios = [
+        {'codigo': codigo, 'nome': nome, 'voluntarios': areas_map[codigo]}
+        for codigo, nome in LISTA_AREAS
+        if areas_map[codigo]
+    ]
+
     contexto = {
-        "voluntarios": voluntarios,
-        "areas": LISTA_AREAS,
+        "areas_com_voluntarios": areas_com_voluntarios,
+        "total_pendentes": len(vols_list),
         "hoje": hoje,
+        "sabado_data": sabado_obj.data,
     }
     return render(request, "presencas_voluntarios.html", contexto)
 
