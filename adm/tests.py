@@ -231,3 +231,21 @@ class DRETest(TestCase):
         self.client.login(username='adm_dre', password='pass')
         resp = self.client.get('/adm/dre/?mes=2026-01&comparar=2025-12')
         self.assertEqual(resp.status_code, 200)
+
+
+class PainelTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user_triade = User.objects.create_user(
+            username='triade_user', password='pass', area='TRIADE',
+            first_name='Triade', last_name='User'
+        )
+
+    def test_triade_acessa_painel(self):
+        self.client.login(username='triade_user', password='pass')
+        resp = self.client.get('/adm/')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_painel_sem_login_redireciona(self):
+        resp = self.client.get('/adm/')
+        self.assertEqual(resp.status_code, 302)

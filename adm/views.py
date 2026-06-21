@@ -58,7 +58,19 @@ def adm_escrita_required(view_func):
     return wrapper
 
 
-def painel(request): return HttpResponse('painel')
+@adm_acesso_required
+def painel(request):
+    total_receitas = Lancamento.objects.filter(tipo='RECEITA').aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    total_despesas = Lancamento.objects.filter(tipo='DESPESA').aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    saldo = total_receitas - total_despesas
+    ultimos = Lancamento.objects.select_related('categoria').order_by('-data', '-criado_em')[:10]
+
+    return render(request, 'painel_adm.html', {
+        'saldo': saldo,
+        'total_receitas': total_receitas,
+        'total_despesas': total_despesas,
+        'ultimos': ultimos,
+    })
 
 
 @adm_acesso_required

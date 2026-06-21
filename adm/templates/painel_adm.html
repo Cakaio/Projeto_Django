@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block titulo %}Painel ADM/FIN{% endblock %}
+{% block content %}
+<div class="container my-5">
+  <h4 class="fw-bold mb-4">Painel Financeiro</h4>
+
+  <!-- Cards de resumo -->
+  <div class="row g-3 mb-5">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center py-4">
+        <div class="text-muted small fw-semibold mb-1">SALDO TOTAL</div>
+        <div class="fs-3 fw-bold {% if saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+          R$ {{ saldo|floatformat:2 }}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center py-4">
+        <div class="text-muted small fw-semibold mb-1">TOTAL RECEITAS</div>
+        <div class="fs-4 fw-bold text-success">R$ {{ total_receitas|floatformat:2 }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center py-4">
+        <div class="text-muted small fw-semibold mb-1">TOTAL DESPESAS</div>
+        <div class="fs-4 fw-bold text-danger">R$ {{ total_despesas|floatformat:2 }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Atalhos -->
+  <div class="row g-2 mb-5">
+    <div class="col-auto"><a href="{% url 'adm:criar_lancamento' %}" class="btn btn-dark btn-sm">+ Lançamento</a></div>
+    <div class="col-auto"><a href="{% url 'adm:fluxo_caixa' %}" class="btn btn-outline-dark btn-sm">Fluxo de Caixa</a></div>
+    <div class="col-auto"><a href="{% url 'adm:dre' %}" class="btn btn-outline-dark btn-sm">DRE</a></div>
+    <div class="col-auto"><a href="{% url 'adm:lista_lancamentos' %}" class="btn btn-outline-secondary btn-sm">Lançamentos</a></div>
+    <div class="col-auto"><a href="{% url 'adm:lista_categorias' %}" class="btn btn-outline-secondary btn-sm">Categorias</a></div>
+  </div>
+
+  <!-- Últimos lançamentos -->
+  <h6 class="fw-semibold mb-3">Últimos 10 Lançamentos</h6>
+  <div class="card border-0 shadow-sm">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr><th>Data</th><th>Categoria</th><th>Descrição</th><th class="text-end">Valor</th></tr>
+      </thead>
+      <tbody>
+        {% for lan in ultimos %}
+        <tr>
+          <td>{{ lan.data|date:"d/m/Y" }}</td>
+          <td><span class="badge {% if lan.tipo == 'RECEITA' %}bg-success{% else %}bg-danger{% endif %}">{{ lan.categoria.nome }}</span></td>
+          <td class="text-muted small">{{ lan.descricao|default:"—"|truncatechars:40 }}</td>
+          <td class="text-end fw-semibold">R$ {{ lan.valor|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-center text-muted py-3">Nenhum lançamento ainda.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
