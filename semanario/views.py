@@ -219,10 +219,7 @@ class SemanarioListView(LoginRequiredMixin, ListView):
     context_object_name = "semanarios"
 
     def get_queryset(self):
-        hoje = timezone.now().date()
-        return Semanario.objects.filter(
-            data__data__gt=hoje + timezone.timedelta(days=-30)
-        ).order_by("data__data")
+        return Semanario.objects.select_related("data").order_by("-data__data")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

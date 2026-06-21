@@ -140,8 +140,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 LOGIN_REDIRECT_URL = 'inicio'
 LOGIN_URL = 'login'
 
-# Sessão expira em 90 dias, mas só se a pessoa fechar o browser sem fazer logout
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 90  # 90 dias em segundos
+# Sessão expira em 180 dias, mas só se a pessoa fechar o browser sem fazer logout
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 180  # 180 dias em segundos
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False   # mantém a sessão mesmo fechando o browser
 SESSION_SAVE_EVERY_REQUEST = True         # renova o prazo a cada requisição
 
