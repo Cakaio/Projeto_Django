@@ -133,3 +133,49 @@ class LancamentoViewTest(TestCase):
         resp = self.client.get(f'/adm/lancamentos/{lan.pk}/editar/', follow=False)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, '/adm/lancamentos/')
+
+
+class SupplySignalTest(TestCase):
+    def setUp(self):
+        # Criar a categoria padrão que o signal usa
+        self.cat_supply = Categoria.objects.create(
+            nome='Materiais Supply', tipo='DESPESA', ativo=True
+        )
+        # Criar Sabado e Pedido via ORM direto
+        from sabado.models import Sabado
+        from supply.models import Pedido
+
+        self.user = User.objects.create_user(
+            username='sup_user', password='pass', area='SUPPLY',
+            first_name='Sup', last_name='User'
+        )
+        self.sabado = Sabado.objects.create(
+            data=timezone.now().date(), tema='Teste', descricao='Teste'
+        )
+        self.Pedido = Pedido
+
+    def test_pedido_com_valor_cria_lancamento(self):
+        pedido = self.Pedido.objects.create(
+            nome='Tinta azul', quantidade=2, valor='45.00',
+            sabado=self.sabado, area='SUPPLY'
+        )
+        self.assertTrue(Lancamento.objects.filter(pedido=pedido).exists())
+        lan = Lancamento.objects.get(pedido=pedido)
+        self.assertEqual(lan.valor, 45.00)
+        self.assertEqual(lan.origem, 'SUPPLY')
+
+    def test_pedido_sem_valor_nao_cria_lancamento(self):
+        pedido = self.Pedido.objects.create(
+            nome='Tinta sem valor', quantidade=1,
+            sabado=self.sabado, area='SUPPLY'
+        )
+        self.assertFalse(Lancamento.objects.filter(pedido=pedido).exists())
+
+    def test_deletar_pedido_remove_lancamento(self):
+        pedido = self.Pedido.objects.create(
+            nome='Item para deletar', quantidade=1, valor='10.00',
+            sabado=self.sabado, area='SUPPLY'
+        )
+        pk = pedido.pk
+        pedido.delete()
+        self.assertFalse(Lancamento.objects.filter(pedido_id=pk).exists())
