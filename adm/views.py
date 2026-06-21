@@ -5,6 +5,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponse
 from django.db.models import Sum
+from django.utils import timezone
 from functools import wraps
 from decimal import Decimal
 import csv
@@ -265,7 +266,6 @@ def _calcular_dre(ano, mes):
 
 @adm_acesso_required
 def dre(request):
-    from django.utils import timezone
     hoje = timezone.now().date()
 
     # Período principal
@@ -280,17 +280,34 @@ def dre(request):
 
     dre_principal = _calcular_dre(ano_p, mes_p)
     dre_comparativo = None
+    deltas = None
 
     if comp_str:
         try:
             ano_c, mes_c = [int(x) for x in comp_str.split('-')]
             dre_comparativo = _calcular_dre(ano_c, mes_c)
+
+            # Construir dicts {categoria_nome: total} para lookup
+            rec_p = {r['categoria__nome']: r['total'] for r in dre_principal['receitas']}
+            rec_c = {r['categoria__nome']: r['total'] for r in dre_comparativo['receitas']}
+            desp_p = {d['categoria__nome']: d['total'] for d in dre_principal['despesas']}
+            desp_c = {d['categoria__nome']: d['total'] for d in dre_comparativo['despesas']}
+
+            # Calcular deltas para cada categoria
+            deltas = {
+                'receitas': {k: rec_p.get(k, Decimal('0')) - rec_c.get(k, Decimal('0'))
+                            for k in set(list(rec_p.keys()) + list(rec_c.keys()))},
+                'despesas': {k: desp_p.get(k, Decimal('0')) - desp_c.get(k, Decimal('0'))
+                            for k in set(list(desp_p.keys()) + list(desp_c.keys()))},
+                'resultado': dre_principal['resultado'] - dre_comparativo['resultado'],
+            }
         except (ValueError, AttributeError):
             pass
 
     return render(request, 'dre.html', {
         'dre': dre_principal,
         'dre_comp': dre_comparativo,
+        'deltas': deltas,
         'mes': mes_str,
         'comparar': comp_str,
     })

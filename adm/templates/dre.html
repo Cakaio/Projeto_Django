@@ -42,12 +42,11 @@
             <td class="ps-4">{{ r.categoria__nome }}</td>
             <td class="text-end">{{ r.total|floatformat:2 }}</td>
             {% if dre_comp %}
-            {% for rc in dre_comp.receitas %}{% if rc.categoria__nome == r.categoria__nome %}
-            <td class="text-end text-muted">{{ rc.total|floatformat:2 }}</td>
-            <td class="text-end {% if r.total >= rc.total %}text-success{% else %}text-danger{% endif %}">
-              {% if r.total >= rc.total %}+{% endif %}{{ r.total|add:rc.total|floatformat:2 }}
+            <td class="text-end text-muted">
+              {% for rc in dre_comp.receitas %}{% if rc.categoria__nome == r.categoria__nome %}{{ rc.total|floatformat:2 }}{% endif %}{% endfor %}
+              {% if not dre_comp.receitas %}—{% endif %}
             </td>
-            {% endif %}{% endfor %}
+            <td class="text-end">—</td>
             {% endif %}
           </tr>
           {% endfor %}
@@ -65,10 +64,11 @@
             <td class="ps-4">{{ d.categoria__nome }}</td>
             <td class="text-end">{{ d.total|floatformat:2 }}</td>
             {% if dre_comp %}
-            {% for dc in dre_comp.despesas %}{% if dc.categoria__nome == d.categoria__nome %}
-            <td class="text-end text-muted">{{ dc.total|floatformat:2 }}</td>
-            <td class="text-end"></td>
-            {% endif %}{% endfor %}
+            <td class="text-end text-muted">
+              {% for dc in dre_comp.despesas %}{% if dc.categoria__nome == d.categoria__nome %}{{ dc.total|floatformat:2 }}{% endif %}{% endfor %}
+              {% if not dre_comp.despesas %}—{% endif %}
+            </td>
+            <td class="text-end">—</td>
             {% endif %}
           </tr>
           {% endfor %}
@@ -85,8 +85,8 @@
             </td>
             {% if dre_comp %}
             <td class="text-end text-muted py-3">R$ {{ dre_comp.resultado|floatformat:2 }}</td>
-            <td class="text-end py-3 {% if dre.resultado >= dre_comp.resultado %}text-success{% else %}text-danger{% endif %}">
-              {% if dre.resultado >= dre_comp.resultado %}+{% endif %}
+            <td class="text-end py-3 {% if deltas.resultado >= 0 %}text-success{% else %}text-danger{% endif %}">
+              {% if deltas.resultado >= 0 %}+{% endif %}R$ {{ deltas.resultado|floatformat:2 }}
             </td>
             {% endif %}
           </tr>
