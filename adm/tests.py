@@ -1,9 +1,12 @@
-from django.test import TestCase, RequestFactory
+from django.test import TestCase, RequestFactory, Client
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
+from django.contrib.auth import get_user_model
 from unittest.mock import MagicMock, patch
 from adm.models import Categoria, Lancamento
 from adm.views import AdmAcessoMixin, AdmEscritaMixin
+
+User = get_user_model()
 
 
 class CategoriaModelTest(TestCase):
@@ -69,3 +72,33 @@ class MixinTest(TestCase):
         req = self._make_request('AZUL')
         with self.assertRaises(PermissionDenied):
             mixin.dispatch(req)
+
+
+class CategoriaViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user_adm = User.objects.create_user(
+            username='adm_user', password='pass', area='ADM/FIN',
+            first_name='ADM', last_name='User'
+        )
+        self.user_outro = User.objects.create_user(
+            username='outro', password='pass', area='AZUL',
+            first_name='Outro', last_name='User'
+        )
+
+    def test_lista_requer_login(self):
+        resp = self.client.get('/adm/categorias/')
+        self.assertEqual(resp.status_code, 302)
+
+    def test_outro_bloqueado(self):
+        self.client.login(username='outro', password='pass')
+        resp = self.client.get('/adm/categorias/')
+        self.assertEqual(resp.status_code, 403)
+
+    def test_criar_categoria(self):
+        self.client.login(username='adm_user', password='pass')
+        resp = self.client.post('/adm/categorias/nova/', {
+            'nome': 'Doação', 'tipo': 'RECEITA', 'ativo': True
+        }, follow=False)
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(Categoria.objects.filter(nome='Doação').exists())

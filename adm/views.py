@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.http import HttpResponse
 from functools import wraps
 from .models import Categoria, Lancamento
+from .forms import CategoriaForm, LancamentoForm
 
 AREAS_LEITURA = {'ADM/FIN', 'TRIADE'}
 AREAS_ESCRITA = {'ADM/FIN'}
@@ -58,9 +59,47 @@ def lista_lancamentos(request): return HttpResponse('lancamentos')
 def criar_lancamento(request): return HttpResponse('criar')
 def editar_lancamento(request, pk): return HttpResponse('editar')
 def deletar_lancamento(request, pk): return HttpResponse('deletar')
-def lista_categorias(request): return HttpResponse('categorias')
-def criar_categoria(request): return HttpResponse('criar cat')
-def editar_categoria(request, pk): return HttpResponse('editar cat')
-def deletar_categoria(request, pk): return HttpResponse('deletar cat')
+
+
+@adm_acesso_required
+def lista_categorias(request):
+    categorias = Categoria.objects.all()
+    return render(request, 'lista_categorias.html', {'categorias': categorias})
+
+
+@adm_escrita_required
+def criar_categoria(request):
+    form = CategoriaForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Categoria criada com sucesso!')
+        return redirect('adm:lista_categorias')
+    return render(request, 'form_categoria.html', {'form': form, 'titulo': 'Nova Categoria'})
+
+
+@adm_escrita_required
+def editar_categoria(request, pk):
+    categoria = get_object_or_404(Categoria, pk=pk)
+    form = CategoriaForm(request.POST or None, instance=categoria)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Categoria atualizada!')
+        return redirect('adm:lista_categorias')
+    return render(request, 'form_categoria.html', {'form': form, 'titulo': 'Editar Categoria', 'objeto': categoria})
+
+
+@adm_escrita_required
+def deletar_categoria(request, pk):
+    categoria = get_object_or_404(Categoria, pk=pk)
+    if request.method == 'POST':
+        try:
+            categoria.delete()
+            messages.success(request, 'Categoria removida.')
+        except Exception:
+            messages.error(request, 'Não é possível remover: existem lançamentos vinculados.')
+        return redirect('adm:lista_categorias')
+    return render(request, 'form_categoria.html', {'objeto': categoria, 'confirmar_delecao': True, 'titulo': 'Remover Categoria'})
+
+
 def fluxo_caixa(request): return HttpResponse('fluxo')
 def dre(request): return HttpResponse('dre')
