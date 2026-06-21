@@ -122,6 +122,7 @@ class LancamentoViewTest(TestCase):
             'descricao': 'Doação teste',
         }, follow=False)
         self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, '/adm/lancamentos/')
         self.assertTrue(Lancamento.objects.filter(descricao='Doação teste').exists())
 
     def test_nao_edita_lancamento_supply(self):
@@ -131,3 +132,4 @@ class LancamentoViewTest(TestCase):
         self.client.login(username='adm2', password='pass')
         resp = self.client.get(f'/adm/lancamentos/{lan.pk}/editar/', follow=False)
         self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, '/adm/lancamentos/')
