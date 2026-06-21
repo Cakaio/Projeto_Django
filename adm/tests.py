@@ -1,7 +1,7 @@
 from django.test import TestCase, RequestFactory
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from adm.models import Categoria, Lancamento
 from adm.views import AdmAcessoMixin, AdmEscritaMixin
 
@@ -49,18 +49,23 @@ class MixinTest(TestCase):
         return req
 
     def test_adm_fin_tem_acesso_leitura(self):
+        """ADM/FIN deve passar pela verificação de acesso sem PermissionDenied."""
         mixin = AdmAcessoMixin()
         mixin.handle_no_permission = MagicMock()
         req = self._make_request('ADM/FIN')
-        # não levanta PermissionDenied
+        raised = False
         try:
-            mixin.dispatch(req)
-        except (PermissionDenied, AttributeError):
-            pass  # AttributeError de super().dispatch é esperado sem view real
+            with patch('adm.views.super') as mock_super:
+                mock_super.return_value.dispatch = MagicMock(return_value=None)
+                mixin.dispatch(req)
+        except PermissionDenied:
+            raised = True
+        self.assertFalse(raised, "ADM/FIN não deve receber PermissionDenied")
 
     def test_voluntario_sem_area_bloqueado(self):
+        """Voluntário de área não autorizada deve receber PermissionDenied."""
         mixin = AdmAcessoMixin()
         mixin.handle_no_permission = MagicMock()
         req = self._make_request('AZUL')
-        with self.assertRaises((PermissionDenied, AttributeError)):
+        with self.assertRaises(PermissionDenied):
             mixin.dispatch(req)
