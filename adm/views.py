@@ -5,6 +5,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponse
 from django.db.models import Sum
+from django.db.models.deletion import ProtectedError
 from django.utils import timezone
 from functools import wraps
 from decimal import Decimal
@@ -178,7 +179,7 @@ def deletar_categoria(request, pk):
         try:
             categoria.delete()
             messages.success(request, 'Categoria removida.')
-        except Exception:
+        except ProtectedError:
             messages.error(request, 'Não é possível remover: existem lançamentos vinculados.')
         return redirect('adm:lista_categorias')
     return render(request, 'form_categoria.html', {'objeto': categoria, 'confirmar_delecao': True, 'titulo': 'Remover Categoria'})

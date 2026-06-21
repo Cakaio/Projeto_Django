@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
 from unittest.mock import MagicMock, patch
+from decimal import Decimal
 from adm.models import Categoria, Lancamento
 from adm.views import AdmAcessoMixin, AdmEscritaMixin
 
@@ -187,7 +188,7 @@ class SupplySignalTest(TestCase):
         )
         self.assertTrue(Lancamento.objects.filter(pedido=pedido).exists())
         lan = Lancamento.objects.get(pedido=pedido)
-        self.assertEqual(lan.valor, 45.00)
+        self.assertEqual(lan.valor, Decimal('45.00'))
         self.assertEqual(lan.origem, 'SUPPLY')
 
     def test_pedido_sem_valor_nao_cria_lancamento(self):
