@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }} — ADM{% endblock %}
+{% block content %}
+<div class="container my-5" style="max-width:520px;">
+  <h4 class="fw-bold mb-4">{{ titulo }}</h4>
+
+  {% if confirmar_delecao %}
+  <div class="alert alert-danger">
+    Remover lançamento de <strong>R$ {{ objeto.valor|floatformat:2 }}</strong>
+    em <strong>{{ objeto.data|date:"d/m/Y" }}</strong>?
+  </div>
+  <form method="post">{% csrf_token %}
+    <button type="submit" class="btn btn-danger me-2">Confirmar</button>
+    <a href="{% url 'adm:lista_lancamentos' %}" class="btn btn-outline-secondary">Cancelar</a>
+  </form>
+
+  {% else %}
+  <form method="post">{% csrf_token %}
+    {% for field in form %}
+    <div class="mb-3">
+      <label class="form-label fw-semibold">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors }}</div>{% endif %}
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-dark me-2">Salvar</button>
+    <a href="{% url 'adm:lista_lancamentos' %}" class="btn btn-outline-secondary">Cancelar</a>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

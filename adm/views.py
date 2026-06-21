@@ -55,10 +55,77 @@ def adm_escrita_required(view_func):
 
 
 def painel(request): return HttpResponse('painel')
-def lista_lancamentos(request): return HttpResponse('lancamentos')
-def criar_lancamento(request): return HttpResponse('criar')
-def editar_lancamento(request, pk): return HttpResponse('editar')
-def deletar_lancamento(request, pk): return HttpResponse('deletar')
+
+
+@adm_acesso_required
+def lista_lancamentos(request):
+    qs = Lancamento.objects.select_related('categoria', 'criado_por').all()
+
+    tipo = request.GET.get('tipo')
+    categoria_id = request.GET.get('categoria')
+    mes = request.GET.get('mes')   # formato YYYY-MM
+
+    if tipo in ('RECEITA', 'DESPESA'):
+        qs = qs.filter(tipo=tipo)
+    if categoria_id:
+        qs = qs.filter(categoria_id=categoria_id)
+    if mes:
+        try:
+            ano, m = mes.split('-')
+            qs = qs.filter(data__year=ano, data__month=m)
+        except ValueError:
+            pass
+
+    categorias = Categoria.objects.filter(ativo=True)
+    return render(request, 'lista_lancamentos.html', {
+        'lancamentos': qs,
+        'categorias': categorias,
+        'filtro_tipo': tipo,
+        'filtro_categoria': categoria_id,
+        'filtro_mes': mes,
+    })
+
+
+@adm_escrita_required
+def criar_lancamento(request):
+    form = LancamentoForm(request.POST or None)
+    if form.is_valid():
+        lan = form.save(commit=False)
+        lan.origem = 'MANUAL'
+        lan.criado_por = request.user
+        lan.save()
+        messages.success(request, 'Lançamento registrado!')
+        return redirect('adm:lista_lancamentos')
+    return render(request, 'form_lancamento.html', {'form': form, 'titulo': 'Novo Lançamento'})
+
+
+@adm_escrita_required
+def editar_lancamento(request, pk):
+    lan = get_object_or_404(Lancamento, pk=pk)
+    if lan.origem == 'SUPPLY':
+        messages.error(request, 'Lançamentos do Supply não podem ser editados manualmente.')
+        return redirect('adm:lista_lancamentos')
+    form = LancamentoForm(request.POST or None, instance=lan)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Lançamento atualizado!')
+        return redirect('adm:lista_lancamentos')
+    return render(request, 'form_lancamento.html', {'form': form, 'titulo': 'Editar Lançamento', 'objeto': lan})
+
+
+@adm_escrita_required
+def deletar_lancamento(request, pk):
+    lan = get_object_or_404(Lancamento, pk=pk)
+    if lan.origem == 'SUPPLY':
+        messages.error(request, 'Lançamentos do Supply não podem ser removidos manualmente.')
+        return redirect('adm:lista_lancamentos')
+    if request.method == 'POST':
+        lan.delete()
+        messages.success(request, 'Lançamento removido.')
+        return redirect('adm:lista_lancamentos')
+    return render(request, 'form_lancamento.html', {
+        'objeto': lan, 'confirmar_delecao': True, 'titulo': 'Remover Lançamento'
+    })
 
 
 @adm_acesso_required

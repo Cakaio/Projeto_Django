@@ -102,3 +102,32 @@ class CategoriaViewTest(TestCase):
         }, follow=False)
         self.assertEqual(resp.status_code, 302)
         self.assertTrue(Categoria.objects.filter(nome='Doação').exists())
+
+
+class LancamentoViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user_adm = User.objects.create_user(
+            username='adm2', password='pass', area='ADM/FIN',
+            first_name='ADM', last_name='Dois'
+        )
+        self.cat = Categoria.objects.create(nome='Doação', tipo='RECEITA')
+
+    def test_criar_lancamento_manual(self):
+        self.client.login(username='adm2', password='pass')
+        resp = self.client.post('/adm/lancamentos/novo/', {
+            'categoria': self.cat.pk,
+            'valor': '500.00',
+            'data': timezone.now().date().isoformat(),
+            'descricao': 'Doação teste',
+        }, follow=False)
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(Lancamento.objects.filter(descricao='Doação teste').exists())
+
+    def test_nao_edita_lancamento_supply(self):
+        lan = Lancamento.objects.create(
+            categoria=self.cat, valor='100', data=timezone.now().date(), origem='SUPPLY'
+        )
+        self.client.login(username='adm2', password='pass')
+        resp = self.client.get(f'/adm/lancamentos/{lan.pk}/editar/', follow=False)
+        self.assertEqual(resp.status_code, 302)

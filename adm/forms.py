@@ -21,4 +21,20 @@ class CategoriaForm(forms.ModelForm):
 class LancamentoForm(forms.ModelForm):
     class Meta:
         model = Lancamento
-        fields = ['categoria', 'valor', 'data', 'descricao', 'origem']
+        fields = ['categoria', 'valor', 'data', 'descricao']
+        widgets = {
+            'categoria': forms.Select(attrs={'class': 'form-select'}),
+            'valor': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
+            'data': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+        labels = {
+            'categoria': 'Categoria',
+            'valor': 'Valor (R$)',
+            'data': 'Data do Fato',
+            'descricao': 'Descrição (opcional)',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['categoria'].queryset = Categoria.objects.filter(ativo=True)
