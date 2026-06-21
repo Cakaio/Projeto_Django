@@ -135,6 +135,32 @@ class LancamentoViewTest(TestCase):
         self.assertEqual(resp.url, '/adm/lancamentos/')
 
 
+class FluxoCaixaTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user_adm = User.objects.create_user(
+            username='adm_fc', password='pass', area='ADM/FIN',
+            first_name='ADM', last_name='FC'
+        )
+        self.cat_r = Categoria.objects.create(nome='Doação FC', tipo='RECEITA')
+        self.cat_d = Categoria.objects.create(nome='Fixo FC', tipo='DESPESA')
+        hoje = timezone.now().date()
+        Lancamento.objects.create(categoria=self.cat_r, valor='1000', data=hoje)
+        Lancamento.objects.create(categoria=self.cat_d, valor='300', data=hoje)
+
+    def test_saldo_calculado(self):
+        self.client.login(username='adm_fc', password='pass')
+        resp = self.client.get('/adm/fluxo-de-caixa/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, '700')  # saldo 1000 - 300
+
+    def test_exportar_csv(self):
+        self.client.login(username='adm_fc', password='pass')
+        resp = self.client.get('/adm/fluxo-de-caixa/?exportar=csv')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('text/csv', resp['Content-Type'])
+
+
 class SupplySignalTest(TestCase):
     def setUp(self):
         # Criar a categoria padrão que o signal usa

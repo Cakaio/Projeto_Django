@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block titulo %}Fluxo de Caixa — ADM{% endblock %}
+{% block content %}
+<div class="container my-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold m-0">Fluxo de Caixa</h4>
+    <a href="?{{ request.GET.urlencode }}&exportar=csv" class="btn btn-sm btn-outline-dark">⬇ Exportar CSV</a>
+  </div>
+
+  <!-- Filtros -->
+  <form method="get" class="row g-2 mb-4">
+    <div class="col-auto">
+      <select name="tipo" class="form-select form-select-sm">
+        <option value="">Todos</option>
+        <option value="RECEITA" {% if filtro_tipo == 'RECEITA' %}selected{% endif %}>Receita</option>
+        <option value="DESPESA" {% if filtro_tipo == 'DESPESA' %}selected{% endif %}>Despesa</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <select name="categoria" class="form-select form-select-sm">
+        <option value="">Todas categorias</option>
+        {% for cat in categorias %}
+        <option value="{{ cat.pk }}" {% if filtro_categoria == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <input type="date" name="data_ini" value="{{ filtro_data_ini }}" class="form-control form-control-sm" placeholder="De">
+    </div>
+    <div class="col-auto">
+      <input type="date" name="data_fim" value="{{ filtro_data_fim }}" class="form-control form-control-sm" placeholder="Até">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-sm btn-outline-dark">Filtrar</button>
+      <a href="{% url 'adm:fluxo_caixa' %}" class="btn btn-sm btn-outline-secondary ms-1">Limpar</a>
+    </div>
+  </form>
+
+  <!-- Saldo final -->
+  <div class="alert {% if saldo_final >= 0 %}alert-success{% else %}alert-danger{% endif %} py-2 mb-4">
+    Saldo no período: <strong>R$ {{ saldo_final|floatformat:2 }}</strong>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <table class="table table-hover mb-0 table-sm">
+      <thead class="table-light">
+        <tr>
+          <th>Data</th><th>Descrição</th><th>Categoria</th>
+          <th class="text-end text-success">Entrada</th>
+          <th class="text-end text-danger">Saída</th>
+          <th class="text-end">Saldo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in lancamentos_com_saldo %}
+        <tr>
+          <td class="text-nowrap">{{ item.lan.data|date:"d/m/Y" }}</td>
+          <td class="text-muted small">{{ item.lan.descricao|default:item.lan.categoria.nome|truncatechars:40 }}</td>
+          <td><span class="badge bg-light text-dark border">{{ item.lan.categoria.nome }}</span></td>
+          <td class="text-end text-success fw-semibold">
+            {% if item.lan.tipo == 'RECEITA' %}R$ {{ item.lan.valor|floatformat:2 }}{% endif %}
+          </td>
+          <td class="text-end text-danger fw-semibold">
+            {% if item.lan.tipo == 'DESPESA' %}R$ {{ item.lan.valor|floatformat:2 }}{% endif %}
+          </td>
+          <td class="text-end fw-bold {% if item.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+            R$ {{ item.saldo|floatformat:2 }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Nenhum lançamento no período.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="mt-3"><a href="{% url 'adm:painel' %}" class="text-muted small">← Voltar ao painel</a></div>
+</div>
+{% endblock %}
