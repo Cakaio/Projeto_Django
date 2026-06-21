@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'semanario',
     'sabado',
     'supply',
+    'adm',
 ]
 
 MIDDLEWARE = [
