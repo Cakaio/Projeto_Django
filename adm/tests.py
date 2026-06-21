@@ -205,3 +205,29 @@ class SupplySignalTest(TestCase):
         pk = pedido.pk
         pedido.delete()
         self.assertFalse(Lancamento.objects.filter(pedido_id=pk).exists())
+
+
+class DRETest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user_adm = User.objects.create_user(
+            username='adm_dre', password='pass', area='ADM/FIN',
+            first_name='ADM', last_name='DRE'
+        )
+        self.cat_r = Categoria.objects.create(nome='Doação DRE', tipo='RECEITA')
+        self.cat_d = Categoria.objects.create(nome='Fixo DRE', tipo='DESPESA')
+        import datetime
+        self.hoje = datetime.date(2026, 1, 15)
+        Lancamento.objects.create(categoria=self.cat_r, valor='2000', data=self.hoje)
+        Lancamento.objects.create(categoria=self.cat_d, valor='500', data=self.hoje)
+
+    def test_dre_resultado_correto(self):
+        self.client.login(username='adm_dre', password='pass')
+        resp = self.client.get('/adm/dre/?mes=2026-01')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, '1500')  # resultado 2000-500
+
+    def test_dre_comparativo(self):
+        self.client.login(username='adm_dre', password='pass')
+        resp = self.client.get('/adm/dre/?mes=2026-01&comparar=2025-12')
+        self.assertEqual(resp.status_code, 200)

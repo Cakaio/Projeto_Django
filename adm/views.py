@@ -4,6 +4,7 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponse
+from django.db.models import Sum
 from functools import wraps
 from decimal import Decimal
 import csv
@@ -233,4 +234,63 @@ def fluxo_caixa(request):
     })
 
 
-def dre(request): return HttpResponse('dre')
+def _calcular_dre(ano, mes):
+    """Retorna dict com receitas, despesas e resultado para um mês."""
+    qs = Lancamento.objects.filter(data__year=ano, data__month=mes)
+
+    receitas = (
+        qs.filter(tipo='RECEITA')
+        .values('categoria__nome')
+        .annotate(total=Sum('valor'))
+        .order_by('categoria__nome')
+    )
+    despesas = (
+        qs.filter(tipo='DESPESA')
+        .values('categoria__nome')
+        .annotate(total=Sum('valor'))
+        .order_by('categoria__nome')
+    )
+
+    total_receitas = qs.filter(tipo='RECEITA').aggregate(t=Sum('valor'))['t'] or Decimal('0')
+    total_despesas = qs.filter(tipo='DESPESA').aggregate(t=Sum('valor'))['t'] or Decimal('0')
+
+    return {
+        'receitas': list(receitas),
+        'despesas': list(despesas),
+        'total_receitas': total_receitas,
+        'total_despesas': total_despesas,
+        'resultado': total_receitas - total_despesas,
+    }
+
+
+@adm_acesso_required
+def dre(request):
+    from django.utils import timezone
+    hoje = timezone.now().date()
+
+    # Período principal
+    mes_str = request.GET.get('mes', hoje.strftime('%Y-%m'))
+    # Período comparativo
+    comp_str = request.GET.get('comparar', '')
+
+    try:
+        ano_p, mes_p = [int(x) for x in mes_str.split('-')]
+    except (ValueError, AttributeError):
+        ano_p, mes_p = hoje.year, hoje.month
+
+    dre_principal = _calcular_dre(ano_p, mes_p)
+    dre_comparativo = None
+
+    if comp_str:
+        try:
+            ano_c, mes_c = [int(x) for x in comp_str.split('-')]
+            dre_comparativo = _calcular_dre(ano_c, mes_c)
+        except (ValueError, AttributeError):
+            pass
+
+    return render(request, 'dre.html', {
+        'dre': dre_principal,
+        'dre_comp': dre_comparativo,
+        'mes': mes_str,
+        'comparar': comp_str,
+    })
