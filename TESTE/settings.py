@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 from decouple import config
-import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -72,7 +71,6 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'atendido.novos_context.atendidos_filtrados'
             ],
-            'string_if_invalid': '' if 'test' in sys.argv else None,
         },
     },
 ]
@@ -83,24 +81,16 @@ WSGI_APPLICATION = 'TESTE.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-if 'test' in sys.argv:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': ':memory:',
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': config("DATA_BASE_ENGINE"),
+        'NAME': config("DATA_BASE_NAME"),
+        'USER': config("DATA_BASE_USER"),
+        'PASSWORD': config("DATA_BASE_PASSWORD"),
+        'HOST': config("DATA_BASE_HOST"),
+        'PORT':config("DATA_BASE_PORT"),
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': config("DATA_BASE_ENGINE"),
-            'NAME': config("DATA_BASE_NAME"),
-            'USER': config("DATA_BASE_USER"),
-            'PASSWORD': config("DATA_BASE_PASSWORD"),
-            'HOST': config("DATA_BASE_HOST"),
-            'PORT':config("DATA_BASE_PORT"),
-        }
-    }
+}
 
 
 # Password validation
