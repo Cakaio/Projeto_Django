@@ -25,7 +25,7 @@ from django.shortcuts import redirect
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', lambda request: redirect('login', permanent=False)),
-    path('login/', auth_view.LoginView.as_view(template_name='login.html'), name='login'),
+    path('login/', auth_view.LoginView.as_view(template_name='login.html', redirect_authenticated_user=True), name='login'),
     path('logout/', auth_view.LogoutView.as_view(next_page='login'), name='logout'),
     path('inicio/', inicio.as_view(), name='inicio'),
     path('atendido/', include('atendido.urls', namespace='atendido')),
