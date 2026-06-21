@@ -140,10 +140,13 @@ MEDIA_ROOT = BASE_DIR / "media"
 LOGIN_REDIRECT_URL = 'inicio'
 LOGIN_URL = 'login'
 
-# Sessão expira em 180 dias, mas só se a pessoa fechar o browser sem fazer logout
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 180  # 180 dias em segundos
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False   # mantém a sessão mesmo fechando o browser
-SESSION_SAVE_EVERY_REQUEST = True         # renova o prazo a cada requisição
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_SECURE = True    # obrigatório em HTTPS (PythonAnywhere)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
