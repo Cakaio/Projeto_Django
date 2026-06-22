@@ -130,6 +130,76 @@ class SorteioEquidadeTest(TestCase):
         self.assertFalse(EscalaRonda.objects.filter(voluntario=self.vol_alto).exists())
 
 
+class PainelPermissaoTest(TestCase):
+    def test_triade_acessa(self):
+        c = Client()
+        c.force_login(_vol('triade1', area='TRIADE'))
+        resp = c.get(reverse('ronda:painel'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_superuser_acessa(self):
+        c = Client()
+        su = User.objects.create_superuser(username='su_ronda', password='pw', first_name='Su', last_name='R')
+        c.force_login(su)
+        resp = c.get(reverse('ronda:painel'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_outra_area_recebe_403(self):
+        c = Client()
+        c.force_login(_vol('azul_ronda', area='AZUL'))
+        resp = c.get(reverse('ronda:painel'))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_nao_logado_redireciona(self):
+        resp = Client().get(reverse('ronda:painel'))
+        self.assertEqual(resp.status_code, 302)
+
+
+class LocalRondaCRUDTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.triade = _vol('triade_crud', area='TRIADE')
+        self.client.force_login(self.triade)
+
+    def test_lista_locais(self):
+        resp = self.client.get(reverse('ronda:locais'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_criar_local(self):
+        resp = self.client.post(reverse('ronda:local_criar'), {
+            'nome': 'Quadra', 'ativo': True, 'ordem': 4
+        })
+        self.assertRedirects(resp, reverse('ronda:locais'))
+        from ronda.models import LocalRonda
+        self.assertTrue(LocalRonda.objects.filter(nome='Quadra').exists())
+
+
+class ConfiguracaoCriarTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.triade = _vol('triade_conf', area='TRIADE')
+        self.client.force_login(self.triade)
+        from sabado.models import Sabado
+        import datetime
+        self.sabado = Sabado.objects.create(data=datetime.date(2099, 4, 5), tema='T', descricao='D')
+
+    def test_criar_configuracao_com_horario(self):
+        from ronda.models import ConfiguracaoRondaSabado, HorarioRonda
+        resp = self.client.post(reverse('ronda:configuracao_criar'), {
+            'sabado': self.sabado.pk,
+            'horarios-TOTAL_FORMS': '1',
+            'horarios-INITIAL_FORMS': '0',
+            'horarios-MIN_NUM_FORMS': '1',
+            'horarios-MAX_NUM_FORMS': '1000',
+            'horarios-0-hora_inicio': '08:00',
+            'horarios-0-hora_fim': '09:00',
+            'horarios-0-ordem': '1',
+            'horarios-0-DELETE': '',
+        })
+        self.assertEqual(ConfiguracaoRondaSabado.objects.count(), 1)
+        self.assertEqual(HorarioRonda.objects.count(), 1)
+
+
 class SorteioSemElegiveisSuficientesTest(TestCase):
     def test_sorteia_quem_tem_sem_quebrar(self):
         from ronda.models import LocalRonda, ConfiguracaoRondaSabado, HorarioRonda, EscalaRonda

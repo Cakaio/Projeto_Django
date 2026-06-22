@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block content %}
+<style>
+  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4rem;text-align:center;clip-path:ellipse(55% 100% at 50% 100%)}
+  .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
+  .rd-body{max-width:500px;margin:-2rem auto 2rem;padding:0 1rem}
+  .rd-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1.5rem}
+</style>
+<div class="rd-header"><h1>{{ titulo }}</h1></div>
+<div class="rd-body">
+  <div class="rd-card">
+    {% if confirmar_delecao %}
+      <p>Tem certeza que deseja remover <strong>{{ objeto.nome }}</strong>?</p>
+      <form method="post">{% csrf_token %}
+        <div style="display:flex;gap:.5rem">
+          <button type="submit" class="btn btn-danger">Remover</button>
+          <a href="{% url 'ronda:locais' %}" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+      </form>
+    {% else %}
+      <form method="post">{% csrf_token %}
+        {% for field in form %}
+        <div class="mb-3">
+          <label class="form-label fw-semibold">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<div class="text-danger small">{{ field.errors|join:", " }}</div>{% endif %}
+        </div>
+        {% endfor %}
+        <div style="display:flex;gap:.5rem">
+          <button type="submit" class="btn" style="background:#fe8210;color:#fff;border:none">Salvar</button>
+          <a href="{% url 'ronda:locais' %}" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

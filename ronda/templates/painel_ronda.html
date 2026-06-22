@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Gestão de Rondas{% endblock %}
+{% block content %}
+<style>
+  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4rem;text-align:center;position:relative;clip-path:ellipse(55% 100% at 50% 100%)}
+  .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
+  .rd-header p{opacity:.75;margin:.5rem 0 0;font-size:.9rem}
+  .rd-body{max-width:900px;margin:-2rem auto 2rem;padding:0 1rem}
+  .rd-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem}
+  .rd-badge{display:inline-block;padding:.2rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:700;text-transform:uppercase}
+  .rd-badge-pendente{background:#f1f5f9;color:#64748b}
+  .rd-badge-sorteada{background:#dbeafe;color:#1d4ed8}
+  .rd-badge-aprovada{background:#dcfce7;color:#166534}
+  .rd-badge-reprovada{background:#fee2e2;color:#991b1b}
+  .rd-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+</style>
+<div class="rd-header">
+  <h1>Gestão de Rondas</h1>
+  <p>Sorteio, aprovação e histórico de rondas dos sábados</p>
+</div>
+<div class="rd-body">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <h2 style="font-size:1.1rem;font-weight:600;margin:0">Configurações</h2>
+    <div style="display:flex;gap:.5rem">
+      <a href="{% url 'ronda:locais' %}" class="btn btn-outline-secondary btn-sm">Locais</a>
+      <a href="{% url 'ronda:configuracao_criar' %}" class="btn btn-sm" style="background:#fe8210;color:#fff;border:none">+ Nova Ronda</a>
+    </div>
+  </div>
+  {% for cfg in configuracoes %}
+  <div class="rd-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <strong>{{ cfg.sabado.data|date:"d/m/Y" }}</strong>
+        — {{ cfg.sabado.tema }}
+        {% if cfg.status == 'PENDENTE_SORTEIO' %}<span class="rd-badge rd-badge-pendente">Pendente</span>
+        {% elif cfg.status == 'SORTEADA' %}<span class="rd-badge rd-badge-sorteada">Sorteada</span>
+        {% elif cfg.status == 'APROVADA' %}<span class="rd-badge rd-badge-aprovada">Aprovada</span>
+        {% else %}<span class="rd-badge rd-badge-reprovada">Reprovada</span>{% endif %}
+      </div>
+      <small style="color:hsl(var(--muted-foreground))">{{ cfg.horarios.count }} horário(s)</small>
+    </div>
+    <div class="rd-actions">
+      <a href="{% url 'ronda:configuracao_detalhe' cfg.pk %}" class="btn btn-sm btn-outline-primary">Ver / Sortear</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="rd-card" style="text-align:center;color:hsl(var(--muted-foreground))">
+    Nenhuma configuração criada ainda.
+    <a href="{% url 'ronda:configuracao_criar' %}">Criar a primeira</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Nova Configuração de Ronda{% endblock %}
+{% block content %}
+<style>
+  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4rem;text-align:center;clip-path:ellipse(55% 100% at 50% 100%)}
+  .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
+  .rd-header p{opacity:.75;margin:.5rem 0 0}
+  .rd-body{max-width:650px;margin:-2rem auto 2rem;padding:0 1rem}
+  .rd-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem}
+  .rd-horario-row{display:grid;grid-template-columns:1fr 1fr 80px auto;gap:.5rem;align-items:end;margin-bottom:.5rem}
+  .rd-add-btn{background:none;border:1px dashed hsl(var(--border));border-radius:var(--radius);padding:.4rem 1rem;cursor:pointer;color:hsl(var(--muted-foreground));font-size:.85rem;width:100%;margin-top:.5rem}
+  .rd-add-btn:hover{background:hsl(var(--accent))}
+</style>
+<div class="rd-header">
+  <h1>Nova Configuração de Ronda</h1>
+  <p>Defina o sábado e os horários antes de sortear</p>
+</div>
+<div class="rd-body">
+  <form method="post">{% csrf_token %}
+    {{ formset.management_form }}
+
+    <div class="rd-card">
+      <h3 style="font-size:1rem;font-weight:600;margin:0 0 1rem">Sábado</h3>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ form.sabado.label }}</label>
+        {{ form.sabado }}
+        {% if form.sabado.errors %}<div class="text-danger small">{{ form.sabado.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="rd-card">
+      <h3 style="font-size:1rem;font-weight:600;margin:0 0 1rem">Horários da Ronda</h3>
+      <div id="horarios-container">
+        {% for hform in formset %}
+        <div class="rd-horario-row horario-form" {% if hform.instance.pk %}{% endif %}>
+          <div>
+            <label class="form-label fw-semibold" style="font-size:.8rem">Início</label>
+            {{ hform.hora_inicio }}
+          </div>
+          <div>
+            <label class="form-label fw-semibold" style="font-size:.8rem">Fim</label>
+            {{ hform.hora_fim }}
+          </div>
+          <div>
+            <label class="form-label fw-semibold" style="font-size:.8rem">Ordem</label>
+            {{ hform.ordem }}
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            {{ hform.DELETE }}
+            <label for="{{ hform.DELETE.id_for_label }}" style="cursor:pointer;color:#dc2626;font-size:.8rem;padding-bottom:.3rem">✕</label>
+          </div>
+          {% for hidden in hform.hidden_fields %}{{ hidden }}{% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="rd-add-btn" id="add-horario">+ Adicionar horário</button>
+    </div>
+
+    <div style="display:flex;gap:.5rem">
+      <button type="submit" class="btn" style="background:#fe8210;color:#fff;border:none">Criar e ir para sorteio</button>
+      <a href="{% url 'ronda:painel' %}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+<script>
+  const container = document.getElementById('horarios-container');
+  const total = document.getElementById('id_horarios-TOTAL_FORMS');
+  document.getElementById('add-horario').addEventListener('click', () => {
+    const n = parseInt(total.value);
+    const template = container.querySelector('.horario-form').cloneNode(true);
+    template.querySelectorAll('input').forEach(inp => {
+      inp.name = inp.name.replace(/-\d+-/, `-${n}-`);
+      inp.id = inp.id.replace(/-\d+-/, `-${n}-`);
+      inp.value = '';
+      if (inp.type === 'checkbox') inp.checked = false;
+    });
+    container.appendChild(template);
+    total.value = n + 1;
+  });
+</script>
+{% endblock %}
