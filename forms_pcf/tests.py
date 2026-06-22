@@ -1,6 +1,8 @@
-from django.test import TestCase
+import io
+from django.test import TestCase, Client
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from decimal import Decimal
 from forms_pcf.models import FeedbackArea, PedidoReembolso, ReceptorNotificacaoReembolso
 from adm.models import Categoria, Lancamento
@@ -58,3 +60,61 @@ class AdmOrigemReembolsoTest(TestCase):
         from adm.models import ORIGEM_CHOICES
         valores = [v for v, _ in ORIGEM_CHOICES]
         self.assertIn('REEMBOLSO', valores)
+
+
+class EnviarFeedbackViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='vol2', password='pw', area='MARKETING')
+        self.client.force_login(self.user)
+
+    def test_get_retorna_200(self):
+        resp = self.client.get(reverse('forms_pcf:feedback'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_post_valido_cria_feedback_e_redireciona(self):
+        resp = self.client.post(reverse('forms_pcf:feedback'), {
+            'area': 'MARKETING',
+            'descricao': 'Precisamos de mais comunicação entre áreas.',
+        })
+        self.assertRedirects(resp, reverse('forms_pcf:feedback_sucesso'))
+        self.assertEqual(FeedbackArea.objects.count(), 1)
+        fb = FeedbackArea.objects.first()
+        self.assertEqual(fb.area, 'MARKETING')
+
+    def test_post_invalido_nao_cria(self):
+        resp = self.client.post(reverse('forms_pcf:feedback'), {'area': '', 'descricao': ''})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(FeedbackArea.objects.count(), 0)
+
+    def test_anonimo_redireciona_login(self):
+        self.client.logout()
+        resp = self.client.get(reverse('forms_pcf:feedback'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/login/', resp.url)
+
+
+class FeedbackInboxPermissionTest(TestCase):
+    def _login(self, area, superuser=False):
+        c = Client()
+        u = User.objects.create_user(
+            username=f'u_{area}', password='pw', area=area, is_superuser=superuser
+        )
+        c.force_login(u)
+        return c
+
+    def test_projetos_tem_acesso(self):
+        resp = self._login('PROJETOS').get(reverse('forms_pcf:feedback_inbox'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_triade_tem_acesso(self):
+        resp = self._login('TRIADE').get(reverse('forms_pcf:feedback_inbox'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_superuser_tem_acesso(self):
+        resp = self._login('MARKETING', superuser=True).get(reverse('forms_pcf:feedback_inbox'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_outros_recebem_403(self):
+        resp = self._login('MARKETING').get(reverse('forms_pcf:feedback_inbox'))
+        self.assertEqual(resp.status_code, 403)

@@ -34,6 +34,7 @@ urlpatterns = [
     path('sabado/', include('sabado.urls', namespace='sabado')),
     path('supply/', include('supply.urls', namespace='supply')),
     path('adm/', include('adm.urls', namespace='adm')),
+    path('forms/', include('forms_pcf.urls', namespace='forms_pcf')),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
