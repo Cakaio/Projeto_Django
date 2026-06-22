@@ -15,4 +15,8 @@ urlpatterns = [
     path('categorias/<int:pk>/deletar/', views.deletar_categoria, name='deletar_categoria'),
     path('fluxo-de-caixa/', views.fluxo_caixa, name='fluxo_caixa'),
     path('dre/', views.dre, name='dre'),
+    path('notificacoes-reembolso/', views.receptores_reembolso, name='receptores_reembolso'),
+    path('notificacoes-reembolso/novo/', views.receptor_criar, name='receptor_criar'),
+    path('notificacoes-reembolso/<int:pk>/editar/', views.receptor_editar, name='receptor_editar'),
+    path('notificacoes-reembolso/<int:pk>/deletar/', views.receptor_deletar, name='receptor_deletar'),
 ]

@@ -121,6 +121,22 @@
           <svg class="fin-tool-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
 
+        <a href="{% url 'forms_pcf:reembolso_inbox' %}" class="fin-tool-card">
+          <div class="fin-tool-icon fin-tool-blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="fin-tool-body">
+            <div class="fin-tool-title">
+              Reembolsos
+              {% if reembolsos_pendentes %}
+              <span class="fin-tool-pending-badge">{{ reembolsos_pendentes }}</span>
+              {% endif %}
+            </div>
+            <div class="fin-tool-desc">Aprovar ou rejeitar pedidos de reembolso dos voluntários</div>
+          </div>
+          <svg class="fin-tool-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </a>
+
       </div>
     </div>
 
@@ -297,6 +313,8 @@
 .fin-tool-purple{background:#ede9fe;color:#7c3aed}
 .fin-tool-orange{background:#fff7ed;color:#fe8210}
 .fin-tool-slate {background:#f1f5f9;color:#64748b}
+.fin-tool-blue{background:#e0f2fe;color:#0284c7}
+.fin-tool-pending-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:#dc2626;color:#fff;font-size:.65rem;font-weight:800;border-radius:9999px;margin-left:.375rem;vertical-align:middle}
 .fin-tool-body{flex:1;min-width:0}
 .fin-tool-title{font-size:.9rem;font-weight:700;margin:0 0 .15rem;line-height:1.3}
 .fin-tool-desc{font-size:.775rem;color:hsl(var(--muted-foreground));margin:0;line-height:1.4}

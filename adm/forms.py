@@ -38,3 +38,22 @@ class LancamentoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['categoria'].queryset = Categoria.objects.filter(ativo=True)
+
+
+from forms_pcf.models import ReceptorNotificacaoReembolso
+
+
+class ReceptorNotificacaoReembolsoForm(forms.ModelForm):
+    class Meta:
+        model = ReceptorNotificacaoReembolso
+        fields = ['nome', 'email', 'ativo']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome do receptor'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'email@exemplo.com'}),
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        labels = {
+            'nome': 'Nome',
+            'email': 'E-mail',
+            'ativo': 'Ativo',
+        }

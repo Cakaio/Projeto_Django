@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }} — Financeiro{% endblock %}
+
+{% block content %}
+<div class="fin-page">
+  <div class="fin-header">
+    <div class="fin-container">
+      <div class="fin-header-inner">
+        <div class="fin-header-text">
+          <p class="fin-breadcrumb">
+            <a href="{% url 'adm:painel' %}" class="fin-breadcrumb-link">Financeiro</a>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            <a href="{% url 'adm:receptores_reembolso' %}" class="fin-breadcrumb-link">Receptores</a>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            {{ titulo }}
+          </p>
+          <h1 class="fin-title">{{ titulo }}</h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fin-container fin-body">
+
+    {% if confirmar_delecao %}
+    <div class="fin-confirm-card">
+      <div class="fin-confirm-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </div>
+      <div class="fin-confirm-text">
+        <p class="fin-confirm-title">Remover receptor?</p>
+        <p class="fin-confirm-sub"><strong>{{ objeto.nome }}</strong> ({{ objeto.email }}) não receberá mais notificações de reembolso.</p>
+      </div>
+    </div>
+    <form method="post" class="fin-confirm-actions">
+      {% csrf_token %}
+      <button type="submit" class="fin-btn fin-btn-danger">Sim, remover</button>
+      <a href="{% url 'adm:receptores_reembolso' %}" class="fin-btn fin-btn-outline">Cancelar</a>
+    </form>
+
+    {% else %}
+    <div class="fin-form-card">
+      <form method="post">
+        {% csrf_token %}
+        <div class="fin-field">
+          <label class="fin-label">{{ form.nome.label }}</label>
+          {{ form.nome }}
+          {% if form.nome.errors %}<p class="fin-error">{{ form.nome.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="fin-field">
+          <label class="fin-label">{{ form.email.label }}</label>
+          {{ form.email }}
+          {% if form.email.errors %}<p class="fin-error">{{ form.email.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="fin-field fin-field-check">
+          {{ form.ativo }}
+          <label class="fin-label-check">{{ form.ativo.label }}</label>
+        </div>
+        <div class="fin-form-actions">
+          <button type="submit" class="fin-btn fin-btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Salvar
+          </button>
+          <a href="{% url 'adm:receptores_reembolso' %}" class="fin-btn fin-btn-outline">Cancelar</a>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<style>
+*,*::before,*::after{box-sizing:border-box}
+.fin-page{background:hsl(var(--background));min-height:100vh}
+.fin-container{max-width:480px;margin:0 auto;padding:0 1.5rem}
+.fin-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.25rem 0 2.75rem;position:relative;overflow:hidden}
+.fin-header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)}
+.fin-header-inner{position:relative;z-index:1}
+.fin-breadcrumb{display:inline-flex;align-items:center;gap:.375rem;color:rgba(255,255,255,.45);font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .75rem}
+.fin-breadcrumb-link{color:rgba(255,255,255,.55);text-decoration:none}
+.fin-breadcrumb-link:hover{color:#fff}
+.fin-title{font-size:clamp(1.25rem,3vw,1.625rem);font-weight:800;color:#fff;margin:0;line-height:1.15}
+.fin-btn{display:inline-flex;align-items:center;gap:.45rem;padding:.625rem 1.25rem;border-radius:.5rem;font-size:.875rem;font-weight:600;text-decoration:none;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.fin-btn-primary{background:#fe8210;color:#fff}
+.fin-btn-primary:hover{background:#e87207;color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(254,130,16,.4)}
+.fin-btn-outline{background:transparent;color:hsl(var(--foreground));border:1px solid hsl(var(--border))}
+.fin-btn-outline:hover{background:hsl(var(--accent))}
+.fin-btn-danger{background:#dc2626;color:#fff}
+.fin-btn-danger:hover{background:#b91c1c;color:#fff}
+.fin-body{padding-top:1.75rem;padding-bottom:4rem}
+.fin-form-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:1rem;padding:1.75rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.fin-field{margin-bottom:1.25rem}
+.fin-label{display:block;font-size:.8rem;font-weight:700;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em;margin-bottom:.45rem}
+.fin-form-card input[type="text"],.fin-form-card input[type="email"]{width:100%;padding:.625rem .875rem;border:1px solid hsl(var(--border));border-radius:.5rem;background:hsl(var(--background));color:hsl(var(--foreground));font-size:.9rem;outline:none;transition:border .15s;font-family:inherit}
+.fin-form-card input:focus{border-color:#fe8210;box-shadow:0 0 0 3px rgba(254,130,16,.12)}
+.fin-error{font-size:.78rem;color:#dc2626;font-weight:600;margin:.3rem 0 0}
+.fin-field-check{display:flex;align-items:center;gap:.625rem;margin-bottom:1.5rem}
+.fin-label-check{font-size:.875rem;font-weight:600;color:hsl(var(--foreground));margin:0;cursor:pointer}
+.fin-form-card input[type="checkbox"]{width:17px;height:17px;border-radius:.25rem;cursor:pointer;accent-color:#fe8210}
+.fin-form-actions{display:flex;gap:.75rem}
+.fin-confirm-card{background:#fff7ed;border:1px solid #fed7aa;border-radius:1rem;padding:1.5rem;display:flex;gap:1rem;align-items:flex-start;margin-bottom:1.25rem}
+.fin-confirm-icon{width:44px;height:44px;background:#fee2e2;color:#dc2626;border-radius:.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fin-confirm-title{font-size:1rem;font-weight:700;color:#9a3412;margin:0 0 .35rem}
+.fin-confirm-sub{font-size:.875rem;color:#c2410c;margin:0;line-height:1.5}
+.fin-confirm-actions{display:flex;gap:.75rem}
+@media(max-width:520px){.fin-container{padding:0 1rem}.fin-form-card{padding:1.25rem}.fin-form-actions{flex-direction:column}.fin-confirm-card{flex-direction:column;gap:.75rem}}
+</style>
+{% endblock %}

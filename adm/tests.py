@@ -2,10 +2,12 @@ from django.test import TestCase, RequestFactory, Client
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from unittest.mock import MagicMock, patch
 from decimal import Decimal
 from adm.models import Categoria, Lancamento
 from adm.views import AdmAcessoMixin, AdmEscritaMixin
+from forms_pcf.models import ReceptorNotificacaoReembolso, PedidoReembolso
 
 User = get_user_model()
 
@@ -250,3 +252,52 @@ class PainelTest(TestCase):
     def test_painel_sem_login_redireciona(self):
         resp = self.client.get('/adm/')
         self.assertEqual(resp.status_code, 302)
+
+
+class ReceptoresReembolsoViewTest(TestCase):
+    def _adm_client(self):
+        c = Client()
+        u = User.objects.create_user(username='adm_r', password='pw', area='ADM/FIN')
+        c.force_login(u)
+        return c, u
+
+    def test_lista_acessivel_por_adm(self):
+        c, _ = self._adm_client()
+        resp = c.get(reverse('adm:receptores_reembolso'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_criar_receptor(self):
+        c, _ = self._adm_client()
+        resp = c.post(reverse('adm:receptor_criar'), {
+            'nome': 'Financeiro PCF',
+            'email': 'fin@pcf.org',
+            'ativo': True,
+        })
+        self.assertRedirects(resp, reverse('adm:receptores_reembolso'))
+        self.assertEqual(ReceptorNotificacaoReembolso.objects.count(), 1)
+
+    def test_outro_area_recebe_403(self):
+        c = Client()
+        u = User.objects.create_user(username='mkt_r', password='pw', area='MARKETING')
+        c.force_login(u)
+        resp = c.get(reverse('adm:receptores_reembolso'))
+        self.assertEqual(resp.status_code, 403)
+
+
+class PainelReembolsoBadgeTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.adm = User.objects.create_user(username='adm_badge', password='pw', area='ADM/FIN')
+        self.client.force_login(self.adm)
+        cat = Categoria.objects.create(nome='Geral', tipo='DESPESA')
+        PedidoReembolso.objects.create(
+            solicitante=self.adm, valor='10.00',
+            descricao='x', data_gasto=timezone.now().date(),
+            categoria=cat, comprovante='reembolsos/x.jpg', status='PENDENTE'
+        )
+
+    def test_painel_contem_contagem_pendente(self):
+        resp = self.client.get(reverse('adm:painel'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('reembolsos_pendentes', resp.context)
+        self.assertEqual(resp.context['reembolsos_pendentes'], 1)
