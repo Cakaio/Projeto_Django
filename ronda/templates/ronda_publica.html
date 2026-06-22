@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load ronda_extras %}
+{% block title %}Rondas do Sábado{% endblock %}
+{% block content %}
+<style>
+  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4rem;text-align:center;clip-path:ellipse(55% 100% at 50% 100%)}
+  .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
+  .rd-header p{opacity:.75;margin:.5rem 0 0}
+  .rd-body{max-width:960px;margin:-2rem auto 2rem;padding:0 1rem}
+  .rd-destaque{background:hsl(var(--card));border:2px solid #fe8210;border-radius:var(--radius);padding:1.5rem;margin-bottom:2rem}
+  .rd-destaque h2{font-size:1.25rem;font-weight:700;margin:0 0 1rem}
+  .rd-historico{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1.25rem;margin-bottom:.75rem}
+  .rd-grade{width:100%;border-collapse:collapse}
+  .rd-grade th,.rd-grade td{border:1px solid hsl(var(--border));padding:.6rem .75rem;font-size:.85rem;vertical-align:top}
+  .rd-grade th{background:hsl(var(--muted));font-weight:600;font-size:.75rem;text-transform:uppercase}
+  .rd-vol{display:block;font-weight:500}
+  .rd-sub{font-size:.7rem;color:#7c3aed;font-style:italic}
+  .rd-badge-aprovada{background:#dcfce7;color:#166534;display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:700}
+</style>
+<div class="rd-header">
+  <h1>Rondas do Sábado</h1>
+  <p>Voluntários escalados para rondas nos sábados do PCF</p>
+</div>
+<div class="rd-body">
+  {% if not configuracoes %}
+  <div style="text-align:center;padding:3rem;color:hsl(var(--muted-foreground))">
+    <p>Nenhuma ronda aprovada ainda.</p>
+  </div>
+  {% else %}
+
+  {% for cfg in configuracoes %}
+  {% if forloop.first %}
+  <div class="rd-destaque">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">
+      <h2>{{ cfg.sabado.data|date:"d/m/Y" }} — {{ cfg.sabado.tema }}</h2>
+      <span class="rd-badge-aprovada">Aprovada</span>
+    </div>
+    {% for horario in cfg.horarios.all %}
+    <h3 style="font-size:.9rem;font-weight:600;margin:1rem 0 .4rem">{{ horario.hora_inicio|time:"H:i" }}–{{ horario.hora_fim|time:"H:i" }}</h3>
+    <table class="rd-grade">
+      <thead>
+        <tr>{% for local in locais %}<th>{{ local.nome }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        <tr>
+          {% for local in locais %}
+          <td>
+            {% for escala in grades|get_item:cfg.pk|get_item:horario.pk|get_item:local.pk %}
+            <span class="rd-vol">{{ escala.voluntario.get_full_name }}</span>
+            {% if escala.is_substituto %}<span class="rd-sub">substituto</span>{% endif %}
+            {% empty %}
+            <span style="color:hsl(var(--muted-foreground))">—</span>
+            {% endfor %}
+          </td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <details class="rd-historico">
+    <summary style="cursor:pointer;font-weight:600">
+      {{ cfg.sabado.data|date:"d/m/Y" }} — {{ cfg.sabado.tema }}
+    </summary>
+    {% for horario in cfg.horarios.all %}
+    <h4 style="font-size:.85rem;font-weight:600;margin:.75rem 0 .3rem">{{ horario.hora_inicio|time:"H:i" }}–{{ horario.hora_fim|time:"H:i" }}</h4>
+    <table class="rd-grade">
+      <thead><tr>{% for local in locais %}<th>{{ local.nome }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        <tr>
+          {% for local in locais %}
+          <td>
+            {% for escala in grades|get_item:cfg.pk|get_item:horario.pk|get_item:local.pk %}
+            <span class="rd-vol">{{ escala.voluntario.get_full_name }}</span>
+            {% if escala.is_substituto %}<span class="rd-sub">substituto</span>{% endif %}
+            {% empty %}<span style="color:hsl(var(--muted-foreground))">—</span>
+            {% endfor %}
+          </td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+    {% endfor %}
+  </details>
+  {% endif %}
+  {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

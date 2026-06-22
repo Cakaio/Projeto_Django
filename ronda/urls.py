@@ -17,6 +17,9 @@ urlpatterns = [
     path('configuracoes/<int:pk>/aprovar/',                views.configuracao_aprovar,     name='configuracao_aprovar'),
     path('configuracoes/<int:pk>/reprovar/',               views.configuracao_reprovar,    name='configuracao_reprovar'),
     path('escalas/<int:pk>/swap/',                         views.escala_swap,              name='escala_swap'),
-    # Ranking e score (adicionados na Task 5)
-    # Pública (adicionada na Task 5)
+    # Ranking e score
+    path('ranking/',                                        views.ranking,                  name='ranking'),
+    path('scores/<int:pk>/editar/',                         views.score_editar,             name='score_editar'),
+    # Pública
+    path('sabado/',                                         views.ronda_publica,            name='ronda_publica'),
 ]

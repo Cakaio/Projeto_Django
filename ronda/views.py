@@ -11,7 +11,7 @@ from .models import (
     EscalaRonda, ScoreRonda, AREAS_ISENTAS_RONDA,
 )
 from .forms import (
-    LocalRondaForm, ConfiguracaoRondaForm, HorarioRondaFormSet,
+    LocalRondaForm, ConfiguracaoRondaForm, HorarioRondaFormSet, ScoreRondaForm,
 )
 
 RONDA_GESTAO = {'TRIADE'}
@@ -215,3 +215,98 @@ def escala_swap(request, pk):
     escala.save(update_fields=['voluntario', 'voluntario_original', 'is_substituto'])
     messages.success(request, f'Substituição realizada: {novo_vol.get_full_name()}')
     return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
+
+
+# ── Ranking ──────────────────────────────────────────────────────────────────
+
+@ronda_required
+def ranking(request):
+    from voluntario.models import Voluntario, LISTA_AREAS
+    ano_atual = timezone.now().year
+    area_filtro = request.GET.get('area', '')
+
+    vols_qs = (
+        Voluntario.objects.filter(data_saida__isnull=True)
+        .exclude(area__in=AREAS_ISENTAS_RONDA)
+        .order_by('first_name', 'last_name')
+    )
+    if area_filtro:
+        vols_qs = vols_qs.filter(area=area_filtro)
+
+    scores_map = {
+        s.voluntario_id: s
+        for s in ScoreRonda.objects.filter(voluntario__in=vols_qs, ano=ano_atual)
+    }
+
+    ultima_map = {}
+    for e in (
+        EscalaRonda.objects
+        .filter(horario__configuracao__status='APROVADA', voluntario__in=vols_qs)
+        .select_related('horario__configuracao__sabado')
+        .order_by('horario__configuracao__sabado__data')
+    ):
+        ultima_map[e.voluntario_id] = e.horario.configuracao.sabado.data
+
+    hoje = timezone.now().date()
+    voluntarios = []
+    for v in vols_qs:
+        score_obj = scores_map.get(v.pk)
+        pontos = score_obj.pontos if score_obj else 0
+        ultima = ultima_map.get(v.pk)
+        if ultima is None:
+            badge = 'nunca'
+        elif (hoje - ultima).days > 45:
+            badge = 'antigo'
+        else:
+            badge = 'ok'
+        voluntarios.append({'vol': v, 'pontos': pontos, 'ultima': ultima, 'badge': badge})
+
+    voluntarios.sort(key=lambda x: x['pontos'])
+
+    areas_elegiveis = [(k, v) for k, v in LISTA_AREAS if k not in AREAS_ISENTAS_RONDA]
+
+    return render(request, 'ranking_ronda.html', {
+        'voluntarios': voluntarios,
+        'area_filtro': area_filtro,
+        'areas_elegiveis': areas_elegiveis,
+        'ano': ano_atual,
+    })
+
+
+@ronda_required
+def score_editar(request, pk):
+    score = get_object_or_404(ScoreRonda, pk=pk)
+    form = ScoreRondaForm(request.POST or None, instance=score)
+    if form.is_valid():
+        form.save()
+        messages.success(request, f'Score de {score.voluntario.get_full_name()} atualizado para {score.pontos} pt(s).')
+        return redirect('ronda:ranking')
+    return render(request, 'form_score.html', {'form': form, 'score': score})
+
+
+# ── Área pública ─────────────────────────────────────────────────────────────
+
+@login_required
+def ronda_publica(request):
+    configuracoes = (
+        ConfiguracaoRondaSabado.objects
+        .filter(status='APROVADA')
+        .prefetch_related('horarios__escalas__voluntario', 'horarios__escalas__local')
+        .select_related('sabado')
+        .order_by('-sabado__data')
+    )
+    locais = LocalRonda.objects.filter(ativo=True)
+
+    grades = {}
+    for cfg in configuracoes:
+        grades[cfg.pk] = {}
+        for h in cfg.horarios.all():
+            grades[cfg.pk][h.pk] = {l.pk: [] for l in locais}
+            for e in h.escalas.all():
+                grades[cfg.pk][h.pk][e.local_id].append(e)
+
+    return render(request, 'ronda_publica.html', {
+        'configuracoes': configuracoes,
+        'locais': locais,
+        'grades': grades,
+    })

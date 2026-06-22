@@ -270,6 +270,87 @@ class DetalheConfiguracaoTest(TestCase):
         self.assertTrue(escala.is_substituto)
 
 
+class RankingRondaTest(TestCase):
+    def test_triade_acessa_ranking(self):
+        c = Client()
+        c.force_login(_vol('triade_rank', area='TRIADE'))
+        resp = c.get(reverse('ronda:ranking'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_ranking_exclui_areas_isentas(self):
+        _vol('supply_rank', area='SUPPLY')
+        c = Client()
+        c.force_login(_vol('triade_rank2', area='TRIADE'))
+        resp = c.get(reverse('ronda:ranking'))
+        vols = [item['vol'] for item in resp.context['voluntarios']]
+        areas = [v.area for v in vols]
+        self.assertNotIn('SUPPLY', areas)
+        self.assertNotIn('TRIADE', areas)
+
+
+class ScoreEditarTest(TestCase):
+    def test_editar_score(self):
+        from ronda.models import ScoreRonda
+        ano = timezone.now().year
+        vol = _vol('vol_edit_score')
+        score = ScoreRonda.objects.create(voluntario=vol, ano=ano, pontos=3)
+        c = Client()
+        c.force_login(_vol('triade_se', area='TRIADE'))
+        resp = c.post(reverse('ronda:score_editar', args=[score.pk]), {'pontos': 7})
+        score.refresh_from_db()
+        self.assertEqual(score.pontos, 7)
+
+
+class RondaPublicaTest(TestCase):
+    def test_qualquer_logado_ve(self):
+        c = Client()
+        c.force_login(_vol('qualquer'))
+        resp = c.get(reverse('ronda:ronda_publica'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_nao_logado_redireciona(self):
+        resp = Client().get(reverse('ronda:ronda_publica'))
+        self.assertEqual(resp.status_code, 302)
+
+    def test_exibe_apenas_aprovadas(self):
+        from ronda.models import ConfiguracaoRondaSabado
+        from sabado.models import Sabado
+        import datetime
+        s1 = Sabado.objects.create(data=datetime.date(2099, 6, 7), tema='T1', descricao='D')
+        s2 = Sabado.objects.create(data=datetime.date(2099, 7, 5), tema='T2', descricao='D')
+        cfg1 = ConfiguracaoRondaSabado.objects.create(sabado=s1, status='APROVADA')
+        cfg2 = ConfiguracaoRondaSabado.objects.create(sabado=s2, status='SORTEADA')
+        c = Client()
+        c.force_login(_vol('pub_vol'))
+        resp = c.get(reverse('ronda:ronda_publica'))
+        cfgs = list(resp.context['configuracoes'])
+        self.assertIn(cfg1, cfgs)
+        self.assertNotIn(cfg2, cfgs)
+
+
+class SortearCommandTest(TestCase):
+    def test_command_em_sexta_executa_sorteio(self):
+        from ronda.models import ConfiguracaoRondaSabado, HorarioRonda, EscalaRonda
+        from sabado.models import Sabado
+        from django.core.management import call_command
+        import datetime
+        # 2099-01-02 é sexta-feira, 2099-01-03 é sábado
+        sab = Sabado.objects.create(data=datetime.date(2099, 1, 3), tema='T', descricao='D')
+        cfg = ConfiguracaoRondaSabado.objects.create(sabado=sab)
+        HorarioRonda.objects.create(configuracao=cfg, hora_inicio='08:00', hora_fim='09:00', ordem=1)
+        [_vol(f'cmd{i}') for i in range(10)]
+        from unittest.mock import patch, MagicMock
+        import datetime as dt
+        sexta = dt.date(2099, 1, 2)  # sexta-feira real
+        fake_now = MagicMock()
+        fake_now.date.return_value = sexta
+        with patch('ronda.management.commands.sortear_rondas.timezone') as mock_tz:
+            mock_tz.now.return_value = fake_now
+            call_command('sortear_rondas')
+        cfg.refresh_from_db()
+        self.assertEqual(cfg.status, 'SORTEADA')
+
+
 class SorteioSemElegiveisSuficientesTest(TestCase):
     def test_sorteia_quem_tem_sem_quebrar(self):
         from ronda.models import LocalRonda, ConfiguracaoRondaSabado, HorarioRonda, EscalaRonda

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Editar Score — {{ score.voluntario.get_full_name }}{% endblock %}
+{% block content %}
+<style>
+  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4rem;text-align:center;clip-path:ellipse(55% 100% at 50% 100%)}
+  .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
+  .rd-header p{opacity:.75;margin:.5rem 0 0}
+  .rd-body{max-width:420px;margin:-2rem auto 2rem;padding:0 1rem}
+  .rd-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1.5rem}
+</style>
+<div class="rd-header">
+  <h1>Editar Score</h1>
+  <p>{{ score.voluntario.get_full_name }} — {{ score.ano }}</p>
+</div>
+<div class="rd-body">
+  <div class="rd-card">
+    <form method="post">{% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label fw-semibold">{{ form.pontos.label }}</label>
+        {{ form.pontos }}
+        {% if form.pontos.errors %}<div class="text-danger small">{{ form.pontos.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div style="display:flex;gap:.5rem">
+        <button type="submit" class="btn" style="background:#fe8210;color:#fff;border:none">Salvar</button>
+        <a href="{% url 'ronda:ranking' %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

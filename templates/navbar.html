@@ -295,6 +295,17 @@
             Projetos
           </a>
           {% endif %}
+          <div class="pcf-dd-sep"></div>
+          <a class="pcf-dd-item" href="{% url 'ronda:ronda_publica' %}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Rondas do Sábado
+          </a>
+          {% if user.is_superuser or user.area == 'TRIADE' %}
+          <a class="pcf-dd-item" href="{% url 'ronda:painel' %}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Gestão de Rondas
+          </a>
+          {% endif %}
         </div>
       </div>
 
@@ -419,6 +430,17 @@
   <a class="pcf-mobile-link" href="{% url 'forms_pcf:feedback_inbox' %}">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     Projatos
+  </a>
+  {% endif %}
+  <div class="pcf-mobile-sep"></div>
+  <a class="pcf-mobile-link" href="{% url 'ronda:ronda_publica' %}">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Rondas do Sábado
+  </a>
+  {% if user.is_superuser or user.area == 'TRIADE' %}
+  <a class="pcf-mobile-link" href="{% url 'ronda:painel' %}">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    Gestão de Rondas
   </a>
   {% endif %}
   <div class="pcf-mobile-sep"></div>
