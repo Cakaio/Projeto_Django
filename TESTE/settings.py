@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'sabado',
     'supply',
     'adm',
+    'forms_pcf',
 ]
 
 MIDDLEWARE = [

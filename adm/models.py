@@ -9,6 +9,7 @@ TIPO_CHOICES = (
 ORIGEM_CHOICES = (
     ('MANUAL', 'Manual'),
     ('SUPPLY', 'Supply'),
+    ('REEMBOLSO', 'Reembolso'),
 )
 
 
