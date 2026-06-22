@@ -200,6 +200,76 @@ class ConfiguracaoCriarTest(TestCase):
         self.assertEqual(HorarioRonda.objects.count(), 1)
 
 
+class DetalheConfiguracaoTest(TestCase):
+    def setUp(self):
+        from ronda.models import ConfiguracaoRondaSabado, HorarioRonda
+        from sabado.models import Sabado
+        import datetime
+        self.client = Client()
+        self.triade = _vol('triade_det', area='TRIADE')
+        self.client.force_login(self.triade)
+        self.sabado = Sabado.objects.create(data=datetime.date(2099, 5, 3), tema='T', descricao='D')
+        self.cfg = ConfiguracaoRondaSabado.objects.create(sabado=self.sabado, criado_por=self.triade)
+        self.horario = HorarioRonda.objects.create(configuracao=self.cfg, hora_inicio='08:00', hora_fim='09:00', ordem=1)
+        # 10 voluntários elegíveis
+        self.vols = [_vol(f'det{i}') for i in range(10)]
+
+    def test_detalhe_acessivel(self):
+        resp = self.client.get(reverse('ronda:configuracao_detalhe', args=[self.cfg.pk]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_sortear_muda_status(self):
+        from ronda.models import EscalaRonda
+        resp = self.client.post(reverse('ronda:configuracao_sortear', args=[self.cfg.pk]))
+        self.assertRedirects(resp, reverse('ronda:configuracao_detalhe', args=[self.cfg.pk]))
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.status, 'SORTEADA')
+        self.assertGreater(EscalaRonda.objects.filter(horario__configuracao=self.cfg).count(), 0)
+
+    def test_aprovar_incrementa_scores(self):
+        from ronda.models import EscalaRonda, ScoreRonda
+        from ronda.sorteio import executar_sorteio
+        executar_sorteio(self.cfg)
+        self.cfg.refresh_from_db()
+        ano = timezone.now().year
+        resp = self.client.post(reverse('ronda:configuracao_aprovar', args=[self.cfg.pk]))
+        self.assertRedirects(resp, reverse('ronda:configuracao_detalhe', args=[self.cfg.pk]))
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.status, 'APROVADA')
+        for escala in EscalaRonda.objects.filter(horario__configuracao=self.cfg):
+            score = ScoreRonda.objects.get(voluntario=escala.voluntario, ano=ano)
+            self.assertGreaterEqual(score.pontos, 1)
+
+    def test_reprovar_sem_motivo_nao_reprova(self):
+        from ronda.sorteio import executar_sorteio
+        executar_sorteio(self.cfg)
+        self.client.post(reverse('ronda:configuracao_reprovar', args=[self.cfg.pk]), {'observacao': ''})
+        self.cfg.refresh_from_db()
+        self.assertNotEqual(self.cfg.status, 'REPROVADA')
+
+    def test_reprovar_com_motivo(self):
+        from ronda.sorteio import executar_sorteio
+        executar_sorteio(self.cfg)
+        self.client.post(reverse('ronda:configuracao_reprovar', args=[self.cfg.pk]), {'observacao': 'Ajuste necessário'})
+        self.cfg.refresh_from_db()
+        self.assertEqual(self.cfg.status, 'REPROVADA')
+
+    def test_swap_troca_voluntario(self):
+        from ronda.models import EscalaRonda
+        from ronda.sorteio import executar_sorteio
+        executar_sorteio(self.cfg)
+        escala = EscalaRonda.objects.filter(horario__configuracao=self.cfg).first()
+        novo_vol = _vol('swap_novo')
+        resp = self.client.post(
+            reverse('ronda:escala_swap', args=[escala.pk]),
+            {'voluntario_novo_pk': novo_vol.pk}
+        )
+        self.assertEqual(resp.status_code, 302)
+        escala.refresh_from_db()
+        self.assertEqual(escala.voluntario, novo_vol)
+        self.assertTrue(escala.is_substituto)
+
+
 class SorteioSemElegiveisSuficientesTest(TestCase):
     def test_sorteia_quem_tem_sem_quebrar(self):
         from ronda.models import LocalRonda, ConfiguracaoRondaSabado, HorarioRonda, EscalaRonda

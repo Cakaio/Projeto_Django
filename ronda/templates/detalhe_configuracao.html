@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load ronda_extras %}
+{% block title %}Ronda — {{ cfg.sabado.data|date:"d/m/Y" }}{% endblock %}
+{% block content %}
+<style>
+  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4rem;text-align:center;clip-path:ellipse(55% 100% at 50% 100%)}
+  .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
+  .rd-header p{opacity:.75;margin:.5rem 0 0}
+  .rd-body{max-width:960px;margin:-2rem auto 2rem;padding:0 1rem}
+  .rd-badge{display:inline-block;padding:.2rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:700;text-transform:uppercase}
+  .rd-badge-pendente{background:#f1f5f9;color:#64748b}
+  .rd-badge-sorteada{background:#dbeafe;color:#1d4ed8}
+  .rd-badge-aprovada{background:#dcfce7;color:#166534}
+  .rd-badge-reprovada{background:#fee2e2;color:#991b1b}
+  .rd-grade{width:100%;border-collapse:collapse;margin-top:1rem}
+  .rd-grade th,.rd-grade td{border:1px solid hsl(var(--border));padding:.75rem;text-align:left;vertical-align:top}
+  .rd-grade th{background:hsl(var(--muted));font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .rd-vol-chip{display:inline-flex;align-items:center;gap:.4rem;background:hsl(var(--accent));border-radius:var(--radius);padding:.2rem .5rem;font-size:.8rem;margin:.15rem 0}
+  .rd-vol-chip .score{background:#fe8210;color:#fff;border-radius:9999px;padding:.05rem .35rem;font-size:.65rem;font-weight:700}
+  .rd-vol-chip .sub-badge{background:#7c3aed;color:#fff;border-radius:9999px;padding:.05rem .35rem;font-size:.65rem}
+  .rd-swap-form{margin-top:.5rem}
+  .rd-swap-select{font-size:.75rem;padding:.2rem .4rem;border:1px solid hsl(var(--border));border-radius:var(--radius);max-width:180px}
+  .rd-actions-bar{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:center}
+  .rd-mensagens{margin-bottom:1rem}
+</style>
+<div class="rd-header">
+  <h1>Ronda — {{ cfg.sabado.data|date:"d/m/Y" }}</h1>
+  <p>{{ cfg.sabado.tema }}
+    {% if cfg.status == 'PENDENTE_SORTEIO' %}<span class="rd-badge rd-badge-pendente">Pendente de Sorteio</span>
+    {% elif cfg.status == 'SORTEADA' %}<span class="rd-badge rd-badge-sorteada">Sorteada</span>
+    {% elif cfg.status == 'APROVADA' %}<span class="rd-badge rd-badge-aprovada">Aprovada</span>
+    {% else %}<span class="rd-badge rd-badge-reprovada">Reprovada</span>{% endif %}
+  </p>
+</div>
+
+<div class="rd-body">
+  {% if messages %}
+  <div class="rd-mensagens">
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="rd-actions-bar">
+    <a href="{% url 'ronda:painel' %}" class="btn btn-sm btn-outline-secondary">← Painel</a>
+
+    {% if cfg.status == 'PENDENTE_SORTEIO' or cfg.status == 'REPROVADA' %}
+    <form method="post" action="{% url 'ronda:configuracao_sortear' cfg.pk %}" style="margin:0">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm" style="background:#0f172a;color:#fff;border:none">
+        🎲 {% if cfg.status == 'REPROVADA' %}Re-sortear{% else %}Sortear{% endif %}
+      </button>
+    </form>
+    {% endif %}
+
+    {% if cfg.status == 'SORTEADA' %}
+    <form method="post" action="{% url 'ronda:configuracao_aprovar' cfg.pk %}" style="margin:0">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-success">✓ Aprovar</button>
+    </form>
+    <button class="btn btn-sm btn-outline-danger" onclick="document.getElementById('form-reprovar').style.display='flex';this.style.display='none'">✗ Reprovar</button>
+    <form id="form-reprovar" method="post" action="{% url 'ronda:configuracao_reprovar' cfg.pk %}" style="display:none;margin:0">
+      {% csrf_token %}
+      <div style="display:flex;gap:.4rem;align-items:center">
+        <input type="text" name="observacao" class="form-control form-control-sm" placeholder="Motivo obrigatório" required style="max-width:220px">
+        <button type="submit" class="btn btn-sm btn-danger">Confirmar</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if cfg.observacao %}
+  <div class="alert alert-warning"><strong>Observação:</strong> {{ cfg.observacao }}</div>
+  {% endif %}
+
+  {% for horario in horarios %}
+  <h3 style="font-size:1rem;font-weight:600;margin:1.5rem 0 .5rem">
+    🕐 {{ horario.hora_inicio|time:"H:i" }}–{{ horario.hora_fim|time:"H:i" }}
+  </h3>
+  <table class="rd-grade">
+    <thead>
+      <tr>
+        {% for local in locais %}<th>{{ local.nome }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        {% for local in locais %}
+        <td>
+          {% for escala in grade|get_item:horario.pk|get_item:local.pk %}
+          <div class="rd-vol-chip">
+            {{ escala.voluntario.get_full_name }}
+            <span class="score">{{ scores|get_item:escala.voluntario_id|default:0 }} pt</span>
+            {% if escala.is_substituto %}<span class="sub-badge">sub</span>{% endif %}
+          </div>
+          {% empty %}
+          <span style="color:hsl(var(--muted-foreground));font-size:.8rem">—</span>
+          {% endfor %}
+
+          {% if cfg.status == 'SORTEADA' %}
+          {% for escala in grade|get_item:horario.pk|get_item:local.pk %}
+          <div class="rd-swap-form">
+            <form method="post" action="{% url 'ronda:escala_swap' escala.pk %}" style="margin:.3rem 0 0">
+              {% csrf_token %}
+              <select name="voluntario_novo_pk" class="rd-swap-select">
+                <option value="">↔ Trocar por…</option>
+                {% for vol in elegiveis %}
+                {% if vol != escala.voluntario %}
+                <option value="{{ vol.pk }}">{{ vol.get_full_name }} ({{ scores|get_item:vol.pk|default:0 }}pt)</option>
+                {% endif %}
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-sm btn-outline-secondary" style="font-size:.7rem;padding:.15rem .4rem;margin-top:.2rem">Trocar</button>
+            </form>
+          </div>
+          {% endfor %}
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+    </tbody>
+  </table>
+  {% empty %}
+  <p style="color:hsl(var(--muted-foreground))">Nenhum horário cadastrado ainda.</p>
+  {% endfor %}
+</div>
+{% endblock %}

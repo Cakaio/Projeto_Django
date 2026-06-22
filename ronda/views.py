@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from .models import (
     LocalRonda, ConfiguracaoRondaSabado, HorarioRonda,
-    ScoreRonda, AREAS_ISENTAS_RONDA,
+    EscalaRonda, ScoreRonda, AREAS_ISENTAS_RONDA,
 )
 from .forms import (
     LocalRondaForm, ConfiguracaoRondaForm, HorarioRondaFormSet,
@@ -86,5 +86,132 @@ def configuracao_criar(request):
         formset.instance = cfg
         formset.save()
         messages.success(request, 'Configuração criada! Agora você pode sortear.')
-        return redirect('ronda:painel')
+        return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
     return render(request, 'form_configuracao.html', {'form': form, 'formset': formset})
+
+
+# ── Detalhe + ações ──────────────────────────────────────────────────────────
+
+@ronda_required
+def configuracao_detalhe(request, pk):
+    cfg = get_object_or_404(ConfiguracaoRondaSabado, pk=pk)
+    locais = LocalRonda.objects.filter(ativo=True)
+    horarios = cfg.horarios.prefetch_related('escalas__voluntario', 'escalas__local').all()
+
+    # Monta grade: {horario.pk: {local.pk: [escalas]}}
+    grade = {}
+    for h in horarios:
+        grade[h.pk] = {l.pk: [] for l in locais}
+        for e in h.escalas.all():
+            grade[h.pk][e.local_id].append(e)
+
+    from voluntario.models import Voluntario
+    elegiveis = (
+        Voluntario.objects.filter(data_saida__isnull=True)
+        .exclude(area__in=AREAS_ISENTAS_RONDA)
+        .order_by('first_name', 'last_name')
+    )
+    ano_atual = timezone.now().year
+    scores = {
+        s.voluntario_id: s.pontos
+        for s in ScoreRonda.objects.filter(voluntario__in=elegiveis, ano=ano_atual)
+    }
+
+    return render(request, 'detalhe_configuracao.html', {
+        'cfg': cfg,
+        'locais': locais,
+        'horarios': horarios,
+        'grade': grade,
+        'elegiveis': elegiveis,
+        'scores': scores,
+    })
+
+
+@ronda_required
+def configuracao_sortear(request, pk):
+    cfg = get_object_or_404(ConfiguracaoRondaSabado, pk=pk)
+    if request.method == 'POST':
+        if cfg.status not in ('PENDENTE_SORTEIO', 'REPROVADA'):
+            messages.error(request, 'Só é possível sortear configurações pendentes ou reprovadas.')
+            return redirect('ronda:configuracao_detalhe', pk=pk)
+        if not cfg.horarios.exists():
+            messages.error(request, 'Adicione ao menos um horário antes de sortear.')
+            return redirect('ronda:configuracao_detalhe', pk=pk)
+        from .sorteio import executar_sorteio
+        executar_sorteio(cfg)
+        messages.success(request, 'Sorteio realizado com sucesso!')
+    return redirect('ronda:configuracao_detalhe', pk=pk)
+
+
+@ronda_required
+def configuracao_aprovar(request, pk):
+    cfg = get_object_or_404(ConfiguracaoRondaSabado, pk=pk)
+    if request.method == 'POST':
+        if cfg.status != 'SORTEADA':
+            messages.error(request, 'Só é possível aprovar rondas sorteadas.')
+            return redirect('ronda:configuracao_detalhe', pk=pk)
+        ano_atual = timezone.now().year
+        for escala in EscalaRonda.objects.filter(horario__configuracao=cfg):
+            ScoreRonda.incrementar(escala.voluntario, ano_atual)
+        cfg.status = 'APROVADA'
+        cfg.aprovado_por = request.user
+        cfg.aprovado_em = timezone.now()
+        cfg.save(update_fields=['status', 'aprovado_por', 'aprovado_em'])
+        messages.success(request, 'Ronda aprovada e scores atualizados!')
+    return redirect('ronda:configuracao_detalhe', pk=pk)
+
+
+@ronda_required
+def configuracao_reprovar(request, pk):
+    cfg = get_object_or_404(ConfiguracaoRondaSabado, pk=pk)
+    if request.method == 'POST':
+        if cfg.status != 'SORTEADA':
+            messages.error(request, 'Só é possível reprovar rondas sorteadas.')
+            return redirect('ronda:configuracao_detalhe', pk=pk)
+        observacao = request.POST.get('observacao', '').strip()
+        if not observacao:
+            messages.error(request, 'Informe o motivo da reprovação.')
+            return redirect('ronda:configuracao_detalhe', pk=pk)
+        cfg.status = 'REPROVADA'
+        cfg.observacao = observacao
+        cfg.save(update_fields=['status', 'observacao'])
+        messages.success(request, 'Ronda reprovada. Você pode re-sortear.')
+    return redirect('ronda:configuracao_detalhe', pk=pk)
+
+
+@ronda_required
+def escala_swap(request, pk):
+    escala = get_object_or_404(EscalaRonda, pk=pk)
+    if request.method != 'POST':
+        return redirect('ronda:configuracao_detalhe', pk=escala.horario.configuracao_id)
+
+    cfg = escala.horario.configuracao
+    if cfg.status not in ('SORTEADA', 'PENDENTE_SORTEIO'):
+        messages.error(request, 'Só é possível trocar voluntários antes da aprovação.')
+        return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
+
+    from voluntario.models import Voluntario
+    novo_pk = request.POST.get('voluntario_novo_pk')
+    try:
+        novo_vol = Voluntario.objects.get(pk=novo_pk, data_saida__isnull=True)
+    except Voluntario.DoesNotExist:
+        messages.error(request, 'Voluntário não encontrado ou inativo.')
+        return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
+
+    if novo_vol.area in AREAS_ISENTAS_RONDA:
+        messages.error(request, f'Voluntários da área {novo_vol.area} não podem fazer rondas.')
+        return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
+
+    ja_no_horario = EscalaRonda.objects.filter(
+        horario=escala.horario, voluntario=novo_vol
+    ).exclude(pk=escala.pk).exists()
+    if ja_no_horario:
+        messages.error(request, 'Este voluntário já está escalado neste horário.')
+        return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
+
+    escala.voluntario_original = escala.voluntario_original or escala.voluntario
+    escala.voluntario = novo_vol
+    escala.is_substituto = True
+    escala.save(update_fields=['voluntario', 'voluntario_original', 'is_substituto'])
+    messages.success(request, f'Substituição realizada: {novo_vol.get_full_name()}')
+    return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
