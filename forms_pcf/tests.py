@@ -94,6 +94,143 @@ class EnviarFeedbackViewTest(TestCase):
         self.assertIn('/login/', resp.url)
 
 
+from unittest.mock import patch
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+
+class EnviarReembolsoViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='req', password='pw', area='MARKETING')
+        self.client.force_login(self.user)
+        self.cat = Categoria.objects.create(nome='Transporte', tipo='DESPESA')
+        ReceptorNotificacaoReembolso.objects.create(nome='ADM1', email='adm@pcf.org', ativo=True)
+        ReceptorNotificacaoReembolso.objects.create(nome='ADM2', email='adm2@pcf.org', ativo=False)
+
+    @patch('forms_pcf.views.send_mail')
+    def test_post_valido_cria_pedido_e_envia_email(self, mock_mail):
+        arquivo = SimpleUploadedFile('comp.jpg', b'fake', content_type='image/jpeg')
+        resp = self.client.post(reverse('forms_pcf:reembolso'), {
+            'valor': '75.50',
+            'descricao': 'Uber para evento',
+            'data_gasto': timezone.now().date().isoformat(),
+            'categoria': self.cat.pk,
+            'comprovante': arquivo,
+        })
+        self.assertRedirects(resp, reverse('forms_pcf:reembolso_sucesso'))
+        self.assertEqual(PedidoReembolso.objects.count(), 1)
+        pedido = PedidoReembolso.objects.first()
+        self.assertEqual(pedido.status, 'PENDENTE')
+        self.assertEqual(pedido.solicitante, self.user)
+        # Só o receptor ativo deve receber
+        self.assertEqual(mock_mail.call_count, 1)
+        call_kwargs = mock_mail.call_args
+        self.assertIn('adm@pcf.org', call_kwargs[1].get('recipient_list', call_kwargs[0][3] if len(call_kwargs[0]) > 3 else []))
+
+    def test_sem_comprovante_nao_cria(self):
+        resp = self.client.post(reverse('forms_pcf:reembolso'), {
+            'valor': '10.00',
+            'descricao': 'Sem comp',
+            'data_gasto': timezone.now().date().isoformat(),
+            'categoria': self.cat.pk,
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PedidoReembolso.objects.count(), 0)
+
+
+class AprovarReembolsoViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.adm = User.objects.create_user(username='adm', password='pw', area='ADM/FIN')
+        self.client.force_login(self.adm)
+        self.cat = Categoria.objects.create(nome='Material', tipo='DESPESA')
+        self.pedido = PedidoReembolso.objects.create(
+            solicitante=self.adm,
+            valor=Decimal('120.00'),
+            descricao='Materiais',
+            data_gasto=timezone.now().date(),
+            categoria=self.cat,
+            comprovante='reembolsos/fake.jpg',
+            status='PENDENTE',
+        )
+
+    def test_aprovacao_cria_lancamento_e_atualiza_status(self):
+        resp = self.client.post(reverse('forms_pcf:reembolso_aprovar', args=[self.pedido.pk]))
+        self.assertRedirects(resp, reverse('forms_pcf:reembolso_inbox'))
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.status, 'APROVADO')
+        self.assertIsNotNone(self.pedido.lancamento)
+        lan = self.pedido.lancamento
+        self.assertEqual(lan.origem, 'REEMBOLSO')
+        self.assertEqual(lan.valor, Decimal('120.00'))
+        self.assertEqual(lan.tipo, 'DESPESA')
+
+    def test_nao_adm_recebe_403(self):
+        outro = User.objects.create_user(username='out', password='pw', area='MARKETING')
+        c = Client()
+        c.force_login(outro)
+        resp = c.post(reverse('forms_pcf:reembolso_aprovar', args=[self.pedido.pk]))
+        self.assertEqual(resp.status_code, 403)
+
+
+class RejeitarReembolsoViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.adm = User.objects.create_user(username='adm2', password='pw', area='ADM/FIN')
+        self.client.force_login(self.adm)
+        self.cat = Categoria.objects.create(nome='Outro', tipo='DESPESA')
+        self.pedido = PedidoReembolso.objects.create(
+            solicitante=self.adm,
+            valor=Decimal('30.00'),
+            descricao='Gasto',
+            data_gasto=timezone.now().date(),
+            categoria=self.cat,
+            comprovante='reembolsos/fake.jpg',
+            status='PENDENTE',
+        )
+
+    def test_rejeicao_com_motivo(self):
+        resp = self.client.post(
+            reverse('forms_pcf:reembolso_rejeitar', args=[self.pedido.pk]),
+            {'observacao_adm': 'Comprovante ilegível'}
+        )
+        self.assertRedirects(resp, reverse('forms_pcf:reembolso_inbox'))
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.status, 'REJEITADO')
+        self.assertEqual(self.pedido.observacao_adm, 'Comprovante ilegível')
+
+    def test_rejeicao_sem_motivo_nao_rejeita(self):
+        resp = self.client.post(
+            reverse('forms_pcf:reembolso_rejeitar', args=[self.pedido.pk]),
+            {'observacao_adm': ''}
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.status, 'PENDENTE')
+
+
+class ReembolsoInboxPermissionTest(TestCase):
+    def _login(self, area, superuser=False):
+        c = Client()
+        u = User.objects.create_user(
+            username=f'ui_{area}', password='pw', area=area, is_superuser=superuser
+        )
+        c.force_login(u)
+        return c
+
+    def test_adm_fin_tem_acesso(self):
+        resp = self._login('ADM/FIN').get(reverse('forms_pcf:reembolso_inbox'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_superuser_tem_acesso(self):
+        resp = self._login('MARKETING', superuser=True).get(reverse('forms_pcf:reembolso_inbox'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_outros_recebem_403(self):
+        resp = self._login('MARKETING').get(reverse('forms_pcf:reembolso_inbox'))
+        self.assertEqual(resp.status_code, 403)
+
+
 class FeedbackInboxPermissionTest(TestCase):
     def _login(self, area, superuser=False):
         c = Client()

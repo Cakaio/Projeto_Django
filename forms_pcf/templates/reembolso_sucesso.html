@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block titulo %}Reembolso Enviado — PCF{% endblock %}
+
+{% block content %}
+<div class="fp-page">
+  <div class="fp-header">
+    <div class="fp-container">
+      <h1 class="fp-title">Pedido Enviado!</h1>
+      <p class="fp-sub">Seu pedido de reembolso foi recebido pelo ADM/FIN.</p>
+    </div>
+  </div>
+  <div class="fp-container fp-body" style="text-align:center">
+    <div class="fp-success-icon">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <p style="color:hsl(var(--muted-foreground));margin:.75rem 0 1.5rem;font-size:.9rem">O time de ADM/FIN foi notificado e analisará seu pedido em breve.</p>
+    <a href="{% url 'inicio' %}" class="fp-btn fp-btn-primary" style="display:inline-flex">Voltar ao Início</a>
+  </div>
+</div>
+
+<style>
+*,*::before,*::after{box-sizing:border-box}
+.fp-page{background:hsl(var(--background));min-height:100vh}
+.fp-container{max-width:480px;margin:0 auto;padding:0 1.5rem}
+.fp-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.25rem 0 2.75rem;position:relative;overflow:hidden}
+.fp-header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)}
+.fp-title{font-size:clamp(1.25rem,3vw,1.75rem);font-weight:800;color:#fff;margin:0 0 .4rem;line-height:1.15;position:relative;z-index:1}
+.fp-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0;position:relative;z-index:1}
+.fp-body{padding-top:2.5rem;padding-bottom:4rem}
+.fp-success-icon{width:72px;height:72px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .5rem}
+.fp-btn{display:inline-flex;align-items:center;gap:.45rem;padding:.625rem 1.25rem;border-radius:.5rem;font-size:.875rem;font-weight:600;text-decoration:none;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.fp-btn-primary{background:#fe8210;color:#fff}
+.fp-btn-primary:hover{background:#e87207;color:#fff}
+</style>
+{% endblock %}

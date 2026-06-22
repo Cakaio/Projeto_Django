@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block titulo %}Reembolsos — ADM/FIN{% endblock %}
+
+{% block content %}
+<div class="fp-page">
+  <div class="fp-header">
+    <div class="fp-container-wide">
+      <p class="fp-breadcrumb">
+        <a href="{% url 'adm:painel' %}" class="fp-breadcrumb-link">Financeiro</a>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+        Reembolsos
+      </p>
+      <h1 class="fp-title">Pedidos de Reembolso</h1>
+      <p class="fp-sub">Gerencie as solicitações de reembolso dos voluntários.</p>
+    </div>
+  </div>
+
+  <div class="fp-container-wide fp-body">
+
+    <!-- Tabs -->
+    <div class="fp-tabs">
+      <a href="?status=PENDENTE" class="fp-tab {% if status_ativo == 'PENDENTE' %}fp-tab-active{% endif %}">
+        Pendentes <span class="fp-tab-badge">{{ contagem_pendente }}</span>
+      </a>
+      <a href="?status=APROVADO" class="fp-tab {% if status_ativo == 'APROVADO' %}fp-tab-active{% endif %}">
+        Aprovados <span class="fp-tab-badge fp-badge-green">{{ contagem_aprovado }}</span>
+      </a>
+      <a href="?status=REJEITADO" class="fp-tab {% if status_ativo == 'REJEITADO' %}fp-tab-active{% endif %}">
+        Rejeitados <span class="fp-tab-badge fp-badge-red">{{ contagem_rejeitado }}</span>
+      </a>
+    </div>
+
+    <div class="fp-table-card">
+      <table class="fp-table">
+        <thead>
+          <tr>
+            <th>Solicitante</th>
+            <th>Área</th>
+            <th>Categoria</th>
+            <th>Data Gasto</th>
+            <th class="fp-th-right">Valor</th>
+            <th>Comprovante</th>
+            {% if status_ativo == 'PENDENTE' %}<th></th>{% endif %}
+            {% if status_ativo == 'REJEITADO' %}<th>Motivo</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pedidos %}
+          <tr>
+            <td class="fp-td-bold">{{ p.solicitante.get_full_name|default:p.solicitante.username }}</td>
+            <td><span class="fp-area-tag">{{ p.solicitante.area }}</span></td>
+            <td>{{ p.categoria.nome }}</td>
+            <td class="fp-td-muted">{{ p.data_gasto|date:"d/m/Y" }}</td>
+            <td class="fp-td-right fp-td-bold fp-color-neg">R$ {{ p.valor|floatformat:2 }}</td>
+            <td>
+              {% if p.comprovante %}
+              <a href="{{ p.comprovante.url }}" target="_blank" class="fp-link">Ver</a>
+              {% else %}—{% endif %}
+            </td>
+            {% if status_ativo == 'PENDENTE' %}
+            <td class="fp-td-actions">
+              <form method="post" action="{% url 'forms_pcf:reembolso_aprovar' p.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit" class="fp-action-btn fp-btn-approve">Aprovar</button>
+              </form>
+              <button class="fp-action-btn fp-btn-reject" onclick="toggleRejeitar({{ p.pk }})">Rejeitar</button>
+              <div class="fp-reject-form" id="rejeitar-{{ p.pk }}" style="display:none;margin-top:.5rem">
+                <form method="post" action="{% url 'forms_pcf:reembolso_rejeitar' p.pk %}">
+                  {% csrf_token %}
+                  <textarea name="observacao_adm" class="fp-reject-textarea" placeholder="Motivo da rejeição (obrigatório)" required rows="2"></textarea>
+                  <div style="display:flex;gap:.5rem;margin-top:.375rem">
+                    <button type="submit" class="fp-action-btn fp-btn-reject">Confirmar Rejeição</button>
+                    <button type="button" class="fp-action-btn fp-btn-cancel" onclick="toggleRejeitar({{ p.pk }})">Cancelar</button>
+                  </div>
+                </form>
+              </div>
+            </td>
+            {% endif %}
+            {% if status_ativo == 'REJEITADO' %}
+            <td class="fp-td-muted fp-td-motivo">{{ p.observacao_adm|default:"—" }}</td>
+            {% endif %}
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7">
+              <div class="fp-empty">
+                <div class="fp-empty-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <p class="fp-empty-title">Nenhum pedido {{ status_ativo|lower }}</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleRejeitar(id) {
+  var el = document.getElementById('rejeitar-' + id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box}
+.fp-page{background:hsl(var(--background));min-height:100vh}
+.fp-container-wide{max-width:1060px;margin:0 auto;padding:0 1.5rem}
+.fp-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.25rem 0 2.75rem;position:relative;overflow:hidden}
+.fp-header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)}
+.fp-breadcrumb{display:inline-flex;align-items:center;gap:.375rem;color:rgba(255,255,255,.45);font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .75rem;position:relative;z-index:1}
+.fp-breadcrumb-link{color:rgba(255,255,255,.55);text-decoration:none}
+.fp-breadcrumb-link:hover{color:#fff}
+.fp-title{font-size:clamp(1.375rem,3vw,1.875rem);font-weight:800;color:#fff;margin:0 0 .4rem;line-height:1.15;position:relative;z-index:1}
+.fp-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0;position:relative;z-index:1}
+.fp-body{padding-top:1.75rem;padding-bottom:4rem}
+.fp-tabs{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap}
+.fp-tab{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border-radius:.5rem;font-size:.85rem;font-weight:600;text-decoration:none;background:hsl(var(--card));border:1px solid hsl(var(--border));color:hsl(var(--muted-foreground));transition:all .15s}
+.fp-tab:hover{background:hsl(var(--accent));color:hsl(var(--foreground))}
+.fp-tab-active{background:#0f172a;color:#fff;border-color:#0f172a}
+.fp-tab-badge{font-size:.7rem;font-weight:700;background:hsl(var(--accent));color:hsl(var(--muted-foreground));padding:.1rem .45rem;border-radius:9999px}
+.fp-tab-active .fp-tab-badge{background:rgba(255,255,255,.2);color:#fff}
+.fp-badge-green{background:#d1fae5;color:#065f46}
+.fp-badge-red{background:#fee2e2;color:#991b1b}
+.fp-table-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:1rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.fp-table{width:100%;border-collapse:collapse;font-size:.875rem}
+.fp-table thead tr{background:hsl(var(--accent));border-bottom:1px solid hsl(var(--border))}
+.fp-table th{padding:.75rem 1rem;font-size:.72rem;font-weight:700;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.fp-table td{padding:.8rem 1rem;border-bottom:1px solid hsl(var(--border));vertical-align:top}
+.fp-table tbody tr:last-child td{border-bottom:none}
+.fp-table tbody tr:hover{background:hsl(var(--accent))}
+.fp-th-right,.fp-td-right{text-align:right}
+.fp-td-bold{font-weight:600}
+.fp-td-muted{color:hsl(var(--muted-foreground));font-size:.82rem}
+.fp-td-motivo{max-width:200px;word-break:break-word}
+.fp-color-neg{color:#dc2626}
+.fp-area-tag{font-size:.72rem;font-weight:600;background:hsl(var(--accent));color:hsl(var(--muted-foreground));padding:.2rem .55rem;border-radius:9999px;white-space:nowrap}
+.fp-link{color:#0ea5e9;font-weight:600;font-size:.82rem;text-decoration:none}
+.fp-link:hover{text-decoration:underline}
+.fp-td-actions{white-space:nowrap;min-width:160px}
+.fp-action-btn{font-size:.78rem;font-weight:600;padding:.3rem .7rem;border-radius:.375rem;border:1px solid hsl(var(--border));cursor:pointer;transition:all .12s;display:inline-block}
+.fp-btn-approve{background:#d1fae5;color:#065f46;border-color:#a7f3d0}
+.fp-btn-approve:hover{background:#a7f3d0}
+.fp-btn-reject{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+.fp-btn-reject:hover{background:#fecaca}
+.fp-btn-cancel{background:hsl(var(--accent));color:hsl(var(--foreground))}
+.fp-reject-textarea{width:100%;padding:.5rem .75rem;border:1px solid hsl(var(--border));border-radius:.5rem;font-size:.82rem;font-family:inherit;resize:vertical;background:hsl(var(--background));color:hsl(var(--foreground));outline:none}
+.fp-reject-textarea:focus{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.1)}
+.fp-empty{padding:3rem 2rem;text-align:center}
+.fp-empty-icon{width:48px;height:48px;background:hsl(var(--accent));border-radius:.875rem;display:flex;align-items:center;justify-content:center;color:hsl(var(--muted-foreground));margin:0 auto .75rem}
+.fp-empty-title{font-size:.9375rem;font-weight:600;color:hsl(var(--foreground));margin:0}
+@media(max-width:768px){.fp-container-wide{padding:0 1rem}.fp-table{font-size:.8rem}.fp-table th,.fp-table td{padding:.65rem .75rem}}
+</style>
+{% endblock %}
