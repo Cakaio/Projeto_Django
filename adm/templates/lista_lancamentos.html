@@ -1,71 +1,242 @@
 {% extends 'base.html' %}
-{% block titulo %}Lançamentos — ADM{% endblock %}
+{% block titulo %}Lançamentos — Financeiro{% endblock %}
+
 {% block content %}
-<div class="container my-5">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold m-0">Lançamentos</h4>
-    <a href="{% url 'adm:criar_lancamento' %}" class="btn btn-sm btn-dark">+ Novo Lançamento</a>
+<div class="fin-page">
+
+  <div class="fin-header">
+    <div class="fin-container">
+      <div class="fin-header-inner">
+        <div class="fin-header-text">
+          <p class="fin-breadcrumb">
+            <a href="{% url 'adm:painel' %}" class="fin-breadcrumb-link">Financeiro</a>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            Lançamentos
+          </p>
+          <h1 class="fin-title">Lançamentos</h1>
+          <p class="fin-sub">Histórico completo de receitas e despesas com filtros por tipo, categoria e período.</p>
+        </div>
+        <a href="{% url 'adm:criar_lancamento' %}" class="fin-btn fin-btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo Lançamento
+        </a>
+      </div>
+    </div>
   </div>
 
-  <!-- Filtros -->
-  <form method="get" class="row g-2 mb-4">
-    <div class="col-auto">
-      <select name="tipo" class="form-select form-select-sm">
-        <option value="">Todos os tipos</option>
-        <option value="RECEITA" {% if filtro_tipo == 'RECEITA' %}selected{% endif %}>Receita</option>
-        <option value="DESPESA" {% if filtro_tipo == 'DESPESA' %}selected{% endif %}>Despesa</option>
-      </select>
-    </div>
-    <div class="col-auto">
-      <select name="categoria" class="form-select form-select-sm">
-        <option value="">Todas as categorias</option>
-        {% for cat in categorias %}
-        <option value="{{ cat.pk }}" {% if filtro_categoria == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.nome }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-auto">
-      <input type="month" name="mes" value="{{ filtro_mes }}" class="form-control form-control-sm">
-    </div>
-    <div class="col-auto">
-      <button type="submit" class="btn btn-sm btn-outline-dark">Filtrar</button>
-      <a href="{% url 'adm:lista_lancamentos' %}" class="btn btn-sm btn-outline-secondary ms-1">Limpar</a>
-    </div>
-  </form>
+  <div class="fin-container fin-body">
 
-  <div class="card border-0 shadow-sm">
-    <table class="table table-hover mb-0">
-      <thead class="table-light">
-        <tr>
-          <th>Data</th><th>Categoria</th><th>Descrição</th>
-          <th class="text-end">Valor</th><th>Origem</th><th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for lan in lancamentos %}
-        <tr>
-          <td>{{ lan.data|date:"d/m/Y" }}</td>
-          <td>
-            <span class="badge {% if lan.tipo == 'RECEITA' %}bg-success{% else %}bg-danger{% endif %}">
-              {{ lan.categoria.nome }}
-            </span>
-          </td>
-          <td class="text-muted small">{{ lan.descricao|default:"—"|truncatechars:50 }}</td>
-          <td class="text-end fw-semibold">R$ {{ lan.valor|floatformat:2 }}</td>
-          <td><span class="badge bg-light text-dark border">{{ lan.get_origem_display }}</span></td>
-          <td class="text-end">
-            {% if lan.origem == 'MANUAL' %}
-            <a href="{% url 'adm:editar_lancamento' lan.pk %}" class="btn btn-sm btn-outline-secondary me-1">Editar</a>
-            <a href="{% url 'adm:deletar_lancamento' lan.pk %}" class="btn btn-sm btn-outline-danger">Remover</a>
-            {% endif %}
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="6" class="text-center text-muted py-4">Nenhum lançamento encontrado.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <!-- Filtros -->
+    <div class="fin-filters-card">
+      <form method="get" class="fin-filters-form">
+        <div class="fin-filter-group">
+          <label class="fin-filter-label">Tipo</label>
+          <select name="tipo" class="fin-select">
+            <option value="">Todos</option>
+            <option value="RECEITA" {% if filtro_tipo == 'RECEITA' %}selected{% endif %}>Receita</option>
+            <option value="DESPESA" {% if filtro_tipo == 'DESPESA' %}selected{% endif %}>Despesa</option>
+          </select>
+        </div>
+        <div class="fin-filter-group">
+          <label class="fin-filter-label">Categoria</label>
+          <select name="categoria" class="fin-select">
+            <option value="">Todas</option>
+            {% for cat in categorias %}
+            <option value="{{ cat.pk }}" {% if filtro_categoria == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="fin-filter-group">
+          <label class="fin-filter-label">Mês</label>
+          <input type="month" name="mes" value="{{ filtro_mes }}" class="fin-input">
+        </div>
+        <div class="fin-filter-actions">
+          <button type="submit" class="fin-btn fin-btn-outline">Filtrar</button>
+          <a href="{% url 'adm:lista_lancamentos' %}" class="fin-btn fin-btn-ghost">Limpar</a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Tabela -->
+    <div class="fin-table-card">
+      <table class="fin-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Categoria</th>
+            <th>Descrição</th>
+            <th class="fin-th-right">Valor</th>
+            <th>Origem</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lan in lancamentos %}
+          <tr>
+            <td class="fin-td-nowrap">{{ lan.data|date:"d/m/Y" }}</td>
+            <td>
+              <span class="fin-type-badge {% if lan.tipo == 'RECEITA' %}fin-badge-receita{% else %}fin-badge-despesa{% endif %}">
+                {{ lan.categoria.nome }}
+              </span>
+            </td>
+            <td class="fin-td-muted">{{ lan.descricao|default:"—"|truncatechars:50 }}</td>
+            <td class="fin-td-right fin-td-bold {% if lan.tipo == 'RECEITA' %}fin-color-pos{% else %}fin-color-neg{% endif %}">
+              {% if lan.tipo == 'RECEITA' %}+{% else %}−{% endif %} R$&nbsp;{{ lan.valor|floatformat:2 }}
+            </td>
+            <td><span class="fin-origin-tag">{{ lan.get_origem_display }}</span></td>
+            <td class="fin-td-actions">
+              {% if lan.origem == 'MANUAL' %}
+              <a href="{% url 'adm:editar_lancamento' lan.pk %}" class="fin-action-link">Editar</a>
+              <a href="{% url 'adm:deletar_lancamento' lan.pk %}" class="fin-action-link fin-action-del">Remover</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="fin-table-empty">
+                <div class="fin-empty-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <p class="fin-empty-title">Nenhum lançamento encontrado</p>
+                <p class="fin-empty-sub">Tente ajustar os filtros ou adicione um novo lançamento.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
   </div>
-  <div class="mt-3"><a href="{% url 'adm:painel' %}" class="text-muted small">← Voltar ao painel</a></div>
 </div>
+
+<style>
+*,*::before,*::after{box-sizing:border-box}
+.fin-page{background:hsl(var(--background));min-height:100vh}
+.fin-container{max-width:1060px;margin:0 auto;padding:0 1.5rem}
+
+.fin-header{
+  background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);
+  padding:2.25rem 0 2.75rem;position:relative;overflow:hidden;
+}
+.fin-header::after{
+  content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;
+  background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%);
+}
+.fin-header-inner{
+  position:relative;z-index:1;
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:1.5rem;flex-wrap:wrap;
+}
+.fin-breadcrumb{
+  display:inline-flex;align-items:center;gap:.375rem;
+  color:rgba(255,255,255,.45);font-size:.72rem;
+  font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  margin:0 0 .75rem;
+}
+.fin-breadcrumb-link{color:rgba(255,255,255,.55);text-decoration:none}
+.fin-breadcrumb-link:hover{color:#fff}
+.fin-title{font-size:clamp(1.375rem,3vw,1.875rem);font-weight:800;color:#fff;margin:0 0 .4rem;line-height:1.15}
+.fin-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0;max-width:420px;line-height:1.5}
+
+.fin-btn{
+  display:inline-flex;align-items:center;gap:.45rem;
+  padding:.6rem 1.2rem;border-radius:.5rem;
+  font-size:.875rem;font-weight:600;text-decoration:none;
+  border:none;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;
+}
+.fin-btn-primary{background:#fe8210;color:#fff;position:relative;z-index:1}
+.fin-btn-primary:hover{background:#e87207;color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(254,130,16,.4)}
+.fin-btn-outline{background:transparent;color:hsl(var(--foreground));border:1px solid hsl(var(--border))}
+.fin-btn-outline:hover{background:hsl(var(--accent));color:hsl(var(--foreground))}
+.fin-btn-ghost{background:transparent;color:hsl(var(--muted-foreground));border:1px solid transparent}
+.fin-btn-ghost:hover{color:hsl(var(--foreground));background:hsl(var(--accent))}
+
+.fin-body{padding-top:1.75rem;padding-bottom:4rem}
+
+/* Filters */
+.fin-filters-card{
+  background:hsl(var(--card));border:1px solid hsl(var(--border));
+  border-radius:.875rem;padding:1.125rem 1.25rem;
+  margin-bottom:1.25rem;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.fin-filters-form{display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap}
+.fin-filter-group{display:flex;flex-direction:column;gap:.3rem}
+.fin-filter-label{font-size:.72rem;font-weight:700;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em}
+.fin-select,.fin-input{
+  height:36px;padding:0 .75rem;
+  border:1px solid hsl(var(--border));border-radius:.5rem;
+  background:hsl(var(--background));color:hsl(var(--foreground));
+  font-size:.85rem;outline:none;transition:border .15s;
+}
+.fin-select:focus,.fin-input:focus{border-color:#fe8210;box-shadow:0 0 0 3px rgba(254,130,16,.12)}
+.fin-filter-actions{display:flex;gap:.5rem;align-items:center}
+
+/* Table */
+.fin-table-card{
+  background:hsl(var(--card));border:1px solid hsl(var(--border));
+  border-radius:1rem;overflow:hidden;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.fin-table{width:100%;border-collapse:collapse;font-size:.875rem}
+.fin-table thead tr{background:hsl(var(--accent));border-bottom:1px solid hsl(var(--border))}
+.fin-table th{
+  padding:.75rem 1rem;font-size:.72rem;font-weight:700;
+  color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em;
+  white-space:nowrap;
+}
+.fin-table td{padding:.8rem 1rem;border-bottom:1px solid hsl(var(--border));vertical-align:middle}
+.fin-table tbody tr:last-child td{border-bottom:none}
+.fin-table tbody tr:hover{background:hsl(var(--accent))}
+.fin-th-right,.fin-td-right{text-align:right}
+.fin-td-nowrap{white-space:nowrap;color:hsl(var(--muted-foreground));font-size:.82rem}
+.fin-td-muted{color:hsl(var(--muted-foreground));font-size:.82rem}
+.fin-td-bold{font-weight:700}
+.fin-td-actions{text-align:right;white-space:nowrap}
+
+.fin-type-badge{
+  display:inline-block;font-size:.72rem;font-weight:700;
+  padding:.25rem .625rem;border-radius:9999px;
+}
+.fin-badge-receita{background:#d1fae5;color:#065f46}
+.fin-badge-despesa{background:#fee2e2;color:#991b1b}
+.fin-origin-tag{
+  display:inline-block;font-size:.68rem;font-weight:600;
+  background:#f1f5f9;color:#64748b;
+  padding:.2rem .5rem;border-radius:9999px;text-transform:uppercase;letter-spacing:.04em;
+}
+.fin-color-pos{color:#059669}
+.fin-color-neg{color:#dc2626}
+
+.fin-action-link{
+  font-size:.78rem;font-weight:600;padding:.25rem .6rem;
+  border-radius:.375rem;text-decoration:none;border:1px solid hsl(var(--border));
+  color:hsl(var(--foreground));background:transparent;
+  transition:all .12s;margin-left:.25rem;display:inline-block;
+}
+.fin-action-link:hover{background:hsl(var(--accent))}
+.fin-action-del{color:#dc2626;border-color:#fecaca}
+.fin-action-del:hover{background:#fee2e2}
+
+.fin-table-empty{padding:3rem 2rem;text-align:center}
+.fin-empty-icon{
+  width:48px;height:48px;background:hsl(var(--accent));
+  border-radius:.875rem;display:flex;align-items:center;justify-content:center;
+  color:hsl(var(--muted-foreground));margin:0 auto .75rem;
+}
+.fin-empty-title{font-size:.9375rem;font-weight:600;color:hsl(var(--foreground));margin:0 0 .35rem}
+.fin-empty-sub{font-size:.825rem;color:hsl(var(--muted-foreground));margin:0}
+
+@media(max-width:768px){
+  .fin-container{padding:0 1rem}
+  .fin-header-inner{flex-direction:column;gap:1rem}
+  .fin-btn-primary{width:100%;justify-content:center}
+  .fin-filters-form{gap:.5rem}
+  .fin-table{font-size:.8rem}
+  .fin-table th,.fin-table td{padding:.65rem .75rem}
+}
+</style>
+
 {% endblock %}

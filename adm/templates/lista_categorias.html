@@ -1,39 +1,183 @@
 {% extends 'base.html' %}
-{% block titulo %}Categorias — ADM{% endblock %}
+{% block titulo %}Categorias — Financeiro{% endblock %}
+
 {% block content %}
-<div class="container my-5">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold m-0">Categorias</h4>
-    <a href="{% url 'adm:criar_categoria' %}" class="btn btn-sm btn-dark">+ Nova Categoria</a>
+<div class="fin-page">
+
+  <div class="fin-header">
+    <div class="fin-container">
+      <div class="fin-header-inner">
+        <div class="fin-header-text">
+          <p class="fin-breadcrumb">
+            <a href="{% url 'adm:painel' %}" class="fin-breadcrumb-link">Financeiro</a>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            Categorias
+          </p>
+          <h1 class="fin-title">Categorias</h1>
+          <p class="fin-sub">Gerencie os grupos de receitas e despesas usados nos lançamentos.</p>
+        </div>
+        <a href="{% url 'adm:criar_categoria' %}" class="fin-btn fin-btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova Categoria
+        </a>
+      </div>
+    </div>
   </div>
-  <div class="card border-0 shadow-sm">
-    <table class="table table-hover mb-0">
-      <thead class="table-light">
-        <tr>
-          <th>Nome</th><th>Tipo</th><th>Status</th><th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for cat in categorias %}
-        <tr>
-          <td class="fw-medium">{{ cat.nome }}</td>
-          <td>
-            <span class="badge {% if cat.tipo == 'RECEITA' %}bg-success{% else %}bg-danger{% endif %}">
-              {{ cat.get_tipo_display }}
-            </span>
-          </td>
-          <td>{% if cat.ativo %}<span class="badge bg-secondary">Ativa</span>{% else %}<span class="badge bg-light text-muted">Inativa</span>{% endif %}</td>
-          <td class="text-end">
-            <a href="{% url 'adm:editar_categoria' cat.pk %}" class="btn btn-xs btn-outline-secondary btn-sm me-1">Editar</a>
-            <a href="{% url 'adm:deletar_categoria' cat.pk %}" class="btn btn-xs btn-outline-danger btn-sm">Remover</a>
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma categoria cadastrada.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+  <div class="fin-container fin-body">
+    <div class="fin-table-card">
+      <table class="fin-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Tipo</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cat in categorias %}
+          <tr>
+            <td class="fin-td-name">{{ cat.nome }}</td>
+            <td>
+              <span class="fin-type-badge {% if cat.tipo == 'RECEITA' %}fin-badge-receita{% else %}fin-badge-despesa{% endif %}">
+                {{ cat.get_tipo_display }}
+              </span>
+            </td>
+            <td>
+              {% if cat.ativo %}
+              <span class="fin-status-badge fin-status-on">Ativa</span>
+              {% else %}
+              <span class="fin-status-badge fin-status-off">Inativa</span>
+              {% endif %}
+            </td>
+            <td class="fin-td-actions">
+              <a href="{% url 'adm:editar_categoria' cat.pk %}" class="fin-action-link">Editar</a>
+              <a href="{% url 'adm:deletar_categoria' cat.pk %}" class="fin-action-link fin-action-del">Remover</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4">
+              <div class="fin-table-empty">
+                <div class="fin-empty-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                </div>
+                <p class="fin-empty-title">Nenhuma categoria cadastrada</p>
+                <p class="fin-empty-sub">Crie categorias para organizar receitas e despesas.</p>
+                <a href="{% url 'adm:criar_categoria' %}" class="fin-btn fin-btn-outline-base" style="margin-top:.5rem">+ Nova Categoria</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
-  <div class="mt-3"><a href="{% url 'adm:painel' %}" class="text-muted small">← Voltar ao painel</a></div>
 </div>
+
+<style>
+*,*::before,*::after{box-sizing:border-box}
+.fin-page{background:hsl(var(--background));min-height:100vh}
+.fin-container{max-width:800px;margin:0 auto;padding:0 1.5rem}
+
+.fin-header{
+  background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);
+  padding:2.25rem 0 2.75rem;position:relative;overflow:hidden;
+}
+.fin-header::after{
+  content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;
+  background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%);
+}
+.fin-header-inner{
+  position:relative;z-index:1;
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:1.5rem;flex-wrap:wrap;
+}
+.fin-breadcrumb{
+  display:inline-flex;align-items:center;gap:.375rem;
+  color:rgba(255,255,255,.45);font-size:.72rem;
+  font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .75rem;
+}
+.fin-breadcrumb-link{color:rgba(255,255,255,.55);text-decoration:none}
+.fin-breadcrumb-link:hover{color:#fff}
+.fin-title{font-size:clamp(1.375rem,3vw,1.875rem);font-weight:800;color:#fff;margin:0 0 .4rem;line-height:1.15}
+.fin-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0;max-width:380px;line-height:1.5}
+
+.fin-btn{
+  display:inline-flex;align-items:center;gap:.45rem;
+  padding:.6rem 1.2rem;border-radius:.5rem;
+  font-size:.875rem;font-weight:600;text-decoration:none;
+  border:none;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;
+}
+.fin-btn-primary{background:#fe8210;color:#fff;position:relative;z-index:1}
+.fin-btn-primary:hover{background:#e87207;color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(254,130,16,.4)}
+.fin-btn-outline-base{
+  background:transparent;color:hsl(var(--foreground));
+  border:1px solid hsl(var(--border));display:inline-flex;
+  align-items:center;padding:.5rem 1rem;border-radius:.5rem;
+  font-size:.875rem;font-weight:600;text-decoration:none;transition:all .15s;
+}
+.fin-btn-outline-base:hover{background:hsl(var(--accent))}
+
+.fin-body{padding-top:1.75rem;padding-bottom:4rem}
+
+.fin-table-card{
+  background:hsl(var(--card));border:1px solid hsl(var(--border));
+  border-radius:1rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.fin-table{width:100%;border-collapse:collapse;font-size:.875rem}
+.fin-table thead tr{background:hsl(var(--accent));border-bottom:1px solid hsl(var(--border))}
+.fin-table th{
+  padding:.75rem 1.25rem;font-size:.72rem;font-weight:700;
+  color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em;
+}
+.fin-table td{padding:.875rem 1.25rem;border-bottom:1px solid hsl(var(--border));vertical-align:middle}
+.fin-table tbody tr:last-child td{border-bottom:none}
+.fin-table tbody tr:hover{background:hsl(var(--accent))}
+.fin-td-name{font-weight:600;color:hsl(var(--foreground))}
+.fin-td-actions{text-align:right;white-space:nowrap}
+
+.fin-type-badge{
+  display:inline-block;font-size:.72rem;font-weight:700;
+  padding:.25rem .625rem;border-radius:9999px;
+}
+.fin-badge-receita{background:#d1fae5;color:#065f46}
+.fin-badge-despesa{background:#fee2e2;color:#991b1b}
+
+.fin-status-badge{
+  display:inline-block;font-size:.72rem;font-weight:700;
+  padding:.25rem .625rem;border-radius:9999px;
+}
+.fin-status-on{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.fin-status-off{background:#f8fafc;color:#94a3b8;border:1px solid #e2e8f0}
+
+.fin-action-link{
+  font-size:.78rem;font-weight:600;padding:.25rem .625rem;
+  border-radius:.375rem;text-decoration:none;border:1px solid hsl(var(--border));
+  color:hsl(var(--foreground));background:transparent;
+  transition:all .12s;margin-left:.25rem;display:inline-block;
+}
+.fin-action-link:hover{background:hsl(var(--accent))}
+.fin-action-del{color:#dc2626;border-color:#fecaca}
+.fin-action-del:hover{background:#fee2e2}
+
+.fin-table-empty{padding:3rem 2rem;text-align:center}
+.fin-empty-icon{
+  width:48px;height:48px;background:hsl(var(--accent));
+  border-radius:.875rem;display:flex;align-items:center;justify-content:center;
+  color:hsl(var(--muted-foreground));margin:0 auto .75rem;
+}
+.fin-empty-title{font-size:.9375rem;font-weight:600;color:hsl(var(--foreground));margin:0 0 .35rem}
+.fin-empty-sub{font-size:.825rem;color:hsl(var(--muted-foreground));margin:0}
+
+@media(max-width:768px){
+  .fin-container{padding:0 1rem}
+  .fin-header-inner{flex-direction:column;gap:1rem}
+  .fin-btn-primary{width:100%;justify-content:center}
+  .fin-table{font-size:.8rem}
+  .fin-table th,.fin-table td{padding:.65rem .875rem}
+}
+</style>
+
 {% endblock %}
