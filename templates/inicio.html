@@ -149,6 +149,38 @@
     {% endif %}
   </section>
 
+  <!-- ── RONDAS DO SÁBADO ── -->
+  {% if proxima_ronda %}
+  <section class="pcf-container pcf-section">
+    <div class="pcf-section-header">
+      <div>
+        <h2 class="pcf-section-title">Rondas do Sábado</h2>
+        <p class="pcf-section-sub">Voluntários escalados para o próximo sábado</p>
+      </div>
+      <a href="{% url 'ronda:ronda_publica' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver todas</a>
+    </div>
+    <div class="pcf-sabado-grid">
+      <div class="pcf-card pcf-sabado-card" style="cursor:pointer;max-width:380px" onclick="location.href='{% url 'ronda:ronda_publica' %}'">
+        <div class="pcf-sabado-header">
+          <div class="pcf-date-badge" style="background:#e0f2fe">
+            <span class="pcf-date-day" style="color:#0369a1">{{ proxima_ronda.sabado.data|date:"d" }}</span>
+            <span class="pcf-date-month" style="color:#0ea5e9">{{ proxima_ronda.sabado.data|date:"M" }}</span>
+          </div>
+          <div class="pcf-sabado-info">
+            <h3 class="pcf-sabado-tema">{{ proxima_ronda.sabado.tema|default:"Sábado do Projeto" }}</h3>
+            <p class="pcf-sabado-date-full">{{ proxima_ronda.sabado.data|date:"l, d \d\e F \d\e Y" }}</p>
+          </div>
+          <span class="pcf-chip" style="background:#dcfce7;color:#166534">Aprovada</span>
+        </div>
+        <a href="{% url 'ronda:ronda_publica' %}" class="pcf-btn pcf-btn-outline" style="justify-content:center;margin-top:auto">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Ver escala de rondas
+        </a>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
   <!-- ── ACESSO RÁPIDO ── -->
   <section class="pcf-container pcf-section pcf-section-last">
     <h2 class="pcf-section-title">Acesso Rápido</h2>

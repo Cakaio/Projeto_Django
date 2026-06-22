@@ -3,10 +3,11 @@
 {% block title %}Ranking de Rondas {{ ano }}{% endblock %}
 {% block content %}
 <style>
-  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4rem;text-align:center;clip-path:ellipse(55% 100% at 50% 100%)}
+  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4.5rem;text-align:center;position:relative;overflow:hidden}
+  .rd-header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)}
   .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
   .rd-header p{opacity:.75;margin:.5rem 0 0}
-  .rd-body{max-width:900px;margin:-2rem auto 2rem;padding:0 1rem}
+  .rd-body{max-width:900px;margin:-2rem auto 2rem;padding:0 1rem;position:relative;z-index:1}
   .rd-table{width:100%;border-collapse:collapse}
   .rd-table th,.rd-table td{border:1px solid hsl(var(--border));padding:.6rem .75rem;font-size:.875rem}
   .rd-table th{background:hsl(var(--muted));font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em}

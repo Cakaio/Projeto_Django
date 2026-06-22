@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.db.models import Count, Value, IntegerField, F
 
 from sabado.models import Sabado
+from ronda.models import ConfiguracaoRondaSabado
 
 
 class inicio(TemplateView):
@@ -43,4 +44,13 @@ class inicio(TemplateView):
             sabados_abertos.append(s)
 
         context["sabados_abertos"] = sabados_abertos
+
+        context["proxima_ronda"] = (
+            ConfiguracaoRondaSabado.objects
+            .filter(status='APROVADA', sabado__data__gte=timezone.now().date())
+            .select_related('sabado')
+            .order_by('sabado__data')
+            .first()
+        )
+
         return context
