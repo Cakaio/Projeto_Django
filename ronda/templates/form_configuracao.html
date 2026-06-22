@@ -7,9 +7,13 @@
   .rd-header p{opacity:.75;margin:.5rem 0 0}
   .rd-body{max-width:650px;margin:-2rem auto 2rem;padding:0 1rem}
   .rd-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem}
-  .rd-horario-row{display:grid;grid-template-columns:1fr 1fr 80px auto;gap:.5rem;align-items:end;margin-bottom:.5rem}
-  .rd-add-btn{background:none;border:1px dashed hsl(var(--border));border-radius:var(--radius);padding:.4rem 1rem;cursor:pointer;color:hsl(var(--muted-foreground));font-size:.85rem;width:100%;margin-top:.5rem}
+  .rd-horario-row{display:grid;grid-template-columns:1fr 1fr 70px 36px;gap:.5rem;align-items:end;margin-bottom:.5rem;padding:.5rem;border:1px solid hsl(var(--border));border-radius:calc(var(--radius) - 2px)}
+  .rd-horario-row.marcado-deletar{opacity:.4;text-decoration:line-through}
+  .rd-delete-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1px solid #fca5a5;border-radius:6px;background:#fff5f5;color:#dc2626;cursor:pointer;font-size:.9rem;flex-shrink:0}
+  .rd-delete-btn:hover{background:#fee2e2}
+  .rd-add-btn{background:none;border:1px dashed hsl(var(--border));border-radius:var(--radius);padding:.5rem 1rem;cursor:pointer;color:hsl(var(--muted-foreground));font-size:.85rem;width:100%;margin-top:.25rem;transition:background .15s}
   .rd-add-btn:hover{background:hsl(var(--accent))}
+  .rd-secao-label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:hsl(var(--muted-foreground));margin-bottom:.75rem}
 </style>
 <div class="rd-header">
   <h1>Nova Configuração de Ronda</h1>
@@ -20,36 +24,30 @@
     {{ formset.management_form }}
 
     <div class="rd-card">
-      <h3 style="font-size:1rem;font-weight:600;margin:0 0 1rem">Sábado</h3>
-      <div class="mb-3">
-        <label class="form-label fw-semibold">{{ form.sabado.label }}</label>
+      <p class="rd-secao-label">Sábado do evento</p>
+      <div class="mb-0">
         {{ form.sabado }}
-        {% if form.sabado.errors %}<div class="text-danger small">{{ form.sabado.errors|join:", " }}</div>{% endif %}
+        {% if form.sabado.errors %}<div class="text-danger small mt-1">{{ form.sabado.errors|join:", " }}</div>{% endif %}
       </div>
     </div>
 
     <div class="rd-card">
-      <h3 style="font-size:1rem;font-weight:600;margin:0 0 1rem">Horários da Ronda</h3>
+      <p class="rd-secao-label">Horários da ronda</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 70px 36px;gap:.5rem;padding:0 .5rem .25rem;margin-bottom:.25rem">
+        <span style="font-size:.75rem;font-weight:600;color:hsl(var(--muted-foreground))">Início</span>
+        <span style="font-size:.75rem;font-weight:600;color:hsl(var(--muted-foreground))">Fim</span>
+        <span style="font-size:.75rem;font-weight:600;color:hsl(var(--muted-foreground))">Ordem</span>
+        <span></span>
+      </div>
       <div id="horarios-container">
         {% for hform in formset %}
-        <div class="rd-horario-row horario-form" {% if hform.instance.pk %}{% endif %}>
-          <div>
-            <label class="form-label fw-semibold" style="font-size:.8rem">Início</label>
-            {{ hform.hora_inicio }}
-          </div>
-          <div>
-            <label class="form-label fw-semibold" style="font-size:.8rem">Fim</label>
-            {{ hform.hora_fim }}
-          </div>
-          <div>
-            <label class="form-label fw-semibold" style="font-size:.8rem">Ordem</label>
-            {{ hform.ordem }}
-          </div>
-          <div style="display:flex;align-items:flex-end">
-            {{ hform.DELETE }}
-            <label for="{{ hform.DELETE.id_for_label }}" style="cursor:pointer;color:#dc2626;font-size:.8rem;padding-bottom:.3rem">✕</label>
-          </div>
+        <div class="rd-horario-row horario-form">
+          {{ hform.hora_inicio }}
+          {{ hform.hora_fim }}
+          {{ hform.ordem }}
+          <button type="button" class="rd-delete-btn" title="Remover horário" onclick="removerHorario(this)">✕</button>
           {% for hidden in hform.hidden_fields %}{{ hidden }}{% endfor %}
+          <div style="display:none">{{ hform.DELETE }}</div>
         </div>
         {% endfor %}
       </div>
@@ -63,18 +61,50 @@
   </form>
 </div>
 <script>
+  function removerHorario(btn) {
+    const row = btn.closest('.rd-horario-row');
+    const checkbox = row.querySelector('input[type="checkbox"]');
+    if (checkbox) {
+      checkbox.checked = true;
+      row.classList.add('marcado-deletar');
+      btn.style.display = 'none';
+    } else {
+      // form extra não salvo — simplesmente remove do DOM
+      row.remove();
+      recalcularTotal();
+    }
+  }
+
+  function recalcularTotal() {
+    const total = document.getElementById('id_horarios-TOTAL_FORMS');
+    total.value = document.querySelectorAll('#horarios-container .horario-form').length;
+  }
+
   const container = document.getElementById('horarios-container');
   const total = document.getElementById('id_horarios-TOTAL_FORMS');
+
   document.getElementById('add-horario').addEventListener('click', () => {
     const n = parseInt(total.value);
-    const template = container.querySelector('.horario-form').cloneNode(true);
-    template.querySelectorAll('input').forEach(inp => {
+    // Clona o primeiro form (ainda que esteja marcado para deletar, os campos estão presentes)
+    const source = container.querySelector('.horario-form');
+    const clone = source.cloneNode(true);
+    clone.classList.remove('marcado-deletar');
+
+    clone.querySelectorAll('input, select').forEach(inp => {
       inp.name = inp.name.replace(/-\d+-/, `-${n}-`);
-      inp.id = inp.id.replace(/-\d+-/, `-${n}-`);
-      inp.value = '';
-      if (inp.type === 'checkbox') inp.checked = false;
+      inp.id   = inp.id.replace(/-\d+-/, `-${n}-`);
+      if (inp.type === 'checkbox') { inp.checked = false; }
+      else { inp.value = ''; }
     });
-    container.appendChild(template);
+    clone.querySelectorAll('label').forEach(lbl => {
+      if (lbl.htmlFor) lbl.htmlFor = lbl.htmlFor.replace(/-\d+-/, `-${n}-`);
+    });
+
+    // Restaura o botão delete caso o original estivesse oculto
+    const delBtn = clone.querySelector('.rd-delete-btn');
+    if (delBtn) delBtn.style.display = '';
+
+    container.appendChild(clone);
     total.value = n + 1;
   });
 </script>
