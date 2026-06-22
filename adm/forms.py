@@ -1,5 +1,6 @@
 from django import forms
 from .models import Categoria, Lancamento
+from forms_pcf.models import ReceptorNotificacaoReembolso
 
 
 class CategoriaForm(forms.ModelForm):
@@ -39,8 +40,6 @@ class LancamentoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['categoria'].queryset = Categoria.objects.filter(ativo=True)
 
-
-from forms_pcf.models import ReceptorNotificacaoReembolso
 
 
 class ReceptorNotificacaoReembolsoForm(forms.ModelForm):
