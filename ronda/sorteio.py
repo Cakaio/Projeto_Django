@@ -11,9 +11,17 @@ def executar_sorteio(configuracao):
     Deleta escalas anteriores desta configuração antes de re-sortear.
     """
     from voluntario.models import Voluntario
+    from sabado.models import DisponibilidadeVoluntario
 
     ano_atual = timezone.now().year
     EscalaRonda.objects.filter(horario__configuracao=configuracao).delete()
+
+    confirmados_ids = set(
+        DisponibilidadeVoluntario.objects.filter(
+            sabado=configuracao.sabado,
+            disponivel=True,
+        ).values_list('voluntario_id', flat=True)
+    )
 
     locais = list(LocalRonda.objects.filter(ativo=True))
 
@@ -22,7 +30,7 @@ def executar_sorteio(configuracao):
 
         for local in locais:
             pool = list(
-                Voluntario.objects.filter(data_saida__isnull=True)
+                Voluntario.objects.filter(data_saida__isnull=True, pk__in=confirmados_ids)
                 .exclude(area__in=AREAS_ISENTAS_RONDA)
                 .exclude(pk__in=ja_alocados_ids)
             )
