@@ -8,10 +8,10 @@ from django.utils import timezone
 
 from .models import (
     LocalRonda, ConfiguracaoRondaSabado, HorarioRonda,
-    EscalaRonda, ScoreRonda, AREAS_ISENTAS_RONDA,
+    ScoreRonda, AREAS_ISENTAS_RONDA,
 )
 from .forms import (
-    LocalRondaForm, ConfiguracaoRondaForm, HorarioRondaFormSet, ScoreRondaForm,
+    LocalRondaForm, ConfiguracaoRondaForm, HorarioRondaFormSet,
 )
 
 RONDA_GESTAO = {'TRIADE'}

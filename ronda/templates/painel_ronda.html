@@ -40,7 +40,7 @@
       <small style="color:hsl(var(--muted-foreground))">{{ cfg.horarios.count }} horário(s)</small>
     </div>
     <div class="rd-actions">
-      <a href="{% url 'ronda:configuracao_detalhe' cfg.pk %}" class="btn btn-sm btn-outline-primary">Ver / Sortear</a>
+      <a href="#" class="btn btn-sm btn-outline-primary disabled" aria-disabled="true">Ver / Sortear</a>
     </div>
   </div>
   {% empty %}
