@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'supply',
     'adm',
     'forms_pcf',
+    'ronda',
 ]
 
 MIDDLEWARE = [

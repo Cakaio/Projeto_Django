@@ -35,6 +35,7 @@ urlpatterns = [
     path('supply/', include('supply.urls', namespace='supply')),
     path('adm/', include('adm.urls', namespace='adm')),
     path('forms/', include('forms_pcf.urls', namespace='forms_pcf')),
+    path('ronda/', include('ronda.urls', namespace='ronda')),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
