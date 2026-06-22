@@ -1,14 +1,17 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.views import View
 from django.views.generic import FormView, ListView, TemplateView
 from django.urls import reverse_lazy
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.conf import settings
 from django.core.mail import send_mail
+from django.contrib import messages
 from django.utils import timezone
+from functools import wraps
 from .models import FeedbackArea, PedidoReembolso, ReceptorNotificacaoReembolso
-from .forms import FeedbackAreaForm, PedidoReembolsoForm
+from .forms import FeedbackAreaForm, PedidoReembolsoForm, ReceptorNotificacaoReembolsoForm
 from adm.models import Lancamento
 
 FEEDBACK_AREAS = {'PROJETOS', 'TRIADE'}
@@ -157,6 +160,7 @@ class RejeitarReembolsoView(LoginRequiredMixin, View):
         pedido = get_object_or_404(PedidoReembolso, pk=pk, status='PENDENTE')
         motivo = request.POST.get('observacao_adm', '').strip()
         if not motivo:
+            messages.error(request, 'O motivo da rejeição é obrigatório.')
             return redirect('forms_pcf:reembolso_inbox')
         pedido.status = 'REJEITADO'
         pedido.observacao_adm = motivo
@@ -164,3 +168,53 @@ class RejeitarReembolsoView(LoginRequiredMixin, View):
         pedido.aprovado_em = timezone.now()
         pedido.save()
         return redirect('forms_pcf:reembolso_inbox')
+
+
+def _adm_escrita_required(view_func):
+    """Decorator para function-based views de escrita ADM (receptor management)."""
+    @wraps(view_func)
+    @login_required
+    def wrapper(request, *args, **kwargs):
+        if not (request.user.is_superuser or getattr(request.user, 'area', None) in {'ADM/FIN'}):
+            raise PermissionDenied
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+@_adm_escrita_required
+def receptores_reembolso(request):
+    receptores = ReceptorNotificacaoReembolso.objects.all()
+    return render(request, 'receptores_reembolso.html', {'receptores': receptores})
+
+
+@_adm_escrita_required
+def receptor_criar(request):
+    form = ReceptorNotificacaoReembolsoForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Receptor adicionado!')
+        return redirect('adm:receptores_reembolso')
+    return render(request, 'form_receptor.html', {'form': form, 'titulo': 'Novo Receptor'})
+
+
+@_adm_escrita_required
+def receptor_editar(request, pk):
+    receptor = get_object_or_404(ReceptorNotificacaoReembolso, pk=pk)
+    form = ReceptorNotificacaoReembolsoForm(request.POST or None, instance=receptor)
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Receptor atualizado!')
+        return redirect('adm:receptores_reembolso')
+    return render(request, 'form_receptor.html', {'form': form, 'titulo': 'Editar Receptor', 'objeto': receptor})
+
+
+@_adm_escrita_required
+def receptor_deletar(request, pk):
+    receptor = get_object_or_404(ReceptorNotificacaoReembolso, pk=pk)
+    if request.method == 'POST':
+        receptor.delete()
+        messages.success(request, 'Receptor removido.')
+        return redirect('adm:receptores_reembolso')
+    return render(request, 'form_receptor.html', {
+        'objeto': receptor, 'confirmar_delecao': True, 'titulo': 'Remover Receptor'
+    })

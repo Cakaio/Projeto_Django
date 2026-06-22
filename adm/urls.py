@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from forms_pcf import views as forms_views
 
 app_name = 'adm'
 
@@ -15,8 +16,8 @@ urlpatterns = [
     path('categorias/<int:pk>/deletar/', views.deletar_categoria, name='deletar_categoria'),
     path('fluxo-de-caixa/', views.fluxo_caixa, name='fluxo_caixa'),
     path('dre/', views.dre, name='dre'),
-    path('notificacoes-reembolso/', views.receptores_reembolso, name='receptores_reembolso'),
-    path('notificacoes-reembolso/novo/', views.receptor_criar, name='receptor_criar'),
-    path('notificacoes-reembolso/<int:pk>/editar/', views.receptor_editar, name='receptor_editar'),
-    path('notificacoes-reembolso/<int:pk>/deletar/', views.receptor_deletar, name='receptor_deletar'),
+    path('notificacoes-reembolso/', forms_views.receptores_reembolso, name='receptores_reembolso'),
+    path('notificacoes-reembolso/novo/', forms_views.receptor_criar, name='receptor_criar'),
+    path('notificacoes-reembolso/<int:pk>/editar/', forms_views.receptor_editar, name='receptor_editar'),
+    path('notificacoes-reembolso/<int:pk>/deletar/', forms_views.receptor_deletar, name='receptor_deletar'),
 ]

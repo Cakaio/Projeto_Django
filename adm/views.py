@@ -7,12 +7,12 @@ from django.http import HttpResponse
 from django.db.models import Sum
 from django.db.models.deletion import ProtectedError
 from django.utils import timezone
+from django.apps import apps
 from functools import wraps
 from decimal import Decimal
 import csv
 from .models import Categoria, Lancamento
-from .forms import CategoriaForm, LancamentoForm, ReceptorNotificacaoReembolsoForm
-from forms_pcf.models import ReceptorNotificacaoReembolso, PedidoReembolso
+from .forms import CategoriaForm, LancamentoForm
 
 AREAS_LEITURA = {'ADM/FIN', 'TRIADE'}
 AREAS_ESCRITA = {'ADM/FIN'}
@@ -66,6 +66,7 @@ def painel(request):
     total_despesas = Lancamento.objects.filter(tipo='DESPESA').aggregate(t=Sum('valor'))['t'] or Decimal('0')
     saldo = total_receitas - total_despesas
     ultimos = Lancamento.objects.select_related('categoria').order_by('-data', '-criado_em')[:10]
+    PedidoReembolso = apps.get_model('forms_pcf', 'PedidoReembolso')
     reembolsos_pendentes = PedidoReembolso.objects.filter(status='PENDENTE').count()
 
     return render(request, 'painel_adm.html', {
@@ -329,40 +330,3 @@ def dre(request):
     })
 
 
-@adm_escrita_required
-def receptores_reembolso(request):
-    receptores = ReceptorNotificacaoReembolso.objects.all()
-    return render(request, 'receptores_reembolso.html', {'receptores': receptores})
-
-
-@adm_escrita_required
-def receptor_criar(request):
-    form = ReceptorNotificacaoReembolsoForm(request.POST or None)
-    if form.is_valid():
-        form.save()
-        messages.success(request, 'Receptor adicionado!')
-        return redirect('adm:receptores_reembolso')
-    return render(request, 'form_receptor.html', {'form': form, 'titulo': 'Novo Receptor'})
-
-
-@adm_escrita_required
-def receptor_editar(request, pk):
-    receptor = get_object_or_404(ReceptorNotificacaoReembolso, pk=pk)
-    form = ReceptorNotificacaoReembolsoForm(request.POST or None, instance=receptor)
-    if form.is_valid():
-        form.save()
-        messages.success(request, 'Receptor atualizado!')
-        return redirect('adm:receptores_reembolso')
-    return render(request, 'form_receptor.html', {'form': form, 'titulo': 'Editar Receptor', 'objeto': receptor})
-
-
-@adm_escrita_required
-def receptor_deletar(request, pk):
-    receptor = get_object_or_404(ReceptorNotificacaoReembolso, pk=pk)
-    if request.method == 'POST':
-        receptor.delete()
-        messages.success(request, 'Receptor removido.')
-        return redirect('adm:receptores_reembolso')
-    return render(request, 'form_receptor.html', {
-        'objeto': receptor, 'confirmar_delecao': True, 'titulo': 'Remover Receptor'
-    })
