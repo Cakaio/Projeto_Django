@@ -136,10 +136,9 @@ def painel_materiais(request):
     qs = (
         Material.objects
         .select_related("atividade__semanario", "atividade__semanario__data")
-        .filter(
-            atividade__semanario__data=sabado,
-            pedido="SUPPLY"
-        )
+        .filter(atividade__semanario__data=sabado)
+        # Supply = destino explícito "SUPPLY" OU sem destino definido (nulo/vazio)
+        .filter(Q(pedido="SUPPLY") | Q(pedido__isnull=True) | Q(pedido=""))
         .order_by("atividade__semanario__sala", "nome")
     )
 
@@ -317,10 +316,9 @@ def painel_materiais_visualizacao(request):
     qs = (
     Material.objects
     .select_related("atividade__semanario", "atividade__semanario__data")
-    .filter(
-        atividade__semanario__data=sabado,
-        pedido="SUPPLY"
-    )
+    .filter(atividade__semanario__data=sabado)
+    # Supply = destino explícito "SUPPLY" OU sem destino definido (nulo/vazio)
+    .filter(Q(pedido="SUPPLY") | Q(pedido__isnull=True) | Q(pedido=""))
     .order_by("atividade__semanario__sala", "nome")
 )
 

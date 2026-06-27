@@ -68,7 +68,8 @@ def criar_semanario(request):
                         nome = m.get('nome', '').strip()
                         quantidade = m.get('quantidade', '').strip()
                         unidade = m.get('unidade', '').strip()
-                        pedido = m.get('pedido', '').strip()
+                        # Sem destino explícito → Supply (padrão de compra do projeto)
+                        pedido = m.get('pedido', '').strip() or 'SUPPLY'
                         if nome:
                             # validar quantidade, usando default 1 quando vazio ou inválido
                             if quantidade:
@@ -172,6 +173,8 @@ def editar_semanario(request, semanario_id):
                             nome = m.get('nome', '').strip()
                             quantidade = m.get('quantidade', '').strip()
                             unidade = m.get('unidade', '').strip()
+                            # Sem destino explícito → Supply (padrão de compra do projeto)
+                            pedido = m.get('pedido', '').strip() or 'SUPPLY'
                             if nome:
                                 if quantidade:
                                     try:
@@ -181,7 +184,8 @@ def editar_semanario(request, semanario_id):
                                 else:
                                     qtd = Decimal('1')
                                 Material.objects.create(
-                                    atividade=atividade_obj, nome=nome, quantidade=qtd, unidade=(unidade or 'UN')
+                                    atividade=atividade_obj, nome=nome, quantidade=qtd,
+                                    unidade=(unidade or 'UN'), pedido=pedido
                                 )
                     except (ValueError, IndexError):
                         continue
@@ -237,7 +241,6 @@ class SemanarioListView(LoginRequiredMixin, ListView):
 
 def listar_materiais(request, atividade_id):
     materiais = Material.objects.filter(atividade_id=atividade_id)
-    print(f"[DEBUG listar_materiais] Materiais no banco para atividade {atividade_id}: {materiais.count()}")
     data = [
         {
             "id": m.id,
@@ -256,9 +259,7 @@ def salvar_materiais(request):
     atividade_id = data.get("atividade_id")
     materiais = data.get("materiais", [])
 
-    print(f"[DEBUG salvar_materiais] Antes de deletar: {Material.objects.filter(atividade_id=atividade_id).count()} materiais no banco para atividade {atividade_id}")
     Material.objects.filter(atividade_id=atividade_id).delete()
-    print(f"[DEBUG salvar_materiais] Após deletar: {Material.objects.filter(atividade_id=atividade_id).count()} materiais no banco para atividade {atividade_id}")
 
     for m in materiais:
         Material.objects.create(
@@ -266,9 +267,9 @@ def salvar_materiais(request):
             nome=m["nome"],
             quantidade=m["quantidade"],
             unidade=m["unidade"],
-            pedido=m.get("pedido", "")
+            # Sem destino explícito → Supply (padrão de compra do projeto)
+            pedido=(m.get("pedido") or "").strip() or "SUPPLY",
         )
-    print(f"[DEBUG salvar_materiais] Após inserir: {Material.objects.filter(atividade_id=atividade_id).count()} materiais no banco para atividade {atividade_id}")
     return JsonResponse({"success": True})
 
 

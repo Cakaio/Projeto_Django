@@ -1,7 +1,10 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from voluntario.models import Voluntario, Ocorrencia, PresencaVoluntario
+from voluntario.models import (
+    Voluntario, Ocorrencia, PresencaVoluntario,
+    FALTAS_POR_ALERTA, ALERTAS_POR_ADVERTENCIA,
+)
 
 
 class Command(BaseCommand):
@@ -17,10 +20,10 @@ class Command(BaseCommand):
         voluntarios = Voluntario.objects.filter(is_active=True)
         for v in voluntarios:
             total_faltas = PresencaVoluntario.objects.filter(voluntario=v, presenca='AUSENTE').count()
-            if total_faltas < 3:
+            if total_faltas < FALTAS_POR_ALERTA:
                 continue
 
-            alertas_esperados = total_faltas // 3
+            alertas_esperados = total_faltas // FALTAS_POR_ALERTA
             alertas_existentes = Ocorrencia.objects.filter(
                 advertido=v, tipo='ALERTA', regra='AL2', deleted_at__isnull=True
             ).count()
@@ -48,7 +51,7 @@ class Command(BaseCommand):
                 total_alt = Ocorrencia.objects.filter(
                     advertido=v, tipo='ALERTA', deleted_at__isnull=True
                 ).count()
-                adv_auto_esperadas = total_alt // 3
+                adv_auto_esperadas = total_alt // ALERTAS_POR_ADVERTENCIA
                 adv_auto_existentes = Ocorrencia.objects.filter(
                     advertido=v, tipo='ADVERTENCIA', automatico=True, deleted_at__isnull=True
                 ).count()
@@ -56,7 +59,7 @@ class Command(BaseCommand):
                     Ocorrencia.objects.create(
                         advertido=v,
                         tipo='ADVERTENCIA',
-                        razao='Advertencia automatica retroativa por acumulo de 3 alertas (sync_alertas_faltas).',
+                        razao=f'Advertencia automatica retroativa por acumulo de {ALERTAS_POR_ADVERTENCIA} alertas (sync_alertas_faltas).',
                         aplicado_por=None,
                         automatico=True,
                     )

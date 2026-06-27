@@ -532,6 +532,7 @@
           ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>`
           : `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>`;
       const auto  = o.automatico ? ' <span style="opacity:.6;font-size:.68rem;">(automático)</span>' : '';
+      const quem  = o.automatico ? 'Sistema (automático)' : o.aplicado_por;
       const regra = o.regra ? `<div class="h-occ-razao" style="font-style:normal;font-weight:600;">${o.regra} <span style="font-weight:400;font-style:italic;">– ${o.regra_display.replace(/^[A-Z0-9_]+ – /, '')}</span></div>` : '';
       const razao = o.razao ? `<div class="h-occ-razao">"${o.razao}"</div>` : '';
 
@@ -543,7 +544,7 @@
         return `<div class="h-occ-item" id="occ-${o.id}" style="opacity:.55;background:#fef2f2;border-color:#fecaca;">
           <div style="flex:1;text-decoration:line-through;">
             <span class="h-occ-badge ${cls}">${icon} ${o.tipo_display}${auto}</span>
-            <div class="h-occ-meta">${o.criado_em} — por ${o.aplicado_por}</div>
+            <div class="h-occ-meta">${o.criado_em} — por ${quem}</div>
             ${regra}${razao}
           </div>
           ${deletadoInfo}
@@ -594,16 +595,16 @@
     const cells = row.querySelectorAll('td');
     if (cells.length < 7) return;
 
-    // Célula 3: alertas
+    // Célula 3: alertas (cumulativo até 9)
     const alt = data.alertas;
     if (alt > 0) {
       cells[3].innerHTML = `<div class="flex items-center gap-2 min-w-24">
         <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-          <div class="h-full bg-amber-500 rounded-full" style="width:${Math.round(alt/3*100)}%;max-width:100%"></div>
+          <div class="h-full bg-amber-500 rounded-full" style="width:${Math.round(alt/9*100)}%;max-width:100%"></div>
         </div>
-        <span class="text-xs font-700 text-amber-600 whitespace-nowrap">${alt}/3</span></div>`;
+        <span class="text-xs font-700 text-amber-600 whitespace-nowrap">${alt}/9</span></div>`;
     } else {
-      cells[3].innerHTML = `<span class="text-xs font-700 text-green-600">0/3</span>`;
+      cells[3].innerHTML = `<span class="text-xs font-700 text-green-600">0/9</span>`;
     }
 
     // Célula 4: advertências

@@ -19,7 +19,7 @@ def executar_sorteio(configuracao):
     confirmados_ids = set(
         DisponibilidadeVoluntario.objects.filter(
             sabado=configuracao.sabado,
-            disponivel=True,
+            vai_ao_projeto=True,
         ).values_list('voluntario_id', flat=True)
     )
 

@@ -380,7 +380,7 @@
                   {% if o.tipo == 'ALERTA' %}
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
                       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      Alerta
+                      Alerta{% if o.automatico %} <span class="font-normal opacity-70">(automático)</span>{% endif %}
                     </span>
                   {% elif o.tipo == 'ADVERTENCIA' %}
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
@@ -394,7 +394,7 @@
                     </span>
                   {% endif %}
                   <p class="text-xs text-muted-foreground mt-1">
-                    {{ o.criado_em|date:"d/m/Y H:i" }} — por {{ o.aplicado_por.get_full_name|default:o.aplicado_por.username|default:"—" }}
+                    {{ o.criado_em|date:"d/m/Y H:i" }} — por {% if o.automatico %}Sistema (automático){% else %}{{ o.aplicado_por.get_full_name|default:o.aplicado_por.username|default:"—" }}{% endif %}
                   </p>
                   {% if o.razao %}
                     <p class="text-sm text-foreground mt-1 italic">"{{ o.razao }}"</p>

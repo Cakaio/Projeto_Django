@@ -128,6 +128,18 @@ class Regra(models.Model):
         return f'{self.codigo} – {self.descricao}'
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Escala de disciplina (acúmulo de ocorrências)
+# Alterar a régua disciplinar aqui reflete em todo o sistema (views, comandos,
+# templates via contexto). Não espalhar esses números pelo código.
+# ─────────────────────────────────────────────────────────────────────────────
+FALTAS_POR_ALERTA = 3          # faltas consecutivas necessárias para 1 alerta automático
+ALERTAS_POR_ADVERTENCIA = 3    # alertas ativos acumulados que geram 1 advertência automática
+ADVERTENCIAS_PARA_OBSERVACAO = 3   # advertências ativas que disparam Período de Observação
+# Teto visual de alertas: ao atingir, há 3 advertências → Período de Observação
+MAX_ALERTAS_DISPLAY = ALERTAS_POR_ADVERTENCIA * ADVERTENCIAS_PARA_OBSERVACAO  # 9
+
+
 class Ocorrencia(models.Model):
     TIPOS = (
         ('ALERTA', 'Alerta'),

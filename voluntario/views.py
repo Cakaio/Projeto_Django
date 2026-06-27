@@ -1,7 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, TemplateView, UpdateView
-from .models import Voluntario, PresencaVoluntario, Ocorrencia, Regra
+from .models import (
+    Voluntario, PresencaVoluntario, Ocorrencia, Regra,
+    FALTAS_POR_ALERTA, ALERTAS_POR_ADVERTENCIA,
+    ADVERTENCIAS_PARA_OBSERVACAO, MAX_ALERTAS_DISPLAY,
+)
 from .forms import MeuPerfilForm
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
@@ -153,18 +157,18 @@ class MeuPerfilView(LoginRequiredMixin, UpdateView):
         user = self.request.user
 
         def _display(n):
-            rem = n % 3
-            return 3 if (rem == 0 and n > 0) else rem
+            rem = n % ADVERTENCIAS_PARA_OBSERVACAO
+            return ADVERTENCIAS_PARA_OBSERVACAO if (rem == 0 and n > 0) else rem
 
         total_alt = Ocorrencia.objects.filter(advertido=user, tipo='ALERTA', deleted_at__isnull=True).count()
         total_adv = Ocorrencia.objects.filter(advertido=user, tipo='ADVERTENCIA', deleted_at__isnull=True).count()
         po_direto = Ocorrencia.objects.filter(advertido=user, regra__startswith='PO', deleted_at__isnull=True).exists()
-        periodo_observacao = po_direto or total_adv >= 3
+        periodo_observacao = po_direto or total_adv >= ADVERTENCIAS_PARA_OBSERVACAO
 
-        context['saas_alertas']           = _display(total_alt)
-        context['saas_alertas_max']       = 3
+        context['saas_alertas']           = min(total_alt, MAX_ALERTAS_DISPLAY)
+        context['saas_alertas_max']       = MAX_ALERTAS_DISPLAY
         context['saas_advertencias']      = _display(total_adv)
-        context['saas_advertencias_max']  = 3
+        context['saas_advertencias_max']  = ADVERTENCIAS_PARA_OBSERVACAO
         context['saas_periodo_observacao'] = periodo_observacao
         context['saas_ocorrencias'] = Ocorrencia.objects.filter(advertido=user).order_by('-criado_em')
         return context
@@ -321,21 +325,25 @@ def saas_view(request):
     )
 
     def _display(n):
-        """Retorna n % 3, mas mantém 3 (e não 0) quando n é múltiplo de 3 positivo."""
-        rem = n % 3
-        return 3 if (rem == 0 and n > 0) else rem
+        """Cíclico: mantém o teto (e não 0) quando n é múltiplo positivo do ciclo."""
+        rem = n % ADVERTENCIAS_PARA_OBSERVACAO
+        return ADVERTENCIAS_PARA_OBSERVACAO if (rem == 0 and n > 0) else rem
+
+    def _display_alertas(n):
+        """Alertas são cumulativos e vão até o teto (3 alertas = 1 advertência; teto = período de observação)."""
+        return min(n, MAX_ALERTAS_DISPLAY)
 
     dados = []
     for v in voluntarios:
         alt = v.total_alertas
         adv = v.total_advertencias
-        periodo_observacao = v.total_po_direto > 0 or adv >= 3
+        periodo_observacao = v.total_po_direto > 0 or adv >= ADVERTENCIAS_PARA_OBSERVACAO
         dados.append({
             'voluntario': v,
-            'alertas': _display(alt),
-            'alertas_max': 3,
+            'alertas': _display_alertas(alt),
+            'alertas_max': MAX_ALERTAS_DISPLAY,
             'advertencias': _display(adv),
-            'advertencias_max': 3,
+            'advertencias_max': ADVERTENCIAS_PARA_OBSERVACAO,
             'periodo_observacao': periodo_observacao,
         })
 
@@ -425,21 +433,21 @@ def criar_ocorrencia(request):
     total_adv  = _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA')).count()
     po_direto  = any(c.startswith('PO') for c, _, __ in regras_validas)
 
-    # Auto-gerar advertências por acúmulo de alertas (uma por múltiplo de 3)
-    adv_auto_esperadas  = total_alt // 3
+    # Auto-gerar advertências por acúmulo de alertas (uma por múltiplo do ciclo)
+    adv_auto_esperadas  = total_alt // ALERTAS_POR_ADVERTENCIA
     adv_auto_existentes = _ativas(Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA', automatico=True)).count()
     for _ in range(adv_auto_esperadas - adv_auto_existentes):
         Ocorrencia.objects.create(
             advertido=advertido,
             tipo='ADVERTENCIA',
-            razao='Advertência automática por acúmulo de 3 alertas.',
-            aplicado_por=request.user,
+            razao=f'Advertência automática por acúmulo de {ALERTAS_POR_ADVERTENCIA} alertas.',
+            aplicado_por=None,
             automatico=True,
         )
         total_adv += 1
         notificacoes.append('ADVERTENCIA_AUTO')
 
-    periodo_observacao = po_direto or total_adv >= 3
+    periodo_observacao = po_direto or total_adv >= ADVERTENCIAS_PARA_OBSERVACAO
     if periodo_observacao:
         notificacoes.append('PERIODO_OBSERVACAO')
 
@@ -498,15 +506,15 @@ def deletar_ocorrencia(request, ocorrencia_id):
     total_alt = Ocorrencia.objects.filter(advertido=advertido, tipo='ALERTA', deleted_at__isnull=True).count()
     total_adv = Ocorrencia.objects.filter(advertido=advertido, tipo='ADVERTENCIA', deleted_at__isnull=True).count()
     po_direto = Ocorrencia.objects.filter(advertido=advertido, regra__startswith='PO', deleted_at__isnull=True).exists()
-    periodo_observacao = po_direto or total_adv >= 3
+    periodo_observacao = po_direto or total_adv >= ADVERTENCIAS_PARA_OBSERVACAO
 
     def _disp(n):
-        rem = n % 3
-        return 3 if (rem == 0 and n > 0) else rem
+        rem = n % ADVERTENCIAS_PARA_OBSERVACAO
+        return ADVERTENCIAS_PARA_OBSERVACAO if (rem == 0 and n > 0) else rem
 
     return JsonResponse({
         'ok': True,
-        'alertas': _disp(total_alt),
+        'alertas': min(total_alt, MAX_ALERTAS_DISPLAY),
         'alertas_raw': total_alt,
         'advertencias': _disp(total_adv),
         'advertencias_raw': total_adv,
@@ -653,9 +661,9 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
         else:
             break  # sequência quebrada — para
 
-    alertas_esperados = consecutivas // 3
+    alertas_esperados = consecutivas // FALTAS_POR_ALERTA
     if alertas_esperados == 0:
-        return  # menos de 3 consecutivas, nada a fazer
+        return  # menos que o ciclo de faltas, nada a fazer
 
     # Conta alertas automáticos já criados DENTRO desta sequência específica
     # (a partir da data do primeiro ausente da sequência atual)
@@ -675,15 +683,15 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
         tipo='ALERTA',
         regra='AL13',
         razao=f'Alerta automático: {consecutivas} faltas consecutivas nos sábados.',
-        aplicado_por=registrado_por,
+        aplicado_por=None,
         automatico=True,
     )
 
-    # Verifica se o total de alertas ativos gera advertência automática (a cada 3 alertas ativos)
+    # Verifica se o total de alertas ativos gera advertência automática (a cada ciclo de alertas)
     total_alt_ativos = Ocorrencia.objects.filter(
         advertido=voluntario, tipo='ALERTA', deleted_at__isnull=True
     ).count()
-    adv_esperadas = total_alt_ativos // 3
+    adv_esperadas = total_alt_ativos // ALERTAS_POR_ADVERTENCIA
     adv_existentes = Ocorrencia.objects.filter(
         advertido=voluntario, tipo='ADVERTENCIA', automatico=True, deleted_at__isnull=True
     ).count()
@@ -694,7 +702,7 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
             advertido=voluntario,
             tipo='ADVERTENCIA',
             razao=f'Advertência automática: {total_alt_ativos} alertas ativos acumulados.',
-            aplicado_por=registrado_por,
+            aplicado_por=None,
             automatico=True,
         )
         notificacoes.append('ADVERTENCIA_AUTO')
