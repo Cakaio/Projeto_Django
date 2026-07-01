@@ -104,10 +104,34 @@ Alterações:
 - `HorarioRondaForm`: troca o widget de `ordem` por `local` (Select de
   `LocalRonda` ativos).
 
+## Diretriz de UI/UX (obrigatória)
+
+Todas as telas de ronda são reconstruídas com qualidade de **designer sênior**,
+usando **Tailwind (utilitários)** + a linguagem visual **shadcn/ui**, já
+disponíveis no `base.html` (Tailwind CDN + tokens `hsl(var(--card))`,
+`hsl(var(--border))`, `hsl(var(--primary))`, `var(--radius)` etc.).
+
+Princípios:
+- **Sem dependência de Bootstrap** para estilo. Substituir classes `btn`,
+  `form-control`, `card`, `accordion` etc. por utilitários Tailwind + tokens
+  shadcn. Interações dinâmicas (adicionar/duplicar linha, modais, collapse) em
+  **JS vanilla** — mesmo padrão já aprovado na tela `visualizar_semanario.html`.
+- **Tokens, não cores fixas:** usar `bg-card`, `border-border`,
+  `text-muted-foreground`, `rounded-lg`, `text-primary` etc. Cores fixas só para
+  o header navy do PCF (`linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%)`)
+  e a primária de ação `#fe8210`.
+- **Componentes shadcn-like:** cards com `border border-border rounded-lg`,
+  badges de status em pílula, botões com estados hover/focus visíveis, inputs
+  com `focus:ring`, espaçamento generoso, hierarquia tipográfica clara.
+- **Acessível e intuitivo:** labels claros, feedback de vazio/erro, contagem de
+  confirmados visível, ações primárias destacadas e destrutivas com confirmação.
+- **Responsivo:** grid/flex que colapsa bem no mobile (a Tríade usa celular).
+- Curva do header via `::after` com `background:hsl(var(--background))` +
+  `clip-path` (padrão já corrigido nas telas de ronda).
+
 ## Telas (templates)
 
-Todas seguem o design system PCF (header navy `linear-gradient(135deg,#0f172a…)`,
-primária `#fe8210`, curva via `::after` com `background:hsl(var(--background))`).
+Todas seguem a diretriz de UI acima.
 
 ### Painel (`painel_ronda.html`)
 - Resumo no topo: contadores por status (ex.: "2 pendentes de aprovação").
