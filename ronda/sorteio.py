@@ -1,19 +1,22 @@
 # ronda/sorteio.py
 import random
+from collections import defaultdict
 from django.utils import timezone
-from .models import AREAS_ISENTAS_RONDA, EscalaRonda, LocalRonda, ScoreRonda
+from .models import AREAS_ISENTAS_RONDA, EscalaRonda, ScoreRonda
 
 
 def executar_sorteio(configuracao):
     """
-    Sorteia 2 voluntários por (HorarioRonda × LocalRonda) priorizando menor score anual.
-    Um voluntário não pode aparecer duas vezes no mesmo horário.
+    Sorteia 2 voluntários por linha (HorarioRonda = faixa de horário + local),
+    priorizando menor score anual. Um voluntário não pode aparecer duas vezes na
+    mesma FAIXA DE HORÁRIO (mesmo início/fim), ainda que em locais diferentes.
+    Só entram voluntários que confirmaram presença (vai_ao_projeto=True) no sábado.
     Deleta escalas anteriores desta configuração antes de re-sortear.
     """
     from voluntario.models import Voluntario
     from sabado.models import DisponibilidadeVoluntario
 
-    ano_atual = timezone.now().year
+    ano = configuracao.sabado.data.year
     EscalaRonda.objects.filter(horario__configuracao=configuracao).delete()
 
     confirmados_ids = set(
@@ -23,38 +26,46 @@ def executar_sorteio(configuracao):
         ).values_list('voluntario_id', flat=True)
     )
 
-    locais = list(LocalRonda.objects.filter(ativo=True))
+    horarios = list(
+        configuracao.horarios.select_related('local')
+        .order_by('ordem', 'hora_inicio', 'local__nome')
+    )
 
-    for horario in configuracao.horarios.order_by('ordem', 'hora_inicio'):
-        ja_alocados_ids = set()
+    # Controle de quem já foi alocado por janela de horário (início, fim)
+    ja_alocados_por_janela = defaultdict(set)
 
-        for local in locais:
-            pool = list(
-                Voluntario.objects.filter(data_saida__isnull=True, pk__in=confirmados_ids)
-                .exclude(area__in=AREAS_ISENTAS_RONDA)
-                .exclude(pk__in=ja_alocados_ids)
+    for horario in horarios:
+        if horario.local_id is None:
+            continue  # linha sem local definido — ignora
+
+        janela = (horario.hora_inicio, horario.hora_fim)
+        ja_alocados = ja_alocados_por_janela[janela]
+
+        pool = list(
+            Voluntario.objects.filter(data_saida__isnull=True, pk__in=confirmados_ids)
+            .exclude(area__in=AREAS_ISENTAS_RONDA)
+            .exclude(pk__in=ja_alocados)
+        )
+        if not pool:
+            continue
+
+        scores = {
+            s.voluntario_id: s.pontos
+            for s in ScoreRonda.objects.filter(voluntario__in=pool, ano=ano)
+        }
+
+        # Embaralha antes de ordenar — sort estável preserva aleatoriedade dentro do grupo
+        random.shuffle(pool)
+        pool.sort(key=lambda v: scores.get(v.pk, 0))
+
+        for vol in pool[:2]:
+            EscalaRonda.objects.create(
+                horario=horario,
+                local=horario.local,
+                voluntario=vol,
+                is_substituto=False,
             )
-
-            if not pool:
-                continue
-
-            scores = {
-                s.voluntario_id: s.pontos
-                for s in ScoreRonda.objects.filter(voluntario__in=pool, ano=ano_atual)
-            }
-
-            # Embaralha antes de ordenar — sort estável preserva aleatoriedade dentro do grupo
-            random.shuffle(pool)
-            pool.sort(key=lambda v: scores.get(v.pk, 0))
-
-            for vol in pool[:2]:
-                EscalaRonda.objects.create(
-                    horario=horario,
-                    local=local,
-                    voluntario=vol,
-                    is_substituto=False,
-                )
-                ja_alocados_ids.add(vol.pk)
+            ja_alocados.add(vol.pk)
 
     configuracao.status = 'SORTEADA'
     configuracao.sorteado_em = timezone.now()

@@ -1,9 +1,13 @@
 # ronda/views.py
+from collections import OrderedDict
+from datetime import timedelta
+
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from functools import wraps
+from django.db.models import F
 from django.utils import timezone
 
 from .models import (
@@ -15,6 +19,41 @@ from .forms import (
 )
 
 RONDA_GESTAO = {'TRIADE'}
+
+
+def _reordenar_horarios(cfg):
+    """Mantém a 'ordem' coerente com a sequência cronológica dos horários."""
+    for i, h in enumerate(cfg.horarios.order_by('hora_inicio', 'local__nome')):
+        if h.ordem != i:
+            HorarioRonda.objects.filter(pk=h.pk).update(ordem=i)
+
+
+def _contar_confirmados(sabado):
+    """Voluntários elegíveis (ativos, não isentos) que confirmaram presença no sábado."""
+    from voluntario.models import Voluntario
+    return (
+        Voluntario.objects.filter(
+            data_saida__isnull=True,
+            disponibilidades__sabado=sabado,
+            disponibilidades__vai_ao_projeto=True,
+        )
+        .exclude(area__in=AREAS_ISENTAS_RONDA)
+        .distinct()
+        .count()
+    )
+
+
+def _mapa_ultima_ronda():
+    """{voluntario_id: data da última ronda aprovada}."""
+    ultima = {}
+    for e in (
+        EscalaRonda.objects
+        .filter(horario__configuracao__status='APROVADA')
+        .select_related('horario__configuracao__sabado')
+        .order_by('horario__configuracao__sabado__data')
+    ):
+        ultima[e.voluntario_id] = e.horario.configuracao.sabado.data
+    return ultima
 
 
 def ronda_required(view_func):
@@ -31,8 +70,33 @@ def ronda_required(view_func):
 
 @ronda_required
 def painel(request):
-    configuracoes = ConfiguracaoRondaSabado.objects.select_related('sabado', 'criado_por').all()
-    return render(request, 'painel_ronda.html', {'configuracoes': configuracoes})
+    status_filtro = request.GET.get('status', '')
+    qs = ConfiguracaoRondaSabado.objects.select_related('sabado', 'criado_por').all()
+    if status_filtro:
+        qs = qs.filter(status=status_filtro)
+
+    todas = ConfiguracaoRondaSabado.objects.all()
+    resumo = {
+        'total':      todas.count(),
+        'pendentes':  todas.filter(status='PENDENTE_SORTEIO').count(),
+        'sorteadas':  todas.filter(status='SORTEADA').count(),
+        'aprovadas':  todas.filter(status='APROVADA').count(),
+        'reprovadas': todas.filter(status='REPROVADA').count(),
+    }
+    hoje = timezone.now().date()
+    proxima = (
+        ConfiguracaoRondaSabado.objects
+        .filter(status='APROVADA', sabado__data__gte=hoje)
+        .select_related('sabado')
+        .order_by('sabado__data')
+        .first()
+    )
+    return render(request, 'painel_ronda.html', {
+        'configuracoes': qs,
+        'resumo': resumo,
+        'status_filtro': status_filtro,
+        'proxima': proxima,
+    })
 
 
 # ── CRUD LocalRonda ──────────────────────────────────────────────────────────
@@ -85,9 +149,54 @@ def configuracao_criar(request):
         cfg.save()
         formset.instance = cfg
         formset.save()
-        messages.success(request, 'Configuração criada! Agora você pode sortear.')
+        _reordenar_horarios(cfg)
+        messages.success(request, 'Ronda criada! Agora você pode sortear.')
         return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
-    return render(request, 'form_configuracao.html', {'form': form, 'formset': formset})
+    return render(request, 'form_configuracao.html', {
+        'form': form, 'formset': formset, 'modo': 'criar',
+    })
+
+
+@ronda_required
+def configuracao_editar(request, pk):
+    cfg = get_object_or_404(ConfiguracaoRondaSabado, pk=pk)
+    if cfg.status == 'APROVADA':
+        messages.error(request, 'Rondas aprovadas não podem ser editadas. Exclua ou reprove antes.')
+        return redirect('ronda:configuracao_detalhe', pk=pk)
+
+    from sabado.models import Sabado
+    form = ConfiguracaoRondaForm(request.POST or None, instance=cfg)
+    # O sábado é a identidade da ronda — não pode ser trocado na edição.
+    form.fields['sabado'].queryset = Sabado.objects.filter(pk=cfg.sabado_id)
+    form.fields['sabado'].disabled = True
+
+    formset = HorarioRondaFormSet(request.POST or None, instance=cfg, prefix='horarios')
+    if request.method == 'POST' and formset.is_valid():
+        formset.save()
+        _reordenar_horarios(cfg)
+        messages.success(request, 'Ronda atualizada! Se já havia sido sorteada, re-sorteie para aplicar.')
+        return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
+
+    return render(request, 'form_configuracao.html', {
+        'form': form, 'formset': formset, 'modo': 'editar', 'cfg': cfg,
+    })
+
+
+@ronda_required
+def configuracao_deletar(request, pk):
+    cfg = get_object_or_404(ConfiguracaoRondaSabado, pk=pk)
+    if request.method == 'POST':
+        # Se aprovada, estorna os pontos que a ronda somou (sem descer de 0).
+        if cfg.status == 'APROVADA':
+            ano = cfg.sabado.data.year
+            for escala in EscalaRonda.objects.filter(horario__configuracao=cfg):
+                ScoreRonda.objects.filter(
+                    voluntario=escala.voluntario, ano=ano, pontos__gt=0
+                ).update(pontos=F('pontos') - 1)
+        cfg.delete()
+        messages.success(request, 'Ronda excluída.')
+        return redirect('ronda:painel')
+    return redirect('ronda:configuracao_detalhe', pk=pk)
 
 
 # ── Detalhe + ações ──────────────────────────────────────────────────────────
@@ -95,15 +204,26 @@ def configuracao_criar(request):
 @ronda_required
 def configuracao_detalhe(request, pk):
     cfg = get_object_or_404(ConfiguracaoRondaSabado, pk=pk)
-    locais = LocalRonda.objects.filter(ativo=True)
-    horarios = cfg.horarios.prefetch_related('escalas__voluntario', 'escalas__local').all()
+    horarios = (
+        cfg.horarios.select_related('local')
+        .prefetch_related('escalas__voluntario')
+        .order_by('hora_inicio', 'local__nome')
+    )
 
-    # Monta grade: {horario.pk: {local.pk: [escalas]}}
-    grade = {}
+    # Agrupa por janela de horário: [(label, [linha, ...]), ...]
+    janelas = OrderedDict()
     for h in horarios:
-        grade[h.pk] = {l.pk: [] for l in locais}
-        for e in h.escalas.all():
-            grade[h.pk][e.local_id].append(e)
+        chave = (h.hora_inicio, h.hora_fim)
+        janelas.setdefault(chave, []).append(h)
+
+    grade = [
+        {
+            'inicio': chave[0],
+            'fim': chave[1],
+            'linhas': linhas,  # cada linha é um HorarioRonda (com .local e .escalas)
+        }
+        for chave, linhas in janelas.items()
+    ]
 
     from voluntario.models import Voluntario
     elegiveis = (
@@ -111,19 +231,27 @@ def configuracao_detalhe(request, pk):
         .exclude(area__in=AREAS_ISENTAS_RONDA)
         .order_by('first_name', 'last_name')
     )
-    ano_atual = timezone.now().year
+    ano = cfg.sabado.data.year
     scores = {
         s.voluntario_id: s.pontos
-        for s in ScoreRonda.objects.filter(voluntario__in=elegiveis, ano=ano_atual)
+        for s in ScoreRonda.objects.filter(voluntario__in=elegiveis, ano=ano)
     }
+    ultima_ronda = _mapa_ultima_ronda()
+
+    total_linhas = cfg.horarios.filter(local__isnull=False).count()
+    confirmados = _contar_confirmados(cfg.sabado)
+    necessarios = total_linhas * 2
 
     return render(request, 'detalhe_configuracao.html', {
         'cfg': cfg,
-        'locais': locais,
-        'horarios': horarios,
         'grade': grade,
         'elegiveis': elegiveis,
         'scores': scores,
+        'ultima_ronda': ultima_ronda,
+        'hoje': timezone.now().date(),
+        'confirmados': confirmados,
+        'necessarios': necessarios,
+        'pool_insuficiente': confirmados < necessarios,
     })
 
 
@@ -150,9 +278,9 @@ def configuracao_aprovar(request, pk):
         if cfg.status != 'SORTEADA':
             messages.error(request, 'Só é possível aprovar rondas sorteadas.')
             return redirect('ronda:configuracao_detalhe', pk=pk)
-        ano_atual = timezone.now().year
+        ano = cfg.sabado.data.year
         for escala in EscalaRonda.objects.filter(horario__configuracao=cfg):
-            ScoreRonda.incrementar(escala.voluntario, ano_atual)
+            ScoreRonda.incrementar(escala.voluntario, ano)
         cfg.status = 'APROVADA'
         cfg.aprovado_por = request.user
         cfg.aprovado_em = timezone.now()
@@ -215,6 +343,27 @@ def escala_swap(request, pk):
     escala.save(update_fields=['voluntario', 'voluntario_original', 'is_substituto'])
     messages.success(request, f'Substituição realizada: {novo_vol.get_full_name()}')
     return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
+
+
+# ── Impressão ────────────────────────────────────────────────────────────────
+
+@ronda_required
+def configuracao_imprimir(request, pk):
+    cfg = get_object_or_404(ConfiguracaoRondaSabado, pk=pk)
+    horarios = (
+        cfg.horarios.select_related('local')
+        .prefetch_related('escalas__voluntario')
+        .order_by('hora_inicio', 'local__nome')
+    )
+    janelas = OrderedDict()
+    for h in horarios:
+        chave = (h.hora_inicio, h.hora_fim)
+        janelas.setdefault(chave, []).append(h)
+    grade = [
+        {'inicio': chave[0], 'fim': chave[1], 'linhas': linhas}
+        for chave, linhas in janelas.items()
+    ]
+    return render(request, 'imprimir_ronda.html', {'cfg': cfg, 'grade': grade})
 
 
 # ── Ranking ──────────────────────────────────────────────────────────────────
@@ -291,22 +440,25 @@ def ronda_publica(request):
     configuracoes = (
         ConfiguracaoRondaSabado.objects
         .filter(status='APROVADA')
-        .prefetch_related('horarios__escalas__voluntario', 'horarios__escalas__local')
+        .prefetch_related('horarios__escalas__voluntario', 'horarios__local')
         .select_related('sabado')
         .order_by('-sabado__data')
     )
-    locais = LocalRonda.objects.filter(ativo=True)
 
-    grades = {}
+    # Para cada config, agrupa horários por janela de tempo
+    blocos = []
     for cfg in configuracoes:
-        grades[cfg.pk] = {}
-        for h in cfg.horarios.all():
-            grades[cfg.pk][h.pk] = {l.pk: [] for l in locais}
-            for e in h.escalas.all():
-                grades[cfg.pk][h.pk][e.local_id].append(e)
+        horarios = sorted(
+            cfg.horarios.all(),
+            key=lambda h: (h.hora_inicio, h.local.nome if h.local_id else '')
+        )
+        janelas = OrderedDict()
+        for h in horarios:
+            janelas.setdefault((h.hora_inicio, h.hora_fim), []).append(h)
+        grade = [
+            {'inicio': chave[0], 'fim': chave[1], 'linhas': linhas}
+            for chave, linhas in janelas.items()
+        ]
+        blocos.append({'cfg': cfg, 'grade': grade})
 
-    return render(request, 'ronda_publica.html', {
-        'configuracoes': configuracoes,
-        'locais': locais,
-        'grades': grades,
-    })
+    return render(request, 'ronda_publica.html', {'blocos': blocos})

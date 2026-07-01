@@ -1,32 +1,44 @@
 {% extends 'base.html' %}
 {% block title %}Locais de Ronda{% endblock %}
 {% block content %}
-<style>
-  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4rem;text-align:center;position:relative;clip-path:ellipse(55% 100% at 50% 100%)}
-  .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
-  .rd-body{max-width:700px;margin:-2rem auto 2rem;padding:0 1rem}
-  .rd-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1.25rem;margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center}
-</style>
-<div class="rd-header"><h1>Locais de Ronda</h1></div>
-<div class="rd-body">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-    <a href="{% url 'ronda:painel' %}" class="btn btn-sm btn-outline-secondary">← Painel</a>
-    <a href="{% url 'ronda:local_criar' %}" class="btn btn-sm" style="background:#fe8210;color:#fff;border:none">+ Novo Local</a>
+<div class="relative overflow-hidden text-white text-center"
+     style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.5rem 1rem 4.5rem">
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl md:text-3xl font-bold">Locais de Ronda</h1>
+    <p class="opacity-75 text-sm mt-1">Gerencie os locais usados nas escalas</p>
   </div>
-  {% for local in locais %}
-  <div class="rd-card">
-    <div>
-      <strong>{{ local.nome }}</strong>
-      {% if not local.ativo %}<span style="color:#dc2626;font-size:.75rem"> (inativo)</span>{% endif %}
-      <small style="color:hsl(var(--muted-foreground));display:block">Ordem: {{ local.ordem }}</small>
-    </div>
-    <div style="display:flex;gap:.5rem">
-      <a href="{% url 'ronda:local_editar' local.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
-      <a href="{% url 'ronda:local_deletar' local.pk %}" class="btn btn-sm btn-outline-danger">Remover</a>
-    </div>
+  <div class="absolute left-0 right-0" style="bottom:-2px;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)"></div>
+</div>
+
+<div class="max-w-2xl mx-auto px-4 -mt-8 relative z-10 pb-16">
+  <div class="flex items-center justify-between mb-4">
+    <a href="{% url 'ronda:painel' %}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">← Painel</a>
+    <a href="{% url 'ronda:local_criar' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white" style="background:#fe8210">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Novo Local
+    </a>
   </div>
-  {% empty %}
-  <p style="text-align:center;color:hsl(var(--muted-foreground))">Nenhum local cadastrado.</p>
-  {% endfor %}
+
+  <div class="space-y-2">
+    {% for local in locais %}
+    <div class="flex items-center justify-between bg-card border border-border rounded-lg p-4">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center justify-center w-9 h-9 rounded-full {% if local.ativo %}bg-green-100 text-green-600{% else %}bg-slate-100 text-slate-400{% endif %}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </span>
+        <div>
+          <span class="font-semibold text-slate-800">{{ local.nome }}</span>
+          {% if not local.ativo %}<span class="ml-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">inativo</span>{% endif %}
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <a href="{% url 'ronda:local_editar' local.pk %}" class="px-3 py-1.5 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">Editar</a>
+        <a href="{% url 'ronda:local_deletar' local.pk %}" class="px-3 py-1.5 rounded-md text-sm font-medium bg-card border border-red-200 text-red-600 hover:bg-red-50">Remover</a>
+      </div>
+    </div>
+    {% empty %}
+    <div class="bg-card border border-dashed border-border rounded-lg p-10 text-center text-muted-foreground">Nenhum local cadastrado.</div>
+    {% endfor %}
+  </div>
 </div>
 {% endblock %}

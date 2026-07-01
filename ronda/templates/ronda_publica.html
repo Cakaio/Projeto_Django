@@ -1,89 +1,84 @@
 {% extends 'base.html' %}
-{% load ronda_extras %}
 {% block title %}Rondas do Sábado{% endblock %}
 {% block content %}
-<style>
-  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4.5rem;text-align:center;position:relative;overflow:hidden}
-  .rd-header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)}
-  .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
-  .rd-header p{opacity:.75;margin:.5rem 0 0}
-  .rd-body{max-width:960px;margin:-2rem auto 2rem;padding:0 1rem;position:relative;z-index:1}
-  .rd-destaque{background:hsl(var(--card));border:2px solid #fe8210;border-radius:var(--radius);padding:1.5rem;margin-bottom:2rem}
-  .rd-destaque h2{font-size:1.25rem;font-weight:700;margin:0 0 1rem}
-  .rd-historico{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1.25rem;margin-bottom:.75rem}
-  .rd-grade{width:100%;border-collapse:collapse}
-  .rd-grade th,.rd-grade td{border:1px solid hsl(var(--border));padding:.6rem .75rem;font-size:.85rem;vertical-align:top}
-  .rd-grade th{background:hsl(var(--muted));font-weight:600;font-size:.75rem;text-transform:uppercase}
-  .rd-vol{display:block;font-weight:500}
-  .rd-sub{font-size:.7rem;color:#7c3aed;font-style:italic}
-  .rd-badge-aprovada{background:#dcfce7;color:#166534;display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:700}
-</style>
-<div class="rd-header">
-  <h1>Rondas do Sábado</h1>
-  <p>Voluntários escalados para rondas nos sábados do PCF</p>
+<div class="relative overflow-hidden text-white text-center"
+     style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.5rem 1rem 4.5rem">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl md:text-3xl font-bold">Rondas do Sábado</h1>
+    <p class="opacity-75 text-sm mt-1">Voluntários escalados para as rondas do PCF</p>
+  </div>
+  <div class="absolute left-0 right-0" style="bottom:-2px;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)"></div>
 </div>
-<div class="rd-body">
-  {% if not configuracoes %}
-  <div style="text-align:center;padding:3rem;color:hsl(var(--muted-foreground))">
-    <p>Nenhuma ronda aprovada ainda.</p>
+
+<div class="max-w-3xl mx-auto px-4 -mt-8 relative z-10 pb-16">
+  {% if not blocos %}
+  <div class="bg-card border border-dashed border-border rounded-lg p-12 text-center text-muted-foreground">
+    Nenhuma ronda aprovada ainda.
   </div>
   {% else %}
 
-  {% for cfg in configuracoes %}
+  {% for bloco in blocos %}
   {% if forloop.first %}
-  <div class="rd-destaque">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">
-      <h2>{{ cfg.sabado.data|date:"d/m/Y" }} — {{ cfg.sabado.tema }}</h2>
-      <span class="rd-badge-aprovada">Aprovada</span>
+  <!-- Próxima/última ronda em destaque -->
+  <div class="bg-card rounded-xl p-6 mb-6" style="border:2px solid #fe8210">
+    <div class="flex items-center justify-between flex-wrap gap-2 mb-4">
+      <h2 class="text-xl font-bold text-slate-800">{{ bloco.cfg.sabado.data|date:"d/m/Y" }} — {{ bloco.cfg.sabado.tema }}</h2>
+      <span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-green-100 text-green-700">Aprovada</span>
     </div>
-    {% for horario in cfg.horarios.all %}
-    <h3 style="font-size:.9rem;font-weight:600;margin:1rem 0 .4rem">{{ horario.hora_inicio|time:"H:i" }}–{{ horario.hora_fim|time:"H:i" }}</h3>
-    <table class="rd-grade">
-      <thead>
-        <tr>{% for local in locais %}<th>{{ local.nome }}</th>{% endfor %}</tr>
-      </thead>
-      <tbody>
-        <tr>
-          {% for local in locais %}
-          <td>
-            {% for escala in grades|get_item:cfg.pk|get_item:horario.pk|get_item:local.pk %}
-            <span class="rd-vol">{{ escala.voluntario.get_full_name }}</span>
-            {% if escala.is_substituto %}<span class="rd-sub">substituto</span>{% endif %}
-            {% empty %}
-            <span style="color:hsl(var(--muted-foreground))">—</span>
-            {% endfor %}
-          </td>
+    {% for j in bloco.grade %}
+    <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-700 mt-4 mb-2">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      {{ j.inicio|time:"H:i" }}–{{ j.fim|time:"H:i" }}
+    </h3>
+    <div class="space-y-2">
+      {% for linha in j.linhas %}
+      <div class="flex items-start gap-3 bg-slate-50 rounded-lg p-3">
+        <span class="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 min-w-32">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          {{ linha.local.nome|default:"—" }}
+        </span>
+        <div class="flex flex-wrap gap-2">
+          {% for escala in linha.escalas.all %}
+          <span class="inline-flex items-center gap-1 bg-white border border-border rounded-md px-2 py-1 text-sm text-slate-700">
+            {{ escala.voluntario.get_full_name }}
+            {% if escala.is_substituto %}<span class="text-[.65rem]" style="color:#7c3aed">(sub)</span>{% endif %}
+          </span>
+          {% empty %}<span class="text-sm text-muted-foreground">—</span>
           {% endfor %}
-        </tr>
-      </tbody>
-    </table>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
     {% endfor %}
   </div>
-
   {% else %}
-  <details class="rd-historico">
-    <summary style="cursor:pointer;font-weight:600">
-      {{ cfg.sabado.data|date:"d/m/Y" }} — {{ cfg.sabado.tema }}
+  <!-- Histórico -->
+  <details class="bg-card border border-border rounded-lg mb-2 group">
+    <summary class="cursor-pointer font-semibold text-slate-700 p-4 flex items-center justify-between">
+      <span>{{ bloco.cfg.sabado.data|date:"d/m/Y" }} — {{ bloco.cfg.sabado.tema }}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="group-open:rotate-180 transition-transform text-muted-foreground"><polyline points="6 9 12 15 18 9"/></svg>
     </summary>
-    {% for horario in cfg.horarios.all %}
-    <h4 style="font-size:.85rem;font-weight:600;margin:.75rem 0 .3rem">{{ horario.hora_inicio|time:"H:i" }}–{{ horario.hora_fim|time:"H:i" }}</h4>
-    <table class="rd-grade">
-      <thead><tr>{% for local in locais %}<th>{{ local.nome }}</th>{% endfor %}</tr></thead>
-      <tbody>
-        <tr>
-          {% for local in locais %}
-          <td>
-            {% for escala in grades|get_item:cfg.pk|get_item:horario.pk|get_item:local.pk %}
-            <span class="rd-vol">{{ escala.voluntario.get_full_name }}</span>
-            {% if escala.is_substituto %}<span class="rd-sub">substituto</span>{% endif %}
-            {% empty %}<span style="color:hsl(var(--muted-foreground))">—</span>
+    <div class="px-4 pb-4">
+      {% for j in bloco.grade %}
+      <h4 class="text-sm font-semibold text-slate-600 mt-3 mb-2">{{ j.inicio|time:"H:i" }}–{{ j.fim|time:"H:i" }}</h4>
+      <div class="space-y-2">
+        {% for linha in j.linhas %}
+        <div class="flex items-start gap-3 bg-slate-50 rounded-lg p-3">
+          <span class="text-sm font-semibold text-slate-700 min-w-32">{{ linha.local.nome|default:"—" }}</span>
+          <div class="flex flex-wrap gap-2">
+            {% for escala in linha.escalas.all %}
+            <span class="inline-flex items-center gap-1 bg-white border border-border rounded-md px-2 py-1 text-sm text-slate-700">
+              {{ escala.voluntario.get_full_name }}
+              {% if escala.is_substituto %}<span class="text-[.65rem]" style="color:#7c3aed">(sub)</span>{% endif %}
+            </span>
+            {% empty %}<span class="text-sm text-muted-foreground">—</span>
             {% endfor %}
-          </td>
-          {% endfor %}
-        </tr>
-      </tbody>
-    </table>
-    {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
   </details>
   {% endif %}
   {% endfor %}

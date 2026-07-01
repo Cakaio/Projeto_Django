@@ -1,112 +1,158 @@
 {% extends 'base.html' %}
-{% block title %}Nova Configuração de Ronda{% endblock %}
+{% block title %}{% if modo == 'editar' %}Editar Ronda{% else %}Nova Ronda{% endif %}{% endblock %}
 {% block content %}
 <style>
-  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4.5rem;text-align:center;position:relative;overflow:hidden}
-  .rd-header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)}
-  .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
-  .rd-header p{opacity:.75;margin:.5rem 0 0}
-  .rd-body{max-width:650px;margin:-2rem auto 2rem;padding:0 1rem;position:relative;z-index:1}
-  .rd-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem}
-  .rd-horario-row{display:grid;grid-template-columns:1fr 1fr 70px 36px;gap:.5rem;align-items:end;margin-bottom:.5rem;padding:.5rem;border:1px solid hsl(var(--border));border-radius:calc(var(--radius) - 2px)}
-  .rd-horario-row.marcado-deletar{opacity:.4;text-decoration:line-through}
-  .rd-delete-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1px solid #fca5a5;border-radius:6px;background:#fff5f5;color:#dc2626;cursor:pointer;font-size:.9rem;flex-shrink:0}
-  .rd-delete-btn:hover{background:#fee2e2}
-  .rd-add-btn{background:none;border:1px dashed hsl(var(--border));border-radius:var(--radius);padding:.5rem 1rem;cursor:pointer;color:hsl(var(--muted-foreground));font-size:.85rem;width:100%;margin-top:.25rem;transition:background .15s}
-  .rd-add-btn:hover{background:hsl(var(--accent))}
-  .rd-secao-label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:hsl(var(--muted-foreground));margin-bottom:.75rem}
+  /* Inputs/selects no padrão shadcn dentro deste form */
+  #rondaForm input[type="time"],
+  #rondaForm select {
+    width:100%; height:2.5rem; padding:0 .6rem;
+    background:hsl(var(--card)); color:hsl(var(--foreground));
+    border:1px solid hsl(var(--border)); border-radius:calc(var(--radius) - 2px);
+    font-size:.9rem;
+  }
+  #rondaForm input[type="time"]:focus,
+  #rondaForm select:focus {
+    outline:none; border-color:#fe8210; box-shadow:0 0 0 3px rgba(254,130,16,.15);
+  }
+  #rondaForm select:disabled { opacity:.7; background:hsl(var(--muted)); }
+  .rd-row.marcado-deletar { opacity:.4; }
+  .rd-row.marcado-deletar input, .rd-row.marcado-deletar select { text-decoration:line-through; }
 </style>
-<div class="rd-header">
-  <h1>Nova Configuração de Ronda</h1>
-  <p>Defina o sábado e os horários antes de sortear</p>
+
+<div class="relative overflow-hidden text-white text-center"
+     style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.5rem 1rem 4.5rem">
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl md:text-3xl font-bold">{% if modo == 'editar' %}Editar Ronda{% else %}Nova Ronda{% endif %}</h1>
+    <p class="opacity-75 text-sm mt-1">Defina o sábado e as linhas de escala (horário + local)</p>
+  </div>
+  <div class="absolute left-0 right-0" style="bottom:-2px;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)"></div>
 </div>
-<div class="rd-body">
-  <form method="post">{% csrf_token %}
+
+<div class="max-w-2xl mx-auto px-4 -mt-8 relative z-10 pb-16">
+  <form id="rondaForm" method="post">{% csrf_token %}
     {{ formset.management_form }}
 
-    <div class="rd-card">
-      <p class="rd-secao-label">Sábado do evento</p>
-      <div class="mb-0">
-        {{ form.sabado }}
-        {% if form.sabado.errors %}<div class="text-danger small mt-1">{{ form.sabado.errors|join:", " }}</div>{% endif %}
-      </div>
+    <!-- Sábado -->
+    <div class="bg-card border border-border rounded-lg p-5 mb-4">
+      <label class="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Sábado do evento</label>
+      {{ form.sabado }}
+      {% if form.sabado.errors %}<p class="text-red-600 text-sm mt-1">{{ form.sabado.errors|join:", " }}</p>{% endif %}
+      {% if modo == 'editar' %}<p class="text-xs text-muted-foreground mt-2">O sábado não pode ser alterado na edição.</p>{% endif %}
     </div>
 
-    <div class="rd-card">
-      <p class="rd-secao-label">Horários da ronda</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr 70px 36px;gap:.5rem;padding:0 .5rem .25rem;margin-bottom:.25rem">
-        <span style="font-size:.75rem;font-weight:600;color:hsl(var(--muted-foreground))">Início</span>
-        <span style="font-size:.75rem;font-weight:600;color:hsl(var(--muted-foreground))">Fim</span>
-        <span style="font-size:.75rem;font-weight:600;color:hsl(var(--muted-foreground))">Ordem</span>
+    <!-- Linhas de escala -->
+    <div class="bg-card border border-border rounded-lg p-5 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <label class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Linhas de escala</label>
+        <span class="text-xs text-muted-foreground">2 voluntários sorteados por linha</span>
+      </div>
+
+      <div class="hidden md:grid gap-2 px-1 mb-1" style="grid-template-columns:1fr 1fr 1.4fr 84px">
+        <span class="text-xs font-semibold text-muted-foreground">Início</span>
+        <span class="text-xs font-semibold text-muted-foreground">Fim</span>
+        <span class="text-xs font-semibold text-muted-foreground">Local</span>
         <span></span>
       </div>
-      <div id="horarios-container">
+
+      <div id="linhas-container" class="space-y-2">
         {% for hform in formset %}
-        <div class="rd-horario-row horario-form">
+        <div class="rd-row grid gap-2 items-center" style="grid-template-columns:1fr 1fr 1.4fr 84px">
           {{ hform.hora_inicio }}
           {{ hform.hora_fim }}
-          {{ hform.ordem }}
-          <button type="button" class="rd-delete-btn" title="Remover horário" onclick="removerHorario(this)">✕</button>
+          {{ hform.local }}
+          <div class="flex gap-1 justify-end">
+            <button type="button" title="Duplicar" onclick="duplicarLinha(this)"
+                    class="w-9 h-9 flex items-center justify-center rounded-md border border-border bg-card text-slate-600 hover:bg-accent">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <button type="button" title="Remover" onclick="removerLinha(this)"
+                    class="w-9 h-9 flex items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
           {% for hidden in hform.hidden_fields %}{{ hidden }}{% endfor %}
-          <div style="display:none">{{ hform.DELETE }}</div>
+          <div class="hidden">{{ hform.DELETE }}</div>
+          {% if hform.errors %}<p class="col-span-full text-red-600 text-xs">{{ hform.errors }}</p>{% endif %}
         </div>
         {% endfor %}
       </div>
-      <button type="button" class="rd-add-btn" id="add-horario">+ Adicionar horário</button>
+
+      {% if formset.non_form_errors %}<p class="text-red-600 text-sm mt-2">{{ formset.non_form_errors|join:", " }}</p>{% endif %}
+
+      <button type="button" id="add-linha"
+              class="w-full mt-3 py-2.5 rounded-md border border-dashed border-border text-sm text-muted-foreground hover:bg-accent">
+        + Adicionar linha
+      </button>
     </div>
 
-    <div style="display:flex;gap:.5rem">
-      <button type="submit" class="btn" style="background:#fe8210;color:#fff;border:none">Criar e ir para sorteio</button>
-      <a href="{% url 'ronda:painel' %}" class="btn btn-outline-secondary">Cancelar</a>
+    <div class="flex gap-2">
+      <button type="submit" class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-md text-sm font-semibold text-white" style="background:#fe8210">
+        {% if modo == 'editar' %}Salvar alterações{% else %}Criar e ir para sorteio{% endif %}
+      </button>
+      <a href="{% if modo == 'editar' %}{% url 'ronda:configuracao_detalhe' cfg.pk %}{% else %}{% url 'ronda:painel' %}{% endif %}"
+         class="px-5 py-2.5 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">Cancelar</a>
     </div>
   </form>
 </div>
+
 <script>
-  function removerHorario(btn) {
-    const row = btn.closest('.rd-horario-row');
-    const checkbox = row.querySelector('input[type="checkbox"]');
-    if (checkbox) {
-      checkbox.checked = true;
+  const container = document.getElementById('linhas-container');
+  const totalForms = document.getElementById('id_horarios-TOTAL_FORMS');
+
+  function recalcTotal() {
+    totalForms.value = container.querySelectorAll('.rd-row').length;
+  }
+
+  function reindexar() {
+    container.querySelectorAll('.rd-row').forEach((row, i) => {
+      row.querySelectorAll('input, select').forEach(el => {
+        if (el.name) el.name = el.name.replace(/horarios-\d+-/, `horarios-${i}-`);
+        if (el.id)   el.id   = el.id.replace(/horarios-\d+-/, `horarios-${i}-`);
+      });
+    });
+    recalcTotal();
+  }
+
+  document.getElementById('add-linha').addEventListener('click', () => {
+    const base = container.querySelector('.rd-row');
+    const clone = base.cloneNode(true);
+    clone.classList.remove('marcado-deletar');
+    clone.querySelectorAll('input, select').forEach(el => {
+      if (el.type === 'checkbox') { el.checked = false; }
+      else if (el.tagName === 'SELECT') { el.selectedIndex = 0; }
+      else if (el.name && el.name.indexOf('-id') === -1) { el.value = ''; }
+    });
+    const idInput = clone.querySelector('input[name$="-id"]');
+    if (idInput) idInput.value = '';
+    container.appendChild(clone);
+    reindexar();
+  });
+
+  function duplicarLinha(btn) {
+    const row = btn.closest('.rd-row');
+    const clone = row.cloneNode(true);
+    clone.classList.remove('marcado-deletar');
+    // nova instância (não existente no banco), mantém os valores digitados
+    const idInput = clone.querySelector('input[name$="-id"]');
+    if (idInput) idInput.value = '';
+    const del = clone.querySelector('input[type="checkbox"]');
+    if (del) del.checked = false;
+    // Sempre no fim: forms existentes precisam permanecer nas primeiras posições
+    container.appendChild(clone);
+    reindexar();
+  }
+
+  function removerLinha(btn) {
+    const row = btn.closest('.rd-row');
+    const del = row.querySelector('input[type="checkbox"]');
+    const idInput = row.querySelector('input[name$="-id"]');
+    if (del && idInput && idInput.value) {
+      del.checked = true;                 // instância existente → marca p/ deletar
       row.classList.add('marcado-deletar');
-      btn.style.display = 'none';
-    } else {
-      // form extra não salvo — simplesmente remove do DOM
-      row.remove();
-      recalcularTotal();
+    } else if (container.querySelectorAll('.rd-row:not(.marcado-deletar)').length > 1) {
+      row.remove();                       // nova → remove do DOM (mantém ≥ 1)
+      reindexar();
     }
   }
-
-  function recalcularTotal() {
-    const total = document.getElementById('id_horarios-TOTAL_FORMS');
-    total.value = document.querySelectorAll('#horarios-container .horario-form').length;
-  }
-
-  const container = document.getElementById('horarios-container');
-  const total = document.getElementById('id_horarios-TOTAL_FORMS');
-
-  document.getElementById('add-horario').addEventListener('click', () => {
-    const n = parseInt(total.value);
-    // Clona o primeiro form (ainda que esteja marcado para deletar, os campos estão presentes)
-    const source = container.querySelector('.horario-form');
-    const clone = source.cloneNode(true);
-    clone.classList.remove('marcado-deletar');
-
-    clone.querySelectorAll('input, select').forEach(inp => {
-      inp.name = inp.name.replace(/-\d+-/, `-${n}-`);
-      inp.id   = inp.id.replace(/-\d+-/, `-${n}-`);
-      if (inp.type === 'checkbox') { inp.checked = false; }
-      else { inp.value = ''; }
-    });
-    clone.querySelectorAll('label').forEach(lbl => {
-      if (lbl.htmlFor) lbl.htmlFor = lbl.htmlFor.replace(/-\d+-/, `-${n}-`);
-    });
-
-    // Restaura o botão delete caso o original estivesse oculto
-    const delBtn = clone.querySelector('.rd-delete-btn');
-    if (delBtn) delBtn.style.display = '';
-
-    container.appendChild(clone);
-    total.value = n + 1;
-  });
 </script>
 {% endblock %}
