@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Escala de Ronda — {{ cfg.sabado.data|date:"d/m/Y" }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; margin: 0; padding: 2rem; }
+    .cabecalho { text-align: center; border-bottom: 3px solid #fe8210; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+    .cabecalho h1 { margin: 0; font-size: 1.4rem; }
+    .cabecalho p { margin: .25rem 0 0; color: #475569; }
+    .janela { margin-bottom: 1.25rem; page-break-inside: avoid; }
+    .janela h2 { font-size: 1rem; background: #0f172a; color: #fff; padding: .4rem .75rem; border-radius: 6px; margin: 0 0 .5rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #cbd5e1; padding: .55rem .75rem; text-align: left; font-size: .9rem; }
+    th { background: #f1f5f9; width: 30%; }
+    .btn-imprimir { position: fixed; top: 1rem; right: 1rem; background: #fe8210; color: #fff; border: none; padding: .6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    @media print { .btn-imprimir { display: none; } body { padding: 0; } }
+  </style>
+</head>
+<body>
+  <button class="btn-imprimir" onclick="window.print()">Imprimir</button>
+
+  <div class="cabecalho">
+    <h1>Escala de Ronda</h1>
+    <p>{{ cfg.sabado.data|date:"l, d \d\e F \d\e Y" }} — {{ cfg.sabado.tema }}</p>
+  </div>
+
+  {% for bloco in grade %}
+  <div class="janela">
+    <h2>{{ bloco.inicio|time:"H:i" }}–{{ bloco.fim|time:"H:i" }}</h2>
+    <table>
+      <tbody>
+        {% for linha in bloco.linhas %}
+        <tr>
+          <th>{{ linha.local.nome|default:"—" }}</th>
+          <td>
+            {% for escala in linha.escalas.all %}{{ escala.voluntario.get_full_name }}{% if escala.is_substituto %} (sub){% endif %}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% empty %}
+  <p>Nenhuma linha de escala cadastrada.</p>
+  {% endfor %}
+</body>
+</html>

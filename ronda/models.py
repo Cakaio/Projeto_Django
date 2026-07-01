@@ -50,16 +50,18 @@ class HorarioRonda(models.Model):
     configuracao = models.ForeignKey(ConfiguracaoRondaSabado, on_delete=models.CASCADE, related_name='horarios')
     hora_inicio  = models.TimeField()
     hora_fim     = models.TimeField()
+    local        = models.ForeignKey(LocalRonda, on_delete=models.PROTECT, related_name='horarios', null=True)
     ordem        = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
-        ordering = ['ordem', 'hora_inicio']
-        unique_together = ('configuracao', 'hora_inicio', 'hora_fim')
+        ordering = ['ordem', 'hora_inicio', 'local__nome']
+        unique_together = ('configuracao', 'hora_inicio', 'hora_fim', 'local')
         verbose_name = 'Horário de Ronda'
         verbose_name_plural = 'Horários de Ronda'
 
     def __str__(self):
-        return f'{self.hora_inicio:%H:%M}–{self.hora_fim:%H:%M}'
+        base = f'{self.hora_inicio:%H:%M}–{self.hora_fim:%H:%M}'
+        return f'{base} · {self.local.nome}' if self.local_id else base
 
 
 class EscalaRonda(models.Model):

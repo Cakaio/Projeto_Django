@@ -7,13 +7,12 @@ from .models import LocalRonda, ConfiguracaoRondaSabado, HorarioRonda, ScoreRond
 class LocalRondaForm(forms.ModelForm):
     class Meta:
         model = LocalRonda
-        fields = ['nome', 'ativo', 'ordem']
+        fields = ['nome', 'ativo']
         widgets = {
-            'nome':  forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Quadra'}),
-            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'ordem': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'nome':  forms.TextInput(attrs={'placeholder': 'Ex: Quadra'}),
+            'ativo': forms.CheckboxInput(),
         }
-        labels = {'nome': 'Nome', 'ativo': 'Ativo', 'ordem': 'Ordem de exibição'}
+        labels = {'nome': 'Nome do local', 'ativo': 'Local ativo'}
 
 
 class ConfiguracaoRondaForm(forms.ModelForm):
@@ -27,9 +26,11 @@ class ConfiguracaoRondaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         from sabado.models import Sabado
         from django.utils import timezone
+        from datetime import timedelta
         ja_configurados = ConfiguracaoRondaSabado.objects.values_list('sabado_id', flat=True)
+        limite = timezone.now().date() - timedelta(days=30)
         self.fields['sabado'].queryset = (
-            Sabado.objects.filter(data__gte=timezone.now().date())
+            Sabado.objects.filter(data__gte=limite)
             .exclude(pk__in=ja_configurados)
             .order_by('data')
         )
@@ -38,20 +39,26 @@ class ConfiguracaoRondaForm(forms.ModelForm):
 class HorarioRondaForm(forms.ModelForm):
     class Meta:
         model = HorarioRonda
-        fields = ['hora_inicio', 'hora_fim', 'ordem']
+        fields = ['hora_inicio', 'hora_fim', 'local']
         widgets = {
-            'hora_inicio': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-            'hora_fim':    forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
-            'ordem':       forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'hora_inicio': forms.TimeInput(attrs={'type': 'time'}),
+            'hora_fim':    forms.TimeInput(attrs={'type': 'time'}),
+            'local':       forms.Select(),
         }
-        labels = {'hora_inicio': 'Início', 'hora_fim': 'Fim', 'ordem': 'Ordem'}
+        labels = {'hora_inicio': 'Início', 'hora_fim': 'Fim', 'local': 'Local'}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['local'].queryset = LocalRonda.objects.filter(ativo=True)
+        self.fields['local'].required = True
+        self.fields['local'].empty_label = 'Selecione o local…'
 
 
 HorarioRondaFormSet = inlineformset_factory(
     ConfiguracaoRondaSabado,
     HorarioRonda,
     form=HorarioRondaForm,
-    extra=0,
+    extra=1,
     min_num=1,
     validate_min=True,
     can_delete=True,
