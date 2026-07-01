@@ -89,6 +89,7 @@
             {% elif cfg.status == 'SORTEADA' %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-blue-100 text-blue-700">Sorteada</span>
             {% elif cfg.status == 'APROVADA' %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-green-100 text-green-700">Aprovada</span>
             {% else %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-red-100 text-red-700">Reprovada</span>{% endif %}
+            {% if cfg.dia_de_evento %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style="background:#fed7aa;color:#9a3412">Evento</span>{% endif %}
           </div>
           <div class="text-xs text-muted-foreground mt-1">{{ cfg.horarios.count }} linha(s) de escala</div>
         </div>

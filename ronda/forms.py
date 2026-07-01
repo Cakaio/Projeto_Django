@@ -18,9 +18,12 @@ class LocalRondaForm(forms.ModelForm):
 class ConfiguracaoRondaForm(forms.ModelForm):
     class Meta:
         model = ConfiguracaoRondaSabado
-        fields = ['sabado']
-        widgets = {'sabado': forms.Select(attrs={'class': 'form-select'})}
-        labels = {'sabado': 'Sábado'}
+        fields = ['sabado', 'dia_de_evento']
+        widgets = {
+            'sabado': forms.Select(attrs={'class': 'form-select'}),
+            'dia_de_evento': forms.CheckboxInput(),
+        }
+        labels = {'sabado': 'Sábado', 'dia_de_evento': 'Ronda em dia de evento'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -52,6 +55,9 @@ class HorarioRondaForm(forms.ModelForm):
         self.fields['local'].queryset = LocalRonda.objects.filter(ativo=True)
         self.fields['local'].required = True
         self.fields['local'].empty_label = 'Selecione o local…'
+        # Horários são opcionais: no modo "dia de evento" não há faixa de horário.
+        self.fields['hora_inicio'].required = False
+        self.fields['hora_fim'].required = False
 
 
 HorarioRondaFormSet = inlineformset_factory(

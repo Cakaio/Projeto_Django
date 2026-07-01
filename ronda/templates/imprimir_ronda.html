@@ -22,10 +22,27 @@
   <button class="btn-imprimir" onclick="window.print()">Imprimir</button>
 
   <div class="cabecalho">
-    <h1>Escala de Ronda</h1>
+    <h1>Escala de Ronda{% if cfg.dia_de_evento %} — Dia de Evento{% endif %}</h1>
     <p>{{ cfg.sabado.data|date:"l, d \d\e F \d\e Y" }} — {{ cfg.sabado.tema }}</p>
   </div>
 
+  {% if cfg.dia_de_evento %}
+  <table>
+    <thead><tr><th>Local</th><th>Dupla 1</th><th>Dupla 2</th></tr></thead>
+    <tbody>
+      {% for item in grade_evento %}
+      <tr>
+        <th>{{ item.local.nome|default:"—" }}</th>
+        <td>{% for escala in item.dupla1 %}{{ escala.voluntario.get_full_name }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}</td>
+        <td>{% for escala in item.dupla2 %}{{ escala.voluntario.get_full_name }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3">Nenhum local cadastrado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p style="margin-top:.75rem;color:#475569;font-size:.85rem">Revezamento 2×2 a cada 30 min, combinado entre as duplas no dia.</p>
+  {% else %}
   {% for bloco in grade %}
   <div class="janela">
     <h2>{{ bloco.inicio|time:"H:i" }}–{{ bloco.fim|time:"H:i" }}</h2>
@@ -45,5 +62,6 @@
   {% empty %}
   <p>Nenhuma linha de escala cadastrada.</p>
   {% endfor %}
+  {% endif %}
 </body>
 </html>

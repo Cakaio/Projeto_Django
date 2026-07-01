@@ -43,6 +43,19 @@ def _contar_confirmados(sabado):
     )
 
 
+def _grade_evento(horarios):
+    """Modo dia de evento: cada horário = um local com 2 duplas fixas."""
+    grade = []
+    for h in horarios:
+        escalas = list(h.escalas.all())
+        grade.append({
+            'local': h.local,
+            'dupla1': [e for e in escalas if e.dupla == 1],
+            'dupla2': [e for e in escalas if e.dupla == 2],
+        })
+    return grade
+
+
 def _mapa_ultima_ronda():
     """{voluntario_id: data da última ronda aprovada}."""
     ultima = {}
@@ -224,6 +237,7 @@ def configuracao_detalhe(request, pk):
         }
         for chave, linhas in janelas.items()
     ]
+    grade_evento = _grade_evento(horarios) if cfg.dia_de_evento else []
 
     from voluntario.models import Voluntario
     elegiveis = (
@@ -240,11 +254,13 @@ def configuracao_detalhe(request, pk):
 
     total_linhas = cfg.horarios.filter(local__isnull=False).count()
     confirmados = _contar_confirmados(cfg.sabado)
-    necessarios = total_linhas * 2
+    por_linha = 4 if cfg.dia_de_evento else 2
+    necessarios = total_linhas * por_linha
 
     return render(request, 'detalhe_configuracao.html', {
         'cfg': cfg,
         'grade': grade,
+        'grade_evento': grade_evento,
         'elegiveis': elegiveis,
         'scores': scores,
         'ultima_ronda': ultima_ronda,
@@ -314,6 +330,9 @@ def escala_swap(request, pk):
         return redirect('ronda:configuracao_detalhe', pk=escala.horario.configuracao_id)
 
     cfg = escala.horario.configuracao
+    if cfg.dia_de_evento:
+        messages.error(request, 'Em dia de evento as duplas são fixas — re-sorteie se precisar mudar.')
+        return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
     if cfg.status not in ('SORTEADA', 'PENDENTE_SORTEIO'):
         messages.error(request, 'Só é possível trocar voluntários antes da aprovação.')
         return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
@@ -366,7 +385,10 @@ def configuracao_imprimir(request, pk):
         {'inicio': chave[0], 'fim': chave[1], 'linhas': linhas}
         for chave, linhas in janelas.items()
     ]
-    return render(request, 'imprimir_ronda.html', {'cfg': cfg, 'grade': grade})
+    grade_evento = _grade_evento(horarios) if cfg.dia_de_evento else []
+    return render(request, 'imprimir_ronda.html', {
+        'cfg': cfg, 'grade': grade, 'grade_evento': grade_evento,
+    })
 
 
 # ── Ranking ──────────────────────────────────────────────────────────────────
@@ -462,6 +484,7 @@ def ronda_publica(request):
             {'inicio': chave[0], 'fim': chave[1], 'linhas': linhas}
             for chave, linhas in janelas.items()
         ]
-        blocos.append({'cfg': cfg, 'grade': grade})
+        grade_evento = _grade_evento(horarios) if cfg.dia_de_evento else []
+        blocos.append({'cfg': cfg, 'grade': grade, 'grade_evento': grade_evento})
 
     return render(request, 'ronda_publica.html', {'blocos': blocos})

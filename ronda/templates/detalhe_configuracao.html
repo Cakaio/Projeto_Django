@@ -8,6 +8,7 @@
     <h1 class="text-2xl md:text-3xl font-bold">Ronda — {{ cfg.sabado.data|date:"d/m/Y" }}</h1>
     <p class="opacity-80 text-sm mt-1 flex items-center justify-center gap-2 flex-wrap">
       <span>{{ cfg.sabado.tema }}</span>
+      {% if cfg.dia_de_evento %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style="background:#fed7aa;color:#9a3412">Dia de Evento</span>{% endif %}
       {% if cfg.status == 'PENDENTE_SORTEIO' %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-slate-200 text-slate-700">Pendente de Sorteio</span>
       {% elif cfg.status == 'SORTEADA' %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-blue-200 text-blue-800">Sorteada</span>
       {% elif cfg.status == 'APROVADA' %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-green-200 text-green-800">Aprovada</span>
@@ -104,6 +105,49 @@
   {% endif %}
 
   <!-- Grade -->
+  {% if cfg.dia_de_evento %}
+  <p class="text-sm text-muted-foreground mb-3">Cada local tem 4 pessoas fixas em 2 duplas. O revezamento 2×2 (30 em 30 min) é combinado entre elas no dia.</p>
+  <div class="space-y-3">
+    {% for item in grade_evento %}
+    <div class="bg-card border border-border rounded-lg p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span class="font-semibold text-slate-800">{{ item.local.nome|default:"— sem local —" }}</span>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <div class="rounded-lg border border-border p-3">
+          <div class="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Dupla 1</div>
+          <div class="flex flex-wrap gap-2">
+            {% for escala in item.dupla1 %}
+            <div class="inline-flex items-center gap-2 bg-accent rounded-lg pl-3 pr-2 py-1.5 text-sm">
+              <span class="text-slate-800">{{ escala.voluntario.get_full_name }}</span>
+              <span class="rounded-full text-white text-[.65rem] font-bold px-1.5 py-0.5" style="background:#fe8210">{{ scores|get_item:escala.voluntario_id|default:0 }} pt</span>
+              {% with u=ultima_ronda|get_item:escala.voluntario_id %}{% if u %}<span class="text-[.65rem] text-muted-foreground">últ. {{ u|date:"d/m" }}</span>{% else %}<span class="text-[.65rem] rounded-full bg-slate-100 text-slate-500 px-1.5 py-0.5">nunca fez</span>{% endif %}{% endwith %}
+            </div>
+            {% empty %}<span class="text-sm text-muted-foreground">—</span>{% endfor %}
+          </div>
+        </div>
+        <div class="rounded-lg border border-border p-3">
+          <div class="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Dupla 2</div>
+          <div class="flex flex-wrap gap-2">
+            {% for escala in item.dupla2 %}
+            <div class="inline-flex items-center gap-2 bg-accent rounded-lg pl-3 pr-2 py-1.5 text-sm">
+              <span class="text-slate-800">{{ escala.voluntario.get_full_name }}</span>
+              <span class="rounded-full text-white text-[.65rem] font-bold px-1.5 py-0.5" style="background:#fe8210">{{ scores|get_item:escala.voluntario_id|default:0 }} pt</span>
+              {% with u=ultima_ronda|get_item:escala.voluntario_id %}{% if u %}<span class="text-[.65rem] text-muted-foreground">últ. {{ u|date:"d/m" }}</span>{% else %}<span class="text-[.65rem] rounded-full bg-slate-100 text-slate-500 px-1.5 py-0.5">nunca fez</span>{% endif %}{% endwith %}
+            </div>
+            {% empty %}<span class="text-sm text-muted-foreground">—</span>{% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="bg-card border border-dashed border-border rounded-lg p-10 text-center text-muted-foreground">
+      Nenhum local cadastrado. <a href="{% url 'ronda:configuracao_editar' cfg.pk %}" class="text-primary font-medium underline">Adicionar locais</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
   {% for bloco in grade %}
   <div class="mb-5">
     <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
@@ -156,6 +200,7 @@
     <a href="{% url 'ronda:configuracao_editar' cfg.pk %}" class="text-primary font-medium underline">Adicionar linhas</a>
   </div>
   {% endfor %}
+  {% endif %}
 </div>
 
 <script>

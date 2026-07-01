@@ -15,8 +15,12 @@
     outline:none; border-color:#fe8210; box-shadow:0 0 0 3px rgba(254,130,16,.15);
   }
   #rondaForm select:disabled { opacity:.7; background:hsl(var(--muted)); }
+  .rd-head, .rd-row { display:grid; gap:.5rem; align-items:center; grid-template-columns:1fr 1fr 1.4fr 84px; }
   .rd-row.marcado-deletar { opacity:.4; }
   .rd-row.marcado-deletar input, .rd-row.marcado-deletar select { text-decoration:line-through; }
+  /* Modo dia de evento: sem horários, só Local */
+  #rondaForm.modo-evento .rd-head, #rondaForm.modo-evento .rd-row { grid-template-columns:1fr 84px; }
+  #rondaForm.modo-evento .col-hora { display:none !important; }
 </style>
 
 <div class="relative overflow-hidden text-white text-center"
@@ -38,6 +42,14 @@
       {{ form.sabado }}
       {% if form.sabado.errors %}<p class="text-red-600 text-sm mt-1">{{ form.sabado.errors|join:", " }}</p>{% endif %}
       {% if modo == 'editar' %}<p class="text-xs text-muted-foreground mt-2">O sábado não pode ser alterado na edição.</p>{% endif %}
+
+      <label class="flex items-start gap-3 mt-4 pt-4 border-t border-border cursor-pointer">
+        <span class="mt-0.5">{{ form.dia_de_evento }}</span>
+        <span>
+          <span class="block text-sm font-medium text-slate-800">Ronda em dia de evento</span>
+          <span class="block text-xs text-muted-foreground">4 pessoas fixas por local (2 duplas), sem horários. O revezamento 2x2 é combinado no dia.</span>
+        </span>
+      </label>
     </div>
 
     <!-- Linhas de escala -->
@@ -47,18 +59,18 @@
         <span class="text-xs text-muted-foreground">2 voluntários sorteados por linha</span>
       </div>
 
-      <div class="hidden md:grid gap-2 px-1 mb-1" style="grid-template-columns:1fr 1fr 1.4fr 84px">
-        <span class="text-xs font-semibold text-muted-foreground">Início</span>
-        <span class="text-xs font-semibold text-muted-foreground">Fim</span>
+      <div class="rd-head hidden md:grid px-1 mb-1">
+        <span class="col-hora text-xs font-semibold text-muted-foreground">Início</span>
+        <span class="col-hora text-xs font-semibold text-muted-foreground">Fim</span>
         <span class="text-xs font-semibold text-muted-foreground">Local</span>
         <span></span>
       </div>
 
       <div id="linhas-container" class="space-y-2">
         {% for hform in formset %}
-        <div class="rd-row grid gap-2 items-center" style="grid-template-columns:1fr 1fr 1.4fr 84px">
-          {{ hform.hora_inicio }}
-          {{ hform.hora_fim }}
+        <div class="rd-row">
+          <span class="col-hora">{{ hform.hora_inicio }}</span>
+          <span class="col-hora">{{ hform.hora_fim }}</span>
           {{ hform.local }}
           <div class="flex gap-1 justify-end">
             <button type="button" title="Duplicar" onclick="duplicarLinha(this)"
@@ -96,6 +108,13 @@
 </div>
 
 <script>
+  const rondaForm = document.getElementById('rondaForm');
+  const chkEvento = document.getElementById('id_dia_de_evento');
+  function aplicarModoEvento() {
+    rondaForm.classList.toggle('modo-evento', chkEvento && chkEvento.checked);
+  }
+  if (chkEvento) { chkEvento.addEventListener('change', aplicarModoEvento); aplicarModoEvento(); }
+
   const container = document.getElementById('linhas-container');
   const totalForms = document.getElementById('id_horarios-TOTAL_FORMS');
 

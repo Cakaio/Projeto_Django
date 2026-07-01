@@ -30,6 +30,7 @@ class LocalRonda(models.Model):
 class ConfiguracaoRondaSabado(models.Model):
     sabado      = models.OneToOneField('sabado.Sabado', on_delete=models.CASCADE, related_name='configuracao_ronda')
     status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDENTE_SORTEIO')
+    dia_de_evento = models.BooleanField(default=False, help_text='Ronda rotativa: 4 pessoas fixas por local (2 duplas), sem horários.')
     criado_por  = models.ForeignKey('voluntario.Voluntario', on_delete=models.SET_NULL, null=True, related_name='configuracoes_ronda_criadas')
     criado_em   = models.DateTimeField(default=timezone.now)
     sorteado_em = models.DateTimeField(null=True, blank=True)
@@ -48,8 +49,8 @@ class ConfiguracaoRondaSabado(models.Model):
 
 class HorarioRonda(models.Model):
     configuracao = models.ForeignKey(ConfiguracaoRondaSabado, on_delete=models.CASCADE, related_name='horarios')
-    hora_inicio  = models.TimeField()
-    hora_fim     = models.TimeField()
+    hora_inicio  = models.TimeField(null=True, blank=True)
+    hora_fim     = models.TimeField(null=True, blank=True)
     local        = models.ForeignKey(LocalRonda, on_delete=models.PROTECT, related_name='horarios', null=True)
     ordem        = models.PositiveSmallIntegerField(default=0)
 
@@ -70,6 +71,7 @@ class EscalaRonda(models.Model):
     voluntario          = models.ForeignKey('voluntario.Voluntario', on_delete=models.CASCADE, related_name='escalas_ronda')
     is_substituto       = models.BooleanField(default=False)
     voluntario_original = models.ForeignKey('voluntario.Voluntario', on_delete=models.SET_NULL, null=True, blank=True, related_name='escalas_substituidas')
+    dupla               = models.PositiveSmallIntegerField(null=True, blank=True, help_text='Dupla fixa (1 ou 2) no modo dia de evento.')
     criado_em           = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -78,9 +80,10 @@ class EscalaRonda(models.Model):
         verbose_name_plural = 'Escalas de Ronda'
 
     def clean(self):
+        limite = 4 if self.horario and self.horario.configuracao.dia_de_evento else 2
         count = EscalaRonda.objects.filter(horario=self.horario, local=self.local).exclude(pk=self.pk).count()
-        if count >= 2:
-            raise ValidationError('Máximo de 2 voluntários por local e horário.')
+        if count >= limite:
+            raise ValidationError(f'Máximo de {limite} voluntários por local e horário.')
 
     def __str__(self):
         return f'{self.voluntario} — {self.local} — {self.horario}'

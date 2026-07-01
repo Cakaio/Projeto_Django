@@ -23,8 +23,14 @@
   <div class="bg-card rounded-xl p-6 mb-6" style="border:2px solid #fe8210">
     <div class="flex items-center justify-between flex-wrap gap-2 mb-4">
       <h2 class="text-xl font-bold text-slate-800">{{ bloco.cfg.sabado.data|date:"d/m/Y" }} — {{ bloco.cfg.sabado.tema }}</h2>
-      <span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-green-100 text-green-700">Aprovada</span>
+      <div class="flex gap-2">
+        {% if bloco.cfg.dia_de_evento %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style="background:#fed7aa;color:#9a3412">Dia de Evento</span>{% endif %}
+        <span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-green-100 text-green-700">Aprovada</span>
+      </div>
     </div>
+    {% if bloco.cfg.dia_de_evento %}
+      {% include '_grade_evento_publica.html' with grade_evento=bloco.grade_evento %}
+    {% else %}
     {% for j in bloco.grade %}
     <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-700 mt-4 mb-2">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -50,6 +56,7 @@
       {% endfor %}
     </div>
     {% endfor %}
+    {% endif %}
   </div>
   {% else %}
   <!-- Histórico -->
@@ -59,6 +66,9 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="group-open:rotate-180 transition-transform text-muted-foreground"><polyline points="6 9 12 15 18 9"/></svg>
     </summary>
     <div class="px-4 pb-4">
+      {% if bloco.cfg.dia_de_evento %}
+        {% include '_grade_evento_publica.html' with grade_evento=bloco.grade_evento %}
+      {% else %}
       {% for j in bloco.grade %}
       <h4 class="text-sm font-semibold text-slate-600 mt-3 mb-2">{{ j.inicio|time:"H:i" }}–{{ j.fim|time:"H:i" }}</h4>
       <div class="space-y-2">
@@ -78,6 +88,7 @@
         {% endfor %}
       </div>
       {% endfor %}
+      {% endif %}
     </div>
   </details>
   {% endif %}

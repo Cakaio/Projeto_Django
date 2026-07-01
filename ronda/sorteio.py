@@ -5,67 +5,97 @@ from django.utils import timezone
 from .models import AREAS_ISENTAS_RONDA, EscalaRonda, ScoreRonda
 
 
+def _pool_confirmados(configuracao):
+    """IDs de voluntários que confirmaram presença no sábado."""
+    from sabado.models import DisponibilidadeVoluntario
+    return set(
+        DisponibilidadeVoluntario.objects.filter(
+            sabado=configuracao.sabado, vai_ao_projeto=True,
+        ).values_list('voluntario_id', flat=True)
+    )
+
+
+def _ordenar_por_score(pool, ano):
+    """Embaralha e ordena por menor score anual (sort estável preserva o aleatório)."""
+    scores = {
+        s.voluntario_id: s.pontos
+        for s in ScoreRonda.objects.filter(voluntario__in=pool, ano=ano)
+    }
+    random.shuffle(pool)
+    pool.sort(key=lambda v: scores.get(v.pk, 0))
+
+
 def executar_sorteio(configuracao):
     """
-    Sorteia 2 voluntários por linha (HorarioRonda = faixa de horário + local),
-    priorizando menor score anual. Um voluntário não pode aparecer duas vezes na
-    mesma FAIXA DE HORÁRIO (mesmo início/fim), ainda que em locais diferentes.
-    Só entram voluntários que confirmaram presença (vai_ao_projeto=True) no sábado.
-    Deleta escalas anteriores desta configuração antes de re-sortear.
+    Sorteia a escala de ronda.
+
+    Modo normal: 2 voluntários por linha (horário + local); um voluntário não se
+    repete na mesma faixa de horário.
+
+    Modo dia de evento: 4 voluntários fixos por local, divididos em 2 duplas fixas
+    (dupla 1 e dupla 2); cada voluntário aparece em um único local.
+
+    Em ambos: só entram quem confirmou presença (vai_ao_projeto=True), priorizando
+    menor score anual. Deleta escalas anteriores antes de re-sortear.
     """
     from voluntario.models import Voluntario
-    from sabado.models import DisponibilidadeVoluntario
 
     ano = configuracao.sabado.data.year
     EscalaRonda.objects.filter(horario__configuracao=configuracao).delete()
-
-    confirmados_ids = set(
-        DisponibilidadeVoluntario.objects.filter(
-            sabado=configuracao.sabado,
-            vai_ao_projeto=True,
-        ).values_list('voluntario_id', flat=True)
-    )
+    confirmados_ids = _pool_confirmados(configuracao)
 
     horarios = list(
         configuracao.horarios.select_related('local')
         .order_by('ordem', 'hora_inicio', 'local__nome')
     )
 
-    # Controle de quem já foi alocado por janela de horário (início, fim)
-    ja_alocados_por_janela = defaultdict(set)
-
-    for horario in horarios:
-        if horario.local_id is None:
-            continue  # linha sem local definido — ignora
-
-        janela = (horario.hora_inicio, horario.hora_fim)
-        ja_alocados = ja_alocados_por_janela[janela]
-
-        pool = list(
+    def _base_qs(excluir_ids):
+        return list(
             Voluntario.objects.filter(data_saida__isnull=True, pk__in=confirmados_ids)
             .exclude(area__in=AREAS_ISENTAS_RONDA)
-            .exclude(pk__in=ja_alocados)
+            .exclude(pk__in=excluir_ids)
         )
-        if not pool:
-            continue
 
-        scores = {
-            s.voluntario_id: s.pontos
-            for s in ScoreRonda.objects.filter(voluntario__in=pool, ano=ano)
-        }
-
-        # Embaralha antes de ordenar — sort estável preserva aleatoriedade dentro do grupo
-        random.shuffle(pool)
-        pool.sort(key=lambda v: scores.get(v.pk, 0))
-
-        for vol in pool[:2]:
-            EscalaRonda.objects.create(
-                horario=horario,
-                local=horario.local,
-                voluntario=vol,
-                is_substituto=False,
-            )
-            ja_alocados.add(vol.pk)
+    if configuracao.dia_de_evento:
+        # 4 por local, duplas fixas, cada pessoa em um único local
+        ja_global = set()
+        for horario in horarios:
+            if horario.local_id is None:
+                continue
+            pool = _base_qs(ja_global)
+            if not pool:
+                continue
+            _ordenar_por_score(pool, ano)
+            escolhidos = pool[:4]
+            for i, vol in enumerate(escolhidos):
+                EscalaRonda.objects.create(
+                    horario=horario,
+                    local=horario.local,
+                    voluntario=vol,
+                    dupla=1 if i < 2 else 2,
+                    is_substituto=False,
+                )
+                ja_global.add(vol.pk)
+    else:
+        # 2 por linha, sem repetir na mesma faixa de horário
+        ja_alocados_por_janela = defaultdict(set)
+        for horario in horarios:
+            if horario.local_id is None:
+                continue
+            janela = (horario.hora_inicio, horario.hora_fim)
+            ja_alocados = ja_alocados_por_janela[janela]
+            pool = _base_qs(ja_alocados)
+            if not pool:
+                continue
+            _ordenar_por_score(pool, ano)
+            for vol in pool[:2]:
+                EscalaRonda.objects.create(
+                    horario=horario,
+                    local=horario.local,
+                    voluntario=vol,
+                    is_substituto=False,
+                )
+                ja_alocados.add(vol.pk)
 
     configuracao.status = 'SORTEADA'
     configuracao.sorteado_em = timezone.now()

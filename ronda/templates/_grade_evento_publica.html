@@ -1,0 +1,18 @@
+{% for item in grade_evento %}
+<div class="flex items-start gap-3 bg-slate-50 rounded-lg p-3 mb-2">
+  <span class="text-sm font-semibold text-slate-700 min-w-32 flex items-center gap-1">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    {{ item.local.nome|default:"—" }}
+  </span>
+  <div class="space-y-1.5 flex-1">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-[.65rem] font-bold uppercase tracking-wide text-muted-foreground w-14">Dupla 1</span>
+      {% for escala in item.dupla1 %}<span class="bg-white border border-border rounded-md px-2 py-1 text-sm text-slate-700">{{ escala.voluntario.get_full_name }}</span>{% empty %}<span class="text-sm text-muted-foreground">—</span>{% endfor %}
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-[.65rem] font-bold uppercase tracking-wide text-muted-foreground w-14">Dupla 2</span>
+      {% for escala in item.dupla2 %}<span class="bg-white border border-border rounded-md px-2 py-1 text-sm text-slate-700">{{ escala.voluntario.get_full_name }}</span>{% empty %}<span class="text-sm text-muted-foreground">—</span>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endfor %}
