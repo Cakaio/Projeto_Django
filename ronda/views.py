@@ -320,9 +320,12 @@ def escala_swap(request, pk):
 
     from voluntario.models import Voluntario
     novo_pk = request.POST.get('voluntario_novo_pk')
+    if not novo_pk:
+        messages.error(request, 'Selecione um voluntário para a troca.')
+        return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
     try:
         novo_vol = Voluntario.objects.get(pk=novo_pk, data_saida__isnull=True)
-    except Voluntario.DoesNotExist:
+    except (Voluntario.DoesNotExist, ValueError):
         messages.error(request, 'Voluntário não encontrado ou inativo.')
         return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
 
