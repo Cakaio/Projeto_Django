@@ -66,6 +66,7 @@ def criar_semanario(request):
                         continue
                     for m in mats:
                         nome = m.get('nome', '').strip()
+                        link = m.get('link', '').strip()
                         quantidade = m.get('quantidade', '').strip()
                         unidade = m.get('unidade', '').strip()
                         # Sem destino explícito → Supply (padrão de compra do projeto)
@@ -82,6 +83,7 @@ def criar_semanario(request):
                             Material.objects.create(
                                 atividade=atividade_obj,
                                 nome=nome,
+                                link=link,
                                 quantidade=qtd,
                                 unidade=(unidade or 'UN'),
                                 pedido=pedido
@@ -111,11 +113,12 @@ def adicionar_material(request, atividade_id):
     if request.method == "POST":
         atividade = get_object_or_404(Atividade, id=atividade_id)
         nome = request.POST.get("nome")
+        link = request.POST.get("link", "").strip()
         quantidade = request.POST.get("quantidade")
         unidade = request.POST.get("unidade")
 
         if nome:
-            Material.objects.create(atividade=atividade, nome=nome, quantidade=quantidade, unidade=unidade)
+            Material.objects.create(atividade=atividade, nome=nome, link=link, quantidade=quantidade, unidade=unidade)
             return JsonResponse({"success": True})
     return JsonResponse({"success": False})
 
@@ -171,6 +174,7 @@ def editar_semanario(request, semanario_id):
                             continue
                         for m in mats:
                             nome = m.get('nome', '').strip()
+                            link = m.get('link', '').strip()
                             quantidade = m.get('quantidade', '').strip()
                             unidade = m.get('unidade', '').strip()
                             # Sem destino explícito → Supply (padrão de compra do projeto)
@@ -184,7 +188,7 @@ def editar_semanario(request, semanario_id):
                                 else:
                                     qtd = Decimal('1')
                                 Material.objects.create(
-                                    atividade=atividade_obj, nome=nome, quantidade=qtd,
+                                    atividade=atividade_obj, nome=nome, link=link, quantidade=qtd,
                                     unidade=(unidade or 'UN'), pedido=pedido
                                 )
                     except (ValueError, IndexError):
@@ -245,6 +249,7 @@ def listar_materiais(request, atividade_id):
         {
             "id": m.id,
             "nome": m.nome,
+            "link": m.link,
             "quantidade": str(m.quantidade),
             "unidade": m.unidade,
             "pedido": m.pedido if hasattr(m, 'pedido') else ''
@@ -265,6 +270,7 @@ def salvar_materiais(request):
         Material.objects.create(
             atividade_id=atividade_id,
             nome=m["nome"],
+            link=(m.get("link") or "").strip(),
             quantidade=m["quantidade"],
             unidade=m["unidade"],
             # Sem destino explícito → Supply (padrão de compra do projeto)

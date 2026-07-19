@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% load static %}
 {% block titulo %}Editar Semanário{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'semanario/semanario.css' %}">{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 pb-12">
+<div class="semanario-page min-h-screen bg-gray-50 pb-12">
   <div class="max-w-3xl mx-auto px-4 sm:px-6 py-6">
 
     <!-- Hero -->
-    <div class="rounded-2xl p-6 sm:p-8 mb-6 text-white relative overflow-hidden"
+    <div class="semanario-hero rounded-2xl p-6 sm:p-8 mb-6 text-white relative overflow-hidden"
          style="background:linear-gradient(135deg,#0891b2,#06b6d4)">
       <div class="absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white/10"></div>
       <div class="relative z-10 flex items-center justify-between gap-4 flex-wrap">
@@ -226,6 +227,7 @@
           <thead>
             <tr class="bg-gray-50 border-b border-gray-200">
               <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Material</th>
+              <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Link da imagem</th>
               <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Qtd</th>
               <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Unidade</th>
               <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Pedido</th>
@@ -306,12 +308,14 @@
 
   function novaLinha(m = {}) {
     const nome = (m.nome || '').replace(/"/g, '&quot;');
+    const link = (m.link || '').replace(/"/g, '&quot;');
     const qtd  = m.quantidade || '';
     const un   = m.unidade || 'UN';
     const pd   = m.pedido  || 'SUPPLY';
     const sel  = (v, opt) => opt === v ? ' selected' : '';
     return `<tr>
       <td class="px-3 py-2"><input type="text" class="mat-nome" value="${nome}" placeholder="Material"></td>
+      <td class="px-3 py-2"><input type="url" class="mat-link" value="${link}" placeholder="https://..."></td>
       <td class="px-3 py-2"><input type="number" class="mat-qtd" step="0.1" min="0" value="${qtd}"></td>
       <td class="px-3 py-2">
         <select class="mat-unidade">
@@ -354,7 +358,7 @@
     currentAtividadeIdx = String(idx);
     document.getElementById('atividadeNome').textContent = nome;
     const tabela = document.getElementById('tabelaMateriais');
-    tabela.innerHTML = '<tr><td colspan="5" class="px-3 py-4 text-center text-xs text-gray-400">Carregando…</td></tr>';
+    tabela.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-xs text-gray-400">Carregando…</td></tr>';
 
     const modal = document.getElementById('modalMateriais');
     modal.classList.remove('hidden');
@@ -389,6 +393,7 @@
   function coletarMateriais() {
     return Array.from(document.querySelectorAll('#tabelaMateriais tr')).map(r => ({
       nome:       r.querySelector('.mat-nome')?.value.trim() || '',
+      link:       r.querySelector('.mat-link')?.value.trim() || '',
       quantidade: r.querySelector('.mat-qtd')?.value.trim() || '',
       unidade:    r.querySelector('.mat-unidade')?.value || 'UN',
       pedido:     r.querySelector('.mat-pedido')?.value || 'SUPPLY',

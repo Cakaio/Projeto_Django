@@ -1,12 +1,14 @@
-<!doctype html>
-<html lang="pt-br">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Relatorio Pedagogico</title>
+{% extends "base.html" %}
+{% load static %}
+{% block titulo %}Relatório Pedagógico{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="{% static 'semanario/semanario.css' %}">
   <style>
     /* ===== RESET & VARIABLES ===== */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    .semanario-report-page,
+    .semanario-report-page *,
+    .semanario-report-page *::before,
+    .semanario-report-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
       --primary: #7c3aed;
@@ -37,7 +39,7 @@
       --radius-lg: 20px;
     }
 
-    body {
+    .semanario-report-page {
       font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
       background: var(--bg-page);
       color: var(--text-dark);
@@ -536,9 +538,9 @@
     .delay-3 { animation-delay: 0.3s; }
     .delay-4 { animation-delay: 0.4s; }
   </style>
-</head>
-
-<body>
+{% endblock %}
+{% block content %}
+<div class="semanario-report-page">
 
   <!-- ===== HERO HEADER ===== -->
   <header class="hero-header">
@@ -815,5 +817,5 @@
     </div>
   </main>
 
-</body>
-</html>
+</div>
+{% endblock %}

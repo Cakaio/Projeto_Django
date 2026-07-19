@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
+{% block titulo %}Adicionar pedidos{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'supply/supply.css' %}">{% endblock %}
 
 {% block content %}
 <style>
@@ -346,7 +348,7 @@
   }
 </style>
 
-<div class="container main-container">
+<div class="supply-page container main-container">
   <div class="page-header">
     <div class="page-title-group">
       <div class="page-header-icon">
@@ -406,6 +408,7 @@
             <tr>
               <th class="col-index">#</th>
               <th class="col-nome">Nome do pedido</th>
+              <th>Link da imagem</th>
               <th class="col-quantidade">Quantidade</th>
               <th class="col-unidade">Unidade</th>
               <th class="col-sabado">Sábado</th>
@@ -425,6 +428,11 @@
                   {% if form.nome.errors %}
                     <div class="error-list">{{ form.nome.errors }}</div>
                   {% endif %}
+                </td>
+
+                <td>
+                  {{ form.link }}
+                  {% if form.link.errors %}<div class="error-list">{{ form.link.errors }}</div>{% endif %}
                 </td>
 
                 <td class="col-quantidade">
@@ -559,7 +567,7 @@
     // Remover campos ocultos duplicados (ex: input[type=hidden])
     newDesktopRow.querySelectorAll('input[type="hidden"]').forEach(e => e.remove());
     // Garantir que só há um input/select para cada campo
-    const uniqueNames = ["nome", "quantidade", "unidade", "sabado", "area"];
+    const uniqueNames = ["nome", "link", "quantidade", "unidade", "sabado", "area"];
     uniqueNames.forEach(field => {
       const inputs = newDesktopRow.querySelectorAll(`[name$='-${field}']`);
       if (inputs.length > 1) {

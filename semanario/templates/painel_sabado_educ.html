@@ -1,11 +1,11 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel do Sábado</title>
+{% extends "base.html" %}
+{% load static %}
+{% block titulo %}Painel do Sábado{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="{% static 'semanario/semanario.css' %}">
   <style>
-    * {
+    .semanario-panel-page,
+    .semanario-panel-page * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
@@ -28,14 +28,14 @@
       --border-color: #e2e8f0;
     }
 
-    body {
+    .semanario-panel-page {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6366f1 100%);
+      background: #f8fafc;
       min-height: 100vh;
       padding: 2rem 1rem;
     }
 
-    .container {
+    .semanario-panel-page > .container {
       max-width: 1400px;
       margin: 0 auto;
     }
@@ -623,8 +623,9 @@
       }
     }
   </style>
-</head>
-<body>
+{% endblock %}
+{% block content %}
+<div class="semanario-panel-page">
   <!-- Decorative circles -->
   <div class="bg-decoration circle-1"></div>
   <div class="bg-decoration circle-2"></div>
@@ -883,5 +884,5 @@
       content.classList.toggle('show');
     }
   </script>
-</body>
-</html>
+</div>
+{% endblock %}

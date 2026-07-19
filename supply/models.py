@@ -1,7 +1,6 @@
 from django.db import models
 from django.utils import timezone
 
-from semanario.models import PEDIDO, TIPO_LOCAL
 from voluntario.views import LISTA_AREAS
 
 CATEGORIAS = (
@@ -33,6 +32,43 @@ TIPO_MOVIMENTACAO = (
     ("SAIDA", "Saída"),
     ("AJUSTE", "Ajuste de Inventário"),
 )
+
+TIPOS_LOCAL = (
+    ("MERCADO", "Mercado"),
+    ("SUPERMERCADO", "Supermercado"),
+    ("PAPELARIA", "Papelaria"),
+    ("ARTIGOS_FESTA", "Artigos de festa"),
+    ("ATACADISTA", "Atacadista"),
+    ("LOJA_UTILIDADES", "Loja de utilidades"),
+    ("ONLINE", "Loja online"),
+    ("OUTROS", "Outros"),
+)
+
+
+class Local(models.Model):
+    nome = models.CharField(max_length=150)
+    tipo = models.CharField(max_length=30, choices=TIPOS_LOCAL, default="OUTROS")
+    localizacao = models.CharField("endereço/localização", max_length=255, blank=True)
+    cidade = models.CharField(max_length=100, blank=True)
+    numero_contato = models.CharField("número de contato", max_length=30, blank=True)
+    whatsapp = models.BooleanField("contato possui WhatsApp", default=False)
+    email = models.EmailField(blank=True)
+    site = models.URLField(blank=True)
+    observacoes = models.TextField(blank=True)
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("nome",)
+        verbose_name = "Local de compra"
+        verbose_name_plural = "Locais de compra"
+        constraints = [
+            models.UniqueConstraint(fields=("nome", "tipo"), name="local_nome_tipo_unicos")
+        ]
+
+    def __str__(self):
+        return f"{self.nome} — {self.get_tipo_display()}"
 
 
 class Item(models.Model):
@@ -106,14 +142,21 @@ class Movimentacao(models.Model):
 
 class Pedido(models.Model):
     nome = models.CharField(max_length=100)
+    link = models.URLField("link da imagem", blank=True)
     quantidade = models.DecimalField(max_digits=6, decimal_places=2, default=1)
     unidade = models.CharField(max_length=10, choices=UNIDADES, default="UN")
     valor = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    local_compra = models.CharField(max_length=100, blank=True, null=True)
-    tipo_local = models.CharField(max_length=100, choices=TIPO_LOCAL, blank=True, null=True)
+    local = models.ForeignKey(Local, on_delete=models.SET_NULL, null=True, blank=True, related_name="pedidos")
     requisitado_por = models.ForeignKey("voluntario.Voluntario",on_delete=models.SET_NULL,null=True, blank=True,related_name="pedidos_requisitados")
     sabado = models.ForeignKey("sabado.Sabado",on_delete=models.SET_NULL,null=True, blank=True,related_name="pedidos_do_sabado",help_text="Sábado relacionado ao pedido")
     area = models.CharField(max_length=30, choices=LISTA_AREAS, null=True, blank=True)
+
+    @property
+    def valor_total(self):
+        """Retorna o custo total do pedido (valor unitário x quantidade)."""
+        if self.valor is None:
+            return None
+        return self.valor * self.quantidade
 
     def __str__(self):
         return f"{self.nome}"

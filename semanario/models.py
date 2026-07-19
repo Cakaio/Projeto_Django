@@ -101,14 +101,6 @@ LOCAIS = (
     ("OUTROS", "Outros"),
 )
 
-TIPO_LOCAL = (
-    ("MERCADO", "Mercado"),
-    ("PAPELARIA", "Papelaria"),
-    ("SALINHA", "Salinha"),
-    ("ARTIGO DE FESTA", "Artigo de Festa"),
-    ("OUTROS", "Outros")
-)
-
 PEDIDO = (
     ("SUPPLY", "Supply"),
     ("RECREA", "Recrea"),
@@ -167,12 +159,19 @@ class Atividade(models.Model):
 class Material(models.Model):
     atividade = models.ForeignKey(Atividade,on_delete=models.CASCADE,related_name="materiais")
     nome = models.CharField(max_length=100)
+    link = models.URLField("link da imagem", blank=True)
     quantidade = models.DecimalField(max_digits=6, decimal_places=2, default=1)
     unidade = models.CharField(max_length=10, choices=UNIDADES, default="UN")
     valor = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    local_compra = models.CharField(max_length=100, blank=True, null=True)
-    tipo_local = models.CharField(max_length=100, choices=TIPO_LOCAL, blank=True, null=True)
+    local = models.ForeignKey("supply.Local", on_delete=models.SET_NULL, null=True, blank=True, related_name="materiais")
     pedido = models.CharField(max_length=100, choices=PEDIDO, blank=True, null=True)
+
+    @property
+    def valor_total(self):
+        """Retorna o custo total do material (valor unitário x quantidade)."""
+        if self.valor is None:
+            return None
+        return self.valor * self.quantidade
 
     def __str__(self):
         return f"{self.nome} ({self.atividade.semanario.sala})"

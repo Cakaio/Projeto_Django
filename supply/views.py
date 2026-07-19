@@ -5,17 +5,17 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms import modelformset_factory
 from .forms import MeuPedidoForm
 from supply.forms import PedidoFormSet
-from .models import Item, Movimentacao, Pedido
+from .models import Item, Local, Movimentacao, Pedido, UNIDADES
 from django.shortcuts import render, redirect
 from django.db.models import Prefetch
 from semanario.models import Material
 from sabado.models import Sabado
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
-from django.db.models import Sum, Count, Q, Value, DecimalField
+from django.db.models import Sum, Count, Q, Value, DecimalField, F, ExpressionWrapper
 from django.db.models.functions import Coalesce
 from sabado.models import Sabado
-from semanario.models import Material , LISTA_SALAS, PEDIDO, TIPO_LOCAL # ajuste se o app/material estiver em outro app
+from semanario.models import Material, LISTA_SALAS, PEDIDO, UNIDADES as UNIDADES_MATERIAL
 from collections import OrderedDict
 from decimal import Decimal, InvalidOperation
 from django.contrib import messages
@@ -23,9 +23,15 @@ from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render
 from voluntario.models import Voluntario, LISTA_AREAS
 
+
+VALOR_TOTAL_EXPRESSION = ExpressionWrapper(
+    F("valor") * F("quantidade"),
+    output_field=DecimalField(max_digits=18, decimal_places=2),
+)
 
 
 class ListaItensView(LoginRequiredMixin, ListView):
@@ -60,7 +66,7 @@ def painel_materiais(request):
         return redirect("/supply/")
     
     sabado_id = request.GET.get("sabado")
-    tipo_local = request.GET.get("tipo_local")
+    local_id = request.GET.get("local")
     tipo_painel = request.GET.get("painel", "material")
 
     sabados = Sabado.objects.order_by("-data")[:40]
@@ -75,7 +81,8 @@ def painel_materiais(request):
             "sabados": sabados,
             "sabado": None,
             "tipo_painel": tipo_painel,
-            "tipo_local_opcoes": TIPO_LOCAL,
+            "locais": Local.objects.filter(ativo=True),
+            "unidades": UNIDADES,
             "total_itens": 0,
             "total_valor": Decimal("0.00"),
             "salas_map": [],
@@ -85,18 +92,18 @@ def painel_materiais(request):
     if tipo_painel == "pedido":
         qs = (
             Pedido.objects
-            .select_related("requisitado_por", "sabado")
+            .select_related("requisitado_por", "sabado", "local")
             .filter(sabado=sabado)
             .order_by("area", "nome")
         )
 
-        if tipo_local:
-            qs = qs.filter(tipo_local=tipo_local)
+        if local_id:
+            qs = qs.filter(local_id=local_id)
 
         total_itens = qs.count()
         total_valor = qs.aggregate(
             total=Coalesce(
-                Sum("valor"),
+                Sum(VALOR_TOTAL_EXPRESSION),
                 Value(0, output_field=DecimalField(max_digits=12, decimal_places=2))
             )
         )["total"] or Decimal("0.00")
@@ -119,14 +126,15 @@ def painel_materiais(request):
 
             pedidos_map[area_key]["pedidos"].append(pedido)
             pedidos_map[area_key]["total_itens"] += 1
-            pedidos_map[area_key]["total_valor"] += pedido.valor or Decimal("0.00")
+            pedidos_map[area_key]["total_valor"] += pedido.valor_total or Decimal("0.00")
 
         return render(request, "painel_materiais.html", {
             "sabados": sabados,
             "sabado": sabado,
-            "tipo_local": tipo_local,
+            "local_id": local_id,
             "tipo_painel": tipo_painel,
-            "tipo_local_opcoes": TIPO_LOCAL,
+            "locais": Local.objects.filter(ativo=True),
+            "unidades": UNIDADES,
             "total_itens": total_itens,
             "total_valor": total_valor,
             "salas_map": [],
@@ -135,20 +143,20 @@ def painel_materiais(request):
 
     qs = (
         Material.objects
-        .select_related("atividade__semanario", "atividade__semanario__data")
+        .select_related("atividade__semanario", "atividade__semanario__data", "local")
         .filter(atividade__semanario__data=sabado)
         # Supply = destino explícito "SUPPLY" OU sem destino definido (nulo/vazio)
         .filter(Q(pedido="SUPPLY") | Q(pedido__isnull=True) | Q(pedido=""))
         .order_by("atividade__semanario__sala", "nome")
     )
 
-    if tipo_local:
-        qs = qs.filter(tipo_local=tipo_local)
+    if local_id:
+        qs = qs.filter(local_id=local_id)
 
     total_itens = qs.count()
     total_valor = qs.aggregate(
         total=Coalesce(
-            Sum("valor"),
+            Sum(VALOR_TOTAL_EXPRESSION),
             Value(0, output_field=DecimalField(max_digits=12, decimal_places=2))
         )
     )["total"] or Decimal("0.00")
@@ -171,14 +179,15 @@ def painel_materiais(request):
 
         salas_map[sala_key]["materiais"].append(material)
         salas_map[sala_key]["total_itens"] += 1
-        salas_map[sala_key]["total_valor"] += material.valor or Decimal("0.00")
+        salas_map[sala_key]["total_valor"] += material.valor_total or Decimal("0.00")
 
     return render(request, "painel_materiais.html", {
         "sabados": sabados,
         "sabado": sabado,
-        "tipo_local": tipo_local,
+        "local_id": local_id,
         "tipo_painel": tipo_painel,
-        "tipo_local_opcoes": TIPO_LOCAL,
+        "locais": Local.objects.filter(ativo=True),
+        "unidades_material": UNIDADES_MATERIAL,
         "total_itens": total_itens,
         "total_valor": total_valor,
         "salas_map": list(salas_map.values()),
@@ -191,11 +200,12 @@ def salvar_materiais_lote(request):
         return redirect("supply:painel_materiais")
 
     sabado_id = request.POST.get("sabado")
-    tipo_local = request.POST.get("tipo_local")
+    local_id = request.POST.get("local")
     tipo_painel = request.POST.get("painel", "material")
 
     if tipo_painel == "pedido":
         pedido_ids = request.POST.getlist("pedido_ids")
+        pedidos_com_erro = []
 
         for pedido_id in pedido_ids:
             try:
@@ -204,18 +214,37 @@ def salvar_materiais_lote(request):
                 continue
 
             valor = request.POST.get(f"valor_pedido_{pedido_id}")
-            local_compra = request.POST.get(f"local_compra_pedido_{pedido_id}")
-            tipo_local_item = request.POST.get(f"tipo_local_pedido_{pedido_id}")
+            pedido_local_id = request.POST.get(f"local_pedido_{pedido_id}")
+            nome = request.POST.get(f"nome_pedido_{pedido_id}", "").strip()
+            quantidade = request.POST.get(f"quantidade_pedido_{pedido_id}")
+            unidade = request.POST.get(f"unidade_pedido_{pedido_id}")
 
-            pedido.valor = valor if valor not in ["", None] else None
-            pedido.local_compra = local_compra if local_compra not in ["", None] else None
-            pedido.tipo_local = tipo_local_item if tipo_local_item not in ["", None] else None
-            pedido.save()
+            try:
+                quantidade_decimal = Decimal(quantidade)
+                if quantidade_decimal < 0:
+                    raise ValueError("A quantidade não pode ser negativa.")
+                pedido.nome = nome
+                pedido.quantidade = quantidade_decimal
+                pedido.unidade = unidade
+                pedido.valor = Decimal(valor) if valor not in ["", None] else None
+                pedido.local_id = pedido_local_id or None
+                pedido.full_clean()
+                pedido.save()
+            except (InvalidOperation, TypeError, ValidationError, ValueError):
+                pedidos_com_erro.append(pedido.nome or f"ID {pedido_id}")
 
-        messages.success(request, "Pedidos atualizados com sucesso.")
-        return redirect(f"{request.path}?sabado={sabado_id}&tipo_local={tipo_local}&painel=pedido")
+        if pedidos_com_erro:
+            messages.error(
+                request,
+                "Alguns pedidos não foram salvos. Verifique nome, quantidade, unidade e valor: "
+                + ", ".join(pedidos_com_erro),
+            )
+        else:
+            messages.success(request, "Pedidos atualizados com sucesso.")
+        return redirect(f"{request.path}?sabado={sabado_id}&local={local_id or ''}&painel=pedido")
 
     material_ids = request.POST.getlist("material_ids")
+    materiais_com_erro = []
 
     for material_id in material_ids:
         try:
@@ -224,20 +253,38 @@ def salvar_materiais_lote(request):
             continue
 
         valor = request.POST.get(f"valor_{material_id}")
-        local_compra = request.POST.get(f"local_compra_{material_id}")
-        tipo_local_item = request.POST.get(f"tipo_local_{material_id}")
+        material_local_id = request.POST.get(f"local_{material_id}")
+        nome = request.POST.get(f"nome_material_{material_id}", "").strip()
+        quantidade = request.POST.get(f"quantidade_material_{material_id}")
+        unidade = request.POST.get(f"unidade_material_{material_id}")
 
-        material.valor = valor if valor not in ["", None] else None
-        material.local_compra = local_compra if local_compra not in ["", None] else None
-        material.tipo_local = tipo_local_item if tipo_local_item not in ["", None] else None
-        material.save()
+        try:
+            quantidade_decimal = Decimal(quantidade)
+            if quantidade_decimal < 0:
+                raise ValueError("A quantidade não pode ser negativa.")
+            material.nome = nome
+            material.quantidade = quantidade_decimal
+            material.unidade = unidade
+            material.valor = Decimal(valor) if valor not in ["", None] else None
+            material.local_id = material_local_id or None
+            material.full_clean()
+            material.save()
+        except (InvalidOperation, TypeError, ValidationError, ValueError):
+            materiais_com_erro.append(material.nome or f"ID {material_id}")
 
-    messages.success(request, "Materiais atualizados com sucesso.")
-    return redirect(f"{request.path}?sabado={sabado_id}&tipo_local={tipo_local}&painel=material")
+    if materiais_com_erro:
+        messages.error(
+            request,
+            "Alguns materiais não foram salvos. Verifique nome, quantidade, unidade e valor: "
+            + ", ".join(materiais_com_erro),
+        )
+    else:
+        messages.success(request, "Materiais atualizados com sucesso.")
+    return redirect(f"{request.path}?sabado={sabado_id}&local={local_id or ''}&painel=material")
 
 def painel_materiais_visualizacao(request):
     sabado_id = request.GET.get("sabado")
-    tipo_local = request.GET.get("tipo_local")
+    local_id = request.GET.get("local")
     tipo_painel = request.GET.get("painel", "material")
 
     sabados = Sabado.objects.order_by("-data")[:40]
@@ -252,9 +299,9 @@ def painel_materiais_visualizacao(request):
         return render(request, "painel_materiais_visualizacao.html", {
             "sabados": sabados,
             "sabado": None,
-            "tipo_local": tipo_local,
+            "local_id": local_id,
             "tipo_painel": tipo_painel,
-            "tipo_local_opcoes": TIPO_LOCAL,
+            "locais": Local.objects.filter(ativo=True),
             "total_itens": 0,
             "total_valor": Decimal("0.00"),
             "salas_map": [],
@@ -264,18 +311,18 @@ def painel_materiais_visualizacao(request):
     if tipo_painel == "pedido":
         qs = (
             Pedido.objects
-            .select_related("requisitado_por", "sabado")
+            .select_related("requisitado_por", "sabado", "local")
             .filter(sabado=sabado)
             .order_by("area", "nome")
         )
 
-        if tipo_local:
-            qs = qs.filter(tipo_local=tipo_local)
+        if local_id:
+            qs = qs.filter(local_id=local_id)
 
         total_itens = qs.count()
         total_valor = qs.aggregate(
             total=Coalesce(
-                Sum("valor"),
+                Sum(VALOR_TOTAL_EXPRESSION),
                 Value(0, output_field=DecimalField(max_digits=12, decimal_places=2))
             )
         )["total"] or Decimal("0.00")
@@ -298,15 +345,15 @@ def painel_materiais_visualizacao(request):
 
             pedidos_map[area_key]["pedidos"].append(item)
             pedidos_map[area_key]["total_itens"] += 1
-            pedidos_map[area_key]["total_valor"] += item.valor or Decimal("0.00")
+            pedidos_map[area_key]["total_valor"] += item.valor_total or Decimal("0.00")
 
         return render(request, "painel_materiais_visualizacao.html", {
             "sabados": sabados,
             "sabado": sabado,
-            "tipo_local": tipo_local,
+            "local_id": local_id,
             "tipo_painel": tipo_painel,
             "pedidos_opcoes": pedidos_opcoes,
-            "tipo_local_opcoes": TIPO_LOCAL,
+            "locais": Local.objects.filter(ativo=True),
             "total_itens": total_itens,
             "total_valor": total_valor,
             "salas_map": [],
@@ -315,20 +362,20 @@ def painel_materiais_visualizacao(request):
 
     qs = (
     Material.objects
-    .select_related("atividade__semanario", "atividade__semanario__data")
+    .select_related("atividade__semanario", "atividade__semanario__data", "local")
     .filter(atividade__semanario__data=sabado)
     # Supply = destino explícito "SUPPLY" OU sem destino definido (nulo/vazio)
     .filter(Q(pedido="SUPPLY") | Q(pedido__isnull=True) | Q(pedido=""))
     .order_by("atividade__semanario__sala", "nome")
 )
 
-    if tipo_local:
-        qs = qs.filter(tipo_local=tipo_local)
+    if local_id:
+        qs = qs.filter(local_id=local_id)
 
     total_itens = qs.count()
     total_valor = qs.aggregate(
         total=Coalesce(
-            Sum("valor"),
+            Sum(VALOR_TOTAL_EXPRESSION),
             Value(0, output_field=DecimalField(max_digits=12, decimal_places=2))
         )
     )["total"] or Decimal("0.00")
@@ -351,15 +398,15 @@ def painel_materiais_visualizacao(request):
 
         salas_map[sala_key]["materiais"].append(material)
         salas_map[sala_key]["total_itens"] += 1
-        salas_map[sala_key]["total_valor"] += material.valor or Decimal("0.00")
+        salas_map[sala_key]["total_valor"] += material.valor_total or Decimal("0.00")
 
     return render(request, "painel_materiais_visualizacao.html", {
         "sabados": sabados,
         "sabado": sabado,
-        "tipo_local": tipo_local,
+        "local_id": local_id,
         "tipo_painel": tipo_painel,
         "pedidos_opcoes": pedidos_opcoes,
-        "tipo_local_opcoes": TIPO_LOCAL,
+        "locais": Local.objects.filter(ativo=True),
         "total_itens": total_itens,
         "total_valor": total_valor,
         "salas_map": list(salas_map.values()),
@@ -407,7 +454,7 @@ def adicionar_pedidos(request):
                 else:
                     if any(
                         form.cleaned_data.get(campo)
-                        for campo in ["quantidade", "unidade", "sabado", "area"]
+                        for campo in ["link", "quantidade", "unidade", "sabado", "area"]
                     ):
                         form.add_error("nome", "Preencha o nome do pedido.")
                         logger.info(f"Form {idx} erro: nome não preenchido, mas outros campos sim")

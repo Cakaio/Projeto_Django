@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
+{% block titulo %}Meus pedidos{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'supply/supply.css' %}">{% endblock %}
 
 {% block content %}
 <style>
@@ -70,7 +72,7 @@
   .delete-checkbox { display: none; }
 </style>
 
-<div class="container main-container">
+<div class="supply-page container main-container">
   <div class="page-header">
     <div class="page-title-group">
       <div class="page-header-icon">
@@ -135,6 +137,7 @@
             <tr>
               <th class="col-index">#</th>
               <th class="col-nome">Nome</th>
+              <th>Link da imagem</th>
               <th class="col-quantidade">Quantidade</th>
               <th class="col-unidade">Unidade</th>
               <th class="col-sabado">Sábado</th>
@@ -155,6 +158,11 @@
                 <td class="col-nome">
                   {{ form.nome }}
                   {% if form.nome.errors %}<div class="error-list">{{ form.nome.errors }}</div>{% endif %}
+                </td>
+
+                <td>
+                  {{ form.link }}
+                  {% if form.link.errors %}<div class="error-list">{{ form.link.errors }}</div>{% endif %}
                 </td>
 
                 <td class="col-quantidade">

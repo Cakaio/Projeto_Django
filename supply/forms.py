@@ -8,6 +8,7 @@ class PedidoForm(forms.ModelForm):
         model = Pedido
         fields = [
             "nome",
+            "link",
             "quantidade",
             "unidade",
             "sabado",
@@ -17,6 +18,10 @@ class PedidoForm(forms.ModelForm):
             "nome": forms.TextInput(attrs={
                 "class": "form-control",
                 "placeholder": "Ex.: Cola branca"
+            }),
+            "link": forms.URLInput(attrs={
+                "class": "form-control",
+                "placeholder": "https://exemplo.com/imagem.jpg"
             }),
             "quantidade": forms.NumberInput(attrs={
                 "class": "form-control",
@@ -51,9 +56,10 @@ PedidoFormSet = modelformset_factory(
 class MeuPedidoForm(forms.ModelForm):
     class Meta:
         model = Pedido
-        fields = ["nome", "quantidade", "unidade", "sabado", "area"]
+        fields = ["nome", "link", "quantidade", "unidade", "sabado", "area"]
         widgets = {
             "nome": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex.: Cola branca"}),
+            "link": forms.URLInput(attrs={"class": "form-control", "placeholder": "https://exemplo.com/imagem.jpg"}),
             "quantidade": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
             "unidade": forms.Select(attrs={"class": "form-control"}),
             "sabado": forms.Select(attrs={"class": "form-control"}),

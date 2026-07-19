@@ -1,12 +1,10 @@
-{% load l10n %}
-<!doctype html>
-<html lang="pt-br">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Painel Supply</title>
+{% extends "base.html" %}
+{% load l10n static %}
+{% block titulo %}Painel Supply{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="{% static 'supply/supply.css' %}">
   <style>
-    :root {
+    .supply-panel-page {
       --primary: #F8A51B;
       --primary-dark: #E8950B;
       --primary-light: rgba(248, 165, 27, 0.1);
@@ -23,15 +21,16 @@
       --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
-    * {
+    .supply-panel-page,
+    .supply-panel-page * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
 
-    body {
+    .supply-panel-page {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #fef9f0 0%, #fff7e6 50%, #fef3db 100%);
+      background: #f8fafc;
       min-height: 100vh;
       color: var(--text-dark);
     }
@@ -644,8 +643,9 @@
       }
     }
   </style>
-</head>
-<body>
+{% endblock %}
+{% block content %}
+<div class="supply-panel-page">
   <div class="bg-decoration">
     <div class="bg-circle bg-circle-1"></div>
     <div class="bg-circle bg-circle-2"></div>
@@ -696,11 +696,11 @@
 
           <div class="filter-group">
             <label>Selecione o local de compra</label>
-            <select name="tipo_local" onchange="this.form.submit()">
+            <select name="local" onchange="this.form.submit()">
               <option value="">Todos os locais</option>
-              {% for key, nome in tipo_local_opcoes %}
-                <option value="{{ key }}" {% if tipo_local and tipo_local == key %}selected{% endif %}>
-                  {{ nome }}
+              {% for local in locais %}
+                <option value="{{ local.id }}" {% if local_id == local.id|stringformat:'s' %}selected{% endif %}>
+                  {{ local }}
                 </option>
               {% endfor %}
             </select>
@@ -712,12 +712,12 @@
 
       <div class="panel-switch-card">
         <div class="panel-switch">
-          <a href="?sabado={{ sabado.id }}&tipo_local={{ tipo_local|default:'' }}&painel=material"
+          <a href="?sabado={{ sabado.id }}&local={{ local_id|default:'' }}&painel=material"
              class="panel-btn {% if tipo_painel == 'material' or not tipo_painel %}active{% endif %}">
             Materiais
           </a>
 
-          <a href="?sabado={{ sabado.id }}&tipo_local={{ tipo_local|default:'' }}&painel=pedido"
+          <a href="?sabado={{ sabado.id }}&local={{ local_id|default:'' }}&painel=pedido"
              class="panel-btn {% if tipo_painel == 'pedido' %}active{% endif %}">
             Pedidos
           </a>
@@ -753,7 +753,7 @@
       <form method="post" action="{% url 'supply:salvar_materiais_lote' %}">
         {% csrf_token %}
         <input type="hidden" name="sabado" value="{{ sabado.id }}">
-        <input type="hidden" name="tipo_local" value="{{ tipo_local }}">
+        <input type="hidden" name="local" value="{{ local_id }}">
         <input type="hidden" name="painel" value="{{ tipo_painel }}">
 
         <div class="salas-container">
@@ -785,11 +785,12 @@
                     <thead>
                       <tr>
                         <th>Pedido</th>
+                        <th>Imagem</th>
                         <th>Qtd</th>
                         <th>Unidade</th>
                         <th>Valor (R$)</th>
+                        <th>Valor total</th>
                         <th>Local de compra</th>
-                        <th>Tipo local</th>
                         <th>Requisitado por</th>
                       </tr>
                     </thead>
@@ -798,9 +799,39 @@
                         <tr>
                           <input type="hidden" name="pedido_ids" value="{{ pedido.id }}">
 
-                          <td><span class="material-name">{{ pedido.nome }}</span></td>
-                          <td><span class="material-qty">{{ pedido.quantidade|floatformat:0 }}</span></td>
-                          <td><span class="material-unit">{{ pedido.unidade }}</span></td>
+                          <td>
+                            <input
+                              type="text"
+                              name="nome_pedido_{{ pedido.id }}"
+                              value="{{ pedido.nome }}"
+                              maxlength="100"
+                              class="table-input"
+                              aria-label="Nome do pedido"
+                              required
+                            >
+                          </td>
+                          <td>
+                            {% if pedido.link %}<a href="{{ pedido.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              name="quantidade_pedido_{{ pedido.id }}"
+                              step="0.01"
+                              min="0"
+                              value="{{ pedido.quantidade|unlocalize }}"
+                              class="table-input"
+                              aria-label="Quantidade do pedido"
+                              required
+                            >
+                          </td>
+                          <td>
+                            <select name="unidade_pedido_{{ pedido.id }}" class="table-select" aria-label="Unidade do pedido" required>
+                              {% for key, nome in unidades %}
+                                <option value="{{ key }}" {% if pedido.unidade == key %}selected{% endif %}>{{ nome }}</option>
+                              {% endfor %}
+                            </select>
+                          </td>
 
                           <td>
                             <input
@@ -813,22 +844,14 @@
                             >
                           </td>
 
-                          <td>
-                            <input
-                              type="text"
-                              name="local_compra_pedido_{{ pedido.id }}"
-                              value="{{ pedido.local_compra|default_if_none:'' }}"
-                              class="table-input"
-                              placeholder="Ex: Mercado X"
-                            >
-                          </td>
+                          <td>{% if pedido.valor_total is not None %}R$ {{ pedido.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
 
                           <td>
-                            <select name="tipo_local_pedido_{{ pedido.id }}" class="table-select">
-                              <option value="">Selecione...</option>
-                              {% for key, nome in tipo_local_opcoes %}
-                                <option value="{{ key }}" {% if pedido.tipo_local == key %}selected{% endif %}>
-                                  {{ nome }}
+                            <select name="local_pedido_{{ pedido.id }}" class="table-select">
+                              <option value="">Não definido</option>
+                              {% for local in locais %}
+                                <option value="{{ local.id }}" {% if pedido.local_id == local.id %}selected{% endif %}>
+                                  {{ local }}
                                 </option>
                               {% endfor %}
                             </select>
@@ -872,11 +895,12 @@
                     <thead>
                       <tr>
                         <th>Material</th>
+                        <th>Imagem</th>
                         <th>Qtd</th>
                         <th>Unidade</th>
                         <th>Valor (R$)</th>
+                        <th>Valor total</th>
                         <th>Local de compra</th>
-                        <th>Tipo local</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -884,9 +908,39 @@
                         <tr>
                           <input type="hidden" name="material_ids" value="{{ material.id }}">
 
-                          <td><span class="material-name">{{ material.nome }}</span></td>
-                          <td><span class="material-qty">{{ material.quantidade|floatformat:0 }}</span></td>
-                          <td><span class="material-unit">{{ material.unidade }}</span></td>
+                          <td>
+                            <input
+                              type="text"
+                              name="nome_material_{{ material.id }}"
+                              value="{{ material.nome }}"
+                              maxlength="100"
+                              class="table-input"
+                              aria-label="Nome do material"
+                              required
+                            >
+                          </td>
+                          <td>
+                            {% if material.link %}<a href="{{ material.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              name="quantidade_material_{{ material.id }}"
+                              step="0.01"
+                              min="0"
+                              value="{{ material.quantidade|unlocalize }}"
+                              class="table-input"
+                              aria-label="Quantidade do material"
+                              required
+                            >
+                          </td>
+                          <td>
+                            <select name="unidade_material_{{ material.id }}" class="table-select" aria-label="Unidade do material" required>
+                              {% for key, nome in unidades_material %}
+                                <option value="{{ key }}" {% if material.unidade == key %}selected{% endif %}>{{ nome }}</option>
+                              {% endfor %}
+                            </select>
+                          </td>
 
                           <td>
                             <input
@@ -899,22 +953,14 @@
                             >
                           </td>
 
-                          <td>
-                            <input
-                              type="text"
-                              name="local_compra_{{ material.id }}"
-                              value="{{ material.local_compra|default_if_none:'' }}"
-                              class="table-input"
-                              placeholder="Ex: Mercado X"
-                            >
-                          </td>
+                          <td>{% if material.valor_total is not None %}R$ {{ material.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
 
                           <td>
-                            <select name="tipo_local_{{ material.id }}" class="table-select">
-                              <option value="">Selecione...</option>
-                              {% for key, nome in tipo_local_opcoes %}
-                                <option value="{{ key }}" {% if material.tipo_local == key %}selected{% endif %}>
-                                  {{ nome }}
+                            <select name="local_{{ material.id }}" class="table-select">
+                              <option value="">Não definido</option>
+                              {% for local in locais %}
+                                <option value="{{ local.id }}" {% if material.local_id == local.id %}selected{% endif %}>
+                                  {{ local }}
                                 </option>
                               {% endfor %}
                             </select>
@@ -950,5 +996,5 @@
 
     {% endif %}
   </div>
-</body>
-</html>
+</div>
+{% endblock %}

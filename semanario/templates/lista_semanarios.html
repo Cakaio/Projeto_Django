@@ -2,13 +2,14 @@
 {% load static %}
 
 {% block titulo %}Semanários por Sala{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'semanario/semanario.css' %}">{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 pb-10">
+<div class="semanario-page min-h-screen bg-gray-50 pb-10">
   <div class="max-w-3xl mx-auto px-4 sm:px-6 py-6">
 
     <!-- Hero -->
-    <div class="rounded-2xl p-6 sm:p-8 mb-6 text-white relative overflow-hidden"
+    <div class="semanario-hero rounded-2xl p-6 sm:p-8 mb-6 text-white relative overflow-hidden"
          style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
       <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10"></div>
       <div class="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/10"></div>

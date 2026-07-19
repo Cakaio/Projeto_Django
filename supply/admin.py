@@ -2,7 +2,15 @@ from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 from import_export.formats import base_formats
 from import_export import resources
-from .models import Item, Movimentacao, Pedido
+from .models import Item, Local, Movimentacao, Pedido
+
+
+@admin.register(Local)
+class LocalAdmin(admin.ModelAdmin):
+    list_display = ("nome", "tipo", "cidade", "numero_contato", "ativo")
+    list_filter = ("tipo", "ativo", "cidade")
+    search_fields = ("nome", "localizacao", "cidade", "numero_contato", "email")
+    ordering = ("nome",)
 
 
 class ItemResource(resources.ModelResource):
@@ -61,11 +69,12 @@ class MovimentacaoAdmin(ImportExportModelAdmin):
 class PedidoAdmin(admin.ModelAdmin):
     list_display = (
         "nome",
+        "link",
         "quantidade",
         "unidade",
         "valor",
-        "tipo_local",
-        "local_compra",
+        "valor_total",
+        "local",
         "requisitado_por",
         "sabado",
         "area",
@@ -73,18 +82,20 @@ class PedidoAdmin(admin.ModelAdmin):
 
     list_filter = (
         "unidade",
-        "tipo_local",
+        "local__tipo",
         "sabado",
         "area",
     )
 
     search_fields = (
         "nome",
-        "local_compra",
+        "link",
+        "local__nome",
         "requisitado_por__username",
     )
 
 
 
     ordering = ("-id",)
+    autocomplete_fields = ("local",)
     list_per_page = 20

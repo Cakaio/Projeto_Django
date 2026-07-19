@@ -1,13 +1,11 @@
-{% load l10n %}
-<!doctype html>
-<html lang="pt-br">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Painel Supply - Visualização</title>
+{% extends "base.html" %}
+{% load l10n static %}
+{% block titulo %}Painel Supply — Visualização{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="{% static 'supply/supply.css' %}">
 
   <style>
-    :root {
+    .supply-panel-page {
       --primary: #F8A51B;
       --primary-dark: #E8950B;
       --primary-light: rgba(248, 165, 27, 0.1);
@@ -21,15 +19,16 @@
       --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
-    * {
+    .supply-panel-page,
+    .supply-panel-page * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
 
-    body {
+    .supply-panel-page {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #fef9f0 0%, #fff7e6 50%, #fef3db 100%);
+      background: #f8fafc;
       min-height: 100vh;
       color: var(--text-dark);
     }
@@ -514,9 +513,9 @@
       }
     }
   </style>
-</head>
-
-<body>
+{% endblock %}
+{% block content %}
+<div class="supply-panel-page">
   <div class="bg-decoration">
     <div class="bg-circle bg-circle-1"></div>
     <div class="bg-circle bg-circle-2"></div>
@@ -560,12 +559,12 @@
           </div>
 
           <div class="filter-group">
-            <label>Tipo de local</label>
-            <select name="tipo_local" onchange="this.form.submit()">
+            <label>Local de compra</label>
+            <select name="local" onchange="this.form.submit()">
               <option value="">Todos os locais</option>
-              {% for key, nome in tipo_local_opcoes %}
-                <option value="{{ key }}" {% if tipo_local == key %}selected{% endif %}>
-                  {{ nome }}
+              {% for local in locais %}
+                <option value="{{ local.id }}" {% if local_id == local.id|stringformat:'s' %}selected{% endif %}>
+                  {{ local }}
                 </option>
               {% endfor %}
             </select>
@@ -578,14 +577,14 @@
       <div class="panel-switch-card">
         <div class="panel-switch">
           <a
-            href="?sabado={{ sabado.id }}&pedido={{ pedido|default:'' }}&tipo_local={{ tipo_local|default:'' }}&painel=material"
+            href="?sabado={{ sabado.id }}&pedido={{ pedido|default:'' }}&local={{ local_id|default:'' }}&painel=material"
             class="panel-btn {% if tipo_painel == 'material' or not tipo_painel %}active{% endif %}"
           >
             Materiais
           </a>
 
           <a
-            href="?sabado={{ sabado.id }}&tipo_local={{ tipo_local|default:'' }}&painel=pedido"
+            href="?sabado={{ sabado.id }}&local={{ local_id|default:'' }}&painel=pedido"
             class="panel-btn {% if tipo_painel == 'pedido' %}active{% endif %}"
           >
             Pedidos
@@ -646,11 +645,12 @@
                   <thead>
                     <tr>
                       <th>Pedido</th>
+                      <th>Imagem</th>
                       <th>Qtd</th>
                       <th>Unidade</th>
                       <th>Valor</th>
+                      <th>Valor total</th>
                       <th>Local de compra</th>
-                      <th>Tipo local</th>
                       <th>Requisitado por</th>
                     </tr>
                   </thead>
@@ -659,11 +659,16 @@
                     {% for item in grupo.pedidos %}
                       <tr>
                         <td><span class="material-name">{{ item.nome }}</span></td>
+                        <td>{% if item.link %}<a href="{{ item.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</td>
                         <td><span class="material-qty">{{ item.quantidade|floatformat:0 }}</span></td>
                         <td><span class="material-unit">{{ item.unidade }}</span></td>
                         <td>{% if item.valor is not None %}R$ {{ item.valor|floatformat:2 }}{% else %}—{% endif %}</td>
-                        <td>{{ item.local_compra|default:"—" }}</td>
-                        <td>{{ item.get_tipo_local_display|default:"—" }}</td>
+                        <td>{% if item.valor_total is not None %}R$ {{ item.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
+                        <td>
+                          {{ item.local|default:"—" }}
+                          {% if item.local.localizacao %}<small class="d-block">{{ item.local.localizacao }}</small>{% endif %}
+                          {% if item.local.numero_contato %}<small class="d-block">{{ item.local.numero_contato }}</small>{% endif %}
+                        </td>
                         <td>{{ item.requisitado_por|default:"—" }}</td>
                       </tr>
                     {% endfor %}
@@ -701,11 +706,12 @@
                   <thead>
                     <tr>
                       <th>Material</th>
+                      <th>Imagem</th>
                       <th>Qtd</th>
                       <th>Unidade</th>
                       <th>Valor</th>
+                      <th>Valor total</th>
                       <th>Local de compra</th>
-                      <th>Tipo local</th>
                     </tr>
                   </thead>
 
@@ -713,11 +719,16 @@
                     {% for material in sala.materiais %}
                       <tr>
                         <td><span class="material-name">{{ material.nome }}</span></td>
+                        <td>{% if material.link %}<a href="{{ material.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</td>
                         <td><span class="material-qty">{{ material.quantidade|floatformat:0 }}</span></td>
                         <td><span class="material-unit">{{ material.unidade }}</span></td>
                         <td>{% if material.valor is not None %}R$ {{ material.valor|floatformat:2 }}{% else %}—{% endif %}</td>
-                        <td>{{ material.local_compra|default:"—" }}</td>
-                        <td>{{ material.get_tipo_local_display|default:"—" }}</td>
+                        <td>{% if material.valor_total is not None %}R$ {{ material.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
+                        <td>
+                          {{ material.local|default:"—" }}
+                          {% if material.local.localizacao %}<small class="d-block">{{ material.local.localizacao }}</small>{% endif %}
+                          {% if material.local.numero_contato %}<small class="d-block">{{ material.local.numero_contato }}</small>{% endif %}
+                        </td>
                       </tr>
                     {% endfor %}
                   </tbody>
@@ -733,5 +744,5 @@
       <a class="btn-back" href="/supply/">Voltar</a>
     {% endif %}
   </div>
-</body>
-</html>
+</div>
+{% endblock %}
