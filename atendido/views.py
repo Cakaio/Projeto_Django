@@ -7,8 +7,12 @@ from .models import Atendido, PresencaAtendido
 from sabado.models import Sabado
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from .models import Atendido, PresencaAtendido
+from django.shortcuts import render, get_object_or_404
+from django.db import transaction
+from .models import Atendido, PresencaAtendido, ResponsavelAtendido
+from .forms import (
+    AtendidoForm, FamiliaForm, AtendidoInclusivoForm, ResponsavelFormSet,
+)
 from sabado.models import Sabado
 import json
 
@@ -22,6 +26,80 @@ LISTA_SALAS = [
     ("VERMELHO", "Vermelho"),
     ("FAMILIA_FELIZ", "Família Feliz"),
 ]
+
+
+@login_required(login_url="/")
+def matricula_atendido(request, pk=None):
+    """Matrícula/edição de atendido: criança + família + responsáveis + inclusão."""
+    atendido = get_object_or_404(Atendido, pk=pk) if pk else None
+    familia_instance = atendido.familia if atendido else None
+    inclusivo_instance = getattr(atendido, 'inclusivo', None) if atendido else None
+    modo = 'editar' if atendido else 'criar'
+
+    resp_qs = atendido.responsavel.all() if atendido else ResponsavelAtendido.objects.none()
+
+    if request.method == 'POST':
+        aform = AtendidoForm(request.POST, request.FILES, instance=atendido, prefix='at')
+        fform = FamiliaForm(request.POST, instance=familia_instance, prefix='fam')
+        rformset = ResponsavelFormSet(request.POST, prefix='resp', queryset=resp_qs)
+        iform = AtendidoInclusivoForm(request.POST, instance=inclusivo_instance, prefix='inc')
+
+        if aform.is_valid() and fform.is_valid() and rformset.is_valid() and iform.is_valid():
+            with transaction.atomic():
+                familia = fform.save()
+
+                responsaveis = []
+                for form in rformset:
+                    if not getattr(form, 'cleaned_data', None):
+                        continue
+                    if form.cleaned_data.get('DELETE'):
+                        continue
+                    if not form.cleaned_data.get('nome'):
+                        continue
+                    cpf = form.cleaned_data.get('cpf')
+                    if cpf:
+                        existente = (
+                            ResponsavelAtendido.objects.filter(cpf=cpf)
+                            .exclude(pk=form.instance.pk)
+                            .first()
+                        )
+                        if existente:
+                            responsaveis.append(existente)
+                            continue
+                    responsaveis.append(form.save())
+
+                atendido_obj = aform.save(commit=False)
+                atendido_obj.familia = familia
+                if modo == 'criar':
+                    atendido_obj.registrado_por = request.user
+                atendido_obj.save()
+                atendido_obj.responsavel.set(responsaveis)
+                aform.save_m2m()  # aspectos_mudancas
+
+                if atendido_obj.comissao_inclusiva:
+                    inclusivo = iform.save(commit=False)
+                    inclusivo.atendido = atendido_obj
+                    inclusivo.save()
+
+            messages.success(request, 'Matrícula salva com sucesso!')
+            return redirect('atendido:detalhe_atendido', pk=atendido_obj.pk)
+        else:
+            messages.error(request, 'Confira os campos destacados e tente novamente.')
+    else:
+        aform = AtendidoForm(instance=atendido, prefix='at')
+        fform = FamiliaForm(instance=familia_instance, prefix='fam')
+        rformset = ResponsavelFormSet(prefix='resp', queryset=resp_qs)
+        iform = AtendidoInclusivoForm(instance=inclusivo_instance, prefix='inc')
+
+    return render(request, 'matricula_atendido.html', {
+        'aform': aform,
+        'fform': fform,
+        'rformset': rformset,
+        'iform': iform,
+        'modo': modo,
+        'atendido': atendido,
+    })
+
 
 class ListaAtendido(LoginRequiredMixin, ListView):
     model = Atendido

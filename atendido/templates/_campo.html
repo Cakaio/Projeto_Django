@@ -1,0 +1,9 @@
+{# Campo genérico: label* + descrição + widget + erros. Uso: {% include '_campo.html' with field=aform.nome %} #}
+<div class="mb-4" id="wrap-{{ field.html_name }}">
+  <label class="block text-sm font-medium text-slate-800 mb-1" for="{{ field.id_for_label }}">
+    {{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}
+  </label>
+  {% if field.help_text %}<p class="text-xs text-muted-foreground mb-1.5 leading-snug">{{ field.help_text }}</p>{% endif %}
+  {{ field }}
+  {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors|join:", " }}</p>{% endif %}
+</div>
