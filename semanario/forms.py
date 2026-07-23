@@ -33,7 +33,11 @@ class AtividadeForm(forms.ModelForm):
 class MaterialForm(forms.ModelForm):
     class Meta:
         model = Material
-        fields = ["nome", "link", "quantidade", "unidade", "valor", "local", "pedido"]
+        fields = ["item", "link", "quantidade", "unidade", "valor", "local", "pedido"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["item"].queryset = self.fields["item"].queryset.filter(ativo=True).order_by("nome")
 
 
 # Cria os formsets
