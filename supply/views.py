@@ -444,19 +444,19 @@ def adicionar_pedidos(request):
                     logger.info(f"Form {idx} ignorado: cleaned_data vazio")
                     continue
 
-                nome = form.cleaned_data.get("nome")
-                if nome:
+                item = form.cleaned_data.get("item")
+                if item:
                     algum_formulario_preenchido = True
                     pedido = form.save(commit=False)
                     pedido.requisitado_por = request.user
                     pedidos_para_salvar.append(pedido)
-                    logger.info(f"Form {idx} pronto para salvar: nome={nome}")
+                    logger.info(f"Form {idx} pronto para salvar: item={item}")
                 else:
                     if any(
                         form.cleaned_data.get(campo)
                         for campo in ["link", "quantidade", "unidade", "sabado", "area"]
                     ):
-                        form.add_error("nome", "Preencha o nome do pedido.")
+                        form.add_error("item", "Selecione o item do pedido.")
                         logger.info(f"Form {idx} erro: nome não preenchido, mas outros campos sim")
 
             tem_erros = any(form.errors for form in formset)

@@ -97,5 +97,5 @@ class PedidoAdmin(admin.ModelAdmin):
 
 
     ordering = ("-id",)
-    autocomplete_fields = ("local",)
+    autocomplete_fields = ("item", "local")
     list_per_page = 20

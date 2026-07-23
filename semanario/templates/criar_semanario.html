@@ -281,14 +281,17 @@
   let currentIndex = null;
 
   function novaLinhaMaterial(m = {}) {
-    const nome = m.nome || '';
+    const itemId = String(m.item_id || '');
     const link = m.link || '';
     const qtd  = m.quantidade || '';
     const un   = m.unidade || 'UN';
     const pd   = m.pedido || 'SUPPLY';
     const sel  = (v, opt) => opt === v ? ' selected' : '';
     return `<tr>
-      <td class="px-3 py-2"><input type="text" class="mat-nome" value="${nome}" placeholder="Nome do material"></td>
+      <td class="px-3 py-2"><select class="mat-item">
+        <option value="">Selecione um item</option>
+        {% for item in itens %}<option value="{{ item.id }}">{{ item.nome|escapejs }}</option>{% endfor %}
+      </select></td>
       <td class="px-3 py-2"><input type="url" class="mat-link" value="${link}" placeholder="https://..."></td>
       <td class="px-3 py-2"><input type="number" class="mat-qtd" step="0.1" min="0" value="${qtd}"></td>
       <td class="px-3 py-2">
@@ -317,7 +320,7 @@
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </td>
-    </tr>`;
+    </tr>`.replace(`value="${itemId}"`, `value="${itemId}" selected`);
   }
 
   function abrirMateriais(index, nome) {
@@ -345,12 +348,12 @@
   function salvarMateriais() {
     const rows = document.querySelectorAll('#tabelaMateriais tr');
     const arr = Array.from(rows).map(r => ({
-      nome:      r.querySelector('.mat-nome')?.value.trim() || '',
+      item_id:   r.querySelector('.mat-item')?.value || '',
       link:      r.querySelector('.mat-link')?.value.trim() || '',
       quantidade: r.querySelector('.mat-qtd')?.value.trim() || '',
       unidade:   r.querySelector('.mat-unidade')?.value || 'UN',
       pedido:    r.querySelector('.mat-pedido')?.value || 'SUPPLY',
-    })).filter(m => m.nome !== '');
+    })).filter(m => m.item_id !== '');
 
     materialsByIndex[currentIndex] = arr;
 

@@ -130,7 +130,7 @@ class Atividade(models.Model):
     atividade = models.CharField(max_length=100)
     descricao = models.TextField()
     local = models.CharField(max_length=100, choices=LOCAIS, blank=True, null=True, default="SALINHA")
-    competencia = models.CharField(max_length=50)
+    competencia = models.CharField(max_length=50, null=True, blank=True)
     dimensao_competencia = models.CharField(max_length=200, editable=False, blank=True, null=True)
     fotos = models.ImageField(upload_to='fotos_atividades', blank=True, null=True)
     tempo_atividade = models.PositiveIntegerField(help_text="Tempo da atividade em minutos", blank=True, null=True) 
@@ -158,6 +158,7 @@ class Atividade(models.Model):
 
 class Material(models.Model):
     atividade = models.ForeignKey(Atividade,on_delete=models.CASCADE,related_name="materiais")
+    item = models.ForeignKey("supply.Item", on_delete=models.PROTECT, related_name="materiais")
     nome = models.CharField(max_length=100)
     link = models.URLField("link da imagem", blank=True)
     quantidade = models.DecimalField(max_digits=6, decimal_places=2, default=1)
@@ -175,3 +176,9 @@ class Material(models.Model):
 
     def __str__(self):
         return f"{self.nome} ({self.atividade.semanario.sala})"
+
+    def save(self, *args, **kwargs):
+        if self.item_id:
+            self.nome = self.item.nome
+            self.unidade = self.item.unidade
+        super().save(*args, **kwargs)

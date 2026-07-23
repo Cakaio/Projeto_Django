@@ -141,6 +141,7 @@ class Movimentacao(models.Model):
 
 
 class Pedido(models.Model):
+    item = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="pedidos")
     nome = models.CharField(max_length=100)
     link = models.URLField("link da imagem", blank=True)
     quantidade = models.DecimalField(max_digits=6, decimal_places=2, default=1)
@@ -160,3 +161,9 @@ class Pedido(models.Model):
 
     def __str__(self):
         return f"{self.nome}"
+
+    def save(self, *args, **kwargs):
+        if self.item_id:
+            self.nome = self.item.nome
+            self.unidade = self.item.unidade
+        super().save(*args, **kwargs)

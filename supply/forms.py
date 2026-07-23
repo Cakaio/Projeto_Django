@@ -1,13 +1,13 @@
 from django import forms
 from django.forms import modelformset_factory
-from .models import Pedido
+from .models import Item, Pedido
 
 
 class PedidoForm(forms.ModelForm):
     class Meta:
         model = Pedido
         fields = [
-            "nome",
+            "item",
             "link",
             "quantidade",
             "unidade",
@@ -15,10 +15,7 @@ class PedidoForm(forms.ModelForm):
             "area",
         ]
         widgets = {
-            "nome": forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Ex.: Cola branca"
-            }),
+            "item": forms.Select(attrs={"class": "form-control"}),
             "link": forms.URLInput(attrs={
                 "class": "form-control",
                 "placeholder": "https://exemplo.com/imagem.jpg"
@@ -39,11 +36,9 @@ class PedidoForm(forms.ModelForm):
             }),
         }
 
-    def clean_nome(self):
-        nome = self.cleaned_data.get("nome")
-        if nome:
-            return nome.strip()
-        return nome
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["item"].queryset = Item.objects.filter(ativo=True).order_by("nome")
 
 
 PedidoFormSet = modelformset_factory(
@@ -56,12 +51,16 @@ PedidoFormSet = modelformset_factory(
 class MeuPedidoForm(forms.ModelForm):
     class Meta:
         model = Pedido
-        fields = ["nome", "link", "quantidade", "unidade", "sabado", "area"]
+        fields = ["item", "link", "quantidade", "unidade", "sabado", "area"]
         widgets = {
-            "nome": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex.: Cola branca"}),
+            "item": forms.Select(attrs={"class": "form-control"}),
             "link": forms.URLInput(attrs={"class": "form-control", "placeholder": "https://exemplo.com/imagem.jpg"}),
             "quantidade": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
             "unidade": forms.Select(attrs={"class": "form-control"}),
             "sabado": forms.Select(attrs={"class": "form-control"}),
             "area": forms.Select(attrs={"class": "form-control"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["item"].queryset = Item.objects.filter(ativo=True).order_by("nome")

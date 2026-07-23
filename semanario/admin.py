@@ -67,4 +67,4 @@ class MaterialAdmin(admin.ModelAdmin):
     list_display = ("nome", "link", "atividade", "quantidade", "unidade", "valor", "valor_total", "local")
     list_filter = ("unidade", "local__tipo")
     search_fields = ("nome", "link", "local__nome")
-    autocomplete_fields = ("local",)
+    autocomplete_fields = ("item", "local")

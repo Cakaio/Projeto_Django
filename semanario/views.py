@@ -20,6 +20,7 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from sabado.models import Sabado, DisponibilidadeVoluntario
+from supply.models import Item
 from django.db.models import Prefetch, Count
 
 def criar_semanario(request):
@@ -65,13 +66,13 @@ def criar_semanario(request):
                     if not atividade_obj:
                         continue
                     for m in mats:
-                        nome = m.get('nome', '').strip()
+                        item = Item.objects.filter(pk=m.get('item_id'), ativo=True).first()
                         link = m.get('link', '').strip()
                         quantidade = m.get('quantidade', '').strip()
                         unidade = m.get('unidade', '').strip()
                         # Sem destino explícito → Supply (padrão de compra do projeto)
                         pedido = m.get('pedido', '').strip() or 'SUPPLY'
-                        if nome:
+                        if item:
                             # validar quantidade, usando default 1 quando vazio ou inválido
                             if quantidade:
                                 try:
@@ -82,7 +83,7 @@ def criar_semanario(request):
                                 qtd = Decimal('1')
                             Material.objects.create(
                                 atividade=atividade_obj,
-                                nome=nome,
+                                item=item,
                                 link=link,
                                 quantidade=qtd,
                                 unidade=(unidade or 'UN'),
@@ -105,20 +106,24 @@ def criar_semanario(request):
         semanario_form = SemanarioForm()
         formset = AtividadeFormSet(queryset=Atividade.objects.none())
 
-    return render(request, "criar_semanario.html", {"semanario_form": semanario_form, "formset": formset})
+    return render(request, "criar_semanario.html", {
+        "semanario_form": semanario_form,
+        "formset": formset,
+        "itens": Item.objects.filter(ativo=True).order_by("nome"),
+    })
 
 
 # Salvar materiais via modal
 def adicionar_material(request, atividade_id):
     if request.method == "POST":
         atividade = get_object_or_404(Atividade, id=atividade_id)
-        nome = request.POST.get("nome")
+        item = Item.objects.filter(pk=request.POST.get("item_id"), ativo=True).first()
         link = request.POST.get("link", "").strip()
         quantidade = request.POST.get("quantidade")
         unidade = request.POST.get("unidade")
 
-        if nome:
-            Material.objects.create(atividade=atividade, nome=nome, link=link, quantidade=quantidade, unidade=unidade)
+        if item:
+            Material.objects.create(atividade=atividade, item=item, link=link, quantidade=quantidade, unidade=unidade)
             return JsonResponse({"success": True})
     return JsonResponse({"success": False})
 
@@ -173,13 +178,13 @@ def editar_semanario(request, semanario_id):
                         if not atividade_obj:
                             continue
                         for m in mats:
-                            nome = m.get('nome', '').strip()
+                            item = Item.objects.filter(pk=m.get('item_id'), ativo=True).first()
                             link = m.get('link', '').strip()
                             quantidade = m.get('quantidade', '').strip()
                             unidade = m.get('unidade', '').strip()
                             # Sem destino explícito → Supply (padrão de compra do projeto)
                             pedido = m.get('pedido', '').strip() or 'SUPPLY'
-                            if nome:
+                            if item:
                                 if quantidade:
                                     try:
                                         qtd = Decimal(quantidade)
@@ -188,7 +193,7 @@ def editar_semanario(request, semanario_id):
                                 else:
                                     qtd = Decimal('1')
                                 Material.objects.create(
-                                    atividade=atividade_obj, nome=nome, link=link, quantidade=qtd,
+                                    atividade=atividade_obj, item=item, link=link, quantidade=qtd,
                                     unidade=(unidade or 'UN'), pedido=pedido
                                 )
                     except (ValueError, IndexError):
@@ -218,7 +223,8 @@ def editar_semanario(request, semanario_id):
     return render(request, "editar_semanario.html", {
         "semanario_form": semanario_form,
         "formset": formset,
-        "semanario": semanario
+        "semanario": semanario,
+        "itens": Item.objects.filter(ativo=True).order_by("nome"),
     })
 
 class SemanarioListView(LoginRequiredMixin, ListView):
@@ -249,6 +255,7 @@ def listar_materiais(request, atividade_id):
         {
             "id": m.id,
             "nome": m.nome,
+            "item_id": m.item_id,
             "link": m.link,
             "quantidade": str(m.quantidade),
             "unidade": m.unidade,
@@ -269,7 +276,7 @@ def salvar_materiais(request):
     for m in materiais:
         Material.objects.create(
             atividade_id=atividade_id,
-            nome=m["nome"],
+            item=get_object_or_404(Item, pk=m.get("item_id"), ativo=True),
             link=(m.get("link") or "").strip(),
             quantidade=m["quantidade"],
             unidade=m["unidade"],
