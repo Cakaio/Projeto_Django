@@ -6,6 +6,8 @@ app_name = 'atendido'
 
 urlpatterns = [
     path('', AtendidoView.as_view(), name='atendido_view'),
+    path('matricula/', views.matricula_atendido, name='matricula'),
+    path('matricula/<int:pk>/editar/', views.matricula_atendido, name='matricula_editar'),
     path('matriculados', ListaAtendido.as_view(), name='lista_atendidos'),
     path('presencas/', RegistrarPresencasAtendidos, name='registrar_presencas'),
     path('<int:pk>/', DetalheAtendido.as_view(), name='detalhe_atendido'),

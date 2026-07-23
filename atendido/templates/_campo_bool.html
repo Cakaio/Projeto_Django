@@ -1,0 +1,13 @@
+{# Pergunta Sim/Não (checkbox escondido + 2 botões). Uso: {% include '_campo_bool.html' with field=aform.trabalho %} #}
+<div class="mb-4" id="wrap-{{ field.html_name }}" data-bool>
+  <p class="text-sm font-medium text-slate-800 mb-1">
+    {{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}
+  </p>
+  {% if field.help_text %}<p class="text-xs text-muted-foreground mb-1.5 leading-snug">{{ field.help_text }}</p>{% endif %}
+  <div class="hidden">{{ field }}</div>
+  <div class="inline-flex rounded-lg border border-border overflow-hidden select-none">
+    <button type="button" data-sim class="px-5 py-1.5 text-sm font-semibold transition-colors">Sim</button>
+    <button type="button" data-nao class="px-5 py-1.5 text-sm font-semibold border-l border-border transition-colors">Não</button>
+  </div>
+  {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors|join:", " }}</p>{% endif %}
+</div>
