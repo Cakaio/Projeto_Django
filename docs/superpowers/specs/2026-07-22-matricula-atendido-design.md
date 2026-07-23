@@ -39,43 +39,57 @@ selects/date/checkbox/textarea adequados, máscaras leves e validações amigáv
 3. **Acesso:** qualquer voluntário logado (`@login_required`, sem checagem de área).
 4. **Inclusivo:** incluir também o modelo `AtendidoInclusivo` — seção
    "Comissão Inclusiva" que aparece só quando `comissao_inclusiva` é marcado.
-5. **Obrigatórios (política "mais completo"):** nome, data_nascimento, sala, tipo
-   de matrícula, ≥1 responsável (nome + parentesco + contato), CPF **ou** RG da
-   criança, escola, ano_escolar, e endereço da família (CEP, bairro, cidade).
+5. **Obrigatórios:** nome, data_nascimento, sala, tipo de matrícula, ≥1 responsável
+   (nome + parentesco + contato), CPF **ou** RG da criança, e endereço da família
+   (CEP, bairro, cidade). `escola` e `ano_escolar` são **encorajados mas opcionais**
+   (criança fora da escola não pode travar o cadastro).
 6. **Socioeconômico:** todos os campos; contadores de bens num bloco recolhível.
-7. **Pós-salvar:** redireciona para o detalhe do atendido criado.
+7. **Pós-salvar:** redireciona para o detalhe do atendido.
+8. **Criar e Editar na mesma tela** (modo `criar`/`editar`), à la
+   `ronda/form_configuracao.html`. Edição pré-preenche todos os forms do atendido
+   existente (Atendido, Família, Responsáveis, Inclusivo).
+9. **Prioridade de usabilidade para usuários leigos** (ver seção "UX para leigos").
 
 ## Arquitetura
 
-### Rota
-`atendido/urls.py`: `path('matricula/', views.matricula_atendido, name='matricula')`.
+### Rotas
+`atendido/urls.py`:
+- `path('matricula/', views.matricula_atendido, name='matricula')` — criar.
+- `path('matricula/<int:pk>/editar/', views.matricula_atendido, name='matricula_editar')` — editar.
 
-### View — `matricula_atendido(request)`
+### View — `matricula_atendido(request, pk=None)`
 - `@login_required(login_url="/")`.
-- **GET:** instancia `AtendidoForm`, `FamiliaForm`, `ResponsavelFormSet` (extra=1),
-  `AtendidoInclusivoForm` (todos vazios) e renderiza `matricula_atendido.html`.
+- `atendido = get_object_or_404(Atendido, pk=pk)` quando `pk` (modo editar); senão
+  `atendido = None` (modo criar). `modo = 'editar' if pk else 'criar'`.
+- **GET:** instancia `AtendidoForm(instance=atendido)`, `FamiliaForm(instance=atendido.familia)`,
+  `ResponsavelFormSet` (queryset = responsáveis do atendido, `extra=1`),
+  `AtendidoInclusivoForm(instance=getattr(atendido, 'inclusivo', None))`. Em modo
+  criar, todos vazios (extra=1 no formset). Renderiza `matricula_atendido.html`.
 - **POST:** valida os quatro. Se todos válidos, dentro de `transaction.atomic()`:
-  1. `familia = FamiliaForm.save()`.
-  2. Para cada form preenchido do `ResponsavelFormSet`: se `cpf` informado e já
-     existe `ResponsavelAtendido` com esse CPF, **reaproveita** o existente; senão
-     cria novo. Coleta a lista de responsáveis.
+  1. `familia = FamiliaForm.save()` (cria ou atualiza).
+  2. Para cada form preenchido do `ResponsavelFormSet` (respeitando `DELETE`): se
+     `cpf` informado e já existe `ResponsavelAtendido` com esse CPF, **reaproveita**
+     o existente; senão cria/atualiza. Coleta a lista de responsáveis.
   3. `atendido = AtendidoForm.save(commit=False)`; `atendido.familia = familia`;
-     `atendido.registrado_por = request.user`; `atendido.save()`.
-  4. `atendido.responsavel.set(responsaveis)`;
-     `AtendidoForm.save_m2m()` (para `aspectos_mudancas`).
-  5. Se `atendido.comissao_inclusiva`: `inclusivo = AtendidoInclusivoForm.save(commit=False)`;
-     `inclusivo.atendido = atendido`; `inclusivo.save()`.
+     em modo criar `atendido.registrado_por = request.user`; `atendido.save()`.
+  4. `atendido.responsavel.set(responsaveis)`; `AtendidoForm.save_m2m()`
+     (para `aspectos_mudancas`).
+  5. Se `atendido.comissao_inclusiva`: cria/atualiza `AtendidoInclusivo`
+     (`AtendidoInclusivoForm.save(commit=False)`, `inclusivo.atendido = atendido`,
+     `save()`). Se desmarcado e existir um `AtendidoInclusivo`, mantê-lo intacto
+     (não apagar — histórico), apenas não exibir.
   6. `messages.success(...)`; `redirect('atendido:detalhe_atendido', pk=atendido.pk)`.
-- Se algum form inválido: re-renderiza com os erros (mantendo o que foi digitado).
+- Se algum form inválido: re-renderiza com os erros e um **resumo de pendências no
+  topo** (lista amigável dos campos obrigatórios faltando), mantendo o preenchido.
 - O template usa `enctype="multipart/form-data"`; a view passa `request.POST, request.FILES`.
 
 ### Forms — `atendido/forms.py` (novo)
 
 - **`AtendidoForm(ModelForm)`** — `fields` = todos os campos de `Atendido` **exceto**
   `familia`, `responsavel`, `registrado_por`, `data_criacao`, `ativo` (esses são
-  tratados pela view). `help_text` vem do model. Tornar obrigatórios via
-  `__init__`: `matricula`, `escola`, `ano_escolar`. `clean()` valida que `cpf`
-  **ou** `rg` foi informado (senão `ValidationError`).
+  tratados pela view). `help_text` vem do model. Tornar obrigatório via
+  `__init__`: `matricula`. `clean()` valida que `cpf` **ou** `rg` foi informado
+  (senão `ValidationError`).
 - **`FamiliaForm(ModelForm)`** — todos os campos de `Familia` exceto `data_criacao`.
   Obrigatórios via `__init__`: `cep`, `bairro`, `cidade`.
 - **`ResponsavelAtendidoForm(ModelForm)`** — `fields` = todos exceto `data_criacao`.
@@ -95,15 +109,40 @@ os `TextField`, `CheckboxSelectMultiple` para `aspectos_mudancas`.
 ### Template — `atendido/templates/matricula_atendido.html`
 
 Página única, header navy PCF com curva `::after`, container central, **menu de
-âncoras** (lista lateral fixa em telas grandes) para saltar entre seções. Cada
-seção é um card `bg-card border border-border rounded-lg`. Cada campo: label com
-`*` quando obrigatório, descrição (help_text) em texto pequeno, widget, e erros
-inline em vermelho. JS vanilla para: (a) formset dinâmico de responsáveis
-(adicionar/remover linha, reindexando `TOTAL_FORMS`); (b) mostrar/ocultar a seção
-"Comissão Inclusiva" conforme o checkbox `comissao_inclusiva`; (c) bloco recolhível
-"Bens e infraestrutura"; (d) máscaras leves de CPF/telefone/CEP. Diretriz de UI:
-Tailwind + shadcn, sem dependência de Bootstrap para estilo, qualidade de
-designer sênior, responsivo (a Tríade usa celular).
+âncoras** (lista lateral fixa em telas grandes) para saltar entre seções e ver o
+progresso. Cada seção é um card `bg-card border border-border rounded-lg`. Cada
+campo: label com `*` quando obrigatório, descrição (help_text) em texto pequeno,
+widget, e erros inline em vermelho. Diretriz de UI: Tailwind + shadcn, sem
+dependência de Bootstrap para estilo, qualidade de designer sênior, responsivo
+(a Tríade usa celular). Detalhes de interação na seção "UX para leigos".
+
+## UX para usuários leigos
+
+Os operadores da matrícula são pessoas não técnicas; o design prioriza clareza e
+baixo atrito:
+
+- **Perguntas Sim/Não como botões segmentados** (não checkbox cru): cada
+  `BooleanField` vira um par de botões "Sim / Não" claros, com o rótulo em
+  linguagem simples (o `help_text` do model). Estado inicial reflete o default.
+- **Revelação condicional:** os campos de "descrição" (`diagnostico_descricao`,
+  `sensibilidade_descricao`, `dificuldade_motora_descricao`,
+  `dificuldade_emocional_descricao`) só aparecem quando a pergunta Sim/Não
+  correspondente está em "Sim". A seção "Comissão Inclusiva" idem
+  (`comissao_inclusiva`). Reduz a tela e o medo de "campo vazio".
+- **Navegação/progresso por seções:** menu lateral fixo com as seções; ao rolar,
+  destaca a atual. Cada seção com pelo menos um obrigatório mostra um indicador de
+  pendente/ok.
+- **Resumo de pendências ao salvar:** se faltarem obrigatórios, um card no topo
+  lista em português claro o que falta e cada campo com erro fica destacado, com
+  rolagem até o primeiro erro.
+- **Máscaras leves** (só visuais) de CPF, telefone e CEP; placeholders com exemplo.
+- **Agrupamento e ordem** seguem o raciocínio de uma ficha de matrícula real:
+  primeiro a criança, depois responsáveis, depois família, depois saúde/inclusão.
+- **Botão salvar fixo** (sticky) no rodapé, sempre acessível, com rótulo claro
+  ("Concluir matrícula" / "Salvar alterações").
+- JS vanilla para: formset dinâmico de responsáveis (adicionar/remover, reindexando
+  `TOTAL_FORMS`), toggles Sim/Não, revelação condicional, bloco recolhível "Bens e
+  infraestrutura", navegação de seções e máscaras.
 
 ## Seções e campos
 
@@ -125,9 +164,8 @@ Legenda: `*` = obrigatório nesta tela.
    `cidade`* (select), `zona_residencial` (select), `situacao_moradia` (select).
 8. **Família · Socioeconômico** — `renda_total_familia` (select),
    `pessoas_moram_familia` (int), `pessoas_trabalham_familia` (int),
-   `programa_transferencia_renda` (checkbox), `agua_encanada`, `esgoto_encanado`,
-   `energia_eletrica`, `internet_casa` (checkboxes), `impacto_social` (select),
-   `tipo_impacto_social` (select), `cesta_natal` (checkbox);
+   `programa_transferencia_renda` (Sim/Não), `agua_encanada`, `esgoto_encanado`,
+   `energia_eletrica`, `internet_casa` (Sim/Não), `cesta_natal` (Sim/Não);
    **[recolhível] Bens e infraestrutura** — `comodos_casa`, `tv_casa`,
    `banheiro_casa`, `motos_casa`, `carros_casa`, `geladeira_casa`, `freezer_casa`,
    `celular_casa`, `computador_casa` (todos int).
@@ -147,8 +185,10 @@ Legenda: `*` = obrigatório nesta tela.
     `dificuldades_aprendizado`, `dificuldades_motoras`, `dificuldade_atencao`,
     `dificuldade_emocional`, `servicos_apoio`, `expectativas_familia`,
     `observacoes_adicionais`.
-12. **Impacto do PCF** — `mudancas_positivas` (checkbox), `aspectos_mudancas`
-    (checkboxes múltiplos de `Mudanca`).
+12. **Impacto do Projeto** — `mudancas_positivas` (Sim/Não), `aspectos_mudancas`
+    (checkboxes múltiplos de `Mudanca`, aparecem quando "Sim"),
+    `impacto_social` (select, campo da Família), `tipo_impacto_social` (select,
+    campo da Família).
 13. **Vestuário** — `numeracao_camisa`, `numeracao_calca`, `numeracao_calcado`.
 14. **Termos e Autorizações** — `termos_assinado` (checkbox).
 15. **Observações** — `observacoes` (textarea).
@@ -158,8 +198,8 @@ Legenda: `*` = obrigatório nesta tela.
 - **CPF ou RG da criança:** ao menos um preenchido (`AtendidoForm.clean`).
 - **≥1 responsável válido:** a view rejeita o POST se nenhum form do formset tiver
   nome + parentesco + contato.
-- **Obrigatórios "mais completo":** `matricula`, `escola`, `ano_escolar`, `cep`,
-  `bairro`, `cidade`.
+- **Obrigatórios:** `matricula`, `cep`, `bairro`, `cidade` (além de nome,
+  data_nascimento, sala). `escola`/`ano_escolar` ficam opcionais.
 - **Unicidade de CPF:** `Atendido.cpf` e `ResponsavelAtendido.cpf` são `unique`.
   Para atendido, erro amigável se CPF já existir. Para responsável, se o CPF já
   existe, **reaproveita** o registro (vincula o existente).
@@ -175,11 +215,11 @@ Legenda: `*` = obrigatório nesta tela.
 - **Transação:** todo o salvamento em `transaction.atomic()`; se algo falhar,
   nada é persistido.
 - **Booleanos anuláveis do `AtendidoInclusivo`** (`diagnostico`, `acompanhamento`,
-  `servicos_apoio`) usam checkbox simples (marcado = True; desmarcado = False).
+  `servicos_apoio`) usam o toggle Sim/Não (Sim = True; Não = False) — abre-se mão
+  do terceiro estado (nulo) em favor da clareza para o operador leigo.
 
 ## Fora de escopo (YAGNI)
 
-- Edição/rematrícula reusando esta tela (foco é criar; edição segue no admin por ora).
 - Reaproveitar `Familia` existente (irmãos) — cada matrícula cria uma família nova.
 - Busca de endereço por CEP (ViaCEP): bairro/cidade são selects curados da região,
   então autofill não mapeia bem; fica de fora.
@@ -194,3 +234,5 @@ Cobrir em `atendido/tests.py`:
 - Responsável com CPF já existente reaproveita o registro (não duplica).
 - Vários responsáveis via formset são todos vinculados.
 - Acesso exige login (não logado redireciona).
+- **Editar** (`matricula_editar` com pk) pré-preenche e atualiza o atendido,
+  a família e os responsáveis existentes sem duplicar registros.
