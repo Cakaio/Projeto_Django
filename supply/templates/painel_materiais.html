@@ -611,6 +611,44 @@
       gap: 0.75rem;
     }
 
+    .action-buttons { display: flex; align-items: center; gap: 0.5rem; }
+    .btn-duplicate, .btn-delete { border: 0; border-radius: 10px; cursor: pointer; font-weight: 700; }
+    .btn-duplicate { padding: 0.55rem 0.75rem; background: var(--primary-light); color: var(--primary-dark); }
+    .btn-delete { padding: 0.55rem 0.75rem; background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+    .column-controls {
+      display: flex;
+      justify-content: flex-end;
+      margin: -0.5rem 0 1.5rem;
+    }
+
+    .column-picker { position: relative; }
+    .column-picker > summary {
+      display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.7rem 1rem;
+      background: white; color: var(--text-dark); border: 1px solid var(--border-color);
+      border-radius: 10px; box-shadow: var(--card-shadow); cursor: pointer;
+      font-size: 0.9rem; font-weight: 700; list-style: none;
+    }
+    .column-picker > summary::-webkit-details-marker { display: none; }
+    .column-picker[open] > summary { border-color: var(--primary); }
+    .column-picker-menu {
+      position: absolute; z-index: 20; top: calc(100% + 0.5rem); right: 0;
+      width: 240px; padding: 0.75rem; background: white;
+      border: 1px solid var(--border-color); border-radius: 12px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+    }
+    .column-option {
+      display: flex; align-items: center; gap: 0.65rem; padding: 0.55rem;
+      border-radius: 8px; cursor: pointer; color: var(--text-dark); font-size: 0.9rem;
+    }
+    .column-option:hover { background: var(--bg-light); }
+    .column-option input { accent-color: var(--primary-dark); width: 16px; height: 16px; }
+    .btn-reset-columns {
+      width: 100%; margin-top: 0.5rem; padding: 0.6rem; border: 0;
+      border-radius: 8px; background: var(--bg-light); color: var(--text-muted);
+      cursor: pointer; font-weight: 700;
+    }
+
     @media (max-width: 768px) {
       .main-container {
         padding: 1rem;
@@ -724,6 +762,25 @@
         </div>
       </div>
 
+      <div class="column-controls">
+        <details class="column-picker" id="column-picker">
+          <summary aria-label="Escolher colunas visíveis">Colunas</summary>
+          <div class="column-picker-menu">
+            <label class="column-option"><input type="checkbox" data-column="1" checked> {% if tipo_painel == 'pedido' %}Pedido{% else %}Material{% endif %}</label>
+            <label class="column-option"><input type="checkbox" data-column="2" checked> Especificar</label>
+            <label class="column-option"><input type="checkbox" data-column="3" checked> Imagem</label>
+            <label class="column-option"><input type="checkbox" data-column="4" checked> Quantidade</label>
+            <label class="column-option"><input type="checkbox" data-column="5" checked> Unidade</label>
+            <label class="column-option"><input type="checkbox" data-column="6" checked> Valor</label>
+            <label class="column-option"><input type="checkbox" data-column="7" checked> Valor total</label>
+            <label class="column-option"><input type="checkbox" data-column="8" checked> Local de compra</label>
+            <label class="column-option"><input type="checkbox" data-column="9" checked> Requisitado por</label>
+            <label class="column-option"><input type="checkbox" data-column="10" checked> Ações</label>
+            <button type="button" class="btn-reset-columns" id="reset-columns">Exibir todas</button>
+          </div>
+        </details>
+      </div>
+
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-icon orange">
@@ -785,6 +842,7 @@
                     <thead>
                       <tr>
                         <th>Pedido</th>
+                        <th>Especificar</th>
                         <th>Imagem</th>
                         <th>Qtd</th>
                         <th>Unidade</th>
@@ -792,6 +850,7 @@
                         <th>Valor total</th>
                         <th>Local de compra</th>
                         <th>Requisitado por</th>
+                        <th>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -799,16 +858,9 @@
                         <tr>
                           <input type="hidden" name="pedido_ids" value="{{ pedido.id }}">
 
+                          <td><span class="material-name">{{ pedido.nome }}</span></td>
                           <td>
-                            <input
-                              type="text"
-                              name="nome_pedido_{{ pedido.id }}"
-                              value="{{ pedido.nome }}"
-                              maxlength="100"
-                              class="table-input"
-                              aria-label="Nome do pedido"
-                              required
-                            >
+                            <textarea name="especificar_pedido_{{ pedido.id }}" rows="2" class="table-input" aria-label="Especificação do pedido" placeholder="Cor, tamanho, marca...">{{ pedido.especificar }}</textarea>
                           </td>
                           <td>
                             {% if pedido.link %}<a href="{{ pedido.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}
@@ -825,13 +877,7 @@
                               required
                             >
                           </td>
-                          <td>
-                            <select name="unidade_pedido_{{ pedido.id }}" class="table-select" aria-label="Unidade do pedido" required>
-                              {% for key, nome in unidades %}
-                                <option value="{{ key }}" {% if pedido.unidade == key %}selected{% endif %}>{{ nome }}</option>
-                              {% endfor %}
-                            </select>
-                          </td>
+                          <td><span class="material-qty">{{ pedido.unidade }}</span></td>
 
                           <td>
                             <input
@@ -858,6 +904,16 @@
                           </td>
 
                           <td>{{ pedido.requisitado_por|default_if_none:"-" }}</td>
+                          <td><div class="action-buttons">
+                            <button type="submit" class="btn-duplicate"
+                              formaction="{% url 'supply:gerenciar_item_painel' %}"
+                              name="duplicar_pedido" value="{{ pedido.id }}" formnovalidate
+                              onclick="return confirm('Tem certeza que deseja duplicar o pedido “{{ pedido.nome|escapejs }}”?');">Duplicar</button>
+                            <button type="submit" class="btn-delete"
+                              formaction="{% url 'supply:gerenciar_item_painel' %}"
+                              name="excluir_pedido" value="{{ pedido.id }}" formnovalidate
+                              onclick="return confirm('Tem certeza que deseja excluir o pedido “{{ pedido.nome|escapejs }}”?');">Excluir</button>
+                          </div></td>
                         </tr>
                       {% endfor %}
                     </tbody>
@@ -895,12 +951,15 @@
                     <thead>
                       <tr>
                         <th>Material</th>
+                        <th>Especificar</th>
                         <th>Imagem</th>
                         <th>Qtd</th>
                         <th>Unidade</th>
                         <th>Valor (R$)</th>
                         <th>Valor total</th>
                         <th>Local de compra</th>
+                        <th>Requisitado por</th>
+                        <th>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -908,16 +967,9 @@
                         <tr>
                           <input type="hidden" name="material_ids" value="{{ material.id }}">
 
+                          <td><span class="material-name">{{ material.nome }}</span></td>
                           <td>
-                            <input
-                              type="text"
-                              name="nome_material_{{ material.id }}"
-                              value="{{ material.nome }}"
-                              maxlength="100"
-                              class="table-input"
-                              aria-label="Nome do material"
-                              required
-                            >
+                            <textarea name="especificar_material_{{ material.id }}" rows="2" class="table-input" aria-label="Especificação do material" placeholder="Cor, tamanho, marca...">{{ material.especificar }}</textarea>
                           </td>
                           <td>
                             {% if material.link %}<a href="{{ material.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}
@@ -934,13 +986,7 @@
                               required
                             >
                           </td>
-                          <td>
-                            <select name="unidade_material_{{ material.id }}" class="table-select" aria-label="Unidade do material" required>
-                              {% for key, nome in unidades_material %}
-                                <option value="{{ key }}" {% if material.unidade == key %}selected{% endif %}>{{ nome }}</option>
-                              {% endfor %}
-                            </select>
-                          </td>
+                          <td><span class="material-qty">{{ material.unidade }}</span></td>
 
                           <td>
                             <input
@@ -965,6 +1011,17 @@
                               {% endfor %}
                             </select>
                           </td>
+                          <td>{{ material.requisitado_por|default_if_none:"-" }}</td>
+                          <td><div class="action-buttons">
+                            <button type="submit" class="btn-duplicate"
+                              formaction="{% url 'supply:gerenciar_item_painel' %}"
+                              name="duplicar_material" value="{{ material.id }}" formnovalidate
+                              onclick="return confirm('Tem certeza que deseja duplicar o material “{{ material.nome|escapejs }}”?');">Duplicar</button>
+                            <button type="submit" class="btn-delete"
+                              formaction="{% url 'supply:gerenciar_item_painel' %}"
+                              name="excluir_material" value="{{ material.id }}" formnovalidate
+                              onclick="return confirm('Tem certeza que deseja excluir o material “{{ material.nome|escapejs }}”?');">Excluir</button>
+                          </div></td>
                         </tr>
                       {% endfor %}
                     </tbody>
@@ -993,6 +1050,53 @@
           </button>
         </div>
       </form>
+
+      <script>
+        (() => {
+          const storageKey = 'painel-supply-colunas-{{ tipo_painel|default:"material"|escapejs }}';
+          const checkboxes = Array.from(document.querySelectorAll('[data-column]'));
+
+          function aplicarColunas() {
+            const ocultas = checkboxes
+              .filter((checkbox) => !checkbox.checked)
+              .map((checkbox) => Number(checkbox.dataset.column));
+
+            document.querySelectorAll('.materials-table').forEach((table) => {
+              table.querySelectorAll('tr').forEach((row) => {
+                Array.from(row.cells).forEach((cell, index) => {
+                  cell.hidden = ocultas.includes(index + 1);
+                });
+              });
+            });
+
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(ocultas));
+            } catch (error) {
+              // A seleção continua funcionando mesmo quando o armazenamento está indisponível.
+            }
+          }
+
+          let ocultasSalvas = [];
+          try {
+            ocultasSalvas = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            if (!Array.isArray(ocultasSalvas)) ocultasSalvas = [];
+          } catch (error) {
+            ocultasSalvas = [];
+          }
+
+          checkboxes.forEach((checkbox) => {
+            checkbox.checked = !ocultasSalvas.includes(Number(checkbox.dataset.column));
+            checkbox.addEventListener('change', aplicarColunas);
+          });
+
+          document.getElementById('reset-columns').addEventListener('click', () => {
+            checkboxes.forEach((checkbox) => { checkbox.checked = true; });
+            aplicarColunas();
+          });
+
+          aplicarColunas();
+        })();
+      </script>
 
     {% endif %}
   </div>

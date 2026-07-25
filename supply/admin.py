@@ -70,6 +70,7 @@ class PedidoAdmin(admin.ModelAdmin):
     list_display = (
         "nome",
         "link",
+        "especificar",
         "quantidade",
         "unidade",
         "valor",
@@ -90,6 +91,7 @@ class PedidoAdmin(admin.ModelAdmin):
     search_fields = (
         "nome",
         "link",
+        "especificar",
         "local__nome",
         "requisitado_por__username",
     )

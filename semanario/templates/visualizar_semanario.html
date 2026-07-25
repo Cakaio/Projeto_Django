@@ -163,6 +163,7 @@
                   <span class="flex items-center gap-3 text-slate-700">
                     <span class="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0"></span>
                     {{ material.nome }}
+                    {% if material.especificar %}<span class="text-slate-500 text-sm">{{ material.especificar }}</span>{% endif %}
                     {% if material.link %}
                     <a href="{{ material.link }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:text-indigo-800 underline text-sm">Abrir imagem</a>
                     {% endif %}

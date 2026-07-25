@@ -408,6 +408,7 @@
             <tr>
               <th class="col-index">#</th>
               <th class="col-nome">Nome do pedido</th>
+              <th>Especificar</th>
               <th>Link da imagem</th>
               <th class="col-quantidade">Quantidade</th>
               <th class="col-unidade">Unidade</th>
@@ -428,6 +429,11 @@
                   {% if form.item.errors %}
                     <div class="error-list">{{ form.item.errors }}</div>
                   {% endif %}
+                </td>
+
+                <td>
+                  {{ form.especificar }}
+                  {% if form.especificar.errors %}<div class="error-list">{{ form.especificar.errors }}</div>{% endif %}
                 </td>
 
                 <td>
@@ -567,7 +573,7 @@
     // Remover campos ocultos duplicados (ex: input[type=hidden])
     newDesktopRow.querySelectorAll('input[type="hidden"]').forEach(e => e.remove());
     // Garantir que só há um input/select para cada campo
-    const uniqueNames = ["nome", "link", "quantidade", "unidade", "sabado", "area"];
+    const uniqueNames = ["item", "especificar", "link", "quantidade", "unidade", "sabado", "area"];
     uniqueNames.forEach(field => {
       const inputs = newDesktopRow.querySelectorAll(`[name$='-${field}']`);
       if (inputs.length > 1) {

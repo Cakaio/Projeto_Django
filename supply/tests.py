@@ -38,3 +38,6 @@ class PedidoLinkTests(SimpleTestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn("link", form.errors)
+
+    def test_formulario_disponibiliza_campo_especificar(self):
+        self.assertIn("especificar", PedidoForm().fields)

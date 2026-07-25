@@ -143,6 +143,7 @@ class Movimentacao(models.Model):
 class Pedido(models.Model):
     item = models.ForeignKey(Item, on_delete=models.PROTECT, related_name="pedidos")
     nome = models.CharField(max_length=100)
+    especificar = models.TextField(blank=True)
     link = models.URLField("link da imagem", blank=True)
     quantidade = models.DecimalField(max_digits=6, decimal_places=2, default=1)
     unidade = models.CharField(max_length=10, choices=UNIDADES, default="UN")

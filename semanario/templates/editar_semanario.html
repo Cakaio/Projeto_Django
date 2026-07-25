@@ -210,7 +210,7 @@
 <!-- Modal Materiais (vanilla) -->
 <div id="modalMateriais" class="fixed inset-0 z-50 hidden items-center justify-center p-4"
      style="background:rgba(0,0,0,.45)">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
     <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
       <h2 class="font-bold text-gray-900 text-base">Materiais — <span id="atividadeNome" class="text-cyan-600"></span></h2>
       <button type="button" onclick="fecharMateriais()"
@@ -227,6 +227,7 @@
           <thead>
             <tr class="bg-gray-50 border-b border-gray-200">
               <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Material</th>
+              <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Especificar</th>
               <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Link da imagem</th>
               <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-20">Qtd</th>
               <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Unidade</th>
@@ -286,7 +287,7 @@
   #formSemanario textarea { min-height: 80px; resize: vertical; }
   .feedback-field textarea { border-color: #bbf7d0 !important; background: #fff !important; }
   .feedback-field textarea:focus { border-color: #16a34a !important; box-shadow: 0 0 0 3px rgba(22,163,74,.12) !important; }
-  #tabelaMateriais input, #tabelaMateriais select {
+  #tabelaMateriais input, #tabelaMateriais select, #tabelaMateriais textarea {
     width: 100%; padding: 0.375rem 0.5rem;
     border: 1.5px solid #e5e7eb; border-radius: 0.5rem; font-size: 0.8125rem; outline: none;
   }
@@ -308,6 +309,7 @@
 
   function novaLinha(m = {}) {
     const itemId = String(m.item_id || '');
+    const especificar = (m.especificar || '').replace(/"/g, '&quot;');
     const link = (m.link || '').replace(/"/g, '&quot;');
     const qtd  = m.quantidade || '';
     const un   = m.unidade || 'UN';
@@ -318,6 +320,7 @@
         <option value="">Selecione um item</option>
         {% for item in itens %}<option value="{{ item.id }}">{{ item.nome|escapejs }}</option>{% endfor %}
       </select></td>
+      <td class="px-3 py-2"><textarea class="mat-especificar" rows="2" placeholder="Cor, tamanho, marca...">${especificar}</textarea></td>
       <td class="px-3 py-2"><input type="url" class="mat-link" value="${link}" placeholder="https://..."></td>
       <td class="px-3 py-2"><input type="number" class="mat-qtd" step="0.1" min="0" value="${qtd}"></td>
       <td class="px-3 py-2">
@@ -361,7 +364,7 @@
     currentAtividadeIdx = String(idx);
     document.getElementById('atividadeNome').textContent = nome;
     const tabela = document.getElementById('tabelaMateriais');
-    tabela.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-xs text-gray-400">Carregando…</td></tr>';
+    tabela.innerHTML = '<tr><td colspan="7" class="px-3 py-4 text-center text-xs text-gray-400">Carregando…</td></tr>';
 
     const modal = document.getElementById('modalMateriais');
     modal.classList.remove('hidden');
@@ -396,6 +399,7 @@
   function coletarMateriais() {
     return Array.from(document.querySelectorAll('#tabelaMateriais tr')).map(r => ({
       item_id:    r.querySelector('.mat-item')?.value || '',
+      especificar: r.querySelector('.mat-especificar')?.value.trim() || '',
       link:       r.querySelector('.mat-link')?.value.trim() || '',
       quantidade: r.querySelector('.mat-qtd')?.value.trim() || '',
       unidade:    r.querySelector('.mat-unidade')?.value || 'UN',

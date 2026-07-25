@@ -67,6 +67,7 @@ def criar_semanario(request):
                         continue
                     for m in mats:
                         item = Item.objects.filter(pk=m.get('item_id'), ativo=True).first()
+                        especificar = m.get('especificar', '').strip()
                         link = m.get('link', '').strip()
                         quantidade = m.get('quantidade', '').strip()
                         unidade = m.get('unidade', '').strip()
@@ -84,10 +85,12 @@ def criar_semanario(request):
                             Material.objects.create(
                                 atividade=atividade_obj,
                                 item=item,
+                                especificar=especificar,
                                 link=link,
                                 quantidade=qtd,
                                 unidade=(unidade or 'UN'),
-                                pedido=pedido
+                                pedido=pedido,
+                                requisitado_por=request.user if request.user.is_authenticated else None,
                             )
 
             messages.success(request, "✅ Semanário, atividades e materiais salvos com sucesso!")
@@ -118,12 +121,21 @@ def adicionar_material(request, atividade_id):
     if request.method == "POST":
         atividade = get_object_or_404(Atividade, id=atividade_id)
         item = Item.objects.filter(pk=request.POST.get("item_id"), ativo=True).first()
+        especificar = request.POST.get("especificar", "").strip()
         link = request.POST.get("link", "").strip()
         quantidade = request.POST.get("quantidade")
         unidade = request.POST.get("unidade")
 
         if item:
-            Material.objects.create(atividade=atividade, item=item, link=link, quantidade=quantidade, unidade=unidade)
+            Material.objects.create(
+                atividade=atividade,
+                item=item,
+                especificar=especificar,
+                link=link,
+                quantidade=quantidade,
+                unidade=unidade,
+                requisitado_por=request.user if request.user.is_authenticated else None,
+            )
             return JsonResponse({"success": True})
     return JsonResponse({"success": False})
 
@@ -179,6 +191,7 @@ def editar_semanario(request, semanario_id):
                             continue
                         for m in mats:
                             item = Item.objects.filter(pk=m.get('item_id'), ativo=True).first()
+                            especificar = m.get('especificar', '').strip()
                             link = m.get('link', '').strip()
                             quantidade = m.get('quantidade', '').strip()
                             unidade = m.get('unidade', '').strip()
@@ -193,8 +206,10 @@ def editar_semanario(request, semanario_id):
                                 else:
                                     qtd = Decimal('1')
                                 Material.objects.create(
-                                    atividade=atividade_obj, item=item, link=link, quantidade=qtd,
-                                    unidade=(unidade or 'UN'), pedido=pedido
+                                    atividade=atividade_obj, item=item, especificar=especificar,
+                                    link=link, quantidade=qtd, unidade=(unidade or 'UN'),
+                                    pedido=pedido,
+                                    requisitado_por=request.user if request.user.is_authenticated else None,
                                 )
                     except (ValueError, IndexError):
                         continue
@@ -256,6 +271,7 @@ def listar_materiais(request, atividade_id):
             "id": m.id,
             "nome": m.nome,
             "item_id": m.item_id,
+            "especificar": m.especificar,
             "link": m.link,
             "quantidade": str(m.quantidade),
             "unidade": m.unidade,
@@ -277,11 +293,13 @@ def salvar_materiais(request):
         Material.objects.create(
             atividade_id=atividade_id,
             item=get_object_or_404(Item, pk=m.get("item_id"), ativo=True),
+            especificar=(m.get("especificar") or "").strip(),
             link=(m.get("link") or "").strip(),
             quantidade=m["quantidade"],
             unidade=m["unidade"],
             # Sem destino explícito → Supply (padrão de compra do projeto)
             pedido=(m.get("pedido") or "").strip() or "SUPPLY",
+            requisitado_por=request.user if request.user.is_authenticated else None,
         )
     return JsonResponse({"success": True})
 
