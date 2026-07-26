@@ -32,3 +32,11 @@ class MaterialLinkTests(SimpleTestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn("link", form.errors)
+
+    def test_formulario_disponibiliza_campo_especificar(self):
+        self.assertIn("especificar", MaterialForm().fields)
+
+    def test_material_possui_relacao_com_requisitante(self):
+        field = Material._meta.get_field("requisitado_por")
+
+        self.assertEqual(field.remote_field.model._meta.label, "voluntario.Voluntario")

@@ -160,12 +160,20 @@ class Material(models.Model):
     atividade = models.ForeignKey(Atividade,on_delete=models.CASCADE,related_name="materiais")
     item = models.ForeignKey("supply.Item", on_delete=models.PROTECT, related_name="materiais")
     nome = models.CharField(max_length=100)
+    especificar = models.TextField(blank=True)
     link = models.URLField("link da imagem", blank=True)
     quantidade = models.DecimalField(max_digits=6, decimal_places=2, default=1)
     unidade = models.CharField(max_length=10, choices=UNIDADES, default="UN")
     valor = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     local = models.ForeignKey("supply.Local", on_delete=models.SET_NULL, null=True, blank=True, related_name="materiais")
     pedido = models.CharField(max_length=100, choices=PEDIDO, blank=True, null=True)
+    requisitado_por = models.ForeignKey(
+        "voluntario.Voluntario",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="materiais_requisitados",
+    )
 
     @property
     def valor_total(self):

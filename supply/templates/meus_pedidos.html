@@ -70,6 +70,11 @@
   .table-footer-note { color: #6b7280; font-size: 0.93rem; }
   .error-list { margin-top: 0.35rem; font-size: 0.82rem; color: #b91c1c; font-weight: 600; }
   .delete-checkbox { display: none; }
+  .materials-card { margin-top: 1.5rem; }
+  .material-name { font-weight: 700; color: #1f2937; }
+  .material-badge { display: inline-flex; padding: 0.3rem 0.65rem; border-radius: 999px; background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 0.86rem; }
+  .material-detail { color: #6b7280; font-size: 0.88rem; margin-top: 0.25rem; }
+  .empty-materials { padding: 2.5rem 1.5rem; text-align: center; color: #6b7280; }
 </style>
 
 <div class="supply-page container main-container">
@@ -82,8 +87,8 @@
       </div>
 
       <div>
-        <h1 class="page-title">Meus pedidos</h1>
-        <p class="page-subtitle">Edite, remova ou adicione pedidos criados por você.</p>
+        <h1 class="page-title">Minhas requisições</h1>
+        <p class="page-subtitle">Consulte seus materiais e gerencie os pedidos criados por você.</p>
       </div>
     </div>
 
@@ -121,6 +126,7 @@
 
   <form method="post" id="pedido-formset">
     {% csrf_token %}
+    <input type="hidden" name="tipo_form" value="pedidos">
     {{ formset.management_form }}
 
     <div class="table-card">
@@ -137,6 +143,7 @@
             <tr>
               <th class="col-index">#</th>
               <th class="col-nome">Nome</th>
+              <th>Especificar</th>
               <th>Link da imagem</th>
               <th class="col-quantidade">Quantidade</th>
               <th class="col-unidade">Unidade</th>
@@ -158,6 +165,11 @@
                 <td class="col-nome">
                   {{ form.item }}
                   {% if form.item.errors %}<div class="error-list">{{ form.item.errors }}</div>{% endif %}
+                </td>
+
+                <td>
+                  {{ form.especificar }}
+                  {% if form.especificar.errors %}<div class="error-list">{{ form.especificar.errors }}</div>{% endif %}
                 </td>
 
                 <td>
@@ -202,6 +214,86 @@
         <button type="submit" class="btn-save">Salvar alterações</button>
       </div>
     </div>
+  </form>
+
+  <form method="post" id="material-formset" class="table-card materials-card">
+    {% csrf_token %}
+    <input type="hidden" name="tipo_form" value="materiais">
+    {{ material_formset.management_form }}
+
+    <div class="table-card-header">
+      <div>
+        <h2 class="table-card-title">Materiais requisitados</h2>
+        <p class="table-card-subtitle">Edite os materiais vinculados às suas atividades e salve as alterações separadamente.</p>
+      </div>
+    </div>
+
+    {% if material_formset.forms %}
+      <div class="table-wrapper">
+        <table class="pedido-table">
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Especificar</th>
+              <th>Link da imagem</th>
+              <th>Quantidade</th>
+              <th>Unidade</th>
+              <th>Sábado / atividade</th>
+              <th>Destino</th>
+              <th>Local de compra</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for form in material_formset %}
+              <tr class="material-form-row">
+                <td>
+                  {{ form.id }}
+                  <span class="delete-checkbox">{{ form.DELETE }}</span>
+                  {{ form.item }}
+                  {% if form.item.errors %}<div class="error-list">{{ form.item.errors }}</div>{% endif %}
+                </td>
+                <td>
+                  {{ form.especificar }}
+                  {% if form.especificar.errors %}<div class="error-list">{{ form.especificar.errors }}</div>{% endif %}
+                </td>
+                <td>
+                  {{ form.link }}
+                  {% if form.link.errors %}<div class="error-list">{{ form.link.errors }}</div>{% endif %}
+                </td>
+                <td>
+                  {{ form.quantidade }}
+                  {% if form.quantidade.errors %}<div class="error-list">{{ form.quantidade.errors }}</div>{% endif %}
+                </td>
+                <td>
+                  {{ form.unidade }}
+                  {% if form.unidade.errors %}<div class="error-list">{{ form.unidade.errors }}</div>{% endif %}
+                </td>
+                <td>
+                  <div class="material-name">{{ form.instance.atividade.semanario.data.data|date:"d/m/Y" }}</div>
+                  <div class="material-detail">{{ form.instance.atividade.semanario.get_sala_display }} — {{ form.instance.atividade.atividade }}</div>
+                </td>
+                <td>
+                  {{ form.pedido }}
+                  {% if form.pedido.errors %}<div class="error-list">{{ form.pedido.errors }}</div>{% endif %}
+                </td>
+                <td>
+                  {{ form.local }}
+                  {% if form.local.errors %}<div class="error-list">{{ form.local.errors }}</div>{% endif %}
+                </td>
+                <td><button type="button" class="btn-remove material-remove-btn">Remover</button></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <div class="table-footer-note">Só aparecem materiais requisitados por você.</div>
+        <button type="submit" class="btn-save">Salvar materiais</button>
+      </div>
+    {% else %}
+      <div class="empty-materials">Nenhum material requisitado encontrado para o filtro selecionado.</div>
+    {% endif %}
   </form>
 </div>
 
@@ -298,5 +390,16 @@
   addButton.addEventListener("click", addNewRow);
   attachRemoveEvents();
   updateRowNumbers();
+
+  document.querySelectorAll(".material-remove-btn").forEach((button) => {
+    button.addEventListener("click", function () {
+      const row = this.closest(".material-form-row");
+      const deleteInput = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+      if (!deleteInput) return;
+      if (!confirm("Tem certeza que deseja remover este material?")) return;
+      deleteInput.checked = true;
+      row.style.display = "none";
+    });
+  });
 </script>
 {% endblock %}

@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms import modelformset_factory
-from .forms import MeuPedidoForm
+from .forms import MeuMaterialForm, MeuPedidoForm
 from supply.forms import PedidoFormSet
 from .models import Item, Local, Movimentacao, Pedido, UNIDADES
 from django.shortcuts import render, redirect
@@ -143,7 +143,7 @@ def painel_materiais(request):
 
     qs = (
         Material.objects
-        .select_related("atividade__semanario", "atividade__semanario__data", "local")
+        .select_related("atividade__semanario", "atividade__semanario__data", "local", "requisitado_por")
         .filter(atividade__semanario__data=sabado)
         # Supply = destino explícito "SUPPLY" OU sem destino definido (nulo/vazio)
         .filter(Q(pedido="SUPPLY") | Q(pedido__isnull=True) | Q(pedido=""))
@@ -195,6 +195,85 @@ def painel_materiais(request):
     })
 
 
+@login_required
+@transaction.atomic
+def gerenciar_item_painel(request):
+    if request.method != "POST":
+        return redirect("supply:painel_materiais")
+    if request.user.area not in ["SUPPLY", "TRIADE"]:
+        messages.error(request, "Você não tem permissão para realizar esta ação.")
+        return redirect("/supply/")
+
+    sabado = get_object_or_404(Sabado, pk=request.POST.get("sabado"))
+    tipo_painel = request.POST.get("painel", "material")
+    local_id = request.POST.get("local", "")
+    destino = (
+        f"{reverse('supply:painel_materiais')}?sabado={sabado.pk}"
+        f"&local={local_id}&painel={tipo_painel}"
+    )
+
+    if request.POST.get("duplicar_pedido"):
+        pedido = get_object_or_404(
+            Pedido, pk=request.POST["duplicar_pedido"], sabado=sabado
+        )
+        Pedido.objects.create(
+            item=pedido.item,
+            nome=pedido.nome,
+            especificar=pedido.especificar,
+            link=pedido.link,
+            quantidade=pedido.quantidade,
+            unidade=pedido.unidade,
+            valor=pedido.valor,
+            local=pedido.local,
+            requisitado_por=pedido.requisitado_por,
+            sabado=pedido.sabado,
+            area=pedido.area,
+        )
+        messages.success(request, "Pedido duplicado com sucesso.")
+        return redirect(destino)
+
+    if request.POST.get("duplicar_material"):
+        material = get_object_or_404(
+            Material,
+            pk=request.POST["duplicar_material"],
+            atividade__semanario__data=sabado,
+        )
+        Material.objects.create(
+            atividade=material.atividade,
+            item=material.item,
+            nome=material.nome,
+            especificar=material.especificar,
+            link=material.link,
+            quantidade=material.quantidade,
+            unidade=material.unidade,
+            valor=material.valor,
+            local=material.local,
+            pedido=material.pedido,
+            requisitado_por=material.requisitado_por,
+        )
+        messages.success(request, "Material duplicado com sucesso.")
+        return redirect(destino)
+
+    if request.POST.get("excluir_pedido"):
+        pedido = get_object_or_404(Pedido, pk=request.POST["excluir_pedido"], sabado=sabado)
+        pedido.delete()
+        messages.success(request, "Pedido excluído com sucesso.")
+        return redirect(destino)
+
+    if request.POST.get("excluir_material"):
+        material = get_object_or_404(
+            Material,
+            pk=request.POST["excluir_material"],
+            atividade__semanario__data=sabado,
+        )
+        material.delete()
+        messages.success(request, "Material excluído com sucesso.")
+        return redirect(destino)
+
+    messages.error(request, "Ação inválida.")
+    return redirect(destino)
+
+
 def salvar_materiais_lote(request):
     if request.method != "POST":
         return redirect("supply:painel_materiais")
@@ -215,15 +294,17 @@ def salvar_materiais_lote(request):
 
             valor = request.POST.get(f"valor_pedido_{pedido_id}")
             pedido_local_id = request.POST.get(f"local_pedido_{pedido_id}")
-            nome = request.POST.get(f"nome_pedido_{pedido_id}", "").strip()
+            nome = request.POST.get(f"nome_pedido_{pedido_id}", pedido.nome).strip()
+            especificar = request.POST.get(f"especificar_pedido_{pedido_id}", "").strip()
             quantidade = request.POST.get(f"quantidade_pedido_{pedido_id}")
-            unidade = request.POST.get(f"unidade_pedido_{pedido_id}")
+            unidade = request.POST.get(f"unidade_pedido_{pedido_id}", pedido.unidade)
 
             try:
                 quantidade_decimal = Decimal(quantidade)
                 if quantidade_decimal < 0:
                     raise ValueError("A quantidade não pode ser negativa.")
                 pedido.nome = nome
+                pedido.especificar = especificar
                 pedido.quantidade = quantidade_decimal
                 pedido.unidade = unidade
                 pedido.valor = Decimal(valor) if valor not in ["", None] else None
@@ -254,15 +335,17 @@ def salvar_materiais_lote(request):
 
         valor = request.POST.get(f"valor_{material_id}")
         material_local_id = request.POST.get(f"local_{material_id}")
-        nome = request.POST.get(f"nome_material_{material_id}", "").strip()
+        nome = request.POST.get(f"nome_material_{material_id}", material.nome).strip()
+        especificar = request.POST.get(f"especificar_material_{material_id}", "").strip()
         quantidade = request.POST.get(f"quantidade_material_{material_id}")
-        unidade = request.POST.get(f"unidade_material_{material_id}")
+        unidade = request.POST.get(f"unidade_material_{material_id}", material.unidade)
 
         try:
             quantidade_decimal = Decimal(quantidade)
             if quantidade_decimal < 0:
                 raise ValueError("A quantidade não pode ser negativa.")
             material.nome = nome
+            material.especificar = especificar
             material.quantidade = quantidade_decimal
             material.unidade = unidade
             material.valor = Decimal(valor) if valor not in ["", None] else None
@@ -362,7 +445,7 @@ def painel_materiais_visualizacao(request):
 
     qs = (
     Material.objects
-    .select_related("atividade__semanario", "atividade__semanario__data", "local")
+    .select_related("atividade__semanario", "atividade__semanario__data", "local", "requisitado_por")
     .filter(atividade__semanario__data=sabado)
     # Supply = destino explícito "SUPPLY" OU sem destino definido (nulo/vazio)
     .filter(Q(pedido="SUPPLY") | Q(pedido__isnull=True) | Q(pedido=""))
@@ -454,7 +537,7 @@ def adicionar_pedidos(request):
                 else:
                     if any(
                         form.cleaned_data.get(campo)
-                        for campo in ["link", "quantidade", "unidade", "sabado", "area"]
+                        for campo in ["especificar", "link", "quantidade", "unidade", "sabado", "area"]
                     ):
                         form.add_error("item", "Selecione o item do pedido.")
                         logger.info(f"Form {idx} erro: nome não preenchido, mas outros campos sim")
@@ -501,9 +584,23 @@ def meus_pedidos(request):
     sabados = Sabado.objects.order_by("-data")[:40]
 
     qs = Pedido.objects.filter(requisitado_por=request.user).order_by("-id")
+    materiais_qs = (
+        Material.objects
+        .filter(requisitado_por=request.user)
+        .select_related(
+            "item",
+            "atividade__semanario",
+            "atividade__semanario__data",
+            "local",
+        )
+        .order_by("-id")
+    )
 
     if sabado_id:
         qs = qs.filter(sabado_id=sabado_id)
+        materiais_qs = materiais_qs.filter(
+            atividade__semanario__data_id=sabado_id
+        )
 
     PedidoFormSet = modelformset_factory(
         Pedido,
@@ -511,11 +608,47 @@ def meus_pedidos(request):
         extra=1,
         can_delete=True
     )
+    MaterialFormSet = modelformset_factory(
+        Material,
+        form=MeuMaterialForm,
+        extra=0,
+        can_delete=True,
+    )
 
-    if request.method == "POST":
+    if request.method == "POST" and request.POST.get("tipo_form") == "materiais":
+        material_formset = MaterialFormSet(
+            request.POST,
+            queryset=materiais_qs,
+            prefix="material",
+        )
+        formset = PedidoFormSet(queryset=qs)
+
+        if material_formset.is_valid():
+            materiais_alterados = material_formset.save(commit=False)
+
+            for material in material_formset.deleted_objects:
+                if material.requisitado_por == request.user:
+                    material.delete()
+
+            for material in materiais_alterados:
+                material.requisitado_por = request.user
+                material.save()
+
+            messages.success(request, "Materiais atualizados com sucesso.")
+            destino = reverse("supply:meus_pedidos")
+            if sabado_id:
+                destino += f"?sabado={sabado_id}"
+            return redirect(destino)
+
+        messages.error(request, "Corrija os erros dos materiais antes de salvar.")
+    elif request.method == "POST":
         formset = PedidoFormSet(
             request.POST,
-            queryset=Pedido.objects.filter(requisitado_por=request.user)
+            queryset=qs,
+        )
+        material_formset = MaterialFormSet(
+            queryset=materiais_qs,
+            prefix="material",
         )
 
         if formset.is_valid():
@@ -535,9 +668,14 @@ def meus_pedidos(request):
         messages.error(request, "Corrija os erros antes de salvar.")
     else:
         formset = PedidoFormSet(queryset=qs)
+        material_formset = MaterialFormSet(
+            queryset=materiais_qs,
+            prefix="material",
+        )
 
     return render(request, "meus_pedidos.html", {
         "formset": formset,
         "sabados": sabados,
         "sabado_id": sabado_id,
+        "material_formset": material_formset,
     })

@@ -645,6 +645,7 @@
                   <thead>
                     <tr>
                       <th>Pedido</th>
+                      <th>Especificar</th>
                       <th>Imagem</th>
                       <th>Qtd</th>
                       <th>Unidade</th>
@@ -659,6 +660,7 @@
                     {% for item in grupo.pedidos %}
                       <tr>
                         <td><span class="material-name">{{ item.nome }}</span></td>
+                        <td>{{ item.especificar|default:"—" }}</td>
                         <td>{% if item.link %}<a href="{{ item.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</td>
                         <td><span class="material-qty">{{ item.quantidade|floatformat:0 }}</span></td>
                         <td><span class="material-unit">{{ item.unidade }}</span></td>
@@ -706,12 +708,14 @@
                   <thead>
                     <tr>
                       <th>Material</th>
+                      <th>Especificar</th>
                       <th>Imagem</th>
                       <th>Qtd</th>
                       <th>Unidade</th>
                       <th>Valor</th>
                       <th>Valor total</th>
                       <th>Local de compra</th>
+                      <th>Requisitado por</th>
                     </tr>
                   </thead>
 
@@ -719,6 +723,7 @@
                     {% for material in sala.materiais %}
                       <tr>
                         <td><span class="material-name">{{ material.nome }}</span></td>
+                        <td>{{ material.especificar|default:"—" }}</td>
                         <td>{% if material.link %}<a href="{{ material.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</td>
                         <td><span class="material-qty">{{ material.quantidade|floatformat:0 }}</span></td>
                         <td><span class="material-unit">{{ material.unidade }}</span></td>
@@ -729,6 +734,7 @@
                           {% if material.local.localizacao %}<small class="d-block">{{ material.local.localizacao }}</small>{% endif %}
                           {% if material.local.numero_contato %}<small class="d-block">{{ material.local.numero_contato }}</small>{% endif %}
                         </td>
+                        <td>{{ material.requisitado_por|default:"—" }}</td>
                       </tr>
                     {% endfor %}
                   </tbody>
