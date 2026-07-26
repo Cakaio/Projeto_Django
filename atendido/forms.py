@@ -6,16 +6,39 @@ from .models import Atendido, Familia, ResponsavelAtendido, AtendidoInclusivo
 
 
 def _compactar_textareas(form):
-    """Deixa os textareas com altura razoável (default do Django é grande demais)."""
     for f in form.fields.values():
         if isinstance(f.widget, forms.Textarea):
             f.widget.attrs.setdefault('rows', 3)
 
 
+def _para_coerce(v):
+    return v == 'True'
+
+
+def _boolean_para_simnao(form):
+    """Converte BooleanField/NullBooleanField em Sim/Não (radio nativo, robusto)."""
+    for nome, field in list(form.fields.items()):
+        if isinstance(field, (forms.BooleanField, forms.NullBooleanField)) and not isinstance(field, forms.TypedChoiceField):
+            atual = getattr(form.instance, nome, None) if getattr(form, 'instance', None) else None
+            valor = 'True' if atual else 'False'
+            form.fields[nome] = forms.TypedChoiceField(
+                choices=[('True', 'Sim'), ('False', 'Não')],
+                coerce=_para_coerce,
+                empty_value=False,
+                required=False,
+                widget=forms.RadioSelect,
+                label=field.label,
+                help_text=field.help_text,
+                initial=valor,
+            )
+            # Sobrepõe o initial do ModelForm (bool vindo da instância) por string,
+            # para o template comparar field.value com 'True'/'False'.
+            form.initial[nome] = valor
+
+
 class AtendidoForm(forms.ModelForm):
     class Meta:
         model = Atendido
-        # familia/responsavel/registrado_por/data_criacao/ativo são tratados pela view
         exclude = ['familia', 'responsavel', 'registrado_por', 'data_criacao', 'ativo']
         widgets = {
             'data_nascimento': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
@@ -26,6 +49,7 @@ class AtendidoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['matricula'].required = True
         self.fields['data_nascimento'].input_formats = ['%Y-%m-%d']
+        _boolean_para_simnao(self)
         _compactar_textareas(self)
 
     def clean(self):
@@ -44,6 +68,7 @@ class FamiliaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for nome in ['cep', 'bairro', 'cidade']:
             self.fields[nome].required = True
+        _boolean_para_simnao(self)
         _compactar_textareas(self)
 
 
@@ -74,23 +99,14 @@ class AtendidoInclusivoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Booleanos anuláveis do modelo -> checkbox simples (renderizados como Sim/Não)
-        for nome in ['diagnostico', 'acompanhamento', 'servicos_apoio']:
-            antigo = self.fields[nome]
-            self.fields[nome] = forms.BooleanField(
-                required=False,
-                label=antigo.label,
-                help_text=antigo.help_text,
-                initial=bool(getattr(self.instance, nome, False)),
-            )
+        _boolean_para_simnao(self)
         _compactar_textareas(self)
 
 
+# Novos responsáveis são adicionados sob demanda; vínculo a existentes é feito por chips.
 ResponsavelFormSet = modelformset_factory(
     ResponsavelAtendido,
     form=ResponsavelAtendidoForm,
-    extra=1,
-    min_num=1,
-    validate_min=True,
+    extra=0,
     can_delete=True,
 )

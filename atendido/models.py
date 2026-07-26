@@ -232,6 +232,7 @@ class Atendido(models.Model):
     matricula = models.CharField(max_length=20, choices=TIPO_MATRICULA, blank=True, null=True, help_text="Indica se é matrícula ou rematrícula do atendido")
     mudancas_positivas = models.BooleanField(default=False, help_text="Desde que a criança participa do Projeto Criança Feliz, você percebeu mudanças positivas no comportamento dela?")
     aspectos_mudancas = models.ManyToManyField("Mudanca", blank=True, help_text="Quais aspectos ou áreas de desenvolvimento você percebeu mudanças positivas na criança? (Marque todas as que se aplicam)")
+    aspectos_outros = models.TextField(blank=True, null=True, help_text="Outros aspectos de mudança positiva que não se encaixam nas categorias acima")
     saude_bucal = models.BooleanField(default=False, help_text="Antes de participar do Projeto Criança Feliz, o atendido já havia passado por atendimento odontológico?")
     observacoes = models.TextField(blank=True, null=True, help_text="Adicione quaisquer outras informações relevantes sobre o atendido que não foram contempladas nos campos anteriores.")
     campanha_vacinacao = models.BooleanField(default=False, help_text="Você apoiaria a realização de campanhas de vacinação para os atendidos do Projeto Criança Feliz?")

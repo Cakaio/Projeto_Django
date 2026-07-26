@@ -1,13 +1,14 @@
-{# Pergunta Sim/Não (checkbox escondido + 2 botões). Uso: {% include '_campo_bool.html' with field=aform.trabalho %} #}
-<div class="mb-4" id="wrap-{{ field.html_name }}" data-bool>
+{# Pergunta Sim/Não com radio nativo (segmentado). Uso: {% include '_campo_bool.html' with field=aform.trabalho %} #}
+<div class="mb-4" id="wrap-{{ field.html_name }}">
   <p class="text-sm font-medium text-slate-800 mb-1">
     {{ field.label }}{% if field.field.required %} <span class="text-red-500">*</span>{% endif %}
   </p>
   {% if field.help_text %}<p class="text-xs text-muted-foreground mb-1.5 leading-snug">{{ field.help_text }}</p>{% endif %}
-  <div class="hidden">{{ field }}</div>
-  <div class="inline-flex rounded-lg border border-border overflow-hidden select-none">
-    <button type="button" data-sim class="px-5 py-1.5 text-sm font-semibold transition-colors">Sim</button>
-    <button type="button" data-nao class="px-5 py-1.5 text-sm font-semibold border-l border-border transition-colors">Não</button>
+  <div class="seg inline-flex rounded-lg border border-border overflow-hidden">
+    <input type="radio" class="seg-radio" id="{{ field.html_name }}__sim" name="{{ field.html_name }}" value="True" {% if field.value == 'True' %}checked{% endif %}>
+    <label for="{{ field.html_name }}__sim" class="seg-btn">Sim</label>
+    <input type="radio" class="seg-radio" id="{{ field.html_name }}__nao" name="{{ field.html_name }}" value="False" {% if field.value != 'True' %}checked{% endif %}>
+    <label for="{{ field.html_name }}__nao" class="seg-btn seg-btn-r">Não</label>
   </div>
   {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors|join:", " }}</p>{% endif %}
 </div>

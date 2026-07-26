@@ -10,14 +10,27 @@
   #matriculaForm input:focus, #matriculaForm select:focus, #matriculaForm textarea:focus {
     outline:none; border-color:#fe8210; box-shadow:0 0 0 3px rgba(254,130,16,.15);
   }
-  /* Sim/Não */
-  [data-bool] button { background:hsl(var(--card)); color:hsl(var(--muted-foreground)); }
-  [data-bool] [data-sim].active { background:#16a34a; color:#fff; }
-  [data-bool] [data-nao].active { background:#475569; color:#fff; }
-  /* checkbox múltiplo (aspectos de mudança) */
-  .mm-checkboxes ul { list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:.4rem; }
-  .mm-checkboxes label { display:flex; align-items:center; gap:.4rem; font-size:.875rem; }
-  .mm-checkboxes input { width:auto !important; }
+  /* Sim/Não segmentado (radio nativo) */
+  .seg-radio { position:absolute; opacity:0; pointer-events:none; }
+  .seg-btn { padding:.45rem 1.5rem; font-size:.85rem; font-weight:600; cursor:pointer; background:hsl(var(--card)); color:hsl(var(--muted-foreground)); user-select:none; }
+  .seg-btn-r { border-left:1px solid hsl(var(--border)); }
+  .seg-radio[value="True"]:checked + .seg-btn { background:#16a34a; color:#fff; }
+  .seg-radio[value="False"]:checked + .seg-btn { background:#475569; color:#fff; }
+  .seg-radio:focus-visible + .seg-btn { box-shadow:0 0 0 3px rgba(254,130,16,.35); }
+  /* categorias de impacto */
+  .cat-card { display:flex; gap:.6rem; align-items:flex-start; border:1px solid hsl(var(--border)); border-radius:calc(var(--radius) - 2px); padding:.7rem .8rem; cursor:pointer; transition:border-color .15s, background .15s; }
+  .cat-card:hover { background:hsl(var(--accent)); }
+  .cat-card input { margin-top:.2rem; width:1.05rem; height:1.05rem; accent-color:#fe8210; flex-shrink:0; }
+  .cat-card:has(input:checked) { border-color:#fe8210; background:#fff7ed; }
+  /* autocomplete */
+  .ac-wrap { position:relative; }
+  .ac-results { position:absolute; z-index:20; left:0; right:0; top:calc(100% + 2px); background:#fff; border:1px solid hsl(var(--border)); border-radius:calc(var(--radius) - 2px); box-shadow:0 8px 24px rgba(0,0,0,.1); max-height:260px; overflow:auto; }
+  .ac-item { padding:.5rem .7rem; cursor:pointer; font-size:.85rem; }
+  .ac-item:hover { background:hsl(var(--accent)); }
+  .ac-empty { padding:.6rem .7rem; font-size:.8rem; color:hsl(var(--muted-foreground)); }
+  /* chips */
+  .chip { display:inline-flex; align-items:center; gap:.4rem; background:#e0f2fe; color:#075985; border-radius:9999px; padding:.3rem .5rem .3rem .8rem; font-size:.85rem; font-weight:500; }
+  .chip button { line-height:1; font-size:1rem; color:#0369a1; }
   /* nav de seções */
   .sec-nav a { display:block; padding:.35rem .6rem; border-radius:6px; font-size:.8rem; color:hsl(var(--muted-foreground)); }
   .sec-nav a:hover { background:hsl(var(--accent)); color:hsl(var(--foreground)); }
@@ -36,7 +49,6 @@
 <div class="max-w-5xl mx-auto px-4 -mt-8 relative z-10 pb-28">
   <div class="lg:grid lg:grid-cols-[210px_1fr] lg:gap-6">
 
-    <!-- Navegação de seções -->
     <aside class="hidden lg:block">
       <nav class="sec-nav sticky top-4 space-y-0.5 bg-card border border-border rounded-lg p-2">
         <a href="#sec-crianca">1. Criança</a>
@@ -45,14 +57,13 @@
         <a href="#sec-contato">4. Contato</a>
         <a href="#sec-social">5. Situação social</a>
         <a href="#sec-responsaveis">6. Responsáveis</a>
-        <a href="#sec-endereco">7. Endereço</a>
-        <a href="#sec-socioeconomico">8. Socioeconômico</a>
-        <a href="#sec-saude">9. Saúde</a>
-        <a href="#sec-inclusivo">10. PCF Inclusivo</a>
-        <a href="#sec-impacto">11. Impacto</a>
-        <a href="#sec-vestuario">12. Vestuário</a>
-        <a href="#sec-termos">13. Termos</a>
-        <a href="#sec-observacoes">14. Observações</a>
+        <a href="#sec-familia">7. Família</a>
+        <a href="#sec-saude">8. Saúde</a>
+        <a href="#sec-inclusivo">9. PCF Inclusivo</a>
+        <a href="#sec-impacto">10. Impacto</a>
+        <a href="#sec-vestuario">11. Vestuário</a>
+        <a href="#sec-termos">12. Termos</a>
+        <a href="#sec-observacoes">13. Observações</a>
       </nav>
     </aside>
 
@@ -66,7 +77,6 @@
           {% for field in aform %}{% if field.errors %}<li>{{ field.label }}: {{ field.errors|join:", " }}</li>{% endif %}{% endfor %}
           {% for field in fform %}{% if field.errors %}<li>{{ field.label }}: {{ field.errors|join:", " }}</li>{% endif %}{% endfor %}
           {% for field in iform %}{% if field.errors %}<li>{{ field.label }}: {{ field.errors|join:", " }}</li>{% endif %}{% endfor %}
-          {% for e in rformset.non_form_errors %}<li>Responsáveis: {{ e }}</li>{% endfor %}
         </ul>
       </div>
       {% endif %}
@@ -126,65 +136,93 @@
 
       <!-- 6. Responsáveis -->
       <section id="sec-responsaveis" class="bg-card border border-border rounded-lg p-5 mb-5 scroll-mt-4">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-slate-800">Responsáveis</h2>
-          <span class="text-xs text-muted-foreground">Adicione um ou mais</span>
+        <h2 class="text-lg font-bold text-slate-800 mb-1">Responsáveis</h2>
+        <p class="text-xs text-muted-foreground mb-3">Vincule um responsável já cadastrado (ex.: irmãos) ou cadastre um novo. Pelo menos um é obrigatório.</p>
+
+        <div class="ac-wrap mb-3">
+          <input type="text" id="resp-search" autocomplete="off" placeholder="🔎 Buscar responsável já cadastrado (nome ou CPF)">
+          <div id="resp-results" class="ac-results hidden"></div>
         </div>
+
+        <div id="resp-chips" class="flex flex-wrap gap-2 mb-3">
+          {% for r in responsaveis_vinculados %}
+          <span class="chip" data-resp-id="{{ r.id }}">
+            {{ r.nome|default:"(sem nome)" }}{% if r.parentesco %} · {{ r.get_parentesco_display }}{% endif %}
+            <input type="hidden" name="resp_existente" value="{{ r.id }}">
+            <button type="button" onclick="removerChip(this)" title="Remover">×</button>
+          </span>
+          {% endfor %}
+        </div>
+
         <div id="resp-container" class="space-y-4">
           {% for form in rformset %}
             {% include '_responsavel_form.html' with form=form %}
           {% endfor %}
         </div>
         <button type="button" id="add-resp"
-                class="w-full mt-4 py-2.5 rounded-md border border-dashed border-border text-sm text-muted-foreground hover:bg-accent">
-          + Adicionar responsável
+                class="w-full mt-3 py-2.5 rounded-md border border-dashed border-border text-sm text-muted-foreground hover:bg-accent">
+          + Cadastrar novo responsável
         </button>
       </section>
 
-      <!-- 7. Endereço -->
-      <section id="sec-endereco" class="bg-card border border-border rounded-lg p-5 mb-5 scroll-mt-4">
-        <h2 class="text-lg font-bold text-slate-800 mb-4">Família · Endereço</h2>
-        <div class="grid sm:grid-cols-2 gap-x-4">
-          {% include '_campo.html' with field=fform.cep %}
-          {% include '_campo.html' with field=fform.endereco %}
-          {% include '_campo.html' with field=fform.bairro %}
-          {% include '_campo.html' with field=fform.cidade %}
-          {% include '_campo.html' with field=fform.zona_residencial %}
-          {% include '_campo.html' with field=fform.situacao_moradia %}
-          {% include '_campo.html' with field=fform.nome %}
+      <!-- 7. Família -->
+      <section id="sec-familia" class="bg-card border border-border rounded-lg p-5 mb-5 scroll-mt-4">
+        <h2 class="text-lg font-bold text-slate-800 mb-1">Informações da Família</h2>
+        {% if modo == 'criar' %}
+        <p class="text-xs text-muted-foreground mb-2">É irmão(ã) de alguém já matriculado? Vincule à mesma família para não duplicar.</p>
+        <div class="ac-wrap mb-3">
+          <input type="text" id="fam-search" autocomplete="off" placeholder="🔎 Buscar irmão(ã) já matriculado (nome)">
+          <div id="fam-results" class="ac-results hidden"></div>
+        </div>
+        <div id="fam-vinculada" class="hidden items-center justify-between gap-3 bg-sky-50 border border-sky-200 rounded-lg p-3 mb-3">
+          <span class="text-sm text-sky-800">Vinculado à família de <strong id="fam-vinculada-nome"></strong>.</span>
+          <button type="button" onclick="desvincularFamilia()" class="text-sm font-medium text-sky-700 underline">Desvincular</button>
+        </div>
+        <input type="hidden" name="familia_existente" id="familia_existente" value="">
+        {% endif %}
+
+        <div id="fam-campos">
+          <div class="grid sm:grid-cols-2 gap-x-4">
+            {% include '_campo.html' with field=fform.cep %}
+            {% include '_campo.html' with field=fform.endereco %}
+            {% include '_campo.html' with field=fform.bairro %}
+            {% include '_campo.html' with field=fform.cidade %}
+            {% include '_campo.html' with field=fform.zona_residencial %}
+            {% include '_campo.html' with field=fform.situacao_moradia %}
+            {% include '_campo.html' with field=fform.renda_total_familia %}
+            {% include '_campo.html' with field=fform.pessoas_moram_familia %}
+            {% include '_campo.html' with field=fform.pessoas_trabalham_familia %}
+            {% include '_campo.html' with field=fform.nome %}
+          </div>
+          <div class="grid sm:grid-cols-2 gap-x-4 mt-1">
+            {% include '_campo_bool.html' with field=fform.programa_transferencia_renda %}
+            {% include '_campo_bool.html' with field=fform.agua_encanada %}
+            {% include '_campo_bool.html' with field=fform.esgoto_encanado %}
+            {% include '_campo_bool.html' with field=fform.energia_eletrica %}
+            {% include '_campo_bool.html' with field=fform.internet_casa %}
+            {% include '_campo_bool.html' with field=fform.cesta_natal %}
+          </div>
+          <div class="grid sm:grid-cols-2 gap-x-4 mt-1">
+            {% include '_campo.html' with field=fform.impacto_social %}
+            {% include '_campo.html' with field=fform.tipo_impacto_social %}
+          </div>
+          <button type="button" onclick="document.getElementById('bens-bloco').classList.toggle('hidden')"
+                  class="mt-2 text-sm font-medium text-primary underline">Mostrar/ocultar bens e infraestrutura</button>
+          <div id="bens-bloco" class="hidden grid sm:grid-cols-3 gap-x-4 mt-3 pt-3 border-t border-border">
+            {% include '_campo.html' with field=fform.comodos_casa %}
+            {% include '_campo.html' with field=fform.banheiro_casa %}
+            {% include '_campo.html' with field=fform.tv_casa %}
+            {% include '_campo.html' with field=fform.geladeira_casa %}
+            {% include '_campo.html' with field=fform.freezer_casa %}
+            {% include '_campo.html' with field=fform.celular_casa %}
+            {% include '_campo.html' with field=fform.computador_casa %}
+            {% include '_campo.html' with field=fform.motos_casa %}
+            {% include '_campo.html' with field=fform.carros_casa %}
+          </div>
         </div>
       </section>
 
-      <!-- 8. Socioeconômico -->
-      <section id="sec-socioeconomico" class="bg-card border border-border rounded-lg p-5 mb-5 scroll-mt-4">
-        <h2 class="text-lg font-bold text-slate-800 mb-4">Família · Socioeconômico</h2>
-        <div class="grid sm:grid-cols-2 gap-x-4">
-          {% include '_campo.html' with field=fform.renda_total_familia %}
-          {% include '_campo.html' with field=fform.pessoas_moram_familia %}
-          {% include '_campo.html' with field=fform.pessoas_trabalham_familia %}
-          {% include '_campo_bool.html' with field=fform.programa_transferencia_renda %}
-          {% include '_campo_bool.html' with field=fform.agua_encanada %}
-          {% include '_campo_bool.html' with field=fform.esgoto_encanado %}
-          {% include '_campo_bool.html' with field=fform.energia_eletrica %}
-          {% include '_campo_bool.html' with field=fform.internet_casa %}
-          {% include '_campo_bool.html' with field=fform.cesta_natal %}
-        </div>
-        <button type="button" onclick="document.getElementById('bens-bloco').classList.toggle('hidden')"
-                class="mt-2 text-sm font-medium text-primary underline">Mostrar/ocultar bens e infraestrutura</button>
-        <div id="bens-bloco" class="hidden grid sm:grid-cols-3 gap-x-4 mt-3 pt-3 border-t border-border">
-          {% include '_campo.html' with field=fform.comodos_casa %}
-          {% include '_campo.html' with field=fform.banheiro_casa %}
-          {% include '_campo.html' with field=fform.tv_casa %}
-          {% include '_campo.html' with field=fform.geladeira_casa %}
-          {% include '_campo.html' with field=fform.freezer_casa %}
-          {% include '_campo.html' with field=fform.celular_casa %}
-          {% include '_campo.html' with field=fform.computador_casa %}
-          {% include '_campo.html' with field=fform.motos_casa %}
-          {% include '_campo.html' with field=fform.carros_casa %}
-        </div>
-      </section>
-
-      <!-- 9. Saúde -->
+      <!-- 8. Saúde -->
       <section id="sec-saude" class="bg-card border border-border rounded-lg p-5 mb-5 scroll-mt-4">
         <h2 class="text-lg font-bold text-slate-800 mb-4">Saúde e Bem-Estar</h2>
         <div class="grid sm:grid-cols-2 gap-x-4">
@@ -198,7 +236,7 @@
         </div>
       </section>
 
-      <!-- 10. PCF Inclusivo -->
+      <!-- 9. PCF Inclusivo -->
       <section id="sec-inclusivo" class="bg-card border border-border rounded-lg p-5 mb-5 scroll-mt-4">
         <h2 class="text-lg font-bold text-slate-800 mb-4">PCF Inclusivo</h2>
         <div class="grid sm:grid-cols-2 gap-x-4">
@@ -220,7 +258,6 @@
           {% include '_campo_bool.html' with field=aform.comissao_inclusiva %}
         </div>
 
-        <!-- 11. Comissão Inclusiva (condicional) -->
         <div data-reveal-when="at-comissao_inclusiva" class="mt-4 pt-4 border-t border-border">
           <h3 class="text-base font-bold text-slate-800 mb-1">Comissão Inclusiva</h3>
           <p class="text-xs text-muted-foreground mb-3">Detalhes para a Comissão Inclusiva (apareceu porque a criança precisa desse apoio).</p>
@@ -241,23 +278,29 @@
         </div>
       </section>
 
-      <!-- 12. Impacto -->
+      <!-- 10. Impacto -->
       <section id="sec-impacto" class="bg-card border border-border rounded-lg p-5 mb-5 scroll-mt-4">
         <h2 class="text-lg font-bold text-slate-800 mb-4">Impacto do Projeto</h2>
-        <div class="grid sm:grid-cols-2 gap-x-4">
-          {% include '_campo_bool.html' with field=aform.mudancas_positivas %}
-          <div></div>
-          {% include '_campo.html' with field=fform.impacto_social %}
-          {% include '_campo.html' with field=fform.tipo_impacto_social %}
-        </div>
-        <div data-reveal-when="at-mudancas_positivas" class="mm-checkboxes mt-2">
-          <p class="text-sm font-medium text-slate-800 mb-1">{{ aform.aspectos_mudancas.label }}</p>
-          {% if aform.aspectos_mudancas.help_text %}<p class="text-xs text-muted-foreground mb-2">{{ aform.aspectos_mudancas.help_text }}</p>{% endif %}
-          {{ aform.aspectos_mudancas }}
+        {% include '_campo_bool.html' with field=aform.mudancas_positivas %}
+        <div data-reveal-when="at-mudancas_positivas">
+          <p class="text-sm font-medium text-slate-800 mb-1">Em quais categorias você percebeu mudanças positivas?</p>
+          <p class="text-xs text-muted-foreground mb-2">Marque todas as que se aplicam.</p>
+          <div class="grid sm:grid-cols-2 gap-2">
+            {% for c in categorias_impacto %}
+            <label class="cat-card">
+              <input type="checkbox" name="at-aspectos_mudancas" value="{{ c.id }}" {% if c.marcado %}checked{% endif %}>
+              <span>
+                <span class="block text-sm font-semibold text-slate-800">{{ c.nome }}</span>
+                <span class="block text-xs text-muted-foreground leading-snug">{{ c.aspectos }}</span>
+              </span>
+            </label>
+            {% endfor %}
+          </div>
+          <div class="mt-3">{% include '_campo.html' with field=aform.aspectos_outros %}</div>
         </div>
       </section>
 
-      <!-- 13. Vestuário -->
+      <!-- 11. Vestuário -->
       <section id="sec-vestuario" class="bg-card border border-border rounded-lg p-5 mb-5 scroll-mt-4">
         <h2 class="text-lg font-bold text-slate-800 mb-4">Vestuário</h2>
         <div class="grid sm:grid-cols-3 gap-x-4">
@@ -267,19 +310,18 @@
         </div>
       </section>
 
-      <!-- 14. Termos -->
+      <!-- 12. Termos -->
       <section id="sec-termos" class="bg-card border border-border rounded-lg p-5 mb-5 scroll-mt-4">
         <h2 class="text-lg font-bold text-slate-800 mb-4">Termos e Autorizações</h2>
         {% include '_campo_bool.html' with field=aform.termos_assinado %}
       </section>
 
-      <!-- 15. Observações -->
+      <!-- 13. Observações -->
       <section id="sec-observacoes" class="bg-card border border-border rounded-lg p-5 mb-5 scroll-mt-4">
         <h2 class="text-lg font-bold text-slate-800 mb-4">Observações</h2>
         {% include '_campo.html' with field=aform.observacoes %}
       </section>
 
-      <!-- Barra de salvar fixa -->
       <div class="sticky bottom-0 -mx-4 px-4 py-3 bg-white/90 backdrop-blur border-t border-border flex items-center justify-end gap-3">
         <a href="{% url 'atendido:lista_atendidos' %}" class="px-5 py-2.5 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">Cancelar</a>
         <button type="submit" class="px-6 py-2.5 rounded-md text-sm font-semibold text-white" style="background:#fe8210">
@@ -290,37 +332,24 @@
   </div>
 </div>
 
-<!-- Template do responsável (para clonar) -->
 <script type="text/template" id="resp-empty-template">
   {% include '_responsavel_form.html' with form=rformset.empty_form %}
 </script>
 
 <script>
-  // ── Sim/Não ──
-  function wireBool(scope){
-    scope.querySelectorAll('[data-bool]').forEach(function(wrap){
-      if (wrap.dataset.wired) return;
-      wrap.dataset.wired = '1';
-      var cb = wrap.querySelector('input[type=checkbox]');
-      var sim = wrap.querySelector('[data-sim]');
-      var nao = wrap.querySelector('[data-nao]');
-      function render(){ sim.classList.toggle('active', cb.checked); nao.classList.toggle('active', !cb.checked); }
-      sim.addEventListener('click', function(){ cb.checked = true; render(); aplicarReveal(); });
-      nao.addEventListener('click', function(){ cb.checked = false; render(); aplicarReveal(); });
-      render();
-    });
-  }
-
-  // ── Revelação condicional ──
+  // ── Revelação condicional (radio Sim/Não) ──
   function aplicarReveal(){
     document.querySelectorAll('[data-reveal-when]').forEach(function(el){
       var name = el.getAttribute('data-reveal-when');
-      var cb = document.querySelector('input[type=checkbox][name="' + name + '"]');
-      el.style.display = (cb && cb.checked) ? '' : 'none';
+      var sim = document.querySelector('input[type=radio][name="' + name + '"][value="True"]');
+      el.style.display = (sim && sim.checked) ? '' : 'none';
     });
   }
+  document.addEventListener('change', function(e){
+    if (e.target && e.target.matches && e.target.matches('input[type=radio]')) aplicarReveal();
+  });
 
-  // ── Formset de responsáveis ──
+  // ── Formset de novos responsáveis ──
   var respContainer = document.getElementById('resp-container');
   var totalForms = document.getElementById('id_resp-TOTAL_FORMS');
   var emptyTpl = document.getElementById('resp-empty-template').innerHTML;
@@ -337,28 +366,98 @@
     });
     totalForms.value = cards.length;
   }
-
   document.getElementById('add-resp').addEventListener('click', function(){
     var tmp = document.createElement('div');
     tmp.innerHTML = emptyTpl.trim();
     respContainer.appendChild(tmp.firstElementChild);
     reindexResp();
   });
-
   function removerResp(btn){
     var card = btn.closest('[data-resp-form]');
     var idInput = card.querySelector('input[name$="-id"]');
     var del = card.querySelector('input[name$="-DELETE"]');
-    if (idInput && idInput.value) {   // existente → marca para deletar
-      if (del) del.checked = true;
-      card.style.display = 'none';
-    } else {                          // novo → remove e reindexa
-      card.remove();
-      reindexResp();
-    }
+    if (idInput && idInput.value) { if (del) del.checked = true; card.style.display = 'none'; }
+    else { card.remove(); reindexResp(); }
+  }
+  window.removerResp = removerResp;
+
+  // ── Chips de responsáveis vinculados ──
+  var respChips = document.getElementById('resp-chips');
+  function chipJaExiste(id){ return !!respChips.querySelector('[data-resp-id="' + id + '"]'); }
+  function adicionarChip(r){
+    if (chipJaExiste(r.id)) return;
+    var chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.setAttribute('data-resp-id', r.id);
+    var label = r.nome + (r.parentesco ? ' · ' + r.parentesco : '');
+    chip.innerHTML = '<input type="hidden" name="resp_existente" value="' + r.id + '">' +
+      '<span></span><button type="button" title="Remover">×</button>';
+    chip.querySelector('span').textContent = label;
+    chip.querySelector('button').addEventListener('click', function(){ chip.remove(); });
+    respChips.appendChild(chip);
+  }
+  function removerChip(btn){ btn.closest('.chip').remove(); }
+  window.removerChip = removerChip;
+
+  // ── Autocomplete genérico ──
+  function ligarAutocomplete(inputId, resultsId, url, onPick, render){
+    var input = document.getElementById(inputId);
+    var box = document.getElementById(resultsId);
+    if (!input) return;
+    var timer = null;
+    input.addEventListener('input', function(){
+      var q = input.value.trim();
+      clearTimeout(timer);
+      if (q.length < 2){ box.classList.add('hidden'); box.innerHTML = ''; return; }
+      timer = setTimeout(function(){
+        fetch(url + '?q=' + encodeURIComponent(q))
+          .then(function(r){ return r.json(); })
+          .then(function(data){
+            var itens = data.results || [];
+            box.innerHTML = '';
+            if (!itens.length){ box.innerHTML = '<div class="ac-empty">Nenhum resultado.</div>'; box.classList.remove('hidden'); return; }
+            itens.forEach(function(it){
+              var div = document.createElement('div');
+              div.className = 'ac-item';
+              div.textContent = render(it);
+              div.addEventListener('click', function(){ onPick(it); box.classList.add('hidden'); input.value = ''; });
+              box.appendChild(div);
+            });
+            box.classList.remove('hidden');
+          });
+      }, 250);
+    });
+    document.addEventListener('click', function(e){
+      if (!input.contains(e.target) && !box.contains(e.target)) box.classList.add('hidden');
+    });
   }
 
-  // ── Nav de seções (destaca a atual) ──
+  ligarAutocomplete('resp-search', 'resp-results', "{% url 'atendido:buscar_responsaveis' %}",
+    function(r){ adicionarChip(r); },
+    function(r){ return r.nome + (r.parentesco ? ' · ' + r.parentesco : '') + (r.cpf ? ' · CPF ' + r.cpf : ''); });
+
+  // ── Família existente (irmãos) ──
+  {% if modo == 'criar' %}
+  var famHidden = document.getElementById('familia_existente');
+  var famCampos = document.getElementById('fam-campos');
+  var famBanner = document.getElementById('fam-vinculada');
+  function desvincularFamilia(){
+    famHidden.value = '';
+    famBanner.classList.add('hidden'); famBanner.classList.remove('flex');
+    famCampos.style.display = '';
+  }
+  window.desvincularFamilia = desvincularFamilia;
+  ligarAutocomplete('fam-search', 'fam-results', "{% url 'atendido:buscar_familias' %}",
+    function(f){
+      famHidden.value = f.familia_id;
+      document.getElementById('fam-vinculada-nome').textContent = f.atendido + ' (' + f.descricao + ')';
+      famBanner.classList.remove('hidden'); famBanner.classList.add('flex');
+      famCampos.style.display = 'none';
+    },
+    function(f){ return f.atendido + ' · ' + f.descricao; });
+  {% endif %}
+
+  // ── Nav de seções ──
   var navLinks = document.querySelectorAll('.sec-nav a');
   var secObserver = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
@@ -369,7 +468,6 @@
   }, { rootMargin: '-40% 0px -55% 0px' });
   document.querySelectorAll('section[id^="sec-"]').forEach(function(s){ secObserver.observe(s); });
 
-  wireBool(document);
   aplicarReveal();
 </script>
 {% endblock %}

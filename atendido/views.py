@@ -7,9 +7,11 @@ from .models import Atendido, PresencaAtendido
 from sabado.models import Sabado
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404
+from django.core.exceptions import PermissionDenied
+from django.http import JsonResponse
 from django.db import transaction
-from .models import Atendido, PresencaAtendido, ResponsavelAtendido
+from django.db.models import Q
+from .models import Atendido, PresencaAtendido, ResponsavelAtendido, Familia, Mudanca
 from .forms import (
     AtendidoForm, FamiliaForm, AtendidoInclusivoForm, ResponsavelFormSet,
 )
@@ -28,15 +30,103 @@ LISTA_SALAS = [
 ]
 
 
+# Áreas autorizadas a matricular/editar atendidos (ajuste aqui se necessário)
+AREAS_MATRICULA = {'TRIADE', 'CR/RE'}
+
+# 6 categorias fixas de impacto, com os aspectos agrupados (ajuda ao operador)
+CATEGORIAS_IMPACTO = [
+    ("Desenvolvimento Socioemocional",
+     "Mais alegre; deixou de ser chorona; melhora na timidez; está mais comunicativa; compreensão de si mesmo e do outro; apoio emocional."),
+    ("Relacionamento e Socialização",
+     "Socialização; melhor convívio com outras crianças; melhora na convivência; mais comunicação."),
+    ("Desenvolvimento Cognitivo e Escolar",
+     "Aprendizagem; melhor desempenho na escola; desenvolvimento da atenção."),
+    ("Autonomia e Responsabilidade",
+     "Melhorou o comprometimento e a responsabilidade do atendido."),
+    ("Desenvolvimento Integral da Criança",
+     "Apoio no desenvolvimento da criança; desenvolvimento do atendido (crescimento geral)."),
+    ("Apoio às Famílias",
+     "Orientações educativas; segurança para os pais durante o período das atividades."),
+]
+
+
+def _pode_matricular(user):
+    return user.is_superuser or getattr(user, 'area', None) in AREAS_MATRICULA
+
+
+def _categorias_impacto(selecionados_ids):
+    """Lista ordenada das 6 categorias com id, nome, aspectos e se está marcada."""
+    por_nome = {m.mudanca: m for m in Mudanca.objects.filter(mudanca__in=[n for n, _ in CATEGORIAS_IMPACTO])}
+    itens = []
+    for nome, aspectos in CATEGORIAS_IMPACTO:
+        m = por_nome.get(nome)
+        if m:
+            itens.append({'id': m.id, 'nome': nome, 'aspectos': aspectos, 'marcado': m.id in selecionados_ids})
+    return itens
+
+
+@login_required(login_url="/")
+def buscar_responsaveis(request):
+    if not _pode_matricular(request.user):
+        return JsonResponse({'results': []})
+    q = request.GET.get('q', '').strip()
+    results = []
+    if len(q) >= 2:
+        qs = (
+            ResponsavelAtendido.objects
+            .filter(Q(nome__icontains=q) | Q(cpf__icontains=q))
+            .order_by('nome')[:10]
+        )
+        results = [{
+            'id': r.id,
+            'nome': r.nome or '(sem nome)',
+            'cpf': r.cpf or '',
+            'parentesco': r.get_parentesco_display() if r.parentesco else '',
+            'contato': r.contato or '',
+        } for r in qs]
+    return JsonResponse({'results': results})
+
+
+@login_required(login_url="/")
+def buscar_familias(request):
+    if not _pode_matricular(request.user):
+        return JsonResponse({'results': []})
+    q = request.GET.get('q', '').strip()
+    results = []
+    if len(q) >= 2:
+        qs = (
+            Atendido.objects
+            .filter(nome__icontains=q, familia__isnull=False)
+            .select_related('familia')[:10]
+        )
+        vistos = set()
+        for a in qs:
+            fam = a.familia
+            if fam.id in vistos:
+                continue
+            vistos.add(fam.id)
+            desc = ' · '.join(filter(None, [
+                fam.get_bairro_display() if fam.bairro else '',
+                fam.get_cidade_display() if fam.cidade else '',
+            ])) or 'família cadastrada'
+            results.append({'atendido': a.nome, 'familia_id': fam.id, 'descricao': desc})
+    return JsonResponse({'results': results})
+
+
 @login_required(login_url="/")
 def matricula_atendido(request, pk=None):
     """Matrícula/edição de atendido: criança + família + responsáveis + inclusão."""
+    if not _pode_matricular(request.user):
+        messages.error(request, "Você não tem permissão para matricular atendidos.")
+        return redirect('atendido:atendido_view')
+
     atendido = get_object_or_404(Atendido, pk=pk) if pk else None
     familia_instance = atendido.familia if atendido else None
     inclusivo_instance = getattr(atendido, 'inclusivo', None) if atendido else None
     modo = 'editar' if atendido else 'criar'
 
-    resp_qs = atendido.responsavel.all() if atendido else ResponsavelAtendido.objects.none()
+    # Responsáveis existentes são tratados via chips; o formset é só para NOVOS.
+    resp_qs = ResponsavelAtendido.objects.none()
 
     if request.method == 'POST':
         aform = AtendidoForm(request.POST, request.FILES, instance=atendido, prefix='at')
@@ -44,25 +134,38 @@ def matricula_atendido(request, pk=None):
         rformset = ResponsavelFormSet(request.POST, prefix='resp', queryset=resp_qs)
         iform = AtendidoInclusivoForm(request.POST, instance=inclusivo_instance, prefix='inc')
 
-        if aform.is_valid() and fform.is_valid() and rformset.is_valid() and iform.is_valid():
-            with transaction.atomic():
-                familia = fform.save()
+        familia_existente_id = (request.POST.get('familia_existente') or '').strip()
+        usar_familia_existente = bool(familia_existente_id) and modo == 'criar'
+        resp_existente_ids = [i for i in request.POST.getlist('resp_existente') if i]
 
-                responsaveis = []
-                for form in rformset:
-                    if not getattr(form, 'cleaned_data', None):
-                        continue
-                    if form.cleaned_data.get('DELETE'):
-                        continue
-                    if not form.cleaned_data.get('nome'):
-                        continue
+        a_ok = aform.is_valid()
+        r_ok = rformset.is_valid()
+        i_ok = iform.is_valid()
+        if usar_familia_existente:
+            f_ok = Familia.objects.filter(pk=familia_existente_id).exists()
+        else:
+            f_ok = fform.is_valid()
+
+        novos_validos = [
+            form for form in rformset
+            if getattr(form, 'cleaned_data', None)
+            and not form.cleaned_data.get('DELETE')
+            and form.cleaned_data.get('nome')
+        ] if r_ok else []
+        total_resp = len(resp_existente_ids) + len(novos_validos)
+
+        if a_ok and f_ok and r_ok and i_ok and total_resp > 0:
+            with transaction.atomic():
+                if usar_familia_existente:
+                    familia = Familia.objects.get(pk=familia_existente_id)
+                else:
+                    familia = fform.save()
+
+                responsaveis = list(ResponsavelAtendido.objects.filter(pk__in=resp_existente_ids))
+                for form in novos_validos:
                     cpf = form.cleaned_data.get('cpf')
                     if cpf:
-                        existente = (
-                            ResponsavelAtendido.objects.filter(cpf=cpf)
-                            .exclude(pk=form.instance.pk)
-                            .first()
-                        )
+                        existente = ResponsavelAtendido.objects.filter(cpf=cpf).first()
                         if existente:
                             responsaveis.append(existente)
                             continue
@@ -84,12 +187,19 @@ def matricula_atendido(request, pk=None):
             messages.success(request, 'Matrícula salva com sucesso!')
             return redirect('atendido:detalhe_atendido', pk=atendido_obj.pk)
         else:
-            messages.error(request, 'Confira os campos destacados e tente novamente.')
+            if total_resp == 0:
+                messages.error(request, 'Adicione ou vincule pelo menos um responsável.')
+            else:
+                messages.error(request, 'Confira os campos destacados e tente novamente.')
+            selecionados = set(int(i) for i in request.POST.getlist('at-aspectos_mudancas') if i.isdigit())
+            responsaveis_vinculados = list(ResponsavelAtendido.objects.filter(pk__in=resp_existente_ids))
     else:
         aform = AtendidoForm(instance=atendido, prefix='at')
         fform = FamiliaForm(instance=familia_instance, prefix='fam')
         rformset = ResponsavelFormSet(prefix='resp', queryset=resp_qs)
         iform = AtendidoInclusivoForm(instance=inclusivo_instance, prefix='inc')
+        selecionados = set(atendido.aspectos_mudancas.values_list('id', flat=True)) if atendido else set()
+        responsaveis_vinculados = list(atendido.responsavel.all()) if atendido else []
 
     return render(request, 'matricula_atendido.html', {
         'aform': aform,
@@ -98,6 +208,8 @@ def matricula_atendido(request, pk=None):
         'iform': iform,
         'modo': modo,
         'atendido': atendido,
+        'categorias_impacto': _categorias_impacto(selecionados),
+        'responsaveis_vinculados': responsaveis_vinculados,
     })
 
 

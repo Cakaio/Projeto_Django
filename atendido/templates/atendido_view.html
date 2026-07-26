@@ -245,7 +245,8 @@
 
   <div class="row g-4 py-3 row-cols-1 row-cols-lg-3">
 
-    <!-- CARD 0: NOVA MATRÍCULA -->
+    <!-- CARD 0: NOVA MATRÍCULA (restrito) -->
+    {% if request.user.is_superuser or request.user.area == 'TRIADE' or request.user.area == 'CR/RE' %}
     <div class="col">
       <div class="feature-card card-warning text-center">
         <div class="icon-wrapper icon-warning">
@@ -263,6 +264,7 @@
         </a>
       </div>
     </div>
+    {% endif %}
 
     <!-- CARD 1: ATENDIDOS -->
     <div class="col">
