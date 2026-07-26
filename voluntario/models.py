@@ -77,6 +77,7 @@ class Voluntario(AbstractUser):
     talentos = models.ManyToManyField("Talento", blank=True)
     data_entrada = models.DateField(default=timezone.now)
     data_saida = models.DateField(blank=True, null=True)
+    is_matricula = models.BooleanField(default=False, help_text="Se marcado, o voluntário pode acessar e usar a tela de Matrícula de Atendidos.")
 
 
     def __str__(self):

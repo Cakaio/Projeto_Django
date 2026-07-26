@@ -83,9 +83,10 @@ class VoluntarioAdmin(UserAdmin, ImportExportModelAdmin):
 
     fieldsets = UserAdmin.fieldsets + (
         ("Informações Adicionais", {'fields': ('apelido', 'area', 'data_nascimento', 'celular', 'rg', 'foto', 'talentos')}),
+        ("Permissões do PCF", {'fields': ('is_matricula',)}),
     )
     filter_horizontal = ['talentos']
-    list_filter = ['area', 'is_active']
+    list_filter = ['area', 'is_active', 'is_matricula']
 
     def get_export_queryset(self, request):
         queryset = super().get_export_queryset(request)

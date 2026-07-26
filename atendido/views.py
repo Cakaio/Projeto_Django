@@ -30,9 +30,6 @@ LISTA_SALAS = [
 ]
 
 
-# Áreas autorizadas a matricular/editar atendidos (ajuste aqui se necessário)
-AREAS_MATRICULA = {'TRIADE', 'CR/RE'}
-
 # 6 categorias fixas de impacto, com os aspectos agrupados (ajuda ao operador)
 CATEGORIAS_IMPACTO = [
     ("Desenvolvimento Socioemocional",
@@ -51,7 +48,7 @@ CATEGORIAS_IMPACTO = [
 
 
 def _pode_matricular(user):
-    return user.is_superuser or getattr(user, 'area', None) in AREAS_MATRICULA
+    return user.is_superuser or getattr(user, 'is_matricula', False)
 
 
 def _categorias_impacto(selecionados_ids):

@@ -9,7 +9,7 @@ Ficha dos Caios
   <div class="w-100" style="max-width: 600px;">
     <h2 class="text-center mb-1">Detalhes do Atendido</h2>
 
-    {% if request.user.is_superuser or request.user.area == 'TRIADE' or request.user.area == 'CR/RE' %}
+    {% if request.user.is_superuser or request.user.is_matricula %}
     <div class="text-center mb-3">
       <a href="{% url 'atendido:matricula_editar' object.pk %}" class="btn"
          style="background:#fe8210;color:#fff;border:none">✎ Editar Matrícula</a>
