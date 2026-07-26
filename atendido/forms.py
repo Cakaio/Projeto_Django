@@ -56,6 +56,20 @@ class AtendidoForm(forms.ModelForm):
         cleaned = super().clean()
         if not cleaned.get('cpf') and not cleaned.get('rg'):
             self.add_error('cpf', 'Informe ao menos o CPF ou o RG da criança.')
+        # Zera campos dependentes quando o booleano controlador é "Não"
+        # (blocos ficam ocultos no form, mas ainda são enviados no POST).
+        dependentes = {
+            'diagnostico': 'diagnostico_descricao',
+            'sensibilidade': 'sensibilidade_descricao',
+            'dificuldade_motora': 'dificuldade_motora_descricao',
+            'dificuldade_emocional': 'dificuldade_emocional_descricao',
+        }
+        for bool_field, desc_field in dependentes.items():
+            if not cleaned.get(bool_field):
+                cleaned[desc_field] = ''
+        if not cleaned.get('mudancas_positivas'):
+            cleaned['aspectos_mudancas'] = []
+            cleaned['aspectos_outros'] = ''
         return cleaned
 
 

@@ -1,5 +1,5 @@
 from django.views.generic import ListView, DetailView, TemplateView
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.utils.timezone import localdate
 from django.contrib import messages
@@ -132,8 +132,10 @@ def matricula_atendido(request, pk=None):
         iform = AtendidoInclusivoForm(request.POST, instance=inclusivo_instance, prefix='inc')
 
         familia_existente_id = (request.POST.get('familia_existente') or '').strip()
+        if not familia_existente_id.isdigit():
+            familia_existente_id = ''
         usar_familia_existente = bool(familia_existente_id) and modo == 'criar'
-        resp_existente_ids = [i for i in request.POST.getlist('resp_existente') if i]
+        resp_existente_ids = [i for i in request.POST.getlist('resp_existente') if i and i.isdigit()]
 
         a_ok = aform.is_valid()
         r_ok = rformset.is_valid()
@@ -197,6 +199,8 @@ def matricula_atendido(request, pk=None):
         iform = AtendidoInclusivoForm(instance=inclusivo_instance, prefix='inc')
         selecionados = set(atendido.aspectos_mudancas.values_list('id', flat=True)) if atendido else set()
         responsaveis_vinculados = list(atendido.responsavel.all()) if atendido else []
+        familia_existente_id = ''
+        usar_familia_existente = False
 
     return render(request, 'matricula_atendido.html', {
         'aform': aform,
@@ -207,6 +211,8 @@ def matricula_atendido(request, pk=None):
         'atendido': atendido,
         'categorias_impacto': _categorias_impacto(selecionados),
         'responsaveis_vinculados': responsaveis_vinculados,
+        'familia_existente_id': familia_existente_id,
+        'usar_familia_existente': usar_familia_existente,
     })
 
 

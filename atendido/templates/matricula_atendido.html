@@ -70,12 +70,12 @@
     <form id="matriculaForm" method="post" enctype="multipart/form-data">{% csrf_token %}
       {{ rformset.management_form }}
 
-      {% if aform.errors or fform.errors or iform.errors or rformset.non_form_errors %}
+      {% if aform.errors or iform.errors or rformset.non_form_errors or not usar_familia_existente and fform.errors %}
       <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-5">
         <p class="font-semibold text-red-700 mb-1">Confira os campos destacados:</p>
         <ul class="list-disc list-inside text-sm text-red-600 space-y-0.5">
           {% for field in aform %}{% if field.errors %}<li>{{ field.label }}: {{ field.errors|join:", " }}</li>{% endif %}{% endfor %}
-          {% for field in fform %}{% if field.errors %}<li>{{ field.label }}: {{ field.errors|join:", " }}</li>{% endif %}{% endfor %}
+          {% if not usar_familia_existente %}{% for field in fform %}{% if field.errors %}<li>{{ field.label }}: {{ field.errors|join:", " }}</li>{% endif %}{% endfor %}{% endif %}
           {% for field in iform %}{% if field.errors %}<li>{{ field.label }}: {{ field.errors|join:", " }}</li>{% endif %}{% endfor %}
         </ul>
       </div>
@@ -178,7 +178,7 @@
           <span class="text-sm text-sky-800">Vinculado à família de <strong id="fam-vinculada-nome"></strong>.</span>
           <button type="button" onclick="desvincularFamilia()" class="text-sm font-medium text-sky-700 underline">Desvincular</button>
         </div>
-        <input type="hidden" name="familia_existente" id="familia_existente" value="">
+        <input type="hidden" name="familia_existente" id="familia_existente" value="{{ familia_existente_id }}">
         {% endif %}
 
         <div id="fam-campos">
@@ -357,7 +357,7 @@
   function reindexResp(){
     var cards = respContainer.querySelectorAll('[data-resp-form]');
     cards.forEach(function(card, i){
-      card.querySelectorAll('input, select, textarea, label').forEach(function(el){
+      card.querySelectorAll('input, select, textarea, label, [id^="wrap-"]').forEach(function(el){
         ['name','id','htmlFor'].forEach(function(attr){
           var v = el[attr];
           if (v) el[attr] = v.replace(/resp-(?:\d+|__prefix__)-/, 'resp-' + i + '-');
@@ -447,6 +447,12 @@
     famCampos.style.display = '';
   }
   window.desvincularFamilia = desvincularFamilia;
+  // Restaura o estado de "família vinculada" após um POST com erro
+  if (famHidden.value) {
+    document.getElementById('fam-vinculada-nome').textContent = 'família já cadastrada';
+    famBanner.classList.remove('hidden'); famBanner.classList.add('flex');
+    famCampos.style.display = 'none';
+  }
   ligarAutocomplete('fam-search', 'fam-results', "{% url 'atendido:buscar_familias' %}",
     function(f){
       famHidden.value = f.familia_id;
