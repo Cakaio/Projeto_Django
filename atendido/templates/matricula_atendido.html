@@ -474,6 +474,28 @@
   }, { rootMargin: '-40% 0px -55% 0px' });
   document.querySelectorAll('section[id^="sec-"]').forEach(function(s){ secObserver.observe(s); });
 
+  // ── Máscaras (visual; envia só dígitos no submit) ──
+  function soDigitos(v){ return (v || '').replace(/\D/g, ''); }
+  function fmtCPF(v){
+    v = soDigitos(v).slice(0, 11);
+    return v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+  function fmtTel(v){
+    v = soDigitos(v).slice(0, 11);
+    if (v.length <= 10) return v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2');
+    return v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+  }
+  function fmtCEP(v){ v = soDigitos(v).slice(0, 8); return v.replace(/(\d{5})(\d)/, '$1-$2'); }
+  var FMT = { cpf: fmtCPF, telefone: fmtTel, cep: fmtCEP, numero: soDigitos };
+  function aplicarMascara(el){ var t = el.getAttribute('data-mask'); if (FMT[t]) el.value = FMT[t](el.value); }
+  document.addEventListener('input', function(e){
+    if (e.target && e.target.getAttribute && e.target.getAttribute('data-mask')) aplicarMascara(e.target);
+  });
+  document.querySelectorAll('[data-mask]').forEach(aplicarMascara);   // formata valores salvos (edição)
+  document.getElementById('matriculaForm').addEventListener('submit', function(){
+    this.querySelectorAll('[data-mask]').forEach(function(el){ el.value = soDigitos(el.value); });
+  });
+
   aplicarReveal();
 </script>
 {% endblock %}

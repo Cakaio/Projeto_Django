@@ -11,6 +11,20 @@ def _compactar_textareas(form):
             f.widget.attrs.setdefault('rows', 3)
 
 
+def _mascarar(form, campos):
+    """Aplica máscara visual (formatada no cliente; dígitos são enviados no submit).
+    campos = {nome: (tipo, placeholder, maxlength_visual)}"""
+    for nome, (tipo, placeholder, maxlen) in campos.items():
+        f = form.fields.get(nome)
+        if f:
+            f.widget.attrs.update({
+                'data-mask': tipo,
+                'inputmode': 'numeric',
+                'placeholder': placeholder,
+                'maxlength': maxlen,
+            })
+
+
 def _para_coerce(v):
     return v == 'True'
 
@@ -49,6 +63,11 @@ class AtendidoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['matricula'].required = True
         self.fields['data_nascimento'].input_formats = ['%Y-%m-%d']
+        _mascarar(self, {
+            'cpf': ('cpf', '000.000.000-00', 14),
+            'rg': ('numero', 'Somente números', 9),
+            'contato': ('telefone', '(00) 00000-0000', 16),
+        })
         _boolean_para_simnao(self)
         _compactar_textareas(self)
 
@@ -82,6 +101,7 @@ class FamiliaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for nome in ['cep', 'bairro', 'cidade']:
             self.fields[nome].required = True
+        _mascarar(self, {'cep': ('cep', '00000-000', 9)})
         _boolean_para_simnao(self)
         _compactar_textareas(self)
 
@@ -95,6 +115,12 @@ class ResponsavelAtendidoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for nome in ['nome', 'parentesco', 'contato']:
             self.fields[nome].required = True
+        _mascarar(self, {
+            'cpf': ('cpf', '000.000.000-00', 14),
+            'rg': ('numero', 'Somente números', 15),
+            'contato': ('telefone', '(00) 00000-0000', 16),
+            'outro_contato': ('telefone', '(00) 00000-0000', 16),
+        })
 
     def validate_unique(self):
         # Reaproveitamento por CPF é tratado na view — não bloquear aqui.
