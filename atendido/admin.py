@@ -1,6 +1,6 @@
 from import_export import resources, fields
 from django.contrib import admin
-from .models import Atendido, Familia, PresencaAtendido, ResponsavelAtendido, AtendidoInclusivo, Mudanca
+from .models import Atendido, Familia, PresencaAtendido, ResponsavelAtendido, AtendidoInclusivo, Mudanca, ListaEspera
 from import_export.admin import ImportExportModelAdmin
 from import_export.formats import base_formats
 from django.utils.translation import gettext_lazy as _
@@ -216,3 +216,25 @@ class PresencaAtendidoAdmin(ImportExportModelAdmin):
 class MudancaAdmin(admin.ModelAdmin):
     list_display = ['mudanca']
     search_fields = ['mudanca']
+
+
+@admin.register(ListaEspera)
+class ListaEsperaAdmin(admin.ModelAdmin):
+    list_display = ("nome_atendido", "idade", "sala", "nome_responsavel", "contato_responsavel", "status", "data_preenchimento")
+    list_filter = ("sala", "status", "data_preenchimento")
+    search_fields = ("nome_atendido", "nome_responsavel", "contato_responsavel")
+    readonly_fields = ("idade", "sala", "preenchido_por", "data_preenchimento")
+    ordering = ("sala", "data_preenchimento", "nome_atendido")
+
+    fieldsets = (
+        ("Criança ou adolescente", {"fields": ("nome_atendido", "data_nascimento", "idade", "sala")}),
+        ("Responsável", {"fields": ("nome_responsavel", "contato_responsavel")}),
+        ("Informações familiares", {"fields": ("renda_familiar", "quantidade_pessoas_familia", "parente_dentro_projeto")}),
+        ("Acompanhamento", {"fields": ("status", "observacoes")}),
+        ("Auditoria", {"fields": ("preenchido_por", "data_preenchimento")}),
+    )
+
+    def save_model(self, request, obj, form, change):
+        if not obj.preenchido_por_id:
+            obj.preenchido_por = request.user
+        super().save_model(request, obj, form, change)

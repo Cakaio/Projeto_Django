@@ -11,9 +11,9 @@ from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse
 from django.db import transaction
 from django.db.models import Q
-from .models import Atendido, PresencaAtendido, ResponsavelAtendido, Familia, Mudanca
+from .models import Atendido, PresencaAtendido, ResponsavelAtendido, Familia, Mudanca, ListaEspera
 from .forms import (
-    AtendidoForm, FamiliaForm, AtendidoInclusivoForm, ResponsavelFormSet,
+    AtendidoForm, FamiliaForm, AtendidoInclusivoForm, ResponsavelFormSet, ListaEsperaForm,
 )
 from sabado.models import Sabado
 import json
@@ -213,6 +213,63 @@ def matricula_atendido(request, pk=None):
         'responsaveis_vinculados': responsaveis_vinculados,
         'familia_existente_id': familia_existente_id,
         'usar_familia_existente': usar_familia_existente,
+    })
+
+
+@login_required(login_url="/")
+def cadastrar_lista_espera(request):
+    if not _pode_matricular(request.user):
+        messages.error(request, "Você não tem permissão para cadastrar na lista de espera.")
+        return redirect("atendido:atendido_view")
+
+    if request.method == "POST":
+        form = ListaEsperaForm(request.POST)
+        if form.is_valid():
+            registro = form.save(commit=False)
+            registro.preenchido_por = request.user
+            registro.save()
+            messages.success(
+                request,
+                f"{registro.nome_atendido} foi incluído(a) na lista de espera da sala {registro.get_sala_display()}.",
+            )
+            return redirect("atendido:cadastrar_lista_espera")
+        messages.error(request, "Confira os campos destacados e tente novamente.")
+    else:
+        form = ListaEsperaForm()
+
+    return render(request, "cadastro_lista_espera.html", {
+        "form": form,
+        "registros_recentes": ListaEspera.objects.order_by("-data_preenchimento")[:8],
+    })
+
+
+@login_required(login_url="/")
+def visualizar_lista_espera(request):
+    if not _pode_matricular(request.user):
+        messages.error(request, "Você não tem permissão para visualizar a lista de espera.")
+        return redirect("atendido:atendido_view")
+
+    registros = list(ListaEspera.objects.filter(status="PENDENTE"))
+    salas = []
+    for codigo, nome in LISTA_SALAS:
+        priorizados = sorted(
+            (registro for registro in registros if registro.sala == codigo),
+            key=lambda registro: registro.chave_prioridade(),
+        )
+        for posicao, registro in enumerate(priorizados, start=1):
+            registro.posicao_prioridade = posicao
+        salas.append({
+            "codigo": codigo,
+            "nome": nome,
+            "registros": priorizados,
+            "total": len(priorizados),
+        })
+
+    return render(request, "visualizar_lista_espera.html", {
+        "salas": salas,
+        "total_registros": len(registros),
+        "total_salas_ativas": sum(bool(sala["total"]) for sala in salas),
+        "total_prioritarios": sum(registro.parente_dentro_projeto for registro in registros),
     })
 
 

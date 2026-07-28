@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import modelformset_factory
 
-from .models import Atendido, Familia, ResponsavelAtendido, AtendidoInclusivo
+from .models import Atendido, Familia, ResponsavelAtendido, AtendidoInclusivo, ListaEspera
 
 
 def _compactar_textareas(form):
@@ -141,6 +141,26 @@ class AtendidoInclusivoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         _boolean_para_simnao(self)
         _compactar_textareas(self)
+
+
+class ListaEsperaForm(forms.ModelForm):
+    class Meta:
+        model = ListaEspera
+        fields = (
+            "nome_atendido", "data_nascimento", "nome_responsavel",
+            "contato_responsavel", "renda_familiar", "quantidade_pessoas_familia",
+            "parente_dentro_projeto", "observacoes",
+        )
+        widgets = {
+            "data_nascimento": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "observacoes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["data_nascimento"].input_formats = ["%Y-%m-%d"]
+        _mascarar(self, {"contato_responsavel": ("telefone", "(00) 00000-0000", 16)})
+        _boolean_para_simnao(self)
 
 
 # Novos responsáveis são adicionados sob demanda; vínculo a existentes é feito por chips.

@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from sabado.models import Sabado
@@ -319,5 +320,103 @@ class PresencaAtendido(models.Model):
 
     def __str__(self):
         return f"{self.atendido.nome} - {self.data} ({self.get_presenca_display()})"
+
+
+class ListaEspera(models.Model):
+    RENDA_REFERENCIA = {
+        "MENOS DE 1000": 1000,
+        "ENTRE 1000-1500": 1250,
+        "ENTRE 1500-2000": 1750,
+        "ENTRE 2000-3000": 2500,
+        "ENTRE 3000-4000": 3500,
+        "ENTRE 4000-5000": 4500,
+        "MAIS DE 5000": 5001,
+    }
+    nome_atendido = models.CharField(max_length=50, help_text="Nome completo do atendido")
+    data_nascimento = models.DateField(help_text="Data de nascimento do atendido")
+    idade = models.PositiveSmallIntegerField(editable=False)
+    data_preenchimento = models.DateTimeField(default=timezone.now, help_text="Data de preenchimento do formulário de inscrição")
+    preenchido_por = models.ForeignKey("voluntario.Voluntario", on_delete=models.SET_NULL, null=True, blank=True, related_name="inscricoes_preenchidas")
+    nome_responsavel = models.CharField(max_length=50, help_text="Nome completo do responsável pelo atendido")
+    contato_responsavel = models.CharField(max_length=11, help_text="Número de contato do responsável pelo atendido, somente números")
+    renda_familiar = models.CharField(max_length=20, choices=RENDA_FAMILIA, help_text="Renda familiar do atendido")
+    quantidade_pessoas_familia = models.IntegerField(default=1, help_text="Quantidade de pessoas na família do atendido")
+    parente_dentro_projeto = models.BooleanField(default=False, help_text="O atendido possui algum parente que mora junto e que já participa do Projeto Criança Feliz?")
+    sala = models.CharField(max_length=20, choices=LISTA_SALAS, editable=False)
+    status = models.CharField(max_length=20, choices=(("PENDENTE","Pendente"),("APROVADO","Aprovado"),("REPROVADO","Reprovado")), default="PENDENTE", help_text="Status da inscrição do atendido na lista de espera")
+    observacoes = models.TextField(blank=True, null=True, help_text="Observações adicionais sobre o atendido ou a família")
+
+    class Meta:
+        verbose_name = "lista de espera"
+        verbose_name_plural = "listas de espera"
+        ordering = ("sala", "data_preenchimento", "nome_atendido")
+
+    @staticmethod
+    def calcular_idade(data_nascimento, hoje=None):
+        hoje = hoje or timezone.localdate()
+        return hoje.year - data_nascimento.year - (
+            (hoje.month, hoje.day) < (data_nascimento.month, data_nascimento.day)
+        )
+
+    @staticmethod
+    def calcular_sala(idade):
+        faixas = (
+            (3, 5, "VIOLETA"),
+            (5, 7, "ANIL"),
+            (7, 9, "AZUL"),
+            (9, 11, "VERDE"),
+            (11, 13, "AMARELO"),
+            (13, 15, "LARANJA"),
+            (15, 18, "VERMELHO"),
+        )
+        for idade_minima, idade_maxima, sala in faixas:
+            if idade_minima <= idade < idade_maxima:
+                return sala
+        if idade >= 18:
+            return "FAMILIA_FELIZ"
+        return None
+
+    def atualizar_campos_calculados(self):
+        if self.data_nascimento:
+            self.idade = self.calcular_idade(self.data_nascimento)
+            self.sala = self.calcular_sala(self.idade)
+
+    def clean(self):
+        super().clean()
+        if not self.data_nascimento:
+            return
+        self.atualizar_campos_calculados()
+        if self.idade < 0:
+            raise ValidationError({"data_nascimento": "A data de nascimento não pode estar no futuro."})
+        if not self.sala:
+            raise ValidationError({"data_nascimento": "A lista de espera aceita pessoas a partir de 3 anos."})
+
+    def save(self, *args, **kwargs):
+        self.atualizar_campos_calculados()
+        super().save(*args, **kwargs)
+
+    @property
+    def renda_per_capita(self):
+        renda = self.RENDA_REFERENCIA.get(self.renda_familiar)
+        if renda is None:
+            return float("inf")
+        return renda / max(self.quantidade_pessoas_familia or 1, 1)
+
+    @property
+    def renda_per_capita_exibicao(self):
+        if self.renda_per_capita == float("inf"):
+            return None
+        return self.renda_per_capita
+
+    def chave_prioridade(self):
+        return (
+            0 if self.parente_dentro_projeto else 1,
+            self.renda_per_capita,
+            self.data_preenchimento,
+            self.pk or 0,
+        )
+
+    def __str__(self):
+        return f"{self.nome_atendido} - {self.status}"
 
 
