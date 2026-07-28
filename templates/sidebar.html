@@ -9,6 +9,20 @@
     .pcf-topbar { display: none !important; }
     .pcf-backdrop { display: none !important; }
     .pcf-ham { display: none !important; }
+    /* modo recolhido — SÓ no desktop (não pode vazar para o drawer mobile) */
+    body.pcf-collapsed .pcf-sidebar { width: var(--pcf-sb-w-collapsed); }
+    body.pcf-collapsed .pcf-sb-group,
+    body.pcf-collapsed .pcf-sb-link span,
+    body.pcf-collapsed .pcf-sb-brand span,
+    body.pcf-collapsed .pcf-sb-user-info { display: none; }
+    body.pcf-collapsed .pcf-sb-link { justify-content: center; padding-left: 0; padding-right: 0; }
+    body.pcf-collapsed .pcf-sb-user { justify-content: center; }
+    body.pcf-collapsed .pcf-sb-head { justify-content: center; padding-left: 0; padding-right: 0; }
+    body.pcf-collapsed .pcf-sb-collapse { margin-left: 0; }
+    body.pcf-collapsed .pcf-sb-collapse svg { transform: rotate(180deg); }
+    /* toast centralizado na área de conteúdo (descontando a sidebar) */
+    #toast-container { left: calc(50% + var(--pcf-sb-w) / 2) !important; }
+    body.pcf-collapsed #toast-container { left: calc(50% + var(--pcf-sb-w-collapsed) / 2) !important; }
   }
   @media (max-width: 1023px) {
     body { padding-left: 0; padding-top: var(--pcf-topbar-h); }
@@ -41,8 +55,6 @@
     background: hsl(var(--card)); border-right: 1px solid hsl(var(--border));
     display: flex; flex-direction: column; transition: width .2s ease, transform .2s ease; overflow: hidden;
   }
-  body.pcf-collapsed .pcf-sidebar { width: var(--pcf-sb-w-collapsed); }
-
   .pcf-sb-head { display: flex; align-items: center; gap: .5rem; padding: .85rem .9rem; border-bottom: 1px solid hsl(var(--border)); min-height: var(--pcf-topbar-h); }
   .pcf-sb-brand { display: flex; align-items: center; gap: .55rem; font-weight: 700; font-size: .9rem; color: hsl(var(--foreground)); text-decoration: none; white-space: nowrap; overflow: hidden; }
   .pcf-sb-brand img { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
@@ -71,16 +83,6 @@
   .pcf-sb-user-area { font-size: .68rem; color: hsl(var(--muted-foreground)); white-space: nowrap; }
   .pcf-sb-link.danger { color: hsl(var(--destructive)); }
   .pcf-sb-link.danger:hover { background: hsl(0 84% 97%); }
-
-  /* ── modo recolhido (desktop) ── */
-  body.pcf-collapsed .pcf-sb-group,
-  body.pcf-collapsed .pcf-sb-link span,
-  body.pcf-collapsed .pcf-sb-brand span,
-  body.pcf-collapsed .pcf-sb-user-info { display: none; }
-  body.pcf-collapsed .pcf-sb-link { justify-content: center; padding-left: 0; padding-right: 0; }
-  body.pcf-collapsed .pcf-sb-user { justify-content: center; }
-  body.pcf-collapsed .pcf-sb-head { justify-content: center; padding-left: 0; padding-right: 0; }
-  body.pcf-collapsed .pcf-sb-collapse { margin-left: 0; }
 </style>
 
 <!-- Topbar (mobile) -->
