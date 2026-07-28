@@ -42,7 +42,11 @@ def organograma(request):
         else:
             node['raiz'] = True
             raizes.append(node)
-    return render(request, 'organograma.html', {'raizes': raizes, 'total': len(vols)})
+    # Só mostra quem está numa hierarquia: raízes precisam ter liderados
+    # (evita uma fileira gigante de voluntários soltos sem líder nem liderados).
+    raizes = [r for r in raizes if r['filhos']]
+    em_organograma = sum(1 for v in vols if v.lider_id or nodes[v.pk]['filhos'])
+    return render(request, 'organograma.html', {'raizes': raizes, 'total': em_organograma})
 
 
 @login_required(login_url="/")

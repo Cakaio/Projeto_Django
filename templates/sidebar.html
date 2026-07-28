@@ -61,7 +61,8 @@
   .pcf-sb-collapse { margin-left: auto; width: 30px; height: 30px; border: 1px solid hsl(var(--border)); border-radius: 7px; background: none; cursor: pointer; color: hsl(var(--muted-foreground)); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .pcf-sb-collapse:hover { background: hsl(var(--accent)); }
 
-  .pcf-sb-nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: .5rem; }
+  .pcf-sb-nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: .5rem; scrollbar-width: none; -ms-overflow-style: none; }
+  .pcf-sb-nav::-webkit-scrollbar { width: 0; height: 0; display: none; }
   .pcf-sb-group { padding: .7rem .65rem .25rem; font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: hsl(var(--muted-foreground)); white-space: nowrap; }
   .pcf-sb-link {
     display: flex; align-items: center; gap: .7rem; padding: .5rem .65rem; border-radius: calc(var(--radius) - 2px);

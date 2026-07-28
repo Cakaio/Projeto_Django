@@ -1,8 +1,11 @@
+from django import forms
 from django.contrib import admin
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.utils.html import format_html
 from django.utils import timezone
 from .models import Talento, Voluntario, PresencaVoluntario, Ocorrencia, Regra, HistoricoLideranca
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import UserChangeForm
 from import_export.admin import ImportExportModelAdmin
 from import_export.formats import base_formats
 from import_export import resources, fields
@@ -76,19 +79,55 @@ class TalentoAdmin(admin.ModelAdmin):
     list_display = ['talento']
     search_fields = ['talento']
 
+class VoluntarioAdminForm(UserChangeForm):
+    liderados = forms.ModelMultipleChoiceField(
+        queryset=Voluntario.objects.all(),
+        required=False,
+        widget=FilteredSelectMultiple('liderados', is_stacked=False),
+        label='Liderados',
+        help_text='Selecione as pessoas que este voluntário lidera — o líder delas é definido automaticamente.',
+    )
+
+    class Meta(UserChangeForm.Meta):
+        model = Voluntario
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        ativos = Voluntario.objects.filter(data_saida__isnull=True)
+        if self.instance and self.instance.pk:
+            ativos = ativos.exclude(pk=self.instance.pk)
+            self.fields['liderados'].initial = self.instance.liderados.all()
+        self.fields['liderados'].queryset = ativos.order_by('first_name', 'last_name')
+
+
 @admin.register(Voluntario)
 class VoluntarioAdmin(UserAdmin, ImportExportModelAdmin):
     resource_class = VoluntarioResource
     formats = [base_formats.XLSX, base_formats.CSV]
+    form = VoluntarioAdminForm
 
     fieldsets = UserAdmin.fieldsets + (
         ("Informações Adicionais", {'fields': ('apelido', 'area', 'data_nascimento', 'celular', 'rg', 'foto', 'talentos')}),
-        ("Hierarquia", {'fields': ('cargo', 'lider')}),
+        ("Hierarquia", {'fields': ('cargo', 'lider', 'liderados')}),
         ("Permissões do PCF", {'fields': ('is_matricula',)}),
     )
     filter_horizontal = ['talentos']
     autocomplete_fields = ['lider']
     list_filter = ['area', 'is_active', 'is_matricula']
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        obj = form.instance
+        selecionados = set(form.cleaned_data.get('liderados') or [])
+        atuais = set(obj.liderados.all())
+        for v in selecionados - atuais:
+            if v.pk != obj.pk:
+                v.lider = obj
+                v.save(update_fields=['lider'])
+        for v in atuais - selecionados:
+            v.lider = None
+            v.save(update_fields=['lider'])
 
     def get_export_queryset(self, request):
         queryset = super().get_export_queryset(request)
