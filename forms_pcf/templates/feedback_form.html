@@ -8,10 +8,10 @@
       <p class="fp-breadcrumb">
         <a href="{% url 'inicio' %}" class="fp-breadcrumb-link">Início</a>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-        Feedback de Área
+        Dores & Sugestões
       </p>
-      <h1 class="fp-title">Feedback Anônimo</h1>
-      <p class="fp-sub">Relate dores e desafios da sua área. Sua identidade não será registrada.</p>
+      <h1 class="fp-title">Dores & Sugestões</h1>
+      <p class="fp-sub">Relate dores da sua área, do PCF em geral e deixe sugestões de projetos. Anônimo — sua identidade não é registrada. Basta preencher uma das caixas.</p>
     </div>
   </div>
 
@@ -19,6 +19,7 @@
     <div class="fp-card">
       <form method="post">
         {% csrf_token %}
+        {% if form.non_field_errors %}<p class="fp-error" style="margin-bottom:1rem">{{ form.non_field_errors|join:", " }}</p>{% endif %}
         <div class="fp-field">
           <label class="fp-label">{{ form.area.label }}</label>
           {{ form.area }}
@@ -28,6 +29,16 @@
           <label class="fp-label">{{ form.descricao.label }}</label>
           {{ form.descricao }}
           {% if form.descricao.errors %}<p class="fp-error">{{ form.descricao.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="fp-field">
+          <label class="fp-label">{{ form.dor_geral.label }}</label>
+          {{ form.dor_geral }}
+          {% if form.dor_geral.errors %}<p class="fp-error">{{ form.dor_geral.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="fp-field">
+          <label class="fp-label">{{ form.sugestao.label }}</label>
+          {{ form.sugestao }}
+          {% if form.sugestao.errors %}<p class="fp-error">{{ form.sugestao.errors|join:", " }}</p>{% endif %}
         </div>
         <div class="fp-actions">
           <button type="submit" class="fp-btn fp-btn-primary">

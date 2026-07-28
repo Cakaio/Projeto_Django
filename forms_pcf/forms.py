@@ -6,18 +6,39 @@ from adm.models import Categoria
 class FeedbackAreaForm(forms.ModelForm):
     class Meta:
         model = FeedbackArea
-        fields = ['area', 'descricao']
+        fields = ['area', 'descricao', 'dor_geral', 'sugestao']
         widgets = {
             'area': forms.Select(attrs={'class': 'form-select'}),
             'descricao': forms.Textarea(attrs={
-                'class': 'form-control', 'rows': 5,
-                'placeholder': 'Descreva a dor ou problema da sua área...'
+                'class': 'form-control', 'rows': 4,
+                'placeholder': 'Ex.: falta de material, dificuldade com horários, comunicação...'
+            }),
+            'dor_geral': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 4,
+                'placeholder': 'Dores/desafios do PCF como um todo, além da sua área...'
+            }),
+            'sugestao': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 4,
+                'placeholder': 'Já teve uma ideia de solução ou projeto? Descreva aqui...'
             }),
         }
         labels = {
-            'area': 'Área',
-            'descricao': 'Descrição',
+            'area': 'Sua área',
+            'descricao': 'Dores da sua área',
+            'dor_geral': 'Dores do PCF em geral',
+            'sugestao': 'Sugestões de projetos',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for nome in ['descricao', 'dor_geral', 'sugestao']:
+            self.fields[nome].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        if not any(cleaned.get(n) for n in ['descricao', 'dor_geral', 'sugestao']):
+            raise forms.ValidationError('Preencha ao menos uma das caixas (dor da área, dor geral ou sugestão).')
+        return cleaned
 
 
 class PedidoReembolsoForm(forms.ModelForm):

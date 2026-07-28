@@ -11,7 +11,9 @@ STATUS_CHOICES = (
 
 class FeedbackArea(models.Model):
     area = models.CharField(max_length=30, choices=LISTA_AREAS)
-    descricao = models.TextField()
+    descricao = models.TextField(blank=True, null=True, help_text="Dores da sua área")
+    dor_geral = models.TextField(blank=True, null=True, help_text="Dores do PCF em geral")
+    sugestao = models.TextField(blank=True, null=True, help_text="Sugestões de projetos")
     criado_em = models.DateTimeField(default=timezone.now)
 
     class Meta:
