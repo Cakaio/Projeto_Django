@@ -1,0 +1,20 @@
+{# Nó recursivo do organograma. Uso: {% include '_organograma_no.html' with node=raiz %} #}
+<li class="org-node">
+  <div class="org-card{% if node.raiz %} raiz{% endif %}">
+    <div class="flex items-center gap-2">
+      <span class="font-semibold text-slate-800 text-sm">{{ node.vol.get_full_name|default:node.vol.username }}</span>
+      {% if node.filhos %}<span class="text-[.65rem] rounded-full bg-slate-100 text-slate-500 px-1.5 py-0.5">{{ node.filhos|length }} liderado{{ node.filhos|length|pluralize }}</span>{% endif %}
+    </div>
+    <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+      {% if node.vol.cargo %}<span class="text-[.68rem] font-semibold rounded-full px-2 py-0.5" style="background:#fed7aa;color:#9a3412">{{ node.vol.cargo }}</span>{% endif %}
+      <span class="text-[.68rem] rounded-full bg-slate-100 text-slate-600 px-2 py-0.5">{{ node.vol.get_area_display }}</span>
+    </div>
+  </div>
+  {% if node.filhos %}
+  <ul class="org-children">
+    {% for filho in node.filhos %}
+      {% include '_organograma_no.html' with node=filho %}
+    {% endfor %}
+  </ul>
+  {% endif %}
+</li>

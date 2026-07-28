@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, TemplateView, UpdateView
 from .models import (
-    Voluntario, PresencaVoluntario, Ocorrencia, Regra,
+    Voluntario, PresencaVoluntario, Ocorrencia, Regra, HistoricoLideranca,
     FALTAS_POR_ALERTA, ALERTAS_POR_ADVERTENCIA,
     ADVERTENCIAS_PARA_OBSERVACAO, MAX_ALERTAS_DISPLAY,
 )
@@ -23,6 +23,42 @@ import json
 # Create your views here.
 class VoluntarioView(LoginRequiredMixin, TemplateView):
     template_name = "voluntario_view.html"
+
+
+@login_required(login_url="/")
+def organograma(request):
+    """Árvore de liderança montada pelo campo `lider` (líder direto)."""
+    vols = list(
+        Voluntario.objects.filter(data_saida__isnull=True)
+        .select_related('lider')
+        .order_by('first_name', 'last_name')
+    )
+    nodes = {v.pk: {'vol': v, 'filhos': []} for v in vols}
+    raizes = []
+    for v in vols:
+        node = nodes[v.pk]
+        if v.lider_id and v.lider_id in nodes:
+            nodes[v.lider_id]['filhos'].append(node)
+        else:
+            node['raiz'] = True
+            raizes.append(node)
+    return render(request, 'organograma.html', {'raizes': raizes, 'total': len(vols)})
+
+
+@login_required(login_url="/")
+def historico_lideres(request):
+    """Histórico de quem já foi líder, agrupado por área/cargo."""
+    registros = HistoricoLideranca.objects.select_related('voluntario').all()
+    grupos = {}
+    ordem = []
+    for r in registros:
+        chave = r.get_area_display() if r.area else 'Geral / Diretoria'
+        if chave not in grupos:
+            grupos[chave] = []
+            ordem.append(chave)
+        grupos[chave].append(r)
+    grupos_lista = [{'nome': nome, 'itens': grupos[nome]} for nome in ordem]
+    return render(request, 'historico_lideres.html', {'grupos': grupos_lista})
 
 LISTA_AREAS = [
     ("VIOLETA", "Violeta"),

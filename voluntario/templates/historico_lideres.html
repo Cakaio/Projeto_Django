@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Histórico de Líderes{% endblock %}
+{% block content %}
+<div class="relative overflow-hidden text-white text-center"
+     style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.5rem 1rem 4.5rem">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl md:text-3xl font-bold">Histórico de Líderes</h1>
+    <p class="opacity-75 text-sm mt-1">Quem já liderou cada área e por qual período</p>
+  </div>
+  <div class="absolute left-0 right-0" style="bottom:-2px;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)"></div>
+</div>
+
+<div class="max-w-3xl mx-auto px-4 -mt-8 relative z-10 pb-16">
+  <div class="flex items-center justify-end mb-4">
+    <a href="{% url 'voluntario:organograma' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Organograma
+    </a>
+  </div>
+
+  {% for grupo in grupos %}
+  <div class="bg-card border border-border rounded-lg p-5 mb-4">
+    <h2 class="text-base font-bold text-slate-800 mb-3">{{ grupo.nome }}</h2>
+    <div class="space-y-2">
+      {% for r in grupo.itens %}
+      <div class="flex items-center justify-between gap-3 border-l-4 {% if r.atual %}border-green-400 bg-green-50{% else %}border-slate-200 bg-slate-50{% endif %} rounded-r-lg px-3 py-2">
+        <div>
+          <span class="font-medium text-slate-800 text-sm">{{ r.voluntario.get_full_name|default:r.voluntario.username }}</span>
+          <span class="text-xs text-muted-foreground"> · {{ r.cargo }}</span>
+        </div>
+        <div class="text-xs text-slate-500 whitespace-nowrap">
+          {{ r.data_inicio|date:"m/Y" }} – {% if r.atual %}<span class="font-semibold text-green-700">atual</span>{% else %}{{ r.data_fim|date:"m/Y" }}{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="bg-card border border-dashed border-border rounded-lg p-10 text-center text-muted-foreground">
+    Nenhum registro de liderança ainda. Cadastre no admin (Histórico de Liderança).
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

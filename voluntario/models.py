@@ -78,6 +78,14 @@ class Voluntario(AbstractUser):
     data_entrada = models.DateField(default=timezone.now)
     data_saida = models.DateField(blank=True, null=True)
     is_matricula = models.BooleanField(default=False, help_text="Se marcado, o voluntário pode acessar e usar a tela de Matrícula de Atendidos.")
+    lider = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name='liderados',
+        help_text="Líder direto deste voluntário (monta o organograma; deixe vazio para o topo, ex.: Presidente)."
+    )
+    cargo = models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text="Cargo/posição na hierarquia (ex.: Presidente, Líder Educacional Geral, Líder de Sala)."
+    )
 
 
     def __str__(self):
@@ -106,6 +114,29 @@ class Talento(models.Model):
 
     def __str__(self):
         return self.talento
+
+
+class HistoricoLideranca(models.Model):
+    """Registro de quem já foi líder de uma área/cargo e por qual período."""
+    voluntario = models.ForeignKey(
+        'Voluntario', on_delete=models.CASCADE, related_name='historico_lideranca'
+    )
+    cargo = models.CharField(max_length=100, help_text="Cargo/posição liderada (ex.: Líder de Sala Violeta, LEG, Presidente).")
+    area = models.CharField(max_length=30, choices=LISTA_AREAS, blank=True, null=True, help_text="Área liderada (opcional).")
+    data_inicio = models.DateField()
+    data_fim = models.DateField(null=True, blank=True, help_text="Deixe vazio se ainda está no cargo.")
+
+    class Meta:
+        ordering = ['area', '-data_inicio']
+        verbose_name = 'Histórico de Liderança'
+        verbose_name_plural = 'Históricos de Liderança'
+
+    @property
+    def atual(self):
+        return self.data_fim is None
+
+    def __str__(self):
+        return f'{self.voluntario} — {self.cargo} ({self.data_inicio:%m/%Y}–{"atual" if self.atual else self.data_fim.strftime("%m/%Y")})'
 
 
 class Regra(models.Model):

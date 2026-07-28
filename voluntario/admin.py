@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
-from .models import Talento, Voluntario, PresencaVoluntario, Ocorrencia, Regra
+from .models import Talento, Voluntario, PresencaVoluntario, Ocorrencia, Regra, HistoricoLideranca
 from django.contrib.auth.admin import UserAdmin
 from import_export.admin import ImportExportModelAdmin
 from import_export.formats import base_formats
@@ -83,9 +83,11 @@ class VoluntarioAdmin(UserAdmin, ImportExportModelAdmin):
 
     fieldsets = UserAdmin.fieldsets + (
         ("Informações Adicionais", {'fields': ('apelido', 'area', 'data_nascimento', 'celular', 'rg', 'foto', 'talentos')}),
+        ("Hierarquia", {'fields': ('cargo', 'lider')}),
         ("Permissões do PCF", {'fields': ('is_matricula',)}),
     )
     filter_horizontal = ['talentos']
+    autocomplete_fields = ['lider']
     list_filter = ['area', 'is_active', 'is_matricula']
 
     def get_export_queryset(self, request):
@@ -218,3 +220,15 @@ class OcorrenciaAdmin(admin.ModelAdmin):
     def remover_permanentemente(self, request, queryset):
         n, _ = queryset.delete()
         self.message_user(request, f'{n} ocorrência(s) excluída(s) permanentemente.')
+
+
+@admin.register(HistoricoLideranca)
+class HistoricoLiderancaAdmin(admin.ModelAdmin):
+    list_display = ['voluntario', 'cargo', 'area', 'data_inicio', 'data_fim', 'atual']
+    list_filter = ['area']
+    search_fields = ['voluntario__first_name', 'voluntario__last_name', 'cargo']
+    autocomplete_fields = ['voluntario']
+
+    @admin.display(boolean=True, description='Atual')
+    def atual(self, obj):
+        return obj.atual
