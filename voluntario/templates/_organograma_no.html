@@ -10,7 +10,7 @@
     </div>
     <div class="org-nome">{{ node.vol.apelido|default:node.vol.get_full_name|default:node.vol.username }}</div>
     <div class="org-area">{{ node.vol.get_area_display }}</div>
-    {% if node.vol.cargo %}<div class="org-cargo">{{ node.vol.cargo }}</div>{% endif %}
+    {% if node.vol.cargo %}<div class="org-cargo">{{ node.vol.get_cargo_display }}</div>{% endif %}
   </div>
   {% if node.filhos %}
   <ul>

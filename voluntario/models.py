@@ -51,6 +51,14 @@ TIPO_ALIMENTACAO = (
     ("VEGANO", "Vegano")
 )
 
+CARGOS = (
+    ('LIDER', 'Líder'),
+    ('LEG', 'Líder Educacional Geral'),
+    ('VICE', 'Vice-Presidente'),
+    ('PRESIDENTE', 'Presidente'),
+)
+
+
 class Voluntario(AbstractUser):
     area = models.CharField(max_length=30, choices=LISTA_AREAS)
     apelido = models.CharField(max_length=50, blank=True, null=True)
@@ -83,8 +91,8 @@ class Voluntario(AbstractUser):
         help_text="Líder direto deste voluntário (monta o organograma; deixe vazio para o topo, ex.: Presidente)."
     )
     cargo = models.CharField(
-        max_length=100, blank=True, null=True,
-        help_text="Cargo/posição na hierarquia (ex.: Presidente, Líder Educacional Geral, Líder de Sala)."
+        max_length=100, choices=CARGOS, blank=True, null=True,
+        help_text="Cargo/posição na hierarquia."
     )
 
 
