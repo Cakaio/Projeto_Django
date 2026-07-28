@@ -25,9 +25,8 @@ class VoluntarioView(LoginRequiredMixin, TemplateView):
     template_name = "voluntario_view.html"
 
 
-@login_required(login_url="/")
-def organograma(request):
-    """Árvore de liderança montada pelo campo `lider` (líder direto)."""
+def _montar_organograma():
+    """Monta a árvore de liderança (só voluntários ativos e conectados)."""
     vols = list(
         Voluntario.objects.filter(data_saida__isnull=True)
         .select_related('lider')
@@ -45,8 +44,22 @@ def organograma(request):
     # Só mostra quem está numa hierarquia: raízes precisam ter liderados
     # (evita uma fileira gigante de voluntários soltos sem líder nem liderados).
     raizes = [r for r in raizes if r['filhos']]
-    em_organograma = sum(1 for v in vols if v.lider_id or nodes[v.pk]['filhos'])
-    return render(request, 'organograma.html', {'raizes': raizes, 'total': em_organograma})
+    total = sum(1 for v in vols if v.lider_id or nodes[v.pk]['filhos'])
+    return raizes, total
+
+
+@login_required(login_url="/")
+def organograma(request):
+    """Árvore de liderança (dentro do layout, com botão para tela cheia)."""
+    raizes, total = _montar_organograma()
+    return render(request, 'organograma.html', {'raizes': raizes, 'total': total})
+
+
+@login_required(login_url="/")
+def organograma_fullscreen(request):
+    """Organograma em tela cheia (sem sidebar/footer) com arrastar e zoom."""
+    raizes, total = _montar_organograma()
+    return render(request, 'organograma_full.html', {'raizes': raizes, 'total': total})
 
 
 @login_required(login_url="/")

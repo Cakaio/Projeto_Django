@@ -61,10 +61,14 @@
 </div>
 
 <div class="max-w-6xl mx-auto px-3 md:px-4 -mt-6 relative z-10 pb-16">
-  <div class="flex items-center justify-end mb-3">
+  <div class="flex items-center justify-end gap-2 mb-3">
     <a href="{% url 'voluntario:historico_lideres' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       Histórico de líderes
+    </a>
+    <a href="{% url 'voluntario:organograma_fullscreen' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white" style="background:#fe8210">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+      Tela cheia (arrastar e zoom)
     </a>
   </div>
 

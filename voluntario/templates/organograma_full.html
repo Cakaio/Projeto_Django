@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Organograma — Tela cheia</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; }
+
+    .ofs-topbar {
+      position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 10;
+      display: flex; align-items: center; gap: .75rem; padding: 0 .9rem;
+      background: rgba(255,255,255,.92); backdrop-filter: blur(8px); border-bottom: 1px solid #e2e8f0;
+    }
+    .ofs-title { font-weight: 700; font-size: .95rem; color: #0f172a; }
+    .ofs-title small { font-weight: 400; color: #64748b; margin-left: .4rem; }
+    .ofs-controls { margin-left: auto; display: flex; align-items: center; gap: .35rem; }
+    .ofs-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
+      height: 34px; min-width: 34px; padding: 0 .6rem; border: 1px solid #e2e8f0; border-radius: 8px;
+      background: #fff; color: #334155; cursor: pointer; font-size: .82rem; font-weight: 600; text-decoration: none;
+    }
+    .ofs-btn:hover { background: #f1f5f9; }
+    .ofs-btn.primary { background: #fe8210; color: #fff; border-color: #fe8210; }
+
+    .ofs-viewport {
+      position: fixed; top: 52px; left: 0; right: 0; bottom: 0;
+      overflow: hidden; cursor: grab; touch-action: none; background:
+      radial-gradient(circle, #e2e8f0 1px, transparent 1px) 0 0 / 22px 22px, #f8fafc;
+    }
+    .ofs-canvas { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; padding: 8px; }
+
+    /* ── Árvore top-down (cores literais, sem depender de vars) ── */
+    .org-tree { display: inline-block; }
+    .org-tree ul { position: relative; padding: 22px 0 0; margin: 0; list-style: none; display: flex; justify-content: center; }
+    .org-tree > ul { padding-top: 0; }
+    .org-tree li { list-style: none; position: relative; padding: 22px 8px 0; text-align: center; }
+    .org-tree li::before, .org-tree li::after { content: ''; position: absolute; top: 0; right: 50%; border-top: 2px solid #cbd5e1; width: 50%; height: 22px; }
+    .org-tree li::after { right: auto; left: 50%; border-left: 2px solid #cbd5e1; }
+    .org-tree li:only-child::before, .org-tree li:only-child::after { display: none; }
+    .org-tree li:only-child { padding-top: 22px; }
+    .org-tree li:first-child::before, .org-tree li:last-child::after { border: 0 none; }
+    .org-tree li:last-child::before { border-right: 2px solid #cbd5e1; border-radius: 0 6px 0 0; }
+    .org-tree li:first-child::after { border-radius: 6px 0 0 0; }
+    .org-tree ul ul::before { content: ''; position: absolute; top: 0; left: 50%; border-left: 2px solid #cbd5e1; width: 0; height: 22px; }
+    .org-tree > ul > li::before, .org-tree > ul > li::after { display: none; }
+
+    .org-node { display: inline-flex; flex-direction: column; align-items: center; gap: .25rem; background: #fff; border: 1px solid #e2e8f0; border-radius: .85rem; padding: .85rem .9rem; min-width: 128px; max-width: 160px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .org-node.raiz { border-color: #fe8210; box-shadow: 0 3px 12px rgba(254,130,16,.2); }
+    .org-avatar { width: 52px; height: 52px; border-radius: 9999px; overflow: hidden; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .9rem; box-shadow: 0 0 0 3px #fff, 0 0 0 4px #e2e8f0; }
+    .org-node.raiz .org-avatar { box-shadow: 0 0 0 3px #fff, 0 0 0 4px #fe8210; }
+    .org-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .org-nome { font-weight: 600; font-size: .82rem; color: #0f172a; line-height: 1.2; margin-top: .15rem; }
+    .org-area { font-size: .68rem; color: #64748b; }
+    .org-cargo { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; background: #fed7aa; color: #9a3412; border-radius: 9999px; padding: .1rem .5rem; margin-top: .1rem; }
+
+    .ofs-empty { position: fixed; inset: 52px 0 0 0; display: flex; align-items: center; justify-content: center; color: #64748b; text-align: center; padding: 2rem; }
+    .ofs-hint { position: fixed; bottom: .75rem; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,.8); color: #fff; font-size: .72rem; padding: .3rem .7rem; border-radius: 9999px; pointer-events: none; z-index: 10; }
+  </style>
+</head>
+<body>
+  <div class="ofs-topbar">
+    <span class="ofs-title">Organograma <small>{{ total }} ativo{{ total|pluralize }}</small></span>
+    <div class="ofs-controls">
+      <button class="ofs-btn" onclick="ofsZoom(-1)" title="Diminuir">−</button>
+      <button class="ofs-btn" onclick="ofsReset()" title="Redefinir">100%</button>
+      <button class="ofs-btn" onclick="ofsZoom(1)" title="Aumentar">+</button>
+      <a class="ofs-btn primary" href="{% url 'voluntario:organograma' %}">✕ Fechar</a>
+    </div>
+  </div>
+
+  {% if raizes %}
+  <div class="ofs-viewport" id="ofsViewport">
+    <div class="ofs-canvas" id="ofsCanvas">
+      <div class="org-tree">
+        <ul>
+          {% for raiz in raizes %}
+            {% include '_organograma_no.html' with node=raiz %}
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="ofs-hint">Arraste para mover · role / pinça para zoom</div>
+  {% else %}
+  <div class="ofs-empty">Nenhuma hierarquia definida ainda. Defina o líder e o cargo dos voluntários no admin.</div>
+  {% endif %}
+
+  <script>
+    var vp = document.getElementById('ofsViewport');
+    var cv = document.getElementById('ofsCanvas');
+    if (vp && cv) {
+      var scale = 1, tx = 24, ty = 24;
+      var pointers = new Map(), lastDist = 0;
+      function apply(){ cv.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')'; }
+      function zoomTo(ns, cx, cy){
+        ns = Math.min(2.5, Math.max(0.25, ns));
+        var r = vp.getBoundingClientRect();
+        var ox = cx - r.left, oy = cy - r.top;
+        var px = (ox - tx) / scale, py = (oy - ty) / scale;
+        scale = ns; tx = ox - px * scale; ty = oy - py * scale; apply();
+      }
+      vp.addEventListener('wheel', function(e){ e.preventDefault(); zoomTo(scale * (e.deltaY < 0 ? 1.12 : 0.89), e.clientX, e.clientY); }, { passive: false });
+      vp.addEventListener('pointerdown', function(e){ pointers.set(e.pointerId, e); vp.setPointerCapture(e.pointerId); vp.style.cursor = 'grabbing'; });
+      vp.addEventListener('pointermove', function(e){
+        if (!pointers.has(e.pointerId)) return;
+        var prev = pointers.get(e.pointerId); pointers.set(e.pointerId, e);
+        if (pointers.size === 1) { tx += e.clientX - prev.clientX; ty += e.clientY - prev.clientY; apply(); }
+        else if (pointers.size === 2) {
+          var p = Array.from(pointers.values());
+          var dist = Math.hypot(p[0].clientX - p[1].clientX, p[0].clientY - p[1].clientY);
+          if (lastDist) zoomTo(scale * dist / lastDist, (p[0].clientX + p[1].clientX) / 2, (p[0].clientY + p[1].clientY) / 2);
+          lastDist = dist;
+        }
+      });
+      function up(e){ pointers.delete(e.pointerId); if (pointers.size < 2) lastDist = 0; if (pointers.size === 0) vp.style.cursor = 'grab'; }
+      vp.addEventListener('pointerup', up); vp.addEventListener('pointercancel', up);
+      window.ofsZoom = function(dir){ zoomTo(scale * (dir > 0 ? 1.2 : 1 / 1.2), window.innerWidth / 2, (window.innerHeight + 52) / 2); };
+      window.ofsReset = function(){ scale = 1; tx = 24; ty = 24; apply(); };
+      apply();
+    }
+  </script>
+</body>
+</html>

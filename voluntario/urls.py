@@ -4,7 +4,7 @@ from semanario import views
 from .views import (
     MeuPerfilView, VoluntarioView, ListaVoluntario, RegistrarPresencasVoluntarios,
     visualizar_presencas_voluntarios, saas_view, criar_ocorrencia,
-    historico_ocorrencias, deletar_ocorrencia, organograma, historico_lideres,
+    historico_ocorrencias, deletar_ocorrencia, organograma, organograma_fullscreen, historico_lideres,
 )
 from django.contrib.auth import views as auth_views
 
@@ -23,5 +23,6 @@ urlpatterns = [
     path("saas/historico/<pk>/", historico_ocorrencias, name="historico_ocorrencias"),
     path("saas/ocorrencia/<uuid:ocorrencia_id>/deletar/", deletar_ocorrencia, name="deletar_ocorrencia"),
     path("organograma/", organograma, name="organograma"),
+    path("organograma/tela-cheia/", organograma_fullscreen, name="organograma_fullscreen"),
     path("lideres/", historico_lideres, name="historico_lideres"),
 ]
