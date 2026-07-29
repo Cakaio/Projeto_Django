@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block titulo %}Pautas da minha área{% endblock %}
+{% block head %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;600;700;800&display=swap');
+  .mine{--ink:#16243a;--orange:#ed684e;background:#f3ecdf;min-height:calc(100vh - 70px);padding:clamp(2rem,5vw,4.5rem) 1rem 6rem;color:var(--ink);font-family:Manrope,sans-serif}
+  .mine-wrap{max-width:1100px;margin:auto}.mine-title{font:clamp(2.8rem,7vw,5.4rem)/.92 "DM Serif Display";letter-spacing:-.04em;margin:.7rem 0}
+  .summary{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #d6cdbd;background:#fffaf2;margin:2rem 0}.summary-cell{padding:1rem;border-right:1px solid #d6cdbd}.summary-cell:last-child{border:0}.summary-number{font:2rem "DM Serif Display"}
+  .mine-list{display:grid;gap:.75rem}.mine-card{display:grid;grid-template-columns:8px 1fr auto;background:#fff;border:1px solid #d8d0c2;box-shadow:0 8px 20px rgba(22,36,58,.05);transition:.18s}.mine-card:hover{transform:translateX(4px);box-shadow:0 12px 25px rgba(22,36,58,.1)}
+  .mine-stripe{background:var(--status)}.mine-content{padding:1rem 1.2rem}.mine-edit{display:flex;align-items:center;padding:1rem;color:var(--ink);font-size:.75rem;font-weight:800;text-decoration:none;border-left:1px solid #e6dfd4}
+  .mine-pill{display:inline-block;color:#fff;background:var(--status);font-size:.62rem;padding:.25rem .45rem;text-transform:uppercase;font-weight:800;letter-spacing:.06em}
+  .top-action{background:var(--ink);color:#fff;text-decoration:none;padding:.75rem 1rem;font-weight:800;font-size:.8rem}
+  @media(max-width:650px){.summary{grid-template-columns:1fr 1fr}.summary-cell:nth-child(2){border-right:0}.summary-cell:nth-child(-n+2){border-bottom:1px solid #d6cdbd}.mine-card{grid-template-columns:6px 1fr}.mine-edit{grid-column:2;border-left:0;border-top:1px solid #e6dfd4;padding:.65rem 1.2rem}.mine-title{font-size:3.3rem}}
+</style>
+{% endblock %}
+{% block content %}
+<section class="mine"><div class="mine-wrap">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <header><a href="{% url 'gerenciamento:pautas' %}" style="color:#667180;text-decoration:none;font-size:.78rem">← Quadro recebido</a><p style="color:#ed684e;text-transform:uppercase;letter-spacing:.17em;font-size:.7rem;font-weight:800;margin:1.6rem 0 .5rem">Área {{ user.get_area_display }}</p><h1 class="mine-title">Pautas que emitimos.</h1><p style="color:#667180">Você pode editar qualquer pauta emitida pela sua área atual.</p></header>
+    <a href="{% url 'gerenciamento:criar_pauta' %}" class="top-action">＋ Nova pauta</a>
+  </div>
+  <div class="summary">
+    <div class="summary-cell"><div class="summary-number">{{ pautas|length }}</div><small>Total</small></div>
+    <div class="summary-cell"><div class="summary-number">{{ totais.a_fazer|default:0 }}</div><small>A fazer</small></div>
+    <div class="summary-cell"><div class="summary-number">{{ totais.em_execucao|default:0 }}</div><small>Em execução</small></div>
+    <div class="summary-cell"><div class="summary-number">{{ totais.finalizadas|default:0 }}</div><small>Finalizadas</small></div>
+  </div>
+  <div class="mine-list">
+    {% for pauta in pautas %}
+    <article class="mine-card" style="--status:{{ pauta.status_cor }}">
+      <div class="mine-stripe"></div><div class="mine-content">
+        <div class="d-flex flex-wrap gap-2 align-items-center"><span class="mine-pill">{{ pauta.get_status_display }}</span><span style="font-size:.7rem;color:#7b8490">Para {{ pauta.grupo.nome }}</span></div>
+        <h2 style="font:1.55rem 'DM Serif Display';margin:.5rem 0 .25rem">{{ pauta.titulo }}</h2>
+        <p style="font-size:.76rem;color:#6d7784;margin:0">Prazo {{ pauta.ddl|date:"d/m/Y H:i" }} · {{ pauta.comentarios.count }} comentário{{ pauta.comentarios.count|pluralize }}</p>
+      </div><a class="mine-edit" href="{% url 'gerenciamento:editar_pauta' pauta.pk %}">Editar →</a>
+    </article>
+    {% empty %}<div style="text-align:center;padding:4rem;background:#fff;border:1px dashed #b8ae9e"><h2 style="font:2.5rem 'DM Serif Display'">Nada emitido ainda.</h2><p>Sua área ainda não criou pautas.</p></div>{% endfor %}
+  </div>
+</div></section>
+{% endblock %}

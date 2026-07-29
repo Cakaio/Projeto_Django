@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block titulo %}Minhas pautas{% endblock %}
+{% block head %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;600;700;800&display=swap');
+  .board{--ink:#16243a;--coral:#ed684e;--sand:#efe7d8;--paper:#fffdf8;min-height:calc(100vh - 70px);background:#e9e1d3;color:var(--ink);font-family:Manrope,sans-serif;padding-bottom:6rem}
+  .board-head{background:var(--ink);color:white;padding:3.5rem clamp(1rem,5vw,4rem) 5rem;position:relative;overflow:hidden}
+  .board-head:after{content:"";position:absolute;width:320px;height:320px;border:70px solid rgba(237,104,78,.12);border-radius:50%;right:-80px;top:-150px}
+  .head-inner,.board-grid{max-width:1180px;margin:auto}.head-title{font:clamp(2.8rem,7vw,5.6rem)/.9 "DM Serif Display";letter-spacing:-.03em;margin:.5rem 0}
+  .new-pauta{display:inline-flex;background:var(--coral);color:white;text-decoration:none;padding:.8rem 1rem;font-weight:800;border-radius:2px;box-shadow:5px 5px 0 rgba(255,255,255,.16)}
+  .secondary-link{display:inline-flex;color:#dbe0e8;text-decoration:none;padding:.75rem .9rem;border:1px solid rgba(255,255,255,.25);font-size:.78rem;font-weight:700}
+  .group-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1.5rem}.group-tag{font-size:.72rem;border:1px solid rgba(255,255,255,.25);padding:.35rem .6rem;color:#dbe0e8}
+  .board-grid{margin-top:-2.3rem;position:relative;z-index:2;padding:0 1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:1.1rem}
+  .pauta-card{background:var(--paper);border:1px solid #d6cdbd;box-shadow:0 14px 30px rgba(22,36,58,.08);animation:cardIn .45s both;display:flex;flex-direction:column}
+  .card-stripe{height:5px;background:var(--coral)}.card-body-pauta{padding:1.25rem}.area-mark{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--coral);font-weight:800}
+  .pauta-title{font:1.75rem/1.05 "DM Serif Display";margin:.6rem 0}.pauta-description{white-space:pre-line;color:#596474;font-size:.86rem;line-height:1.65}
+  .meta-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #e7e0d5;border-bottom:1px solid #e7e0d5;margin-top:1rem}.meta-item{padding:.7rem 0;font-size:.72rem}.meta-item+ .meta-item{border-left:1px solid #e7e0d5;padding-left:.8rem}
+  .comments{padding:1rem 1.25rem 1.25rem;background:#faf6ee;margin-top:auto}.comment{display:flex;gap:.6rem;margin-bottom:.8rem}.avatar{width:28px;height:28px;border-radius:50%;background:var(--ink);color:white;display:grid;place-items:center;font-size:.62rem;font-weight:800;flex:none;overflow:hidden}.avatar img{width:100%;height:100%;object-fit:cover}
+  .comment-text{font-size:.78rem;color:#4b5869;margin:.15rem 0;white-space:pre-line}.comment-input{width:100%;border:1px solid #d9d0c1;background:white;padding:.65rem;font-size:.78rem;resize:vertical;outline:none}.comment-submit{border:0;background:var(--ink);color:white;font-size:.72rem;font-weight:800;padding:.55rem .8rem;margin-top:.4rem}
+  .status-badge{display:inline-flex;align-items:center;gap:.35rem;color:white;padding:.3rem .55rem;font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;font-weight:800}.status-badge:before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+  .ack-bar{display:flex;gap:.45rem;align-items:center;padding:0 1.25rem 1rem}.ack-btn{border:1px solid #cfc6b7;background:transparent;color:#4f5a68;padding:.48rem .65rem;font-size:.7rem;font-weight:800}.ack-btn.primary{background:#e7efc8;border-color:#bdcc84;color:#314414}
+  .empty-board{grid-column:1/-1;background:var(--paper);border:1px dashed #a9a08f;text-align:center;padding:4rem 1rem}
+  @keyframes cardIn{from{opacity:0;transform:translateY(14px) rotate(.5deg)}}
+</style>
+{% endblock %}
+{% block content %}
+<section class="board">
+  <header class="board-head"><div class="head-inner" style="position:relative;z-index:1">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+      <div><p style="color:#ed684e;text-transform:uppercase;letter-spacing:.18em;font-size:.7rem;font-weight:800;margin:0">Quadro pessoal</p><h1 class="head-title">Pautas na mesa</h1><p style="color:#aeb7c4;margin:0">Somente o que foi direcionado aos seus grupos atuais.</p></div>
+      <div class="d-flex flex-wrap gap-2"><a href="{% url 'gerenciamento:minhas_pautas' %}" class="secondary-link">Pautas da minha área</a><a href="{% url 'gerenciamento:criar_pauta' %}" class="new-pauta">＋ Nova pauta</a></div>
+    </div>
+    <div class="group-tabs">{% for grupo in grupos_do_usuario %}<span class="group-tag">{{ grupo.nome }}</span>{% empty %}<span class="group-tag">Você ainda não pertence a nenhum grupo</span>{% endfor %}<a class="group-tag" style="text-decoration:none" href="{% if mostrar_ocultas %}{% url 'gerenciamento:pautas' %}{% else %}?ocultas=1{% endif %}">{% if mostrar_ocultas %}← Ver ativas{% else %}Ocultadas ({{ total_ocultas }}){% endif %}</a></div>
+  </div></header>
+  <main class="board-grid">
+    {% for pauta in pautas %}
+    <article class="pauta-card" style="animation-delay:{{ forloop.counter0 }}00ms">
+      <div class="card-stripe"></div>
+      <div class="card-body-pauta">
+        <div class="d-flex justify-content-between gap-2"><span class="area-mark">{{ pauta.get_emitido_por_area_display }}</span><span class="status-badge" style="background:{{ pauta.status_cor }}">{{ pauta.get_status_display }}</span></div>
+        <div style="font-size:.68rem;color:#7c8490;margin-top:.5rem">Para {{ pauta.grupo.nome }}</div>
+        <h2 class="pauta-title">{{ pauta.titulo }}</h2>
+        <div class="pauta-description">{{ pauta.descricao }}</div>
+        <div class="meta-grid">
+          <div class="meta-item"><span style="color:#89909a">Emitido por</span><br><strong>{{ pauta.criado_por.get_full_name|default:pauta.criado_por.username }}</strong></div>
+          <div class="meta-item"><span style="color:#89909a">Prazo</span><br><strong>{{ pauta.ddl|date:"d/m/Y · H:i" }}</strong></div>
+        </div>
+      </div>
+      <div class="ack-bar">
+        <form method="post" action="{% url 'gerenciamento:alternar_ciencia' pauta.pk %}">{% csrf_token %}
+          {% if mostrar_ocultas %}<input type="hidden" name="acao" value="restaurar"><input type="hidden" name="origem" value="ocultas"><button class="ack-btn primary" type="submit">Restaurar no quadro</button>
+          {% else %}<input type="hidden" name="acao" value="ocultar"><button class="ack-btn {% if not pauta.usuario_ciente %}primary{% endif %}" type="submit">{% if pauta.usuario_ciente %}Ciente · ocultar{% else %}✓ Ciente e ocultar{% endif %}</button>{% endif %}
+        </form>
+      </div>
+      <section class="comments">
+        <p style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800;margin-bottom:.8rem">{{ pauta.comentarios.count }} comentário{{ pauta.comentarios.count|pluralize }}</p>
+        {% for comentario in pauta.comentarios.all %}
+        <div class="comment"><span class="avatar">{% if comentario.autor.foto %}<img src="{{ comentario.autor.foto.url }}" alt="">{% else %}{{ comentario.autor.first_name|first|upper }}{{ comentario.autor.last_name|first|upper }}{% endif %}</span>
+          <div><strong style="font-size:.72rem">{{ comentario.autor.get_full_name|default:comentario.autor.username }}</strong><span style="font-size:.65rem;color:#9298a0"> · {{ comentario.criado_em|date:"d/m H:i" }}</span><p class="comment-text">{{ comentario.texto }}</p></div>
+        </div>
+        {% endfor %}
+        <form method="post" action="{% url 'gerenciamento:comentar_pauta' pauta.pk %}">{% csrf_token %}{{ comentario_form.texto }}<button class="comment-submit" type="submit">Comentar</button></form>
+      </section>
+    </article>
+    {% empty %}
+    <div class="empty-board"><div style="font:3rem 'DM Serif Display'">Mesa vazia.</div><p style="color:#687382">Nenhuma pauta foi direcionada aos seus grupos atuais.</p><a href="{% url 'gerenciamento:criar_pauta' %}" class="new-pauta">Criar uma pauta</a></div>
+    {% endfor %}
+  </main>
+</section>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block titulo %}{% if pauta %}Editar pauta{% else %}Nova pauta{% endif %}{% endblock %}
+{% block head %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;600;700;800&display=swap');
+  .agenda-create{--navy:#132238;--coral:#f26b4f;--cream:#f6f0e4;--line:#d9d1c2;min-height:calc(100vh - 70px);background:var(--cream);color:var(--navy);font-family:Manrope,sans-serif;padding:clamp(2rem,6vw,5rem) 1rem 6rem;position:relative;overflow:hidden}
+  .agenda-create:before{content:"PAUTA";position:absolute;right:-.04em;top:-.2em;font:clamp(8rem,25vw,22rem)/1 "DM Serif Display";color:rgba(19,34,56,.035);pointer-events:none}
+  .create-wrap{max-width:1040px;margin:auto;position:relative;z-index:1;display:grid;grid-template-columns:minmax(220px,.7fr) minmax(320px,1.3fr);gap:clamp(2rem,6vw,5rem);align-items:start}
+  .create-kicker{display:inline-flex;align-items:center;gap:.55rem;text-transform:uppercase;letter-spacing:.18em;font-size:.7rem;font-weight:800;color:var(--coral)}
+  .create-kicker:before{content:"";width:28px;height:2px;background:var(--coral)}
+  .display-title{font:clamp(3rem,7vw,5.8rem)/.88 "DM Serif Display",serif;letter-spacing:-.04em;margin:1.2rem 0}
+  .create-card{background:#fffdf8;border:1px solid var(--line);padding:clamp(1.4rem,4vw,2.4rem);box-shadow:16px 16px 0 #e4d7bf;border-radius:2px}
+  .field-row{margin-bottom:1.25rem}.field-row label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.11em;font-weight:800;margin-bottom:.45rem}
+  .field-control{width:100%;border:1px solid var(--line);background:#fff;padding:.8rem .9rem;border-radius:3px;color:var(--navy);outline:none}.field-control:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(19,34,56,.08)}
+  .save-pauta{width:100%;border:0;background:var(--navy);color:#fff;padding:1rem;font-weight:800;letter-spacing:.03em;transition:.2s}.save-pauta:hover{background:var(--coral);transform:translateY(-2px)}
+  .form-errors{color:#a33222;font-size:.78rem;margin:.35rem 0 0;padding:0;list-style:none}
+  @media(max-width:760px){.create-wrap{grid-template-columns:1fr}.display-title{font-size:3.6rem}.create-card{box-shadow:8px 8px 0 #e4d7bf}}
+</style>
+{% endblock %}
+{% block content %}
+<section class="agenda-create">
+  <div class="create-wrap">
+    <header>
+      <a href="{% if pauta %}{% url 'gerenciamento:minhas_pautas' %}{% else %}{% url 'gerenciamento:pautas' %}{% endif %}" style="color:#536071;text-decoration:none;font-size:.8rem">← Voltar</a>
+      <p class="create-kicker" style="margin-top:2.2rem">{% if pauta %}Revisar card{% else %}Nova conversa{% endif %}</p>
+      <h1 class="display-title">{% if pauta %}Ajuste a rota.{% else %}Coloque na mesa.{% endif %}</h1>
+      <p style="color:#637083;line-height:1.75;max-width:330px">Direcione uma decisão, ideia ou pendência para as pessoas certas. O grupo acompanha suas regras atuais.</p>
+    </header>
+    <form method="post" class="create-card">
+      {% csrf_token %}
+      <div class="field-row"><label for="{{ form.titulo.id_for_label }}">{{ form.titulo.label }}</label>{{ form.titulo }}{{ form.titulo.errors }}</div>
+      <div class="field-row"><label for="{{ form.descricao.id_for_label }}">{{ form.descricao.label }}</label>{{ form.descricao }}{{ form.descricao.errors }}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem">
+        <div class="field-row"><label for="{{ form.grupo.id_for_label }}">{{ form.grupo.label }}</label>{{ form.grupo }}{{ form.grupo.errors }}</div>
+        <div class="field-row"><label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>{{ form.status }}{{ form.status.errors }}</div>
+        <div class="field-row"><label for="{{ form.ddl.id_for_label }}">{{ form.ddl.label }}</label>{{ form.ddl }}{{ form.ddl.errors }}</div>
+      </div>
+      <p style="font-size:.72rem;color:#788278;border-top:1px solid #e5ded1;padding-top:1rem">Área emissora: <strong>{% if pauta %}{{ pauta.get_emitido_por_area_display }}{% else %}{{ user.get_area_display }}{% endif %}</strong>.</p>
+      <button type="submit" class="save-pauta">{% if pauta %}Salvar alterações{% else %}Publicar pauta{% endif %} →</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

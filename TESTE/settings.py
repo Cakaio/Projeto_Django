@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'adm',
     'forms_pcf',
     'ronda',
+    'gerenciamento',
 ]
 
 MIDDLEWARE = [
