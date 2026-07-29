@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.utils.html import format_html
 from django.utils import timezone
-from .models import Talento, Voluntario, PresencaVoluntario, Ocorrencia, Regra, HistoricoLideranca
+from .models import Grupo, Talento, Voluntario, PresencaVoluntario, Ocorrencia, Regra, HistoricoLideranca
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm
 from import_export.admin import ImportExportModelAdmin
@@ -56,6 +56,11 @@ class PresencaVoluntarioResource(resources.ModelResource):
 # =====================
 # ADMINS
 # =====================
+
+@admin.register(Grupo)
+class GrupoAdmin(admin.ModelAdmin):
+    list_display = ["nome", "atualizado_em"]
+    search_fields = ["nome"]
 
 @admin.register(PresencaVoluntario)
 class PresencaVoluntarioAdmin(ImportExportModelAdmin):
