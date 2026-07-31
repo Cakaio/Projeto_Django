@@ -62,6 +62,8 @@ class AtendidoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['matricula'].required = True
+        for nome in ['cpf', 'rg', 'identidade_etnica']:
+            self.fields[nome].required = True
         self.fields['data_nascimento'].input_formats = ['%Y-%m-%d']
         _mascarar(self, {
             'cpf': ('cpf', '000.000.000-00', 14),
@@ -73,8 +75,6 @@ class AtendidoForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        if not cleaned.get('cpf') and not cleaned.get('rg'):
-            self.add_error('cpf', 'Informe ao menos o CPF ou o RG da criança.')
         # Zera campos dependentes quando o booleano controlador é "Não"
         # (blocos ficam ocultos no form, mas ainda são enviados no POST).
         dependentes = {

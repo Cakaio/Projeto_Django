@@ -92,21 +92,24 @@ def buscar_familias(request):
     results = []
     if len(q) >= 2:
         qs = (
-            Atendido.objects
-            .filter(nome__icontains=q, familia__isnull=False)
-            .select_related('familia')[:10]
+            Familia.objects
+            .filter(Q(nome__icontains=q) | Q(atendidos__nome__icontains=q))
+            .distinct()
+            .prefetch_related('atendidos')[:10]
         )
-        vistos = set()
-        for a in qs:
-            fam = a.familia
-            if fam.id in vistos:
-                continue
-            vistos.add(fam.id)
+        for fam in qs:
+            nomes = [a.nome for a in fam.atendidos.all()][:3]
+            if fam.nome:
+                label = fam.nome
+            elif nomes:
+                label = 'Família de ' + ' / '.join(nomes[:2])
+            else:
+                label = 'Família #%s' % fam.id
             desc = ' · '.join(filter(None, [
                 fam.get_bairro_display() if fam.bairro else '',
                 fam.get_cidade_display() if fam.cidade else '',
-            ])) or 'família cadastrada'
-            results.append({'atendido': a.nome, 'familia_id': fam.id, 'descricao': desc})
+            ]))
+            results.append({'familia_id': fam.id, 'label': label, 'descricao': desc})
     return JsonResponse({'results': results})
 
 
