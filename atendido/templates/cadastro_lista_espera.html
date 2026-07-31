@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Cadastro na Lista de Espera{% endblock %}
+{% block content %}
+<style>
+  .espera-shell { max-width:1050px; margin:0 auto; }
+  .espera-hero { position:relative; overflow:hidden; border-radius:18px; padding:2rem; background:#172033; color:#fff; box-shadow:0 18px 50px rgba(23,32,51,.16); }
+  .espera-hero::after { content:""; position:absolute; width:260px; height:260px; right:-70px; top:-120px; border-radius:50%; background:#fe8210; opacity:.9; }
+  .espera-kicker { color:#ffb36c; font-size:.75rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+  .espera-grid { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(260px,.8fr); gap:1.25rem; margin-top:1.25rem; }
+  .espera-card { background:hsl(var(--card)); border:1px solid hsl(var(--border)); border-radius:14px; padding:1.5rem; box-shadow:0 8px 25px rgba(15,23,42,.05); }
+  #esperaForm input, #esperaForm textarea { width:100%; padding:.65rem .75rem; border:1px solid hsl(var(--border)); border-radius:8px; background:hsl(var(--card)); color:hsl(var(--foreground)); }
+  #esperaForm input:focus, #esperaForm textarea:focus { outline:none; border-color:#fe8210; box-shadow:0 0 0 3px rgba(254,130,16,.14); }
+  .preview { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin:1rem 0 1.25rem; }
+  .preview-item { padding:1rem; border-radius:10px; background:#fff7ed; border:1px solid #fed7aa; }
+  .preview-label { display:block; font-size:.7rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:#9a3412; }
+  .preview-value { display:block; margin-top:.2rem; font-size:1.2rem; font-weight:800; color:#172033; }
+  .recente { padding:.8rem 0; border-bottom:1px solid hsl(var(--border)); }
+  .recente:last-child { border-bottom:0; }
+  @media (max-width:780px) { .espera-grid { grid-template-columns:1fr; } .espera-hero { padding:1.5rem; } }
+</style>
+
+<div class="espera-shell py-6 px-4">
+  <header class="espera-hero">
+    <div style="position:relative;z-index:1;max-width:650px">
+      <p class="espera-kicker">Acolhimento PCF</p>
+      <h1 class="text-3xl font-extrabold mt-2">Cadastro na Lista de Espera</h1>
+      <p class="mt-2 text-slate-300">Informe a data de nascimento. A idade e a sala serão definidas automaticamente.</p>
+    </div>
+  </header>
+
+  <div class="espera-grid">
+    <section class="espera-card">
+      <h2 class="text-xl font-bold text-slate-800 mb-1">Dados do cadastro</h2>
+      <p class="text-sm text-muted-foreground mb-5">Campos marcados com * são obrigatórios.</p>
+
+      {% if form.errors %}
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-5 text-sm text-red-700">
+        {% for field in form %}{% for error in field.errors %}<p><strong>{{ field.label }}:</strong> {{ error }}</p>{% endfor %}{% endfor %}
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+      </div>
+      {% endif %}
+
+      <form method="post" id="esperaForm" novalidate>
+        {% csrf_token %}
+        <div class="grid sm:grid-cols-2 gap-x-4">
+          {% include '_campo.html' with field=form.nome_atendido %}
+          {% include '_campo.html' with field=form.data_nascimento %}
+          {% include '_campo.html' with field=form.nome_responsavel %}
+          {% include '_campo.html' with field=form.contato_responsavel %}
+          {% include '_campo.html' with field=form.renda_familiar %}
+          {% include '_campo.html' with field=form.quantidade_pessoas_familia %}
+        </div>
+        {% include '_campo_bool.html' with field=form.parente_dentro_projeto %}
+        <div class="preview" aria-live="polite">
+          <div class="preview-item"><span class="preview-label">Idade calculada</span><span id="idade-preview" class="preview-value">—</span></div>
+          <div class="preview-item"><span class="preview-label">Sala indicada</span><span id="sala-preview" class="preview-value">—</span></div>
+        </div>
+        {% include '_campo.html' with field=form.observacoes %}
+        <div class="flex justify-end gap-3 mt-5">
+          <a href="{% url 'atendido:atendido_view' %}" class="px-5 py-2.5 rounded-md text-sm font-medium border border-border text-slate-700 hover:bg-accent">Cancelar</a>
+          <button type="submit" class="px-6 py-2.5 rounded-md text-sm font-bold text-white bg-[#fe8210] hover:bg-[#e96f00]">Cadastrar</button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="espera-card">
+      <h2 class="text-lg font-bold text-slate-800">Cadastros recentes</h2>
+      <p class="text-xs text-muted-foreground mb-3">Últimas inclusões na lista.</p>
+      {% for registro in registros_recentes %}
+      <div class="recente">
+        <p class="font-semibold text-slate-800">{{ registro.nome_atendido }}</p>
+        <p class="text-xs text-muted-foreground">{{ registro.idade }} anos · Sala {{ registro.get_sala_display }}</p>
+      </div>
+      {% empty %}
+      <p class="text-sm text-muted-foreground py-4">Nenhum cadastro ainda.</p>
+      {% endfor %}
+    </aside>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var nascimento = document.getElementById('id_data_nascimento');
+    var idadeEl = document.getElementById('idade-preview');
+    var salaEl = document.getElementById('sala-preview');
+    var salas = [[3,5,'VIOLETA'],[5,7,'ANIL'],[7,9,'AZUL'],[9,11,'VERDE'],[11,13,'AMARELO'],[13,15,'LARANJA'],[15,18,'VERMELHO']];
+    function atualizarPreview() {
+      if (!nascimento.value) { idadeEl.textContent = '—'; salaEl.textContent = '—'; return; }
+      var partes = nascimento.value.split('-').map(Number);
+      var hoje = new Date();
+      var idade = hoje.getFullYear() - partes[0];
+      if ((hoje.getMonth() + 1 < partes[1]) || (hoje.getMonth() + 1 === partes[1] && hoje.getDate() < partes[2])) idade--;
+      var faixa = salas.find(function (item) { return idade >= item[0] && idade < item[1]; });
+      var sala = idade >= 18 ? 'FAMÍLIA FELIZ' : (faixa ? faixa[2] : null);
+      idadeEl.textContent = idade >= 0 ? idade + ' anos' : 'Data inválida';
+      salaEl.textContent = sala || 'Idade mínima: 3 anos';
+    }
+    nascimento.addEventListener('change', atualizarPreview);
+    atualizarPreview();
+
+    function soDigitos(v) { return (v || '').replace(/\D/g, ''); }
+    var contato = document.getElementById('id_contato_responsavel');
+    contato.addEventListener('input', function () {
+      var v = soDigitos(contato.value).slice(0, 11);
+      contato.value = v.length <= 10
+        ? v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2')
+        : v.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+    });
+    document.getElementById('esperaForm').addEventListener('submit', function () {
+      contato.value = soDigitos(contato.value);
+    });
+  }());
+</script>
+{% endblock %}

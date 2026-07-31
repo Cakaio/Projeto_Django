@@ -2,11 +2,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, TemplateView, UpdateView
 from .models import (
-    Voluntario, PresencaVoluntario, Ocorrencia, Regra, HistoricoLideranca,
+    Voluntario, PresencaVoluntario, Ocorrencia, Regra, HistoricoLideranca, Grupo,
     FALTAS_POR_ALERTA, ALERTAS_POR_ADVERTENCIA,
     ADVERTENCIAS_PARA_OBSERVACAO, MAX_ALERTAS_DISPLAY,
 )
-from .forms import MeuPerfilForm
+from .forms import GrupoForm, MeuPerfilForm
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -19,6 +19,60 @@ from django.http import JsonResponse
 from sabado.models import Sabado
 import threading
 import json
+
+
+def _pode_gerenciar_grupos(user):
+    return user.is_authenticated and (
+        user.is_superuser or getattr(user, "area", "") in {"GESTAO_DE_TALENTOS", "TRIADE"}
+    )
+
+
+@login_required(login_url="/")
+def grupos(request):
+    grupos_lista = []
+    for grupo in Grupo.objects.all():
+        membros = list(grupo.voluntarios())
+        grupos_lista.append({"grupo": grupo, "membros": membros, "total": len(membros)})
+    return render(request, "grupos.html", {
+        "grupos": grupos_lista,
+        "pode_gerenciar": _pode_gerenciar_grupos(request.user),
+    })
+
+
+@login_required(login_url="/")
+def grupo_form(request, pk=None):
+    if not _pode_gerenciar_grupos(request.user):
+        messages.error(request, "Você não tem permissão para gerenciar grupos.")
+        return redirect("voluntario:grupos")
+
+    grupo = get_object_or_404(Grupo, pk=pk) if pk else None
+    form = GrupoForm(request.POST or None, instance=grupo)
+    if request.method == "POST" and form.is_valid():
+        grupo = form.save()
+        messages.success(request, f'Grupo “{grupo.nome}” salvo com sucesso.')
+        return redirect("voluntario:grupos")
+
+    return render(request, "grupo_form.html", {
+        "form": form,
+        "grupo": grupo,
+        "areas": Voluntario._meta.get_field("area").choices,
+        "cargos": Voluntario._meta.get_field("cargo").choices,
+        "regras_iniciais": json.dumps(
+            grupo.regras if grupo else [{"areas": [], "cargos": []}]
+        ),
+    })
+
+
+@login_required(login_url="/")
+def excluir_grupo(request, pk):
+    if request.method != "POST" or not _pode_gerenciar_grupos(request.user):
+        messages.error(request, "Você não tem permissão para excluir grupos.")
+        return redirect("voluntario:grupos")
+    grupo = get_object_or_404(Grupo, pk=pk)
+    nome = grupo.nome
+    grupo.delete()
+    messages.success(request, f'Grupo “{nome}” excluído.')
+    return redirect("voluntario:grupos")
 
 # Create your views here.
 class VoluntarioView(LoginRequiredMixin, TemplateView):

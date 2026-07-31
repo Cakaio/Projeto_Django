@@ -3,7 +3,39 @@ from django.contrib.auth.forms import PasswordChangeForm
 class AlterarSenhaForm(PasswordChangeForm):
     pass
 from django import forms
-from .models import Voluntario
+from django.core.exceptions import ValidationError
+import json
+
+from .models import Grupo, Voluntario
+
+
+class GrupoForm(forms.ModelForm):
+    regras = forms.CharField(widget=forms.HiddenInput())
+
+    class Meta:
+        model = Grupo
+        fields = ["nome", "regras"]
+        widgets = {
+            "nome": forms.TextInput(attrs={
+                "class": "grupo-name-input",
+                "placeholder": "Ex.: Gestão, Pimentão, Comunicação",
+                "autocomplete": "off",
+            }),
+        }
+
+    def clean_regras(self):
+        try:
+            regras = json.loads(self.cleaned_data["regras"])
+        except (TypeError, ValueError, json.JSONDecodeError):
+            raise forms.ValidationError("Não foi possível interpretar as regras.")
+        self.instance.regras = regras
+        try:
+            self.instance.clean()
+        except ValidationError as exc:
+            if hasattr(exc, "message_dict"):
+                raise forms.ValidationError(exc.message_dict.get("regras", exc.messages))
+            raise
+        return regras
 
 class MeuPerfilForm(forms.ModelForm):
     class Meta:

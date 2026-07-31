@@ -5,6 +5,7 @@ from .views import (
     MeuPerfilView, VoluntarioView, ListaVoluntario, RegistrarPresencasVoluntarios,
     visualizar_presencas_voluntarios, saas_view, criar_ocorrencia,
     historico_ocorrencias, deletar_ocorrencia, organograma, organograma_fullscreen, historico_lideres,
+    grupos, grupo_form, excluir_grupo,
 )
 from django.contrib.auth import views as auth_views
 
@@ -25,4 +26,8 @@ urlpatterns = [
     path("organograma/", organograma, name="organograma"),
     path("organograma/tela-cheia/", organograma_fullscreen, name="organograma_fullscreen"),
     path("lideres/", historico_lideres, name="historico_lideres"),
+    path("grupos/", grupos, name="grupos"),
+    path("grupos/novo/", grupo_form, name="criar_grupo"),
+    path("grupos/<int:pk>/editar/", grupo_form, name="editar_grupo"),
+    path("grupos/<int:pk>/excluir/", excluir_grupo, name="excluir_grupo"),
 ]

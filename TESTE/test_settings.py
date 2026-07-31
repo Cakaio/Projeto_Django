@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'sabado',
     'supply',
     'adm',
+    'gerenciamento',
 ]
 
 MIDDLEWARE = [

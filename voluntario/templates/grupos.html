@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block titulo %}Grupos dinâmicos{% endblock %}
+{% block head %}
+<style>
+  .groups-shell{--ink:#17231c;--leaf:#1f6f4a;--lime:#dff07c;--paper:#f4f2e9;background:var(--paper);min-height:calc(100vh - 72px);color:var(--ink)}
+  .groups-hero{background:var(--ink);color:#fff;padding:4rem 1.5rem 6rem;position:relative;overflow:hidden}
+  .groups-hero:after{content:"";position:absolute;width:24rem;height:24rem;border:1px solid rgba(223,240,124,.35);border-radius:50%;right:-5rem;top:-9rem;box-shadow:0 0 0 55px rgba(223,240,124,.04),0 0 0 110px rgba(223,240,124,.025)}
+  .groups-wrap{max-width:1080px;margin:-3rem auto 0;padding:0 1.25rem 5rem;position:relative;z-index:2}
+  .groups-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1rem}
+  .group-card{background:#fff;border:1px solid #d8d8cd;border-radius:1.25rem;padding:1.3rem;box-shadow:0 16px 35px rgba(23,35,28,.07);animation:rise .45s both}
+  .member-stack{display:flex;margin-top:.8rem}
+  .member-dot{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#e8efe9;border:3px solid #fff;color:var(--leaf);font-size:.7rem;font-weight:800;margin-left:-8px;overflow:hidden}
+  .member-dot:first-child{margin-left:0}.member-dot img{width:100%;height:100%;object-fit:cover}
+  .rule-pill{display:inline-flex;padding:.3rem .55rem;border-radius:999px;background:#edf3e9;color:#345443;font-size:.72rem;margin:.18rem .1rem .18rem 0}
+  .primary-action{display:inline-flex;align-items:center;gap:.5rem;background:var(--lime);color:var(--ink);padding:.75rem 1rem;border-radius:.75rem;font-weight:800;text-decoration:none}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}}
+</style>
+{% endblock %}
+{% block content %}
+<section class="groups-shell">
+  <header class="groups-hero">
+    <div style="max-width:1080px;margin:auto;position:relative;z-index:1">
+      <p style="color:#dff07c;text-transform:uppercase;letter-spacing:.18em;font-size:.72rem;font-weight:800;margin:0 0 .8rem">Organização viva</p>
+      <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
+        <div><h1 style="font-size:clamp(2rem,5vw,4rem);line-height:.95;margin:0;font-weight:800">Grupos dinâmicos</h1>
+          <p style="color:#b8c3bc;max-width:560px;margin:1rem 0 0">Os integrantes acompanham automaticamente a área e o cargo atual de cada voluntário.</p></div>
+        {% if pode_gerenciar %}<a class="primary-action" href="{% url 'voluntario:criar_grupo' %}">＋ Criar grupo</a>{% endif %}
+      </div>
+    </div>
+  </header>
+  <main class="groups-wrap">
+    <div class="groups-grid">
+      {% for item in grupos %}
+      <article class="group-card" style="animation-delay:{{ forloop.counter0 }}00ms">
+        <div class="d-flex justify-content-between gap-2 align-items-start">
+          <div><p style="font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:#738078;margin:0">{{ item.total }} integrante{{ item.total|pluralize }}</p>
+            <h2 style="font-size:1.35rem;margin:.25rem 0 .7rem;font-weight:800">{{ item.grupo.nome }}</h2></div>
+          {% if pode_gerenciar %}<a href="{% url 'voluntario:editar_grupo' item.grupo.pk %}" style="color:#526159;font-size:.8rem">Editar</a>{% endif %}
+        </div>
+        {% for regra in item.grupo.regras %}
+          <div style="border-left:2px solid #dff07c;padding-left:.55rem;margin:.4rem 0">
+            {% for area in regra.areas %}<span class="rule-pill">Área: {{ area }}</span>{% endfor %}
+            {% for cargo in regra.cargos %}<span class="rule-pill">Cargo: {{ cargo }}</span>{% endfor %}
+          </div>
+        {% endfor %}
+        <div class="member-stack" title="{% for membro in item.membros %}{{ membro }}, {% endfor %}">
+          {% for membro in item.membros|slice:":8" %}<span class="member-dot">{% if membro.foto %}<img src="{{ membro.foto.url }}" alt="">{% else %}{{ membro.first_name|first|upper }}{{ membro.last_name|first|upper }}{% endif %}</span>{% empty %}<span style="font-size:.8rem;color:#7b857f">Nenhum voluntário corresponde hoje</span>{% endfor %}
+          {% if item.total > 8 %}<span class="member-dot">+{{ item.total|add:"-8" }}</span>{% endif %}
+        </div>
+      </article>
+      {% empty %}
+      <article class="group-card" style="grid-column:1/-1;text-align:center;padding:3rem"><h2>Nenhum grupo criado</h2><p style="color:#6f7973">Crie o primeiro conjunto de regras para organizar os voluntários.</p></article>
+      {% endfor %}
+    </div>
+  </main>
+</section>
+{% endblock %}

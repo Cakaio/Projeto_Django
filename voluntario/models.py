@@ -2,6 +2,8 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 from sabado.models import Sabado
 
@@ -98,6 +100,58 @@ class Voluntario(AbstractUser):
 
     def __str__(self):
         return self.get_full_name() or self.username
+
+
+class Grupo(models.Model):
+    """
+    Agrupamento dinâmico de voluntários.
+
+    Cada item de ``regras`` é uma alternativa (OU). Dentro de um item, as áreas
+    e os cargos são cumulativos (E). Não existe relação persistida com
+    Voluntario: os integrantes são consultados sempre com os dados atuais.
+    """
+    nome = models.CharField(max_length=100, unique=True)
+    regras = models.JSONField(default=list)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["nome"]
+        verbose_name = "Grupo"
+        verbose_name_plural = "Grupos"
+
+    def __str__(self):
+        return self.nome
+
+    def clean(self):
+        super().clean()
+        if not isinstance(self.regras, list) or not self.regras:
+            raise ValidationError({"regras": "Adicione ao menos uma regra ao grupo."})
+
+        areas_validas = {valor for valor, _ in LISTA_AREAS}
+        cargos_validos = {valor for valor, _ in CARGOS}
+        for indice, regra in enumerate(self.regras, start=1):
+            if not isinstance(regra, dict):
+                raise ValidationError({"regras": f"A regra {indice} é inválida."})
+            areas = regra.get("areas", [])
+            cargos = regra.get("cargos", [])
+            if not areas and not cargos:
+                raise ValidationError({"regras": f"A regra {indice} precisa de uma área ou cargo."})
+            if not set(areas).issubset(areas_validas) or not set(cargos).issubset(cargos_validos):
+                raise ValidationError({"regras": f"A regra {indice} contém uma opção inválida."})
+
+    def voluntarios(self):
+        consulta = Q()
+        for regra in self.regras:
+            parte = Q()
+            if regra.get("areas"):
+                parte &= Q(area__in=regra["areas"])
+            if regra.get("cargos"):
+                parte &= Q(cargo__in=regra["cargos"])
+            consulta |= parte
+        return Voluntario.objects.filter(
+            consulta, data_saida__isnull=True, is_active=True
+        ).distinct().order_by("first_name", "last_name", "username")
 
 class PresencaVoluntario(models.Model):
     OPCOES_PRESENCA = [
