@@ -1,821 +1,436 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block titulo %}Relatório Pedagógico{% endblock %}
-{% block head %}
-  <link rel="stylesheet" href="{% static 'semanario/semanario.css' %}">
-  <style>
-    /* ===== RESET & VARIABLES ===== */
-    .semanario-report-page,
-    .semanario-report-page *,
-    .semanario-report-page *::before,
-    .semanario-report-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --primary: #7c3aed;
-      --primary-light: #a78bfa;
-      --primary-dark: #5b21b6;
-      --secondary: #6366f1;
-      --accent: #10b981;
-      --accent-light: #34d399;
-      --orange: #f59e0b;
-      --blue: #3b82f6;
-      --blue-light: #60a5fa;
-      --bg-dark: #1e1b4b;
-      --bg-light: #f5f3ff;
-      --bg-page: #faf9fe;
-      --text-dark: #1f2937;
-      --text-medium: #4b5563;
-      --text-light: #6b7280;
-      --text-muted: #9ca3af;
-      --white: #ffffff;
-      --border-color: #e5e7eb;
-      --border-light: #f3f4f6;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
-      --shadow-lg: 0 12px 40px rgba(0,0,0,0.1);
-      --shadow-purple: 0 8px 30px rgba(124,58,237,0.15);
-      --radius-sm: 10px;
-      --radius-md: 16px;
-      --radius-lg: 20px;
-    }
-
-    .semanario-report-page {
-      font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
-      background: var(--bg-page);
-      color: var(--text-dark);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-
-    /* ===== HERO HEADER ===== */
-    .hero-header {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--primary-dark) 100%);
-      padding: 2.5rem 2rem 5rem;
-      position: relative;
-      overflow: hidden;
-    }
-    .hero-header::before {
-      content: '';
-      position: absolute;
-      top: -60%;
-      right: -15%;
-      width: 500px;
-      height: 500px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 50%;
-    }
-    .hero-header::after {
-      content: '';
-      position: absolute;
-      bottom: -40%;
-      left: -10%;
-      width: 350px;
-      height: 350px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 50%;
-    }
-    .hero-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-    .hero-breadcrumb {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.85rem;
-      color: rgba(255,255,255,0.6);
-      margin-bottom: 1rem;
-    }
-    .hero-breadcrumb a {
-      color: rgba(255,255,255,0.7);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    .hero-breadcrumb a:hover { color: var(--white); }
-    .hero-title {
-      color: var(--white);
-      font-size: 2.2rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .hero-title-icon {
-      width: 48px;
-      height: 48px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .hero-title-icon svg {
-      width: 26px;
-      height: 26px;
-      color: var(--white);
-    }
-    .hero-subtitle {
-      color: rgba(255,255,255,0.8);
-      font-size: 1rem;
-    }
-
-    /* ===== MAIN CONTAINER ===== */
-    .main-container {
-      max-width: 1200px;
-      margin: -3rem auto 3rem;
-      padding: 0 1.5rem;
-      position: relative;
-      z-index: 2;
-    }
-
-    /* ===== FILTER CARD ===== */
-    .filter-card {
-      background: var(--white);
-      border-radius: var(--radius-lg);
-      padding: 1.5rem 2rem;
-      box-shadow: var(--shadow-lg);
-      margin-bottom: 1.5rem;
-    }
-    .filter-card-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 1.25rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border-light);
-    }
-    .filter-card-header svg {
-      width: 20px;
-      height: 20px;
-      color: var(--primary);
-    }
-    .filter-card-header span {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-dark);
-    }
-    .filter-form {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-      align-items: flex-end;
-    }
-    .filter-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      flex: 1;
-      min-width: 160px;
-    }
-    .filter-group label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-light);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .filter-group select,
-    .filter-group input[type="date"] {
-      padding: 0.65rem 1rem;
-      border: 2px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      font-size: 0.9rem;
-      color: var(--text-dark);
-      background: var(--white);
-      transition: all 0.2s ease;
-      outline: none;
-      width: 100%;
-      font-family: inherit;
-    }
-    .filter-group select:focus,
-    .filter-group input[type="date"]:focus {
-      border-color: var(--primary-light);
-      box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
-    }
-    .filter-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 0.65rem 1.75rem;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: var(--white);
-      border: none;
-      border-radius: var(--radius-sm);
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-family: inherit;
-      white-space: nowrap;
-    }
-    .filter-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-purple);
-    }
-    .filter-btn svg {
-      width: 18px;
-      height: 18px;
-    }
-
-    /* ===== PERIOD BADGE ===== */
-    .period-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--white);
-      border: 1px solid var(--border-color);
-      border-radius: 999px;
-      padding: 0.5rem 1.25rem;
-      font-size: 0.85rem;
-      color: var(--text-medium);
-      margin-bottom: 1.5rem;
-      box-shadow: var(--shadow-sm);
-    }
-    .period-badge svg {
-      width: 16px;
-      height: 16px;
-      color: var(--primary);
-    }
-    .period-badge strong {
-      color: var(--text-dark);
-    }
-
-    /* ===== KPI CARDS ===== */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 2rem;
-    }
-    .kpi-card {
-      background: var(--white);
-      border-radius: var(--radius-md);
-      padding: 1.5rem;
-      box-shadow: var(--shadow-sm);
-      border: 1px solid var(--border-light);
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .kpi-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      border-radius: 3px 3px 0 0;
-    }
-    .kpi-card.purple::before { background: linear-gradient(90deg, var(--primary), var(--secondary)); }
-    .kpi-card.green::before { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
-    .kpi-card.blue::before { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
-    .kpi-card.orange::before { background: linear-gradient(90deg, var(--orange), #fbbf24); }
-    .kpi-card:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-md);
-    }
-    .kpi-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-    .kpi-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .kpi-icon.purple { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
-    .kpi-icon.green { background: linear-gradient(135deg, var(--accent), var(--accent-light)); }
-    .kpi-icon.blue { background: linear-gradient(135deg, var(--blue), var(--blue-light)); }
-    .kpi-icon.orange { background: linear-gradient(135deg, var(--orange), #fbbf24); }
-    .kpi-icon svg {
-      width: 22px;
-      height: 22px;
-      color: var(--white);
-    }
-    .kpi-label {
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--text-light);
-      line-height: 1.4;
-    }
-    .kpi-value {
-      font-size: 2rem;
-      font-weight: 800;
-      color: var(--text-dark);
-      line-height: 1;
-    }
-    .kpi-sub {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-
-    /* ===== SECTION CARDS ===== */
-    .sections-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
-    }
-    .section-card {
-      background: var(--white);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-      border: 1px solid var(--border-light);
-      transition: all 0.3s ease;
-    }
-    .section-card:hover {
-      box-shadow: var(--shadow-md);
-    }
-    .section-card-header {
-      padding: 1.25rem 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid var(--border-light);
-    }
-    .section-card-header.purple { background: linear-gradient(135deg, rgba(124,58,237,0.06), rgba(99,102,241,0.04)); }
-    .section-card-header.green { background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(52,211,153,0.04)); }
-    .section-card-header.blue { background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(96,165,250,0.04)); }
-    .section-card-header.orange { background: linear-gradient(135deg, rgba(245,158,11,0.06), rgba(251,191,36,0.04)); }
-    .section-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .section-icon.purple { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
-    .section-icon.green { background: linear-gradient(135deg, var(--accent), var(--accent-light)); }
-    .section-icon.blue { background: linear-gradient(135deg, var(--blue), var(--blue-light)); }
-    .section-icon.orange { background: linear-gradient(135deg, var(--orange), #fbbf24); }
-    .section-icon svg {
-      width: 20px;
-      height: 20px;
-      color: var(--white);
-    }
-    .section-card-header h2 {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text-dark);
-      margin: 0;
-    }
-    .section-card-body {
-      padding: 1.25rem 1.5rem;
-    }
-
-    /* ===== TABLES ===== */
-    .styled-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-    }
-    .styled-table thead th {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-light);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 0.75rem 1rem;
-      border-bottom: 2px solid var(--border-color);
-      text-align: left;
-    }
-    .styled-table thead th.right { text-align: right; }
-    .styled-table tbody tr {
-      transition: background 0.15s ease;
-    }
-    .styled-table tbody tr:hover {
-      background: var(--bg-light);
-    }
-    .styled-table tbody td {
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid var(--border-light);
-      font-size: 0.9rem;
-      color: var(--text-medium);
-    }
-    .styled-table tbody td.right {
-      text-align: right;
-    }
-    .styled-table tbody td strong {
-      color: var(--text-dark);
-      font-weight: 700;
-    }
-    .styled-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-    .table-empty {
-      text-align: center;
-      padding: 2rem 1rem;
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-    .table-footer-note {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      padding: 1rem 1.5rem;
-      border-top: 1px solid var(--border-light);
-      background: var(--bg-light);
-      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-      line-height: 1.5;
-    }
-    .table-footer-note code {
-      background: rgba(124,58,237,0.08);
-      color: var(--primary);
-      padding: 1px 6px;
-      border-radius: 4px;
-      font-size: 0.78rem;
-    }
-
-    /* ===== INDICATOR LIST ===== */
-    .indicator-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
-    .indicator-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.9rem 0;
-      border-bottom: 1px solid var(--border-light);
-    }
-    .indicator-item:last-child {
-      border-bottom: none;
-    }
-    .indicator-label {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.9rem;
-      color: var(--text-medium);
-    }
-    .indicator-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .indicator-dot.purple { background: var(--primary); }
-    .indicator-dot.green { background: var(--accent); }
-    .indicator-dot.blue { background: var(--blue); }
-    .indicator-dot.orange { background: var(--orange); }
-    .indicator-dot.red { background: #ef4444; }
-    .indicator-value {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--text-dark);
-      white-space: nowrap;
-    }
-
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 1024px) {
-      .kpi-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .sections-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    @media (max-width: 640px) {
-      .kpi-grid {
-        grid-template-columns: 1fr;
-      }
-      .hero-header {
-        padding: 2rem 1rem 4rem;
-      }
-      .hero-title {
-        font-size: 1.6rem;
-      }
-      .hero-title-icon {
-        width: 40px;
-        height: 40px;
-      }
-      .filter-form {
-        flex-direction: column;
-      }
-      .filter-group {
-        min-width: 100%;
-      }
-      .filter-card {
-        padding: 1.25rem;
-      }
-      .section-card-body {
-        padding: 1rem;
-      }
-      .styled-table thead th,
-      .styled-table tbody td {
-        padding: 0.6rem 0.75rem;
-        font-size: 0.85rem;
-      }
-    }
-
-    /* ===== ANIMATIONS ===== */
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-in {
-      animation: fadeInUp 0.5s ease forwards;
-      opacity: 0;
-    }
-    .delay-1 { animation-delay: 0.1s; }
-    .delay-2 { animation-delay: 0.2s; }
-    .delay-3 { animation-delay: 0.3s; }
-    .delay-4 { animation-delay: 0.4s; }
-  </style>
-{% endblock %}
 {% block content %}
-<div class="semanario-report-page">
+<div class="rp-page">
+  <div class="pcf-container rp-wrap">
 
-  <!-- ===== HERO HEADER ===== -->
-  <header class="hero-header">
-    <div class="hero-inner">
-      <div class="hero-breadcrumb">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg>
-        <a href="/">Inicio</a>
-        <span>/</span>
-        <span style="color:rgba(255,255,255,0.9);">Relatorio Pedagogico</span>
+    <!-- ─────────────────────────── CABEÇALHO LEVE ─────────────────────────── -->
+    <header class="rp-head" data-reveal>
+      <div class="rp-head-text">
+        <span class="pcf-eyebrow">Semanário · Relatório</span>
+        <h1 class="rp-title">Relatório Pedagógico</h1>
+        <p class="rp-sub">Análise consolidada de atividades, competências e recursos do período. As competências trabalhadas alimentam as dimensões de desenvolvimento do projeto.</p>
       </div>
-      <h1 class="hero-title">
-        <span class="hero-title-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <a href="{% url 'semanario:semanario_view' %}" class="pcf-btn pcf-btn-outline rp-head-cta">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Ver semanários
+      </a>
+    </header>
+
+    <!-- ─────────────────────────────── FILTROS ─────────────────────────────── -->
+    <section class="pcf-card rp-card rp-filtros" data-reveal>
+      <div class="rp-card-head rp-filtros-head">
+        <span class="pcf-icon-tile tint-orange rp-tile-sm" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
         </span>
-        Relatorio Pedagogico
-      </h1>
-      <p class="hero-subtitle">Analise consolidada de atividades, competencias e recursos do periodo</p>
-    </div>
-  </header>
-
-  <!-- ===== MAIN CONTENT ===== -->
-  <main class="main-container">
-
-    <!-- FILTER CARD -->
-    <div class="filter-card animate-in delay-1">
-      <div class="filter-card-header">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-        <span>Filtros</span>
+        <h2 class="rp-card-title">Filtros</h2>
       </div>
-      <form method="get" class="filter-form">
-        <div class="filter-group">
-          <label for="sala">Salinha</label>
-          <select name="sala" id="sala">
-            <option value="">Todas</option>
-            {% for key, nome in lista_salas %}
-              <option value="{{ key }}" {% if filtro_sala == key %}selected{% endif %}>{{ nome }}</option>
-            {% endfor %}
-          </select>
+      <form method="get">
+        <div class="rp-filtros-grid">
+          <div class="pcf-field">
+            <label class="pcf-label" for="rp-sala">Salinha</label>
+            <select name="sala" id="rp-sala" class="pcf-input rp-select">
+              <option value="">Todas</option>
+              {% for key, nome in lista_salas %}
+                <option value="{{ key }}" {% if filtro_sala == key %}selected{% endif %}>{{ nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="pcf-field">
+            <label class="pcf-label" for="rp-inicio">Início</label>
+            <input type="date" name="inicio" id="rp-inicio" class="pcf-input" value="{{ inicio|date:'Y-m-d' }}">
+          </div>
+          <div class="pcf-field">
+            <label class="pcf-label" for="rp-fim">Fim</label>
+            <input type="date" name="fim" id="rp-fim" class="pcf-input" value="{{ fim|date:'Y-m-d' }}">
+          </div>
         </div>
-        <div class="filter-group">
-          <label for="inicio">Inicio</label>
-          <input type="date" name="inicio" id="inicio" value="{{ inicio|date:'Y-m-d' }}">
-        </div>
-        <div class="filter-group">
-          <label for="fim">Fim</label>
-          <input type="date" name="fim" id="fim" value="{{ fim|date:'Y-m-d' }}">
-        </div>
-        <div>
-          <button type="submit" class="filter-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <div class="rp-filtros-actions">
+          <button type="submit" class="pcf-btn pcf-btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             Aplicar
           </button>
         </div>
       </form>
+    </section>
+
+    <!-- ─────────────────────────────── PERÍODO ─────────────────────────────── -->
+    <div class="rp-period" data-reveal>
+      <span class="pcf-badge info rp-period-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Período: <strong>{{ inicio|date:"d/m/Y" }}</strong> &rarr; <strong>{{ fim|date:"d/m/Y" }}</strong>
+      </span>
+      {% if filtro_sala %}
+        <span class="pcf-badge brand rp-period-badge">Salinha: <strong>{{ filtro_sala }}</strong></span>
+      {% endif %}
     </div>
 
-    <!-- PERIOD BADGE -->
-    <div class="animate-in delay-2">
-      <div class="period-badge">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        Periodo: <strong>{{ inicio|date:"d/m/Y" }}</strong> &rarr; <strong>{{ fim|date:"d/m/Y" }}</strong>
-        {% if filtro_sala %}&nbsp;| Salinha: <strong>{{ filtro_sala }}</strong>{% endif %}
+    <!-- ─────────────────────────────── KPIs ─────────────────────────────── -->
+    <section class="rp-kpis" data-reveal>
+      <div class="pcf-card pcf-card-sm rp-kpi">
+        <span class="pcf-icon-tile tint-orange rp-tile" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        <span class="rp-kpi-label">Sábados (com semanário)</span>
+        <span class="rp-kpi-num">{{ qtd_sabados }}</span>
       </div>
-    </div>
 
-    <!-- KPI CARDS -->
-    <div class="kpi-grid animate-in delay-2">
-      <div class="kpi-card purple">
-        <div class="kpi-header">
+      <div class="pcf-card pcf-card-sm rp-kpi">
+        <span class="pcf-icon-tile tint-green rp-tile" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01"/></svg>
+        </span>
+        <span class="rp-kpi-label">Quantidade de atividades</span>
+        <span class="rp-kpi-num">{{ qtd_atividades }}</span>
+      </div>
+
+      <div class="pcf-card pcf-card-sm rp-kpi">
+        <span class="pcf-icon-tile tint-blue rp-tile" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+        </span>
+        <span class="rp-kpi-label">Total de minutos trabalhados</span>
+        <span class="rp-kpi-num">{{ total_minutos }}</span>
+        <span class="rp-kpi-sub">{{ total_horas }} horas</span>
+      </div>
+
+      <div class="pcf-card pcf-card-sm rp-kpi">
+        <span class="pcf-icon-tile tint-gold rp-tile" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        </span>
+        <span class="rp-kpi-label">Materiais utilizados</span>
+        <span class="rp-kpi-num">{{ total_itens_material }}</span>
+        <span class="rp-kpi-sub">Soma das qtdes: {{ total_quantidade_material }}</span>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────── GRÁFICO: COMPETÊNCIAS ─────────────────────────── -->
+    {% if horas_por_competencia %}
+    <section class="pcf-card rp-card" data-reveal>
+      <div class="rp-card-head">
+        <div class="rp-card-head-icon">
+          <span class="pcf-icon-tile tint-orange rp-tile-sm" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>
+          </span>
           <div>
-            <div class="kpi-label">Sabados (com semanario)</div>
-            <div class="kpi-value" style="margin-top:8px;">{{ qtd_sabados }}</div>
-          </div>
-          <div class="kpi-icon purple">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <h2 class="rp-card-title">Horas por competência</h2>
+            <p class="rp-card-desc">Tempo dedicado a cada competência no período (em horas).</p>
           </div>
         </div>
       </div>
+      <div class="rp-chart">
+        <canvas id="graficoCompetencias"></canvas>
+      </div>
+    </section>
+    {% endif %}
 
-      <div class="kpi-card green">
-        <div class="kpi-header">
+    <!-- ─────────────────────── DETALHE: COMPETÊNCIAS (barras) ─────────────────────── -->
+    <section class="pcf-card rp-card" data-reveal>
+      <div class="rp-card-head">
+        <div class="rp-card-head-icon">
+          <span class="pcf-icon-tile tint-orange rp-tile-sm" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          </span>
           <div>
-            <div class="kpi-label">Quantidade de atividades</div>
-            <div class="kpi-value" style="margin-top:8px;">{{ qtd_atividades }}</div>
-          </div>
-          <div class="kpi-icon green">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01"/></svg>
+            <h2 class="rp-card-title">Competências trabalhadas</h2>
+            <p class="rp-card-desc">Proporção de tempo por competência — base das dimensões de desenvolvimento.</p>
           </div>
         </div>
       </div>
 
-      <div class="kpi-card blue">
-        <div class="kpi-header">
+      {% if horas_por_competencia %}
+        {% with max_min=horas_por_competencia.0.minutos %}
+        <ul class="rp-barlist">
+          {% for row in horas_por_competencia %}
+          <li class="rp-baritem">
+            <div class="rp-bartop">
+              <span class="rp-barname">{{ row.competencia }}</span>
+              <span class="rp-barval"><strong>{{ row.horas }}</strong> h <span class="rp-barmin">· {{ row.minutos }} min</span></span>
+            </div>
+            <div class="pcf-progress">
+              <span style="width: {% widthratio row.minutos max_min 100 %}%"></span>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endwith %}
+      {% else %}
+        <p class="rp-empty">Sem dados no período.</p>
+      {% endif %}
+
+      <p class="rp-note">
+        Baseado em <code>tempo_atividade</code>. Atividades sem tempo não entram no cálculo.
+      </p>
+    </section>
+
+    <!-- ─────────────────────────── INDICADORES DO PERÍODO ─────────────────────────── -->
+    <section class="pcf-card rp-card" data-reveal>
+      <div class="rp-card-head">
+        <div class="rp-card-head-icon">
+          <span class="pcf-icon-tile tint-green rp-tile-sm" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </span>
           <div>
-            <div class="kpi-label">Total de minutos trabalhados</div>
-            <div class="kpi-value" style="margin-top:8px;">{{ total_minutos }}</div>
-            <div class="kpi-sub">{{ total_horas }} horas</div>
-          </div>
-          <div class="kpi-icon blue">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <h2 class="rp-card-title">Indicadores do período</h2>
+            <p class="rp-card-desc">Médias e frequências consolidadas do recorte selecionado.</p>
           </div>
         </div>
       </div>
 
-      <div class="kpi-card orange">
-        <div class="kpi-header">
-          <div>
-            <div class="kpi-label">Materiais utilizados</div>
-            <div class="kpi-value" style="margin-top:8px;">{{ total_itens_material }}</div>
-            <div class="kpi-sub">Soma das qtdes: {{ total_quantidade_material }}</div>
-          </div>
-          <div class="kpi-icon orange">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-          </div>
-        </div>
-      </div>
-    </div>
+      <ul class="rp-indlist">
+        <li class="rp-inditem">
+          <span class="rp-indlabel"><span class="rp-dot rp-dot-orange" aria-hidden="true"></span>Atividades por sábado (média)</span>
+          <span class="rp-indval">{{ media_ativ_por_sabado }}</span>
+        </li>
+        <li class="rp-inditem">
+          <span class="rp-indlabel"><span class="rp-dot rp-dot-blue" aria-hidden="true"></span>Média de vagas abertas</span>
+          <span class="rp-indval">{{ media_vagas }}</span>
+        </li>
+        <li class="rp-inditem">
+          <span class="rp-indlabel"><span class="rp-dot rp-dot-gold" aria-hidden="true"></span>Frequência de uso de projetor</span>
+          <span class="rp-indval">{{ freq_projetor }}%</span>
+        </li>
+        <li class="rp-inditem">
+          <span class="rp-indlabel"><span class="rp-dot rp-dot-green" aria-hidden="true"></span>Presença de atendidos (média)</span>
+          <span class="rp-indval">{{ media_presenca_atendidos }}</span>
+        </li>
+        <li class="rp-inditem">
+          <span class="rp-indlabel"><span class="rp-dot rp-dot-red" aria-hidden="true"></span>Presença de voluntários (média)</span>
+          <span class="rp-indval">{{ media_presenca_voluntarios }}</span>
+        </li>
+      </ul>
 
-    <!-- SECTIONS GRID -->
-    <div class="sections-grid">
+      <p class="rp-note">
+        Presença real considera <strong>Presente + Falta Justificada</strong>.
+        {% if filtro_sala %}
+          Atendidos filtrados por <code>atendido.sala</code> e voluntários por <code>voluntario.area</code>.
+        {% else %}
+          Sem filtro de salinha: presença total do projeto.
+        {% endif %}
+      </p>
+    </section>
 
-      <!-- Horas por competencia -->
-      <div class="section-card animate-in delay-3">
-        <div class="section-card-header purple">
-          <div class="section-icon purple">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-          </div>
-          <h2>Horas por competencia</h2>
-        </div>
-        <div class="section-card-body" style="padding:0;">
-          <table class="styled-table">
-            <thead>
-              <tr>
-                <th>Competencia</th>
-                <th class="right">Horas</th>
-                <th class="right">Min</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in horas_por_competencia %}
-                <tr>
-                  <td>{{ row.competencia }}</td>
-                  <td class="right"><strong>{{ row.horas }}</strong></td>
-                  <td class="right">{{ row.minutos }}</td>
-                </tr>
-              {% empty %}
-                <tr><td colspan="3" class="table-empty">Sem dados no periodo.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        <div class="table-footer-note">
-          Baseado em <code>tempo_atividade</code>. Atividades sem tempo nao entram no calculo.
-        </div>
-      </div>
-
-      <!-- Indicadores do periodo -->
-      <div class="section-card animate-in delay-3">
-        <div class="section-card-header green">
-          <div class="section-icon green">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-          </div>
-          <h2>Indicadores do periodo</h2>
-        </div>
-        <div class="section-card-body">
-          <ul class="indicator-list">
-            <li class="indicator-item">
-              <span class="indicator-label">
-                <span class="indicator-dot purple"></span>
-                Atividades por sabado (media)
-              </span>
-              <span class="indicator-value">{{ media_ativ_por_sabado }}</span>
-            </li>
-            <li class="indicator-item">
-              <span class="indicator-label">
-                <span class="indicator-dot blue"></span>
-                Media de vagas abertas
-              </span>
-              <span class="indicator-value">{{ media_vagas }}</span>
-            </li>
-            <li class="indicator-item">
-              <span class="indicator-label">
-                <span class="indicator-dot orange"></span>
-                Frequencia de uso de projetor
-              </span>
-              <span class="indicator-value">{{ freq_projetor }}%</span>
-            </li>
-            <li class="indicator-item">
-              <span class="indicator-label">
-                <span class="indicator-dot green"></span>
-                Presenca de atendidos (media)
-              </span>
-              <span class="indicator-value">{{ media_presenca_atendidos }}</span>
-            </li>
-            <li class="indicator-item">
-              <span class="indicator-label">
-                <span class="indicator-dot red"></span>
-                Presenca de voluntarios (media)
-              </span>
-              <span class="indicator-value">{{ media_presenca_voluntarios }}</span>
-            </li>
-          </ul>
-        </div>
-        <div class="table-footer-note">
-          Presenca real considera <strong>Presente + Falta Justificada</strong>.
-          {% if filtro_sala %}
-            Atendidos filtrados por <code>atendido.sala</code> e voluntarios por <code>voluntario.area</code>.
-          {% else %}
-            Sem filtro de salinha: presenca total do projeto.
-          {% endif %}
-        </div>
-      </div>
+    <!-- ─────────────────────────── LOCAIS + MATERIAIS ─────────────────────────── -->
+    <div class="rp-grid2">
 
       <!-- Locais mais usados -->
-      <div class="section-card animate-in delay-4">
-        <div class="section-card-header blue">
-          <div class="section-icon blue">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <section class="pcf-card rp-card" data-reveal>
+        <div class="rp-card-head">
+          <div class="rp-card-head-icon">
+            <span class="pcf-icon-tile tint-blue rp-tile-sm" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+            <div>
+              <h2 class="rp-card-title">Locais mais usados</h2>
+              <p class="rp-card-desc">Atividades realizadas por local.</p>
+            </div>
           </div>
-          <h2>Locais mais usados</h2>
         </div>
-        <div class="section-card-body" style="padding:0;">
-          <table class="styled-table">
-            <thead>
-              <tr>
-                <th>Local</th>
-                <th class="right">Atividades</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in locais_mais_usados %}
+
+        <div style="overflow-x:auto">
+          {% if locais_mais_usados %}
+            {% with max_local=locais_mais_usados.0.total %}
+            <table class="pcf-table rp-table">
+              <thead>
+                <tr>
+                  <th>Local</th>
+                  <th class="rp-th-right">Atividades</th>
+                  <th class="rp-th-bar">Proporção</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in locais_mais_usados %}
                 <tr>
                   <td>{{ row.local }}</td>
-                  <td class="right"><strong>{{ row.total }}</strong></td>
+                  <td class="rp-td-right"><strong>{{ row.total }}</strong></td>
+                  <td class="rp-td-bar">
+                    <div class="pcf-progress"><span style="width: {% widthratio row.total max_local 100 %}%"></span></div>
+                  </td>
                 </tr>
-              {% empty %}
-                <tr><td colspan="2" class="table-empty">Sem dados no periodo.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% endwith %}
+          {% else %}
+            <p class="rp-empty">Sem dados no período.</p>
+          {% endif %}
         </div>
-      </div>
+      </section>
 
-      <!-- Materiais top -->
-      <div class="section-card animate-in delay-4">
-        <div class="section-card-header orange">
-          <div class="section-icon orange">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      <!-- Materiais mais usados -->
+      <section class="pcf-card rp-card" data-reveal>
+        <div class="rp-card-head">
+          <div class="rp-card-head-icon">
+            <span class="pcf-icon-tile tint-gold rp-tile-sm" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </span>
+            <div>
+              <h2 class="rp-card-title">Materiais mais usados (Top 10)</h2>
+              <p class="rp-card-desc">Itens mais registrados nas atividades.</p>
+            </div>
           </div>
-          <h2>Materiais mais usados (Top 10)</h2>
         </div>
-        <div class="section-card-body" style="padding:0;">
-          <table class="styled-table">
-            <thead>
-              <tr>
-                <th>Material</th>
-                <th class="right">Qtd de itens</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in materiais_top %}
+
+        <div style="overflow-x:auto">
+          {% if materiais_top %}
+            {% with max_mat=materiais_top.0.total_itens %}
+            <table class="pcf-table rp-table">
+              <thead>
+                <tr>
+                  <th>Material</th>
+                  <th class="rp-th-right">Qtd de itens</th>
+                  <th class="rp-th-bar">Proporção</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in materiais_top %}
                 <tr>
                   <td>{{ row.nome }}</td>
-                  <td class="right"><strong>{{ row.total_itens }}</strong></td>
+                  <td class="rp-td-right"><strong>{{ row.total_itens }}</strong></td>
+                  <td class="rp-td-bar">
+                    <div class="pcf-progress"><span style="width: {% widthratio row.total_itens max_mat 100 %}%"></span></div>
+                  </td>
                 </tr>
-              {% empty %}
-                <tr><td colspan="2" class="table-empty">Sem dados no periodo.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% endwith %}
+          {% else %}
+            <p class="rp-empty">Sem dados no período.</p>
+          {% endif %}
         </div>
-      </div>
+      </section>
 
     </div>
-  </main>
 
+  </div>
 </div>
+
+{% if horas_por_competencia %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  (function () {
+    var labels = [{% for row in horas_por_competencia %}"{{ row.competencia|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    var dados  = [{% for row in horas_por_competencia %}{{ row.horas }}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+    new Chart(document.getElementById('graficoCompetencias').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Horas',
+          data: dados,
+          backgroundColor: 'rgba(232,86,15,.22)',
+          borderColor: '#e8560f',
+          borderWidth: 2,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, grid: { color: '#f4e7de' } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+  })();
+</script>
+{% endif %}
+
+{# Bloco enxuto: só LAYOUT específico desta tela. O visual vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .rp-page { background: hsl(var(--background)); min-height: 100vh; }
+  .rp-wrap { padding-top: clamp(1.75rem, 4vw, 2.75rem); padding-bottom: clamp(2.5rem, 6vw, 4rem); }
+
+  /* ── Cabeçalho ── */
+  .rp-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .rp-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .rp-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.6rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .rp-sub { margin: 0; max-width: 62ch; font-size: .92rem; line-height: 1.6; color: hsl(var(--muted-foreground)); }
+  .rp-head-cta { flex-shrink: 0; }
+
+  /* ── Cards genéricos ── */
+  .rp-card { margin-bottom: 1.25rem; }
+  .rp-card-head { margin-bottom: 1rem; }
+  .rp-card-head-icon { display: flex; align-items: flex-start; gap: .75rem; }
+  .rp-card-title { margin: 0 0 .15rem; font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .rp-card-desc { margin: 0; font-size: .85rem; color: hsl(var(--muted-foreground)); }
+  .rp-tile { width: 40px; height: 40px; }
+  .rp-tile-sm { width: 34px; height: 34px; flex-shrink: 0; }
+
+  /* ── Filtros ── */
+  .rp-filtros-head { display: flex; align-items: center; gap: .6rem; }
+  .rp-filtros-grid { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+  .rp-select { cursor: pointer; }
+  .rp-filtros-actions { display: flex; justify-content: flex-end; margin-top: 1.1rem; }
+
+  /* ── Período ── */
+  .rp-period { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 1.5rem; }
+  .rp-period-badge { display: inline-flex; align-items: center; gap: .4rem; }
+
+  /* ── KPIs ── */
+  .rp-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: .85rem; margin-bottom: 1.25rem; }
+  .rp-kpi { display: flex; flex-direction: column; gap: .3rem; }
+  .rp-kpi .pcf-icon-tile { margin-bottom: .35rem; }
+  .rp-kpi-label { font-size: .76rem; font-weight: 600; color: var(--ink-muted); line-height: 1.35; }
+  .rp-kpi-num { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 800; letter-spacing: -.02em; color: var(--ink); line-height: 1; }
+  .rp-kpi-sub { font-size: .76rem; color: var(--ink-muted); }
+
+  /* ── Gráfico ── */
+  .rp-chart { height: clamp(260px, 42vw, 380px); }
+
+  /* ── Barras de competência ── */
+  .rp-barlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1rem; }
+  .rp-baritem { display: flex; flex-direction: column; gap: .4rem; }
+  .rp-bartop { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+  .rp-barname { font-size: .9rem; font-weight: 700; color: var(--ink); min-width: 0; }
+  .rp-barval { font-size: .82rem; color: var(--ink-soft); white-space: nowrap; }
+  .rp-barval strong { color: var(--ink); font-weight: 800; }
+  .rp-barmin { color: var(--ink-muted); }
+
+  /* ── Indicadores ── */
+  .rp-indlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .rp-inditem { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 0; border-bottom: 1px solid #f4e7de; }
+  .rp-inditem:last-child { border-bottom: 0; }
+  .rp-indlabel { display: inline-flex; align-items: center; gap: .55rem; font-size: .9rem; color: var(--ink-soft); }
+  .rp-indval { font-size: 1rem; font-weight: 800; color: var(--ink); white-space: nowrap; }
+  .rp-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .rp-dot-orange { background: #e8560f; }
+  .rp-dot-blue   { background: #3b62b3; }
+  .rp-dot-gold   { background: #b8860b; }
+  .rp-dot-green  { background: #2e8b57; }
+  .rp-dot-red    { background: #b03636; }
+
+  /* ── Tabelas ── */
+  .rp-grid2 { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+  .rp-table { min-width: 320px; }
+  .rp-th-right, .rp-td-right { text-align: right; white-space: nowrap; }
+  .rp-td-right strong { color: var(--ink); font-weight: 800; }
+  .rp-th-bar { width: 34%; }
+  .rp-td-bar { min-width: 90px; }
+  .rp-td-bar .pcf-progress { min-width: 80px; }
+
+  /* ── Nota / vazio ── */
+  .rp-note { margin: 1rem 0 0; padding-top: .85rem; border-top: 1px solid #f4e7de; font-size: .78rem; line-height: 1.5; color: var(--ink-muted); }
+  .rp-note code { background: #fff0e6; color: #c9490a; padding: 1px 6px; border-radius: 5px; font-size: .76rem; }
+  .rp-empty { padding: 1.75rem 1rem; text-align: center; font-size: .88rem; color: var(--ink-muted); }
+
+  /* ── Breakpoints ── */
+  @media (min-width: 640px) {
+    .rp-filtros-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .rp-kpis { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (min-width: 960px) {
+    .rp-grid2 { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 480px) {
+    .rp-head-cta { width: 100%; }
+    .rp-filtros-actions .pcf-btn { width: 100%; }
+  }
+</style>
 {% endblock %}

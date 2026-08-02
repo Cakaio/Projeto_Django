@@ -5,131 +5,143 @@
 {% block head %}<link rel="stylesheet" href="{% static 'semanario/semanario.css' %}">{% endblock %}
 
 {% block content %}
-<div class="semanario-page min-h-screen bg-gray-50 pb-10">
-  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .lsm-). O visual base vem das classes .pcf-*. #}
+<div class="lsm-page">
+  <div class="pcf-container lsm-wrap">
 
-    <!-- Hero -->
-    <div class="semanario-hero rounded-2xl p-6 sm:p-8 mb-6 text-white relative overflow-hidden"
-         style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
-      <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10"></div>
-      <div class="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/10"></div>
-      <div class="relative z-10 text-center">
-        <div class="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4">
-          <svg width="30" height="30" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-          </svg>
-        </div>
-        <h1 class="text-2xl sm:text-3xl font-bold mb-1">Semanários</h1>
-        <p class="text-white/80 text-sm">Visualize os semanários organizados por sala</p>
+    <!-- Cabeçalho leve -->
+    <header class="lsm-head">
+      <div class="lsm-head-text">
+        <span class="pcf-eyebrow">Semanários</span>
+        <h1 class="lsm-title">Semanários por Sala</h1>
+        <p class="lsm-sub">Visualize e edite os semanários organizados por salinha.</p>
       </div>
-    </div>
+      <div class="lsm-head-actions">
+        <a href="{% url 'semanario:criar_semanario' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Criar Semanário
+        </a>
+        <a href="/inicio/" class="pcf-btn pcf-btn-outline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          Voltar
+        </a>
+      </div>
+    </header>
 
-    <!-- Acordeons por sala -->
-    <div class="flex flex-col gap-3">
+    <!-- Acordeão por sala -->
+    <div class="lsm-accordion">
       {% for codigo, nome in salas %}
-      <details class="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm group">
-
-        <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none list-none
-                        group-open:bg-gradient-to-r group-open:from-indigo-500 group-open:to-violet-500
-                        group-open:text-white transition-colors">
-          <!-- ícone sala -->
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
-                      bg-indigo-50 group-open:bg-white/20 transition-colors">
-            <svg width="20" height="20" fill="none" stroke-width="2" viewBox="0 0 24 24"
-                 class="stroke-indigo-500 group-open:stroke-white transition-colors">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
+      <details class="lsm-sala pcf-card" {% if codigo in salas_com_semanarios %}open{% endif %}>
+        <summary class="lsm-sala-summary">
+          <span class="pcf-icon-tile tint-orange" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
-          </div>
-
-          <span class="flex-1 font-semibold text-gray-900 group-open:text-white text-sm sm:text-base transition-colors">
-            {{ nome }}
           </span>
-
-          <svg class="w-5 h-5 text-gray-400 group-open:text-white transition-transform group-open:rotate-180"
-               fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <span class="lsm-sala-nome">{{ nome }}</span>
+          {% if codigo in salas_com_semanarios %}
+            <span class="pcf-badge ok lsm-sala-status">Com semanários</span>
+          {% else %}
+            <span class="pcf-badge lsm-sala-status">Sem semanários</span>
+          {% endif %}
+          <svg class="lsm-sala-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </summary>
 
-        <div class="border-t border-gray-100 p-4 bg-gray-50">
+        <div class="lsm-sala-body">
           {% if codigo in salas_com_semanarios %}
-            <div class="flex flex-col gap-2">
+            <div class="lsm-list">
               {% for semanario in semanarios %}
               {% if semanario.sala == codigo %}
-              <div class="bg-white border border-gray-100 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm hover:border-indigo-200 transition-colors">
-
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 font-semibold text-gray-900 text-sm">
-                    <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+              <div class="lsm-item">
+                <div class="lsm-item-info">
+                  <div class="lsm-item-tema">
+                    <span class="pcf-badge brand lsm-item-sala">{{ nome }}</span>
                     {{ semanario.tema|default:"Sem tema" }}
                   </div>
-                  <div class="flex items-center gap-1.5 text-xs text-gray-500 mt-1 pl-4">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-                      <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  <div class="lsm-item-data">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                     </svg>
                     {{ semanario.data.data|date:"d/m/Y" }}
                   </div>
                 </div>
-
-                <div class="flex gap-2 flex-shrink-0">
-                  <a href="{% url 'semanario:editar_semanario' semanario.id %}"
-                     class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold
-                            bg-indigo-50 text-indigo-600 hover:bg-indigo-500 hover:text-white transition-colors"
-                     style="text-decoration:none;">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                <div class="lsm-item-actions">
+                  <a href="{% url 'semanario:editar_semanario' semanario.id %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                     Editar
                   </a>
-                  <a href="{% url 'semanario:visualizar_semanario' semanario.id %}"
-                     class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold
-                            text-white transition-colors"
-                     style="background:linear-gradient(135deg,#6366f1,#8b5cf6);text-decoration:none;">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
+                  <a href="{% url 'semanario:visualizar_semanario' semanario.id %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                     </svg>
                     Visualizar
                   </a>
                 </div>
-
               </div>
               {% endif %}
               {% endfor %}
             </div>
           {% else %}
-            <div class="text-center py-8 text-gray-400">
-              <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                </svg>
-              </div>
-              <p class="text-sm">Nenhum semanário cadastrado para esta sala.</p>
+            <div class="lsm-empty">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+              </svg>
+              Nenhum semanário cadastrado para esta sala.
             </div>
           {% endif %}
         </div>
-
       </details>
       {% endfor %}
     </div>
 
-    <!-- Voltar -->
-    <div class="mt-6">
-      <a href="/inicio/"
-         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
-         style="text-decoration:none;">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-        </svg>
-        Voltar
-      </a>
-    </div>
-
   </div>
 </div>
+
+<style>
+  .lsm-page { background: hsl(var(--background)); }
+  .lsm-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Cabeçalho leve */
+  .lsm-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
+  .lsm-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .lsm-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .lsm-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .lsm-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* Acordeão de salas */
+  .lsm-accordion { display: flex; flex-direction: column; gap: 1rem; }
+  .lsm-sala { padding: 0; overflow: hidden; }
+  .lsm-sala-summary { display: flex; align-items: center; gap: .9rem; padding: 1.1rem 1.25rem; cursor: pointer; list-style: none; user-select: none; }
+  .lsm-sala-summary::-webkit-details-marker { display: none; }
+  .lsm-sala-nome { font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); flex-grow: 1; min-width: 0; }
+  .lsm-sala-status { flex-shrink: 0; }
+  .lsm-sala-arrow { color: var(--ink-muted); flex-shrink: 0; transition: transform .25s ease; }
+  .lsm-sala[open] > .lsm-sala-summary .lsm-sala-arrow { transform: rotate(180deg); }
+  .lsm-sala-body { padding: 0 1.25rem 1.25rem; }
+
+  /* Itens de semanário */
+  .lsm-list { display: flex; flex-direction: column; gap: .75rem; }
+  .lsm-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: .9rem 1.1rem; background: hsl(var(--card)); border: 1px solid #f4e7de; border-radius: 16px; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .lsm-item:hover { transform: translateY(-2px); border-color: #f7c9a8; box-shadow: var(--shadow-warm-sm); }
+  .lsm-item-info { flex-grow: 1; min-width: 0; }
+  .lsm-item-tema { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; font-weight: 700; color: var(--ink); font-size: 1rem; margin-bottom: .3rem; }
+  .lsm-item-sala { flex-shrink: 0; }
+  .lsm-item-data { display: inline-flex; align-items: center; gap: .375rem; font-size: .82rem; color: var(--ink-muted); }
+  .lsm-item-data svg { flex-shrink: 0; }
+  .lsm-item-actions { display: flex; gap: .5rem; flex-shrink: 0; }
+
+  /* Estado vazio da sala */
+  .lsm-empty { display: flex; align-items: center; justify-content: center; gap: .625rem; padding: 1.5rem; color: var(--ink-muted); background: #fffaf6; border-radius: 14px; border: 1.5px dashed #f2d3bd; font-size: .9rem; text-align: center; }
+
+  @media (max-width: 560px) {
+    .lsm-head-actions { width: 100%; }
+    .lsm-head-actions .pcf-btn { flex: 1; }
+    .lsm-item-actions { width: 100%; }
+    .lsm-item-actions .pcf-btn { flex: 1; justify-content: center; }
+  }
+</style>
 {% endblock %}

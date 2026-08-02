@@ -1,124 +1,126 @@
 {% extends 'base.html' %}
 {% load static %}
+
 {% block titulo %}Semanários{% endblock %}
 {% block head %}<link rel="stylesheet" href="{% static 'semanario/semanario.css' %}">{% endblock %}
 
 {% block content %}
-<div class="semanario-page min-h-screen bg-gray-50 pb-12">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .sv-). O visual base vem das classes .pcf-*. #}
+<div class="sv-page">
+  <div class="pcf-container sv-wrap">
 
-    <!-- Hero -->
-    <div class="semanario-hero rounded-2xl p-7 sm:p-10 mb-8 text-white text-center relative overflow-hidden"
-         style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
-      <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10"></div>
-      <div class="absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-white/5"></div>
-      <div class="relative z-10">
-        <div class="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-4">
-          <svg width="32" height="32" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-          </svg>
-        </div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold mb-2">Painel de Semanários</h1>
-        <p class="text-white/80 text-sm sm:text-base max-w-md mx-auto">
-          Crie, edite e visualize os semanários das salinhas do Projeto Criança Feliz.
-        </p>
+    <!-- Cabeçalho leve -->
+    <header class="sv-head">
+      <div class="sv-head-text">
+        <span class="pcf-eyebrow">Semanários</span>
+        <h1 class="sv-title">Painel de Semanários</h1>
+        <p class="sv-sub">Crie, edite e visualize os semanários das salinhas do Projeto Criança Feliz.</p>
       </div>
-    </div>
+      <div class="sv-head-actions">
+        <a href="{% url 'semanario:criar_semanario' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Criar Semanário
+        </a>
+      </div>
+    </header>
 
     <!-- Cards de ação -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+    <div class="sv-grid">
 
       <!-- Criar -->
-      <a href="{% url 'semanario:criar_semanario' %}" style="text-decoration:none;">
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center
-                    hover:-translate-y-1 hover:shadow-md hover:border-indigo-300 transition-all group cursor-pointer h-full">
-          <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"
-               style="background:linear-gradient(135deg,#4f46e5,#6366f1);box-shadow:0 8px 20px rgba(79,70,229,.3)">
-            <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          </div>
-          <h3 class="font-bold text-gray-900 text-base mb-1">Criar Semanário</h3>
-          <p class="text-gray-500 text-sm mb-4">Registre um novo semanário para a sua sala.</p>
-          <span class="mt-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-                style="background:linear-gradient(135deg,#4f46e5,#6366f1)">
-            Criar
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-            </svg>
-          </span>
-        </div>
+      <a href="{% url 'semanario:criar_semanario' %}" class="pcf-card pcf-hoverable sv-card">
+        <span class="pcf-icon-tile tint-orange" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </span>
+        <span class="sv-card-body">
+          <span class="sv-card-title">Criar Semanário</span>
+          <span class="sv-card-desc">Registre um novo semanário para a sua sala.</span>
+        </span>
+        <svg class="sv-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
 
       <!-- Visualizar / Editar -->
-      <a href="{% url 'semanario:lista_semanarios' %}" style="text-decoration:none;">
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center
-                    hover:-translate-y-1 hover:shadow-md hover:border-emerald-300 transition-all group cursor-pointer h-full">
-          <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"
-               style="background:linear-gradient(135deg,#10b981,#34d399);box-shadow:0 8px 20px rgba(16,185,129,.3)">
-            <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-            </svg>
-          </div>
-          <h3 class="font-bold text-gray-900 text-base mb-1">Visualizar / Editar</h3>
-          <p class="text-gray-500 text-sm mb-4">Veja e edite os semanários das salinhas.</p>
-          <span class="mt-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-                style="background:linear-gradient(135deg,#10b981,#34d399)">
-            Acessar
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-            </svg>
-          </span>
-        </div>
+      <a href="{% url 'semanario:lista_semanarios' %}" class="pcf-card pcf-hoverable sv-card">
+        <span class="pcf-icon-tile tint-green" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>
+        </span>
+        <span class="sv-card-body">
+          <span class="sv-card-title">Visualizar / Editar</span>
+          <span class="sv-card-desc">Veja e edite os semanários das salinhas.</span>
+        </span>
+        <svg class="sv-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
 
       <!-- Relatórios -->
-      <a href="{% url 'semanario:relatorio_pedagogico' %}" style="text-decoration:none;">
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center
-                    hover:-translate-y-1 hover:shadow-md hover:border-amber-300 transition-all group cursor-pointer h-full">
-          <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"
-               style="background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:0 8px 20px rgba(245,158,11,.3)">
-            <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-          </div>
-          <h3 class="font-bold text-gray-900 text-base mb-1">Relatórios</h3>
-          <p class="text-gray-500 text-sm mb-4">Gere relatórios e estatísticas pedagógicas.</p>
-          <span class="mt-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-                style="background:linear-gradient(135deg,#f59e0b,#fbbf24)">
-            Ver relatórios
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-            </svg>
-          </span>
-        </div>
+      <a href="{% url 'semanario:relatorio_pedagogico' %}" class="pcf-card pcf-hoverable sv-card">
+        <span class="pcf-icon-tile tint-gold" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/></svg>
+        </span>
+        <span class="sv-card-body">
+          <span class="sv-card-title">Relatórios</span>
+          <span class="sv-card-desc">Gere relatórios e estatísticas pedagógicas.</span>
+        </span>
+        <svg class="sv-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
 
     </div>
 
-    <!-- Painel sábado educacional -->
-    <div class="bg-white border border-indigo-100 rounded-2xl shadow-sm p-5 flex flex-col sm:flex-row items-center gap-4">
-      <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-           style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
-        <svg width="22" height="22" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/>
-        </svg>
+    <!-- Painel do Sábado Educacional -->
+    <section class="pcf-card sv-panel">
+      <span class="pcf-icon-tile tint-blue" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </span>
+      <div class="sv-panel-text">
+        <p class="sv-panel-title">Painel do Sábado Educacional</p>
+        <p class="sv-panel-desc">Acompanhe o painel completo do sábado com todas as salas.</p>
       </div>
-      <div class="flex-1 text-center sm:text-left">
-        <p class="font-semibold text-gray-900 text-sm">Painel do Sábado Educacional</p>
-        <p class="text-gray-500 text-xs mt-0.5">Acompanhe o painel completo do sábado com todas as salas.</p>
-      </div>
-      <a href="/semanario/painel/"
-         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold flex-shrink-0 transition-all hover:opacity-90"
-         style="background:linear-gradient(135deg,#4f46e5,#7c3aed);text-decoration:none;">
+      <a href="/semanario/painel/" class="pcf-btn pcf-btn-outline sv-panel-cta">
         Acessar painel
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-          <path d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-        </svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
-    </div>
+    </section>
 
   </div>
 </div>
+
+<style>
+  .sv-page { background: hsl(var(--background)); }
+  .sv-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Cabeçalho leve */
+  .sv-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
+  .sv-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .sv-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .sv-sub { margin: 0; max-width: 52ch; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .sv-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* Cards de ação */
+  .sv-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+  .sv-card { display: flex; align-items: center; gap: 1rem; text-decoration: none; color: var(--ink); }
+  .sv-card:hover { color: var(--ink); }
+  .sv-card-body { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+  .sv-card-title { font-weight: 800; font-size: 1rem; color: var(--ink); }
+  .sv-card-desc { font-size: .82rem; line-height: 1.5; color: var(--ink-muted); }
+  .sv-arrow { color: var(--ink-muted); margin-left: auto; flex-shrink: 0; transition: transform .18s ease, color .18s ease; }
+  .sv-card:hover .sv-arrow { transform: translateX(3px); color: #e8560f; }
+
+  /* Painel do sábado */
+  .sv-panel { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .sv-panel-text { flex: 1; min-width: 0; }
+  .sv-panel-title { margin: 0 0 .1rem; font-weight: 800; font-size: 1rem; color: var(--ink); }
+  .sv-panel-desc { margin: 0; font-size: .82rem; color: var(--ink-muted); }
+  .sv-panel-cta { flex-shrink: 0; }
+
+  @media (min-width: 720px) {
+    .sv-grid { grid-template-columns: repeat(3, 1fr); }
+    .sv-card { flex-direction: column; align-items: flex-start; text-align: left; }
+    .sv-card .sv-arrow { margin-left: 0; }
+  }
+
+  @media (max-width: 560px) {
+    .sv-head-actions { width: 100%; }
+    .sv-head-actions .pcf-btn { flex: 1; }
+    .sv-panel-cta { width: 100%; justify-content: center; }
+  }
+</style>
 {% endblock %}
