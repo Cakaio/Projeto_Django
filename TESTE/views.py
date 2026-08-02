@@ -10,6 +10,11 @@ from sabado.models import Sabado
 from ronda.models import ConfiguracaoRondaSabado
 
 
+class LandingView(TemplateView):
+    """Landing page pública do projeto (rota '/'). Não exige login."""
+    template_name = "landing.html"
+
+
 class inicio(TemplateView):
     template_name = "inicio.html"
 

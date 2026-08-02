@@ -1,0 +1,263 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   PROJETO CRIANÇA FELIZ — Design System (fiel ao mockup v2)
+   Fonte única de verdade de cor/tipografia/componentes/efeitos.
+   Build:  cd tailwindcss && npm run build   ->   ../static/css/pcf.css
+   ========================================================================== */
+
+@layer base {
+  :root {
+    /* --- Tokens shadcn re-tematizados para a paleta QUENTE do PCF --- */
+    --background: 33 60% 99%;
+    --foreground: 21 33% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 21 33% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 21 33% 8%;
+    --primary: 20 88% 48%;              /* laranja da marca (#e8560f) */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 26 100% 96%;           /* pêssego */
+    --secondary-foreground: 22 30% 25%;
+    --muted: 30 43% 95%;
+    --muted-foreground: 25 15% 47%;     /* #8a7566 */
+    --accent: 26 100% 95%;
+    --accent-foreground: 18 92% 30%;
+    --destructive: 0 64% 55%;           /* #d64545 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 25 50% 91%;               /* #f4e7de */
+    --input: 25 50% 91%;
+    --ring: 21 89% 54%;                 /* #f26b21 */
+    --radius: 0.9rem;
+
+    /* --- Assinaturas de marca (usadas pelos componentes) --- */
+    --brand-grad: linear-gradient(135deg, #ff9040, #ea5411);
+    --brand-grad-soft: linear-gradient(135deg, #ff8a3d, #e04e0c);
+    --hero-grad: linear-gradient(150deg, #ff8a3d 0%, #f26b21 42%, #e04e0c 100%);
+    --dark-grad: linear-gradient(165deg, #1a100c, #2a1710 60%, #1a100c);
+    --ink: #1c130e;
+    --ink-soft: #5a4a41;
+    --ink-muted: #8a7566;
+    --cream: #fffaf6;
+    --shadow-warm: 0 30px 60px -44px rgba(120, 50, 10, .6);
+    --shadow-warm-sm: 0 20px 40px -24px rgba(120, 50, 10, .5);
+    --shadow-warm-lg: 0 40px 80px -30px rgba(70, 20, 0, .6);
+    --shadow-glow: 0 20px 36px -18px rgba(234, 84, 17, .9);
+  }
+
+  /* Base ADITIVA (preflight off): melhora sem zerar o Bootstrap das telas legadas. */
+  body {
+    font-family: 'Archivo', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4, h5, h6 { font-family: 'Archivo', system-ui, sans-serif; text-wrap: balance; }
+  ::selection { background: #ffd9bf; color: #1c130e; }
+  *:focus-visible { outline: 2px solid #f26b21; outline-offset: 3px; }
+  summary::-webkit-details-marker { display: none; }
+}
+
+/* ============================================================================
+   KEYFRAMES (declarados explicitamente — sempre presentes no CSS compilado)
+   ========================================================================== */
+@keyframes pcf-floaty   { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+@keyframes pcf-glow     { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes pcf-rise     { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes pcf-orbit    { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes pcf-ping     { 0% { box-shadow: 0 0 0 0 rgba(232, 86, 15, .35); } 70%, 100% { box-shadow: 0 0 0 10px rgba(232, 86, 15, 0); } }
+
+@layer components {
+
+  /* ---------- Layout / Seções "ilha" ---------- */
+  .pcf-container { width: 100%; max-width: 1200px; margin-inline: auto; padding-inline: 1.25rem; }
+  .pcf-section   { padding-block: clamp(3.5rem, 8vw, 6rem); }
+  .pcf-island    { border-radius: 42px; }
+  .pcf-eyebrow-wrap { display: flex; align-items: center; gap: .6rem; }
+
+  /* ---------- Tipografia utilitária ---------- */
+  .pcf-display { font-weight: 800; letter-spacing: -.035em; line-height: 1.03; color: var(--ink); }
+  .pcf-h2      { font-weight: 800; letter-spacing: -.03em; line-height: 1.08;
+                 font-size: clamp(1.9rem, 3.8vw, 2.9rem); color: var(--ink); }
+  .pcf-lead    { color: var(--ink-soft); line-height: 1.6; text-wrap: pretty; }
+  .pcf-grad-text {
+    background: linear-gradient(135deg, #ff8a3d, #e04e0c);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  /* ---------- Eyebrow / chips ---------- */
+  .pcf-eyebrow {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .3rem .7rem; border-radius: 999px;
+    font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    background: #fff2e9; color: #c9490a; border: 1px solid #fbe3d3;
+  }
+  .pcf-eyebrow.on-dark {
+    background: rgba(242, 107, 33, .18); color: #ffb47a; border-color: rgba(255, 160, 90, .4);
+  }
+
+  /* ---------- Botões ---------- */
+  .pcf-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    padding: .7rem 1.25rem; border-radius: 999px; border: 1px solid transparent;
+    font-size: .9rem; font-weight: 700; line-height: 1; text-decoration: none; cursor: pointer;
+    transition: transform .15s ease, filter .15s ease, background .15s, border-color .15s, color .15s;
+    white-space: nowrap;
+  }
+  .pcf-btn:hover { text-decoration: none; }
+  .pcf-btn-lg { padding: .9rem 1.5rem; font-size: .98rem; }
+  .pcf-btn-sm { padding: .5rem .85rem; font-size: .82rem; }
+  .pcf-btn-block { width: 100%; }
+
+  .pcf-btn-primary { background: var(--brand-grad); color: #fff; box-shadow: var(--shadow-glow); }
+  .pcf-btn-primary:hover { color: #fff; filter: brightness(1.06); transform: translateY(-1px); }
+
+  .pcf-btn-outline { background: #fff; color: #d1500f; border-color: #f2d3bd; }
+  .pcf-btn-outline:hover { color: #d1500f; border-color: #f7c9a8; background: #fff8f3; transform: translateY(-1px); }
+
+  .pcf-btn-white { background: #fff; color: #d1500f; box-shadow: 0 20px 40px -20px rgba(0, 0, 0, .55); }
+  .pcf-btn-white:hover { color: #d1500f; transform: translateY(-1px); }
+
+  .pcf-btn-dark { background: var(--ink); color: #fff; }
+  .pcf-btn-dark:hover { color: #fff; background: #2a1710; transform: translateY(-1px); }
+
+  .pcf-btn-ghost { background: transparent; color: var(--ink-soft); border-color: transparent; }
+  .pcf-btn-ghost:hover { background: #fff2e9; color: #c9490a; }
+
+  .pcf-btn-outline-dark { background: transparent; color: #e8dbd2; border-color: rgba(255, 255, 255, .18); }
+  .pcf-btn-outline-dark:hover { background: rgba(255, 255, 255, .06); color: #fff; }
+
+  /* ---------- Cards ---------- */
+  .pcf-card {
+    background: hsl(var(--card)); border: 1px solid #f4e7de; border-radius: 24px;
+    box-shadow: var(--shadow-warm); padding: 1.35rem;
+  }
+  .pcf-card-sm { border-radius: 18px; padding: 1rem; box-shadow: var(--shadow-warm-sm); }
+  .pcf-hoverable { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .pcf-hoverable:hover { transform: translateY(-4px); border-color: #f7c9a8; box-shadow: var(--shadow-warm-lg); }
+
+  /* ---------- Icon tiles (tints por categoria) ---------- */
+  .pcf-icon-tile {
+    width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff0e6; color: #e8560f;
+  }
+  .pcf-icon-tile.tint-green { background: #eaf7ef; color: #2e8b57; }
+  .pcf-icon-tile.tint-blue  { background: #eaf0fb; color: #3b62b3; }
+  .pcf-icon-tile.tint-gold  { background: #fdf3dd; color: #b8860b; }
+  .pcf-icon-tile.tint-orange{ background: #fff0e6; color: #e8560f; }
+
+  /* ---------- Badges de status ---------- */
+  .pcf-badge {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .18rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 700;
+    background: #f4efeb; color: #8a7566;
+  }
+  .pcf-badge.ok      { background: #eaf7ef; color: #1f7a49; }
+  .pcf-badge.warn    { background: #fdf3dd; color: #8a6a10; }
+  .pcf-badge.info    { background: #eaf0fb; color: #2f5296; }
+  .pcf-badge.brand   { background: #fff0e6; color: #c9490a; }
+  .pcf-badge.danger  { background: #fdeaea; color: #b03636; }
+
+  /* ---------- Stat card ---------- */
+  .pcf-stat { display: flex; flex-direction: column; gap: .15rem; }
+  .pcf-stat .num { font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 800; letter-spacing: -.03em; }
+  .pcf-stat .lbl { font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8a7566; }
+
+  /* ---------- Inputs ---------- */
+  .pcf-field { display: flex; flex-direction: column; gap: .35rem; }
+  .pcf-label { font-size: .82rem; font-weight: 600; color: var(--ink-soft); }
+  .pcf-input {
+    width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff;
+    border: 1px solid #f0dfd3; color: var(--ink); font-size: .92rem; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .pcf-input:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
+
+  /* ---------- Progress bar ---------- */
+  .pcf-progress { height: 8px; border-radius: 999px; background: #f4e7de; overflow: hidden; }
+  .pcf-progress > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ff9040, #ea5411); }
+
+  /* ---------- Tabela ---------- */
+  .pcf-table { width: 100%; border-collapse: collapse; }
+  .pcf-table th { text-align: left; font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: #a8968b; padding: .7rem .9rem; border-bottom: 1px solid #f4e7de; background: #fffaf6; }
+  .pcf-table td { padding: .75rem .9rem; border-bottom: 1px solid #f7e9df; font-size: .88rem; color: var(--ink-soft); }
+  .pcf-table tr:last-child td { border-bottom: 0; }
+
+  /* ============================================================
+     EFEITOS "Aceternity-style" (glows, grids, glass, live-dots)
+     ============================================================ */
+
+  /* Superfície: hero laranja com textura de pontos + cantos inferiores */
+  .pcf-hero-surface {
+    position: relative; overflow: hidden;
+    background: var(--hero-grad);
+    border-radius: 0 0 42px 42px;
+  }
+  .pcf-hero-surface::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, .35) 1px, transparent 0);
+    background-size: 24px 24px; opacity: .4;
+  }
+  .pcf-hero-surface > * { position: relative; z-index: 1; }
+
+  /* Superfície escura com grid "blueprint" */
+  .pcf-dark-surface {
+    position: relative; overflow: hidden; color: #fff;
+    background: var(--dark-grad);
+  }
+  .pcf-dark-surface::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, .045) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  .pcf-dark-surface > * { position: relative; z-index: 1; }
+
+  /* Orbs de luz que respiram */
+  .pcf-orb {
+    position: absolute; border-radius: 50%; pointer-events: none; filter: blur(2px);
+    background: radial-gradient(circle, rgba(242, 107, 33, .45), transparent 65%);
+    animation: pcf-glow 7s ease-in-out infinite;
+  }
+  .pcf-orb.warm  { background: radial-gradient(circle, rgba(255, 214, 170, .55), transparent 65%); }
+  .pcf-orb.white { background: radial-gradient(circle, rgba(255, 255, 255, .28), transparent 68%); }
+
+  /* Glassmorphism (cards sobre fundo escuro) */
+  .pcf-glass {
+    background: rgba(255, 255, 255, .045); border: 1px solid rgba(255, 255, 255, .1);
+    backdrop-filter: blur(6px); border-radius: 24px;
+  }
+
+  /* Live-dot pulsante */
+  .pcf-live-dot { position: relative; width: 9px; height: 9px; border-radius: 50%; background: #e8560f; display: inline-block; }
+  .pcf-live-dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%; animation: pcf-ping 1.8s ease-out infinite; }
+
+  /* Animações de entrada / flutuação */
+  .pcf-anim-rise  { animation: pcf-rise .7s ease both; }
+  .pcf-anim-float { animation: pcf-floaty 6s ease-in-out infinite; }
+  .pcf-anim-orbit { animation: pcf-orbit 22s linear infinite; }
+
+  /* Header sticky glass (landing) */
+  .pcf-glass-header {
+    position: sticky; top: 0; z-index: 60;
+    background: rgba(255, 255, 255, .82); backdrop-filter: blur(14px);
+    border-bottom: 1px solid #f4e7de;
+  }
+  .pcf-navpill {
+    display: inline-flex; align-items: center; gap: .25rem; padding: .35rem;
+    background: #fff6f0; border: 1px solid #fbe3d3; border-radius: 999px;
+  }
+  .pcf-navpill a { padding: .5rem .9rem; border-radius: 999px; font-size: .85rem; font-weight: 600; color: #5a4a41; text-decoration: none; }
+  .pcf-navpill a:hover { background: #fff; color: #c9490a; }
+}
+
+/* Acessibilidade: respeita quem pediu menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  .pcf-orb, .pcf-live-dot::after, .pcf-anim-rise, .pcf-anim-float, .pcf-anim-orbit,
+  [class*="animate-"] { animation: none !important; }
+  html { scroll-behavior: auto; }
+}

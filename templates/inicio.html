@@ -4,176 +4,191 @@
 {% block titulo %}Início{% endblock %}
 
 {% block content %}
-<div class="pcf-page">
+<div class="ini-page">
 
-  <!-- ── HERO ── -->
-  <section class="pcf-hero">
-    <div class="pcf-hero-bg"></div>
-    <div class="pcf-container pcf-hero-inner">
-      <div class="pcf-hero-text">
-        <span class="pcf-badge">Projeto Criança Feliz</span>
-        <h1 class="pcf-hero-title">Transformando vidas<br>com amor e dedicação</h1>
-        <p class="pcf-hero-sub">Acompanhe as atividades, voluntários e sábados do projeto em um só lugar.</p>
-        <div class="pcf-hero-actions">
-          <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            Painel do Sábado
-          </a>
-          <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-btn pcf-btn-ghost">
-            Ver Voluntários
-          </a>
-        </div>
-      </div>
-      <div class="pcf-hero-img-wrap">
-        <img src="{% static 'images/foto1.jpg' %}" alt="Projeto Criança Feliz" class="pcf-hero-img" onerror="this.style.display='none'">
+  <!-- ─────────────────────────── HERO INTERNO ─────────────────────────── -->
+  <section class="pcf-hero-surface ini-hero" data-reveal>
+    <span class="pcf-orb warm ini-orb ini-orb-1" aria-hidden="true"></span>
+    <span class="pcf-orb white ini-orb ini-orb-2" aria-hidden="true"></span>
+
+    <div class="pcf-container ini-hero-inner">
+      <span class="ini-hero-eyebrow">Projeto Criança Feliz</span>
+      <h1 class="ini-hero-title">Olá, {{ user.first_name|default:user.username }}</h1>
+      <p class="ini-hero-sub">Acompanhe as atividades, voluntários e sábados do projeto em um só lugar.</p>
+
+      <div class="ini-hero-actions">
+        <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-white">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Painel do Sábado
+        </a>
+        <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-btn ini-hero-outline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Ver Voluntários
+        </a>
       </div>
     </div>
   </section>
 
-  <!-- ── STATS RÁPIDAS ── -->
-  <section class="pcf-container pcf-stats-row">
-    <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-stat-card">
-      <div class="pcf-stat-icon pcf-stat-purple">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      </div>
-      <div>
-        <p class="pcf-stat-label">Voluntários</p>
-        <p class="pcf-stat-hint">Ver equipe →</p>
-      </div>
-    </a>
-    <a href="{% url 'atendido:atendido_view' %}" class="pcf-stat-card">
-      <div class="pcf-stat-icon pcf-stat-green">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-      </div>
-      <div>
-        <p class="pcf-stat-label">Atendidos</p>
-        <p class="pcf-stat-hint">Ver atendidos →</p>
-      </div>
-    </a>
-    <a href="{% url 'semanario:semanario_view' %}" class="pcf-stat-card">
-      <div class="pcf-stat-icon pcf-stat-blue">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-      </div>
-      <div>
-        <p class="pcf-stat-label">Semanários</p>
-        <p class="pcf-stat-hint">Ver atividades →</p>
-      </div>
-    </a>
-    <a href="{% url 'supply:supply_view' %}" class="pcf-stat-card">
-      <div class="pcf-stat-icon pcf-stat-amber">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-      </div>
-      <div>
-        <p class="pcf-stat-label">Supply</p>
-        <p class="pcf-stat-hint">Ver estoque →</p>
-      </div>
-    </a>
-  </section>
+  <!-- ─────────────────────── 4 ATALHOS (sobre o hero) ─────────────────────── -->
+  <div class="pcf-container">
+    <div class="ini-shortcuts" data-reveal>
 
-  <!-- ── FORMULÁRIOS ABERTOS ── -->
-  <section class="pcf-container pcf-section">
-    <div class="pcf-section-header">
-      <div>
-        <h2 class="pcf-section-title">Formulários Abertos</h2>
-        <p class="pcf-section-sub">Responda sua disponibilidade para os próximos sábados</p>
+      <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-card pcf-hoverable ini-shortcut">
+        <span class="pcf-icon-tile tint-orange">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        <span class="ini-shortcut-body">
+          <span class="ini-shortcut-title">Voluntários</span>
+          <span class="ini-shortcut-hint">Ver equipe</span>
+        </span>
+        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+
+      <a href="{% url 'atendido:atendido_view' %}" class="pcf-card pcf-hoverable ini-shortcut">
+        <span class="pcf-icon-tile tint-green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </span>
+        <span class="ini-shortcut-body">
+          <span class="ini-shortcut-title">Atendidos</span>
+          <span class="ini-shortcut-hint">Ver atendidos</span>
+        </span>
+        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+
+      <a href="{% url 'semanario:semanario_view' %}" class="pcf-card pcf-hoverable ini-shortcut">
+        <span class="pcf-icon-tile tint-blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </span>
+        <span class="ini-shortcut-body">
+          <span class="ini-shortcut-title">Semanários</span>
+          <span class="ini-shortcut-hint">Ver atividades</span>
+        </span>
+        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+
+      <a href="{% url 'supply:painel_materiais' %}" class="pcf-card pcf-hoverable ini-shortcut">
+        <span class="pcf-icon-tile tint-gold">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </span>
+        <span class="ini-shortcut-body">
+          <span class="ini-shortcut-title">Supply</span>
+          <span class="ini-shortcut-hint">Ver estoque</span>
+        </span>
+        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- ─────────────────────── FORMULÁRIOS ABERTOS ─────────────────────── -->
+  <section class="pcf-container ini-section" data-reveal>
+    <div class="ini-head">
+      <div class="ini-head-text">
+        <span class="pcf-eyebrow">Disponibilidade</span>
+        <h2 class="ini-h2">Formulários Abertos</h2>
+        <p class="pcf-lead ini-sub">Responda sua disponibilidade para os próximos sábados.</p>
       </div>
       <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver todos</a>
     </div>
 
     {% if sabados_abertos %}
-      <div class="pcf-sabado-grid">
+      <div class="ini-grid">
         {% for sabado in sabados_abertos %}
-        <div class="pcf-card pcf-sabado-card">
-          <!-- Cabeçalho do card -->
-          <div class="pcf-sabado-header">
-            <div class="pcf-date-badge">
-              <span class="pcf-date-day">{{ sabado.data|date:"d" }}</span>
-              <span class="pcf-date-month">{{ sabado.data|date:"M" }}</span>
+        <article class="pcf-card pcf-hoverable ini-sabado">
+          <!-- Cabeçalho -->
+          <div class="ini-sabado-top">
+            <div class="ini-date">
+              <span class="ini-date-day">{{ sabado.data|date:"d" }}</span>
+              <span class="ini-date-month">{{ sabado.data|date:"M" }}</span>
             </div>
-            <div class="pcf-sabado-info">
-              <h3 class="pcf-sabado-tema">{{ sabado.tema|default:"Sábado do Projeto" }}</h3>
-              <p class="pcf-sabado-date-full">{{ sabado.data|date:"l, d \d\e F \d\e Y" }}</p>
+            <div class="ini-sabado-info">
+              <h3 class="ini-sabado-tema">{{ sabado.tema|default:"Sábado do Projeto" }}</h3>
+              <p class="ini-sabado-date">{{ sabado.data|date:"l, d \d\e F \d\e Y" }}</p>
             </div>
-            <span class="pcf-chip pcf-chip-open">Aberto</span>
+            <span class="pcf-badge ok ini-badge-open">Aberto</span>
           </div>
 
           <!-- Progresso de respostas -->
-          <div class="pcf-progress-block">
-            <div class="pcf-progress-header">
-              <div class="pcf-progress-label">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <div class="ini-progress-block">
+            <div class="ini-progress-head">
+              <span class="ini-progress-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                 Respostas dos voluntários
-              </div>
-              <span class="pcf-progress-count">{{ sabado.total_respostas_view }}/{{ sabado.total_voluntarios_ativos }}</span>
+              </span>
+              <span class="ini-progress-count">{{ sabado.total_respostas_view }}/{{ sabado.total_voluntarios_ativos }}</span>
             </div>
-            <div class="pcf-progress-bar-wrap">
-              <div class="pcf-progress-bar {% if sabado.percentual_respostas_int == 100 %}pcf-progress-full{% endif %}"
-                   style="width: {{ sabado.percentual_respostas_int }}%"></div>
+            <div class="pcf-progress">
+              <span style="width: {{ sabado.percentual_respostas_int }}%"></span>
             </div>
-            <div class="pcf-progress-footer">
+            <div class="ini-progress-foot">
               {% if sabado.percentual_respostas_int == 100 %}
-                <span class="pcf-text-success">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span class="ini-ok">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
                   Todos responderam!
                 </span>
               {% else %}
-                <span class="pcf-text-muted">{{ sabado.total_nao_responderam }} ainda não responderam</span>
-                <span class="pcf-progress-pct">{{ sabado.percentual_respostas_int }}%</span>
+                <span class="ini-muted">{{ sabado.total_nao_responderam }} ainda não responderam</span>
+                <span class="ini-pct">{{ sabado.percentual_respostas_int }}%</span>
               {% endif %}
             </div>
           </div>
 
           <!-- Ações -->
-          <div style="display:flex;gap:.625rem;margin-top:auto;">
-            <a href="{% url 'sabado:responder_disponibilidade' sabado.pk %}" class="pcf-btn pcf-btn-primary" style="flex:1;justify-content:center;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <div class="ini-sabado-actions">
+            <a href="{% url 'sabado:responder_disponibilidade' sabado.pk %}" class="pcf-btn pcf-btn-primary pcf-btn-sm ini-flex1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
               Responder
             </a>
-            <a href="{% url 'sabado:resumo_sabado' %}?sabado={{ sabado.pk }}" class="pcf-btn pcf-btn-outline" style="flex:1;justify-content:center;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <a href="{% url 'sabado:resumo_sabado' %}?sabado={{ sabado.pk }}" class="pcf-btn pcf-btn-outline pcf-btn-sm ini-flex1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
               Ver resumo
             </a>
           </div>
-        </div>
+        </article>
         {% endfor %}
       </div>
     {% else %}
-      <div class="pcf-empty">
-        <div class="pcf-empty-icon">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <div class="ini-empty">
+        <div class="ini-empty-icon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </div>
-        <p class="pcf-empty-title">Nenhum formulário aberto</p>
-        <p class="pcf-empty-sub">Quando houver um sábado com enquete aberta, ele aparecerá aqui.</p>
+        <p class="ini-empty-title">Nenhum formulário aberto</p>
+        <p class="ini-empty-sub">Quando houver um sábado com enquete aberta, ele aparecerá aqui.</p>
         <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-outline">Ver painel do sábado</a>
       </div>
     {% endif %}
   </section>
 
-  <!-- ── RONDAS DO SÁBADO ── -->
+  <!-- ─────────────────────── PRÓXIMA RONDA (escuro) ─────────────────────── -->
   {% if proxima_ronda %}
-  <section class="pcf-container pcf-section">
-    <div class="pcf-section-header">
-      <div>
-        <h2 class="pcf-section-title">Rondas do Sábado</h2>
-        <p class="pcf-section-sub">Voluntários escalados para o próximo sábado</p>
-      </div>
-      <a href="{% url 'ronda:ronda_publica' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver todas</a>
-    </div>
-    <div class="pcf-sabado-grid">
-      <div class="pcf-card pcf-sabado-card" style="cursor:pointer;max-width:380px" onclick="location.href='{% url 'ronda:ronda_publica' %}'">
-        <div class="pcf-sabado-header">
-          <div class="pcf-date-badge" style="background:#e0f2fe">
-            <span class="pcf-date-day" style="color:#0369a1">{{ proxima_ronda.sabado.data|date:"d" }}</span>
-            <span class="pcf-date-month" style="color:#0ea5e9">{{ proxima_ronda.sabado.data|date:"M" }}</span>
+  <section class="pcf-container ini-section" data-reveal>
+    <div class="pcf-dark-surface ini-ronda">
+      <span class="pcf-orb ini-ronda-orb" aria-hidden="true"></span>
+
+      <div class="ini-ronda-inner">
+        <div class="ini-ronda-text">
+          <span class="pcf-eyebrow on-dark">
+            <span class="pcf-live-dot" aria-hidden="true"></span>
+            Rondas do Sábado
+          </span>
+          <h2 class="ini-ronda-title">Próxima ronda aprovada</h2>
+          <p class="ini-ronda-sub">Voluntários escalados para o próximo sábado do projeto.</p>
+
+          <div class="ini-ronda-meta">
+            <div class="ini-ronda-date">
+              <span class="ini-rd-day">{{ proxima_ronda.sabado.data|date:"d" }}</span>
+              <span class="ini-rd-rest">{{ proxima_ronda.sabado.data|date:"M/Y" }}</span>
+            </div>
+            <div class="ini-ronda-meta-info">
+              <p class="ini-ronda-tema">{{ proxima_ronda.sabado.tema|default:"Sábado do Projeto" }}</p>
+              <p class="ini-ronda-full">{{ proxima_ronda.sabado.data|date:"l, d \d\e F \d\e Y" }}</p>
+            </div>
+            <span class="pcf-badge ok">Aprovada</span>
           </div>
-          <div class="pcf-sabado-info">
-            <h3 class="pcf-sabado-tema">{{ proxima_ronda.sabado.tema|default:"Sábado do Projeto" }}</h3>
-            <p class="pcf-sabado-date-full">{{ proxima_ronda.sabado.data|date:"l, d \d\e F \d\e Y" }}</p>
-          </div>
-          <span class="pcf-chip" style="background:#dcfce7;color:#166534">Aprovada</span>
         </div>
-        <a href="{% url 'ronda:ronda_publica' %}" class="pcf-btn pcf-btn-outline" style="justify-content:center;margin-top:auto">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+
+        <a href="{% url 'ronda:ronda_publica' %}" class="pcf-btn pcf-btn-white ini-ronda-cta">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Ver escala de rondas
         </a>
       </div>
@@ -181,459 +196,183 @@
   </section>
   {% endif %}
 
-  <!-- ── ACESSO RÁPIDO ── -->
-  <section class="pcf-container pcf-section pcf-section-last">
-    <h2 class="pcf-section-title">Acesso Rápido</h2>
-    <p class="pcf-section-sub" style="margin-bottom: 1.5rem;">Navegue pelas principais áreas do projeto</p>
+  <!-- ─────────────────────────── ACESSO RÁPIDO ─────────────────────────── -->
+  <section class="pcf-container ini-section ini-section-last" data-reveal>
+    <div class="ini-head">
+      <div class="ini-head-text">
+        <span class="pcf-eyebrow">Navegação</span>
+        <h2 class="ini-h2">Acesso Rápido</h2>
+        <p class="pcf-lead ini-sub">Navegue pelas principais áreas do projeto.</p>
+      </div>
+    </div>
 
-    <div class="pcf-quick-grid">
-      <a href="{% url 'semanario:semanario_view' %}" class="pcf-quick-card">
-        <div class="pcf-quick-icon pcf-quick-purple">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        </div>
-        <div>
-          <h3 class="pcf-quick-title">Semanário</h3>
-          <p class="pcf-quick-desc">Planejamento semanal de atividades por sala e competências.</p>
-        </div>
-        <svg class="pcf-quick-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    <div class="ini-quick">
+      <a href="{% url 'semanario:semanario_view' %}" class="pcf-card pcf-hoverable ini-quick-card">
+        <span class="pcf-icon-tile tint-blue">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </span>
+        <span class="ini-quick-body">
+          <span class="ini-quick-title">Semanário</span>
+          <span class="ini-quick-desc">Planejamento semanal de atividades por sala e competências.</span>
+        </span>
+        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
 
-      <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-quick-card">
-        <div class="pcf-quick-icon pcf-quick-green">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </div>
-        <div>
-          <h3 class="pcf-quick-title">Voluntários</h3>
-          <p class="pcf-quick-desc">Gerencie a equipe, talentos, presenças e áreas de atuação.</p>
-        </div>
-        <svg class="pcf-quick-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-card pcf-hoverable ini-quick-card">
+        <span class="pcf-icon-tile tint-orange">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        <span class="ini-quick-body">
+          <span class="ini-quick-title">Voluntários</span>
+          <span class="ini-quick-desc">Gerencie a equipe, talentos, presenças e áreas de atuação.</span>
+        </span>
+        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
 
-      <a href="{% url 'atendido:atendido_view' %}" class="pcf-quick-card">
-        <div class="pcf-quick-icon pcf-quick-pink">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        </div>
-        <div>
-          <h3 class="pcf-quick-title">Atendidos</h3>
-          <p class="pcf-quick-desc">Fichas das crianças, famílias, responsáveis e histórico.</p>
-        </div>
-        <svg class="pcf-quick-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      <a href="{% url 'atendido:atendido_view' %}" class="pcf-card pcf-hoverable ini-quick-card">
+        <span class="pcf-icon-tile tint-green">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </span>
+        <span class="ini-quick-body">
+          <span class="ini-quick-title">Atendidos</span>
+          <span class="ini-quick-desc">Fichas das crianças, famílias, responsáveis e histórico.</span>
+        </span>
+        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
 
-      <a href="{% url 'supply:supply_view' %}" class="pcf-quick-card">
-        <div class="pcf-quick-icon pcf-quick-amber">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-        </div>
-        <div>
-          <h3 class="pcf-quick-title">Supply</h3>
-          <p class="pcf-quick-desc">Controle de estoque, itens e movimentações de materiais.</p>
-        </div>
-        <svg class="pcf-quick-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      <a href="{% url 'supply:supply_view' %}" class="pcf-card pcf-hoverable ini-quick-card">
+        <span class="pcf-icon-tile tint-gold">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </span>
+        <span class="ini-quick-body">
+          <span class="ini-quick-title">Supply</span>
+          <span class="ini-quick-desc">Controle de estoque, itens e movimentações de materiais.</span>
+        </span>
+        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
     </div>
   </section>
 
 </div>
 
+{# Bloco enxuto: só LAYOUT específico desta página (grids, sobreposição e responsivo). #}
+{# Todo o visual vem das classes .pcf-* do design system (tailwindcss/input.css). #}
 <style>
-/* ── Reset / Base ── */
-*, *::before, *::after { box-sizing: border-box; }
-.pcf-page { background: hsl(var(--background)); min-height: 100vh; }
+  .ini-page { background: hsl(var(--background)); }
 
-/* ── Container ── */
-.pcf-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-}
-
-/* ── HERO ── */
-.pcf-hero {
-  position: relative;
-  background: linear-gradient(135deg, #c75f06 0%, #fe8210 60%, #ea7209 100%);
-  padding: 4rem 0 5rem;
-  overflow: hidden;
-}
-.pcf-hero-bg {
-  position: absolute; inset: 0;
-  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='30'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
-}
-.pcf-hero::after {
-  content: '';
-  position: absolute;
-  bottom: -2px; left: 0; right: 0; height: 60px;
-  background: hsl(var(--background));
-  clip-path: ellipse(55% 100% at 50% 100%);
-}
-.pcf-hero-inner {
-  position: relative; z-index: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
-  align-items: center;
-}
-.pcf-hero-text { color: #fff; }
-.pcf-badge {
-  display: inline-block;
-  background: rgba(255,255,255,.15);
-  border: 1px solid rgba(255,255,255,.25);
-  color: #fff;
-  font-size: .75rem;
-  font-weight: 600;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-  padding: .3rem .75rem;
-  border-radius: 9999px;
-  margin-bottom: 1.25rem;
-}
-.pcf-hero-title {
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
-  font-weight: 800;
-  line-height: 1.15;
-  margin: 0 0 1rem;
-  color: #fff;
-}
-.pcf-hero-sub {
-  font-size: 1rem;
-  color: rgba(255,255,255,.8);
-  margin: 0 0 2rem;
-  line-height: 1.6;
-  max-width: 420px;
-}
-.pcf-hero-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
-.pcf-hero-img-wrap {
-  display: flex;
-  justify-content: center;
-}
-.pcf-hero-img {
-  width: 100%;
-  max-width: 400px;
-  border-radius: 1.25rem;
-  box-shadow: 0 25px 50px rgba(0,0,0,.35);
-  object-fit: cover;
-  aspect-ratio: 4/3;
-}
-
-/* ── BUTTONS ── */
-.pcf-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .6rem 1.25rem;
-  border-radius: .5rem;
-  font-size: .875rem;
-  font-weight: 600;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  transition: all .15s;
-  white-space: nowrap;
-}
-.pcf-btn-primary {
-  background: #fff;
-  color: #c75f06;
-}
-.pcf-btn-primary:hover { background: #f3f4f6; color: #4c1d95; transform: translateY(-1px); }
-.pcf-btn-ghost {
-  background: rgba(255,255,255,.12);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,.3);
-}
-.pcf-btn-ghost:hover { background: rgba(255,255,255,.2); color: #fff; }
-.pcf-btn-outline {
-  background: transparent;
-  color: hsl(var(--foreground));
-  border: 1px solid hsl(var(--border));
-}
-.pcf-btn-outline:hover { background: hsl(var(--accent)); color: hsl(var(--foreground)); }
-.pcf-btn-sm { padding: .4rem .9rem; font-size: .8rem; }
-.pcf-btn-full { width: 100%; justify-content: center; margin-top: auto; }
-
-/* hero btn override */
-.pcf-hero .pcf-btn-outline {
-  background: transparent;
-  color: #fff;
-  border-color: rgba(255,255,255,.4);
-}
-.pcf-hero .pcf-btn-outline:hover { background: rgba(255,255,255,.1); color: #fff; }
-
-/* ── STATS ROW ── */
-.pcf-stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  margin-top: -2.5rem;
-  position: relative;
-  z-index: 2;
-  padding-bottom: .5rem;
-  /* fallback seguro em telas menores via media query abaixo */
-}
-.pcf-stat-card {
-  display: flex;
-  align-items: center;
-  gap: .875rem;
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: .875rem;
-  padding: 1rem 1.25rem;
-  text-decoration: none;
-  color: hsl(var(--foreground));
-  box-shadow: 0 1px 3px rgba(0,0,0,.07), 0 4px 12px rgba(0,0,0,.05);
-  transition: all .15s;
-}
-.pcf-stat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.12); transform: translateY(-2px); color: hsl(var(--foreground)); }
-.pcf-stat-icon {
-  width: 42px; height: 42px; border-radius: .625rem;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.pcf-stat-purple { background: #fff7ed; color: #fe8210; }
-.pcf-stat-green  { background: #d1fae5; color: #059669; }
-.pcf-stat-blue   { background: #dbeafe; color: #2563eb; }
-.pcf-stat-amber  { background: #fef3c7; color: #d97706; }
-.pcf-stat-label { font-size: .875rem; font-weight: 600; margin: 0; line-height: 1.2; }
-.pcf-stat-hint  { font-size: .75rem; color: hsl(var(--muted-foreground)); margin: .15rem 0 0; }
-
-/* ── SECTION ── */
-.pcf-section { padding-top: 3rem; }
-.pcf-section-last { padding-bottom: 4rem; }
-.pcf-section-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-.pcf-section-title {
-  font-size: 1.375rem;
-  font-weight: 700;
-  margin: 0 0 .25rem;
-  color: hsl(var(--foreground));
-}
-.pcf-section-sub {
-  font-size: .875rem;
-  color: hsl(var(--muted-foreground));
-  margin: 0;
-}
-
-/* ── CARD base ── */
-.pcf-card {
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 1rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
-}
-
-/* ── SÁBADO GRID ── */
-.pcf-sabado-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.25rem;
-}
-.pcf-sabado-card {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  transition: box-shadow .15s, transform .15s;
-}
-.pcf-sabado-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.1); transform: translateY(-2px); }
-.pcf-sabado-header {
-  display: flex;
-  align-items: flex-start;
-  gap: .875rem;
-}
-.pcf-date-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #fff7ed;
-  border-radius: .625rem;
-  padding: .4rem .7rem;
-  min-width: 48px;
-  flex-shrink: 0;
-}
-.pcf-date-day   { font-size: 1.25rem; font-weight: 800; color: #c75f06; line-height: 1; }
-.pcf-date-month { font-size: .65rem; font-weight: 600; color: #fe8210; text-transform: uppercase; letter-spacing: .05em; }
-.pcf-sabado-info { flex: 1; min-width: 0; }
-.pcf-sabado-tema {
-  font-size: .9375rem;
-  font-weight: 700;
-  margin: 0 0 .2rem;
-  color: hsl(var(--foreground));
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.pcf-sabado-date-full { font-size: .78rem; color: hsl(var(--muted-foreground)); margin: 0; }
-
-/* chip */
-.pcf-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: .2rem .6rem;
-  border-radius: 9999px;
-  font-size: .7rem;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-.pcf-chip-open { background: #d1fae5; color: #065f46; }
-
-/* progress */
-.pcf-progress-block { display: flex; flex-direction: column; gap: .5rem; }
-.pcf-progress-header { display: flex; align-items: center; justify-content: space-between; }
-.pcf-progress-label {
-  display: flex;
-  align-items: center;
-  gap: .35rem;
-  font-size: .78rem;
-  font-weight: 500;
-  color: hsl(var(--muted-foreground));
-}
-.pcf-progress-count { font-size: .78rem; font-weight: 700; color: hsl(var(--foreground)); }
-.pcf-progress-bar-wrap {
-  height: 6px;
-  background: hsl(var(--accent));
-  border-radius: 9999px;
-  overflow: hidden;
-}
-.pcf-progress-bar {
-  height: 100%;
-  background: #fe8210;
-  border-radius: 9999px;
-  min-width: 4px;
-  transition: width .5s ease;
-}
-.pcf-progress-full { background: #059669; }
-.pcf-progress-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: .73rem;
-}
-.pcf-text-muted { color: hsl(var(--muted-foreground)); }
-.pcf-text-success { display: flex; align-items: center; gap: .3rem; color: #059669; font-weight: 600; }
-.pcf-progress-pct { font-weight: 700; color: #fe8210; }
-
-/* ── EMPTY ── */
-.pcf-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: .75rem;
-  padding: 4rem 2rem;
-  border: 1px dashed hsl(var(--border));
-  border-radius: 1rem;
-  text-align: center;
-  color: hsl(var(--muted-foreground));
-}
-.pcf-empty-icon {
-  width: 56px; height: 56px;
-  background: hsl(var(--accent));
-  border-radius: .875rem;
-  display: flex; align-items: center; justify-content: center;
-  color: hsl(var(--muted-foreground));
-}
-.pcf-empty-title { font-size: 1rem; font-weight: 600; color: hsl(var(--foreground)); margin: 0; }
-.pcf-empty-sub { font-size: .875rem; margin: 0; max-width: 320px; }
-.pcf-empty .pcf-btn { margin-top: .5rem; }
-.pcf-empty .pcf-btn-outline {
-  background: transparent;
-  color: hsl(var(--foreground));
-  border: 1px solid hsl(var(--border));
-}
-.pcf-empty .pcf-btn-outline:hover { background: hsl(var(--accent)); }
-
-/* ── QUICK ACCESS ── */
-.pcf-quick-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-.pcf-quick-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  background: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 1rem;
-  padding: 1.25rem 1.25rem 1.25rem 1.25rem;
-  text-decoration: none;
-  color: hsl(var(--foreground));
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
-  transition: all .15s;
-}
-.pcf-quick-card:hover {
-  box-shadow: 0 6px 24px rgba(0,0,0,.1);
-  transform: translateY(-2px);
-  color: hsl(var(--foreground));
-  border-color: #fe8210;
-}
-.pcf-quick-icon {
-  width: 48px; height: 48px; border-radius: .75rem;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.pcf-quick-purple { background: #fff7ed; color: #fe8210; }
-.pcf-quick-green  { background: #d1fae5; color: #059669; }
-.pcf-quick-pink   { background: #fce7f3; color: #db2777; }
-.pcf-quick-amber  { background: #fef3c7; color: #d97706; }
-.pcf-quick-title  { font-size: .9375rem; font-weight: 700; margin: 0 0 .2rem; }
-.pcf-quick-desc   { font-size: .8rem; color: hsl(var(--muted-foreground)); margin: 0; line-height: 1.5; }
-.pcf-quick-arrow  { color: hsl(var(--muted-foreground)); margin-left: auto; flex-shrink: 0; transition: transform .15s; }
-.pcf-quick-card:hover .pcf-quick-arrow { transform: translateX(3px); color: #fe8210; }
-
-/* ── RESPONSIVO ── */
-@media (max-width: 900px) {
-  .pcf-hero-inner { grid-template-columns: 1fr; gap: 1.5rem; }
-  .pcf-hero-img-wrap { display: none; }
-  .pcf-hero { padding: 2.5rem 0 3.5rem; }
-  .pcf-stats-row { grid-template-columns: repeat(2, 1fr); margin-top: 1.5rem; }
-}
-
-@media (max-width: 600px) {
-  .pcf-container { padding: 0 1.25rem; }
-
-  .pcf-hero { padding: 2rem 0 3rem; }
-  .pcf-hero-title { font-size: 1.5rem; }
-  .pcf-hero-sub { font-size: .875rem; }
-  .pcf-hero-actions { flex-direction: column; gap: .5rem; }
-  .pcf-hero-actions .pcf-btn { width: 100%; justify-content: center; }
-
-  .pcf-stats-row {
-    grid-template-columns: repeat(2, 1fr);
-    gap: .75rem;
-    margin-top: 1.5rem;
-    position: static;
+  /* ── Hero ── */
+  .ini-hero { margin-bottom: 0; }
+  .ini-hero-inner { padding-top: clamp(2.25rem, 6vw, 4rem); padding-bottom: clamp(3.75rem, 8vw, 5.5rem); position: relative; z-index: 1; }
+  .ini-orb { width: 320px; height: 320px; }
+  .ini-orb-1 { top: -110px; right: -80px; }
+  .ini-orb-2 { bottom: -140px; left: -90px; width: 260px; height: 260px; }
+  .ini-hero-eyebrow {
+    display: inline-flex; align-items: center; margin-bottom: 1rem;
+    padding: .3rem .8rem; border-radius: 999px;
+    font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    color: #fff; background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .28);
   }
-  .pcf-stat-card { padding: .75rem .875rem; gap: .625rem; }
-  .pcf-stat-icon { width: 34px; height: 34px; border-radius: .5rem; }
-  .pcf-stat-icon svg { width: 16px; height: 16px; }
-  .pcf-stat-label { font-size: .8rem; }
-  .pcf-stat-hint  { display: none; }
+  .ini-hero-title { margin: 0 0 .7rem; color: #fff; font-weight: 800; letter-spacing: -.03em; line-height: 1.05; font-size: clamp(1.8rem, 4.5vw, 3rem); }
+  .ini-hero-sub { margin: 0 0 1.75rem; max-width: 46ch; color: rgba(255, 255, 255, .9); line-height: 1.6; font-size: clamp(.95rem, 1.6vw, 1.05rem); }
+  .ini-hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  .ini-hero-outline { background: rgba(255, 255, 255, .1); color: #fff; border: 1.5px solid rgba(255, 255, 255, .55); }
+  .ini-hero-outline:hover { background: rgba(255, 255, 255, .2); color: #fff; transform: translateY(-1px); }
 
-  .pcf-sabado-grid { grid-template-columns: 1fr; }
-  .pcf-sabado-card { padding: 1.25rem; }
-  .pcf-sabado-tema { white-space: normal; }
+  /* ── 4 atalhos (sobrepõem o hero) ── */
+  .ini-shortcuts { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: -2.5rem; position: relative; z-index: 3; }
+  .ini-shortcut { display: flex; align-items: center; gap: .9rem; text-decoration: none; color: var(--ink); padding: 1.1rem 1.2rem; }
+  .ini-shortcut:hover { color: var(--ink); }
+  .ini-shortcut-body { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+  .ini-shortcut-title { font-weight: 800; font-size: 1rem; letter-spacing: -.01em; color: var(--ink); }
+  .ini-shortcut-hint { font-size: .78rem; color: var(--ink-muted); }
+  .ini-arrow { color: var(--ink-muted); margin-left: auto; flex-shrink: 0; transition: transform .18s ease, color .18s ease; }
+  .ini-shortcut:hover .ini-arrow,
+  .ini-quick-card:hover .ini-arrow { transform: translateX(3px); color: #e8560f; }
 
-  .pcf-quick-grid { grid-template-columns: 1fr; gap: .75rem; }
-  .pcf-quick-card { padding: 1rem 1.1rem; gap: .875rem; }
-  .pcf-quick-icon { width: 40px; height: 40px; border-radius: .625rem; }
-  .pcf-quick-desc { display: none; }
+  /* ── Seções ── */
+  .ini-section { padding-top: clamp(2.5rem, 6vw, 3.75rem); }
+  .ini-section-last { padding-bottom: clamp(3rem, 7vw, 5rem); }
+  .ini-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .ini-head-text { display: flex; flex-direction: column; gap: .5rem; }
+  .ini-h2 { margin: 0; font-weight: 800; letter-spacing: -.025em; line-height: 1.1; font-size: clamp(1.5rem, 3vw, 2rem); color: var(--ink); }
+  .ini-sub { margin: 0; font-size: .92rem; }
 
-  .pcf-section { padding-top: 2rem; }
-  .pcf-section-last { padding-bottom: 2.5rem; }
-  .pcf-section-header { flex-direction: column; align-items: flex-start; gap: .5rem; }
-}
+  /* ── Grid de sábados ── */
+  .ini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 1.25rem; }
+  .ini-sabado { display: flex; flex-direction: column; gap: 1.25rem; }
+  .ini-sabado-top { display: flex; align-items: flex-start; gap: .9rem; }
+  .ini-date { display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; min-width: 50px; padding: .45rem .6rem; border-radius: 14px; background: #fff0e6; }
+  .ini-date-day { font-size: 1.3rem; font-weight: 800; line-height: 1; color: #c9490a; }
+  .ini-date-month { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #e8560f; }
+  .ini-sabado-info { flex: 1; min-width: 0; }
+  .ini-sabado-tema { margin: 0 0 .15rem; font-size: .98rem; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ini-sabado-date { margin: 0; font-size: .78rem; color: var(--ink-muted); text-transform: capitalize; }
+  .ini-badge-open { flex-shrink: 0; }
 
-@media (max-width: 420px) {
-  .pcf-container { padding: 0 1.1rem; }
-  .pcf-stats-row { grid-template-columns: 1fr 1fr; gap: .5rem; }
-  .pcf-badge { font-size: .68rem; }
-  .pcf-quick-card { padding: .875rem 1rem; }
-}
+  /* ── Progresso ── */
+  .ini-progress-block { display: flex; flex-direction: column; gap: .5rem; }
+  .ini-progress-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .ini-progress-label { display: inline-flex; align-items: center; gap: .35rem; font-size: .78rem; color: var(--ink-soft); }
+  .ini-progress-count { font-size: .8rem; font-weight: 800; color: var(--ink); }
+  .ini-progress-foot { display: flex; align-items: center; justify-content: space-between; gap: .5rem; font-size: .74rem; }
+  .ini-muted { color: var(--ink-muted); }
+  .ini-pct { font-weight: 800; color: #e8560f; }
+  .ini-ok { display: inline-flex; align-items: center; gap: .3rem; font-weight: 700; color: #1f7a49; }
+
+  /* ── Ações do card de sábado ── */
+  .ini-sabado-actions { display: flex; gap: .625rem; margin-top: auto; }
+  .ini-flex1 { flex: 1; }
+
+  /* ── Estado vazio ── */
+  .ini-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
+  .ini-empty-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; background: #fff0e6; color: #e8560f; }
+  .ini-empty-title { margin: .4rem 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .ini-empty-sub { margin: 0; max-width: 34ch; font-size: .88rem; color: var(--ink-muted); }
+  .ini-empty .pcf-btn { margin-top: .4rem; }
+
+  /* ── Próxima ronda (dark) ── */
+  .ini-ronda { border-radius: 28px; padding: clamp(1.5rem, 4vw, 2.5rem); }
+  .ini-ronda-orb { width: 300px; height: 300px; top: -120px; right: -70px; }
+  .ini-ronda-inner { display: flex; align-items: center; justify-content: space-between; gap: 1.75rem; flex-wrap: wrap; }
+  .ini-ronda-text { min-width: 0; }
+  .ini-ronda-title { margin: .9rem 0 .4rem; font-size: clamp(1.35rem, 2.6vw, 1.75rem); font-weight: 800; letter-spacing: -.02em; color: #fff; }
+  .ini-ronda-sub { margin: 0 0 1.25rem; font-size: .92rem; color: rgba(255, 255, 255, .72); max-width: 48ch; }
+  .ini-ronda-meta { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
+  .ini-ronda-date { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 56px; padding: .5rem .7rem; border-radius: 16px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .12); }
+  .ini-rd-day { font-size: 1.4rem; font-weight: 800; line-height: 1; color: #ffb47a; }
+  .ini-rd-rest { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: rgba(255, 255, 255, .6); }
+  .ini-ronda-meta-info { min-width: 0; }
+  .ini-ronda-tema { margin: 0 0 .1rem; font-size: .98rem; font-weight: 700; color: #fff; }
+  .ini-ronda-full { margin: 0; font-size: .78rem; color: rgba(255, 255, 255, .6); text-transform: capitalize; }
+  .ini-ronda-cta { flex-shrink: 0; }
+
+  /* ── Acesso rápido ── */
+  .ini-quick { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  .ini-quick-card { display: flex; align-items: center; gap: 1rem; text-decoration: none; color: var(--ink); }
+  .ini-quick-card:hover { color: var(--ink); }
+  .ini-quick-body { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+  .ini-quick-title { font-weight: 800; font-size: 1rem; color: var(--ink); }
+  .ini-quick-desc { font-size: .8rem; line-height: 1.5; color: var(--ink-muted); }
+
+  /* ── Breakpoints ── */
+  @media (min-width: 560px) {
+    .ini-shortcuts { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 720px) {
+    .ini-quick { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 960px) {
+    .ini-shortcuts { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  /* ── Ajustes finos para telas estreitas (~360px) ── */
+  @media (max-width: 480px) {
+    .ini-shortcuts { margin-top: -2rem; }
+    .ini-hero-actions { flex-direction: column; }
+    .ini-hero-actions .pcf-btn { width: 100%; }
+    .ini-sabado-tema { white-space: normal; }
+    .ini-ronda-cta { width: 100%; }
+    .ini-quick-desc { display: none; }
+  }
 </style>
 {% endblock %}

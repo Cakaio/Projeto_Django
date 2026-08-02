@@ -1,0 +1,13 @@
+{
+  "name": "pcf-theme",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Build do design system (Tailwind compilado) do Projeto Crianca Feliz.",
+  "scripts": {
+    "build": "tailwindcss -i ./input.css -o ../static/css/pcf.css --minify",
+    "watch": "tailwindcss -i ./input.css -o ../static/css/pcf.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
