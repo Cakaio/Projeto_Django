@@ -4,42 +4,130 @@
 {% block head %}<link rel="stylesheet" href="{% static 'supply/supply.css' %}">{% endblock %}
 
 {% block content %}
-<div class="supply-page py-4 py-md-5">
-  <div class="container" style="max-width:1180px;">
-    <div class="supply-hero rounded-4 p-4 p-md-5 mb-4 text-white d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-      <div>
-        <div class="small text-uppercase fw-semibold opacity-75 mb-1">Histórico do estoque</div>
-        <h1 class="h3 fw-bold mb-1">Movimentações</h1>
-        <p class="mb-0 opacity-75">Acompanhe entradas, saídas e ajustes registrados no estoque.</p>
-      </div>
-      <a href="{% url 'supply:lista_itens' %}" class="btn btn-light fw-semibold px-4">Voltar ao estoque</a>
-    </div>
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .mov-). O visual vem das classes .pcf-*. #}
+<div class="mov-page">
+  <div class="pcf-container mov-wrap">
 
-    <div class="supply-table-shell table-responsive">
-      <table class="table table-hover align-middle">
-        <thead><tr><th>Data</th><th>Item</th><th>Tipo</th><th>Quantidade</th><th>Registrado por</th><th>Sábado</th></tr></thead>
-        <tbody>
-          {% for mov in movimentacoes %}
-          <tr>
-            <td class="text-nowrap">{{ mov.criado_em|date:"d/m/Y H:i" }}</td>
-            <td class="fw-semibold">{{ mov.item.nome }}</td>
-            <td>{% if mov.tipo == 'ENTRADA' %}<span class="badge rounded-pill text-bg-success">Entrada</span>{% elif mov.tipo == 'SAIDA' %}<span class="badge rounded-pill text-bg-danger">Saída</span>{% else %}<span class="badge rounded-pill text-bg-info">Ajuste</span>{% endif %}</td>
-            <td>{{ mov.quantidade }}</td><td>{{ mov.registrado_por|default:"-" }}</td><td>{{ mov.sabado|default:"-" }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="6" class="text-center text-secondary py-5"><i class="bi bi-clock-history fs-2 d-block mb-2"></i>Nenhuma movimentação registrada.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <!-- Cabeçalho leve -->
+    <header class="mov-head">
+      <div class="mov-head-text">
+        <span class="pcf-eyebrow">Histórico do estoque</span>
+        <h1 class="mov-title">Movimentações</h1>
+        <p class="mov-sub">Acompanhe entradas, saídas e ajustes registrados no estoque.</p>
+      </div>
+      <div class="mov-head-actions">
+        <a href="{% url 'supply:lista_itens' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          Voltar ao estoque
+        </a>
+      </div>
+    </header>
+
+    <div class="pcf-card mov-tablecard">
+      <div class="mov-tablescroll">
+        <table class="pcf-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Item</th>
+              <th>Tipo</th>
+              <th>Quantidade</th>
+              <th>Registrado por</th>
+              <th>Sábado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for mov in movimentacoes %}
+            <tr>
+              <td class="mov-nowrap">{{ mov.criado_em|date:"d/m/Y H:i" }}</td>
+              <td class="mov-strong">{{ mov.item.nome }}</td>
+              <td>
+                {% if mov.tipo == 'ENTRADA' %}
+                  <span class="pcf-badge ok">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                    Entrada
+                  </span>
+                {% elif mov.tipo == 'SAIDA' %}
+                  <span class="pcf-badge danger">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                    Saída
+                  </span>
+                {% else %}
+                  <span class="pcf-badge info">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
+                    Ajuste
+                  </span>
+                {% endif %}
+              </td>
+              <td>{{ mov.quantidade }}</td>
+              <td>{{ mov.registrado_por|default:"-" }}</td>
+              <td>{{ mov.sabado|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6">
+                <div class="mov-empty">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+                  <span>Nenhuma movimentação registrada.</span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
 
     {% if page_obj.has_other_pages %}
-    <nav class="mt-4" aria-label="Navegação das movimentações"><ul class="pagination justify-content-center">
-      {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>{% endif %}
-      <li class="page-item active"><span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
-      {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Próxima</a></li>{% endif %}
-    </ul></nav>
+    <nav class="mov-pagination" aria-label="Navegação das movimentações">
+      {% if page_obj.has_previous %}
+        <a class="pcf-btn pcf-btn-outline pcf-btn-sm" href="?page={{ page_obj.previous_page_number }}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          Anterior
+        </a>
+      {% endif %}
+      <span class="mov-page-info">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a class="pcf-btn pcf-btn-outline pcf-btn-sm" href="?page={{ page_obj.next_page_number }}">
+          Próxima
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </a>
+      {% endif %}
+    </nav>
     {% endif %}
+
   </div>
 </div>
+
+<style>
+  .mov-page { background: hsl(var(--background)); }
+  .mov-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Cabeçalho leve */
+  .mov-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .mov-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .mov-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .mov-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .mov-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* Tabela */
+  .mov-tablecard { padding: 0; overflow: hidden; }
+  .mov-tablescroll { overflow-x: auto; }
+  .mov-tablescroll table { min-width: 720px; }
+  .mov-strong { font-weight: 700; color: var(--ink); }
+  .mov-nowrap { white-space: nowrap; }
+
+  /* Estado vazio */
+  .mov-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; padding: clamp(2rem, 5vw, 3rem) 1.5rem; text-align: center; color: var(--ink-muted); }
+  .mov-empty svg { color: #e8560f; }
+
+  /* Paginação */
+  .mov-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
+  .mov-page-info { font-size: .85rem; font-weight: 700; color: var(--ink); }
+
+  @media (max-width: 560px) {
+    .mov-head-actions { width: 100%; }
+    .mov-head-actions .pcf-btn { flex: 1; }
+  }
+</style>
 {% endblock %}

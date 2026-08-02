@@ -1,555 +1,49 @@
 {% extends "base.html" %}
 {% load l10n static %}
 {% block titulo %}Painel Supply — Visualização{% endblock %}
+
 {% block head %}
   <link rel="stylesheet" href="{% static 'supply/supply.css' %}">
-
-  <style>
-    .supply-panel-page {
-      --primary: #F8A51B;
-      --primary-dark: #E8950B;
-      --primary-light: rgba(248, 165, 27, 0.1);
-      --secondary: #FFC857;
-      --success: #10b981;
-      --success-dark: #059669;
-      --text-dark: #1e293b;
-      --text-muted: #64748b;
-      --bg-light: #f8fafc;
-      --border-color: #e2e8f0;
-      --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    }
-
-    .supply-panel-page,
-    .supply-panel-page * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    .supply-panel-page {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: #f8fafc;
-      min-height: 100vh;
-      color: var(--text-dark);
-    }
-
-    .bg-decoration {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .bg-circle {
-      position: absolute;
-      border-radius: 50%;
-      opacity: 0.15;
-    }
-
-    .bg-circle-1 {
-      width: 400px;
-      height: 400px;
-      background: var(--primary);
-      top: -150px;
-      right: -100px;
-    }
-
-    .bg-circle-2 {
-      width: 300px;
-      height: 300px;
-      background: var(--secondary);
-      bottom: -100px;
-      left: -100px;
-    }
-
-    .main-container {
-      position: relative;
-      z-index: 1;
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-
-    .page-header {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 20px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 10px 40px rgba(248, 165, 27, 0.3);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .page-header::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -20%;
-      width: 400px;
-      height: 400px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 50%;
-    }
-
-    .page-header-content {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      position: relative;
-      z-index: 1;
-    }
-
-    .page-header-icon {
-      width: 60px;
-      height: 60px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .page-header-icon svg {
-      width: 32px;
-      height: 32px;
-      color: white;
-    }
-
-    .page-header h1 {
-      color: white;
-      font-size: 1.75rem;
-      font-weight: 700;
-    }
-
-    .page-header p {
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 0.95rem;
-      margin-top: 0.25rem;
-    }
-
-    .filter-card,
-    .panel-switch-card,
-    .stat-card,
-    .sala-card,
-    .empty-state {
-      background: white;
-      border-radius: 16px;
-      box-shadow: var(--card-shadow);
-      border: 1px solid var(--border-color);
-    }
-
-    .filter-card {
-      padding: 1.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .filter-form {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      align-items: flex-end;
-    }
-
-    .filter-group {
-      flex: 1;
-      min-width: 240px;
-    }
-
-    .filter-group label {
-      display: block;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      font-size: 0.9rem;
-      color: var(--text-dark);
-    }
-
-    .filter-group select {
-      width: 100%;
-      padding: 0.75rem 1rem;
-      border: 2px solid var(--border-color);
-      border-radius: 10px;
-      font-size: 0.95rem;
-      color: var(--text-dark);
-      background: var(--bg-light);
-      cursor: pointer;
-    }
-
-    .filter-group select:focus {
-      outline: none;
-      border-color: var(--primary);
-      background: white;
-      box-shadow: 0 0 0 3px var(--primary-light);
-    }
-
-    .btn-filter {
-      padding: 0.75rem 1.5rem;
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(248, 165, 27, 0.3);
-    }
-
-    .btn-filter:hover {
-      transform: translateY(-2px);
-    }
-
-    .panel-switch-card {
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .panel-switch {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-
-    .panel-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.85rem 1.2rem;
-      border-radius: 12px;
-      border: 2px solid var(--border-color);
-      background: white;
-      color: var(--text-muted);
-      text-decoration: none;
-      font-weight: 800;
-      transition: all 0.25s ease;
-    }
-
-    .panel-btn:hover {
-      border-color: var(--primary);
-      color: var(--primary-dark);
-      background: rgba(248, 165, 27, 0.06);
-    }
-
-    .panel-btn.active {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      border-color: transparent;
-      box-shadow: 0 6px 18px rgba(248, 165, 27, 0.28);
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .stat-card {
-      padding: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .stat-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .stat-icon.orange {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-    }
-
-    .stat-icon.green {
-      background: linear-gradient(135deg, var(--success), var(--success-dark));
-    }
-
-    .stat-icon svg {
-      width: 28px;
-      height: 28px;
-      color: white;
-    }
-
-    .stat-label {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-bottom: 0.25rem;
-    }
-
-    .stat-value {
-      font-size: 1.75rem;
-      font-weight: 800;
-      color: var(--text-dark);
-    }
-
-    .salas-container {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .sala-card {
-      overflow: hidden;
-    }
-
-    .sala-card[open] .sala-header {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-    }
-
-    .sala-card[open] .sala-name,
-    .sala-card[open] .sala-stat strong {
-      color: white;
-    }
-
-    .sala-header {
-      padding: 1.25rem 1.5rem;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      list-style: none;
-      background: var(--bg-light);
-      transition: all 0.3s ease;
-    }
-
-    .sala-header::-webkit-details-marker {
-      display: none;
-    }
-
-    .sala-header-left {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .sala-icon {
-      width: 42px;
-      height: 42px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .sala-card[open] .sala-icon {
-      background: rgba(255, 255, 255, 0.2);
-    }
-
-    .sala-icon svg {
-      width: 22px;
-      height: 22px;
-      color: white;
-    }
-
-    .sala-name {
-      font-weight: 800;
-      font-size: 1.1rem;
-      color: var(--text-dark);
-    }
-
-    .sala-header-right {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-    }
-
-    .sala-stats {
-      display: flex;
-      gap: 1.5rem;
-      font-size: 0.875rem;
-      color: var(--text-muted);
-    }
-
-    .sala-stat strong {
-      color: var(--text-dark);
-    }
-
-    .sala-content {
-      padding: 1.5rem;
-      border-top: 1px solid var(--border-color);
-    }
-
-    .materials-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .materials-table thead th {
-      text-align: left;
-      padding: 0.75rem 1rem;
-      background: var(--bg-light);
-      color: var(--text-muted);
-      font-weight: 700;
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      border-bottom: 2px solid var(--border-color);
-    }
-
-    .materials-table tbody td {
-      padding: 1rem;
-      border-bottom: 1px solid var(--border-color);
-      vertical-align: middle;
-    }
-
-    .material-name {
-      font-weight: 700;
-      color: var(--text-dark);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .material-name::before {
-      content: '';
-      width: 8px;
-      height: 8px;
-      background: var(--primary);
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .material-qty {
-      background: var(--primary-light);
-      color: var(--primary-dark);
-      padding: 0.25rem 0.75rem;
-      border-radius: 20px;
-      font-weight: 800;
-      font-size: 0.875rem;
-      display: inline-block;
-    }
-
-    .material-unit,
-    .muted {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    .btn-back {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 28px;
-      background: #fff;
-      color: var(--text-muted);
-      border: 2px solid var(--border-color);
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
-      margin-top: 2rem;
-      transition: all 0.3s ease;
-    }
-
-    .btn-back:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-      transform: translateY(-2px);
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-    }
-
-    .empty-state h3 {
-      margin-bottom: 0.5rem;
-    }
-
-    .empty-materials {
-      text-align: center;
-      padding: 2rem;
-      color: var(--text-muted);
-      background: white;
-      border-radius: 16px;
-      border: 1px solid var(--border-color);
-      box-shadow: var(--card-shadow);
-    }
-
-    @media (max-width: 768px) {
-      .main-container {
-        padding: 1rem;
-      }
-
-      .page-header {
-        padding: 1.5rem;
-      }
-
-      .filter-form,
-      .panel-switch {
-        flex-direction: column;
-      }
-
-      .panel-btn,
-      .btn-filter {
-        width: 100%;
-      }
-
-      .sala-header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .sala-header-right {
-        width: 100%;
-        justify-content: space-between;
-      }
-
-      .sala-stats {
-        flex-wrap: wrap;
-        gap: 0.75rem;
-      }
-
-      .materials-table {
-        display: block;
-        overflow-x: auto;
-      }
-    }
-  </style>
 {% endblock %}
-{% block content %}
-<div class="supply-panel-page">
-  <div class="bg-decoration">
-    <div class="bg-circle bg-circle-1"></div>
-    <div class="bg-circle bg-circle-2"></div>
-  </div>
 
-  <div class="main-container">
-    <div class="page-header">
-      <div class="page-header-content">
-        <div class="page-header-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-        </div>
-        <div>
-          <h1>Painel Supply - Visualização</h1>
-          <p>Consulte materiais e pedidos cadastrados por sábado</p>
-        </div>
+{% block content %}
+<div class="pmv-page">
+  <div class="pcf-container pmv-wrap">
+
+    <!-- ─────────────────────────── CABEÇALHO ─────────────────────────── -->
+    <header class="pmv-head">
+      <div class="pmv-head-text">
+        <span class="pcf-eyebrow">Supply</span>
+        <h1 class="pmv-title">Painel Supply — Visualização</h1>
+        <p class="pmv-sub">Consulte materiais e pedidos cadastrados por sábado.</p>
       </div>
-    </div>
+      <div class="pmv-head-actions">
+        <a class="pcf-btn pcf-btn-outline" href="/supply/">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          Voltar
+        </a>
+      </div>
+    </header>
 
     {% if not sabado %}
-      <div class="empty-state">
-        <h3>Nenhum sábado cadastrado</h3>
-        <p>Cadastre um sábado para visualizar os materiais e pedidos.</p>
+      <!-- ─────────────────────────── ESTADO VAZIO ─────────────────────────── -->
+      <div class="pmv-empty">
+        <div class="pmv-empty-icon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <p class="pmv-empty-title">Nenhum sábado cadastrado</p>
+        <p class="pmv-empty-sub">Cadastre um sábado para visualizar os materiais e pedidos.</p>
       </div>
     {% else %}
 
-      <div class="filter-card">
-        <form method="get" class="filter-form">
+      <!-- ─────────────────────────── FILTROS ─────────────────────────── -->
+      <section class="pcf-card pmv-filter" aria-label="Filtros">
+        <form method="get" class="pmv-filter-form">
           <input type="hidden" name="painel" value="{{ tipo_painel|default:'material' }}">
 
-          <div class="filter-group">
-            <label>Sábado</label>
-            <select name="sabado" onchange="this.form.submit()">
+          <div class="pcf-field pmv-filter-group">
+            <label class="pcf-label" for="pmv-sabado">Sábado</label>
+            <select class="pcf-input" id="pmv-sabado" name="sabado" onchange="this.form.submit()">
               {% for s in sabados %}
                 <option value="{{ s.id }}" {% if sabado and s.id == sabado.id %}selected{% endif %}>
                   {{ s.data|date:"d/m/Y" }} — {{ s.tema }}
@@ -558,9 +52,9 @@
             </select>
           </div>
 
-          <div class="filter-group">
-            <label>Local de compra</label>
-            <select name="local" onchange="this.form.submit()">
+          <div class="pcf-field pmv-filter-group">
+            <label class="pcf-label" for="pmv-local">Local de compra</label>
+            <select class="pcf-input" id="pmv-local" name="local" onchange="this.form.submit()">
               <option value="">Todos os locais</option>
               {% for local in locais %}
                 <option value="{{ local.id }}" {% if local_id == local.id|stringformat:'s' %}selected{% endif %}>
@@ -570,185 +64,257 @@
             </select>
           </div>
 
-          <button type="submit" class="btn-filter">Filtrar</button>
+          <button type="submit" class="pcf-btn pcf-btn-primary pmv-filter-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Filtrar
+          </button>
         </form>
-      </div>
+      </section>
 
-      <div class="panel-switch-card">
-        <div class="panel-switch">
-          <a
-            href="?sabado={{ sabado.id }}&pedido={{ pedido|default:'' }}&local={{ local_id|default:'' }}&painel=material"
-            class="panel-btn {% if tipo_painel == 'material' or not tipo_painel %}active{% endif %}"
-          >
-            Materiais
-          </a>
+      <!-- ─────────────────────────── ABAS (MATERIAIS / PEDIDOS) ─────────────────────────── -->
+      <nav class="pmv-tabs" aria-label="Tipo de painel">
+        <a
+          href="?sabado={{ sabado.id }}&pedido={{ pedido|default:'' }}&local={{ local_id|default:'' }}&painel=material"
+          class="pmv-tab {% if tipo_painel == 'material' or not tipo_painel %}is-active{% endif %}"
+          {% if tipo_painel == 'material' or not tipo_painel %}aria-current="page"{% endif %}
+        >
+          Materiais
+        </a>
+        <a
+          href="?sabado={{ sabado.id }}&local={{ local_id|default:'' }}&painel=pedido"
+          class="pmv-tab {% if tipo_painel == 'pedido' %}is-active{% endif %}"
+          {% if tipo_painel == 'pedido' %}aria-current="page"{% endif %}
+        >
+          Pedidos
+        </a>
+      </nav>
 
-          <a
-            href="?sabado={{ sabado.id }}&local={{ local_id|default:'' }}&painel=pedido"
-            class="panel-btn {% if tipo_painel == 'pedido' %}active{% endif %}"
-          >
-            Pedidos
-          </a>
+      <!-- ─────────────────────────── RESUMO (STATS) ─────────────────────────── -->
+      <div class="pmv-stats">
+        <div class="pcf-card pcf-card-sm pmv-stat">
+          <span class="pcf-icon-tile tint-orange">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </span>
+          <div class="pmv-stat-body">
+            <span class="pmv-stat-label">{% if tipo_painel == "pedido" %}Total de pedidos{% else %}Total de materiais{% endif %}</span>
+            <span class="pmv-stat-value">{{ total_itens }}</span>
+          </div>
+        </div>
+
+        <div class="pcf-card pcf-card-sm pmv-stat">
+          <span class="pcf-icon-tile tint-green">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </span>
+          <div class="pmv-stat-body">
+            <span class="pmv-stat-label">Valor total</span>
+            <span class="pmv-stat-value">R$ {{ total_valor|floatformat:2 }}</span>
+          </div>
         </div>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon orange">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-          </div>
-          <div>
-            <div class="stat-label">{% if tipo_painel == "pedido" %}Total de pedidos{% else %}Total de materiais{% endif %}</div>
-            <div class="stat-value">{{ total_itens }}</div>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon green">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2" />
-            </svg>
-          </div>
-          <div>
-            <div class="stat-label">Valor total</div>
-            <div class="stat-value">R$ {{ total_valor|floatformat:2 }}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="salas-container">
+      <!-- ─────────────────────────── LISTAGEM POR GRUPO ─────────────────────────── -->
+      <div class="pmv-groups">
         {% if tipo_painel == "pedido" %}
           {% for grupo in pedidos_map %}
-            <details class="sala-card" {% if forloop.first %}open{% endif %}>
-              <summary class="sala-header">
-                <div class="sala-header-left">
-                  <div class="sala-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"/>
-                    </svg>
-                  </div>
-                  <span class="sala-name">{{ grupo.nome }}</span>
-                </div>
-
-                <div class="sala-header-right">
-                  <div class="sala-stats">
-                    <span class="sala-stat">Pedidos: <strong>{{ grupo.total_itens }}</strong></span>
-                    <span class="sala-stat">Valor: <strong>R$ {{ grupo.total_valor|floatformat:2 }}</strong></span>
-                  </div>
-                </div>
+            <details class="pcf-card pmv-group" {% if forloop.first %}open{% endif %}>
+              <summary class="pmv-group-head">
+                <span class="pmv-group-left">
+                  <span class="pcf-icon-tile tint-orange pmv-group-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+                  </span>
+                  <span class="pmv-group-name">{{ grupo.nome }}</span>
+                </span>
+                <span class="pmv-group-stats">
+                  <span class="pcf-badge brand">Pedidos: {{ grupo.total_itens }}</span>
+                  <span class="pcf-badge info">Valor: R$ {{ grupo.total_valor|floatformat:2 }}</span>
+                  <svg class="pmv-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </span>
               </summary>
 
-              <div class="sala-content">
-                <table class="materials-table">
-                  <thead>
-                    <tr>
-                      <th>Pedido</th>
-                      <th>Especificar</th>
-                      <th>Imagem</th>
-                      <th>Qtd</th>
-                      <th>Unidade</th>
-                      <th>Valor</th>
-                      <th>Valor total</th>
-                      <th>Local de compra</th>
-                      <th>Requisitado por</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {% for item in grupo.pedidos %}
+              <div class="pmv-group-body">
+                <div class="pmv-table-scroll">
+                  <table class="pcf-table pmv-table">
+                    <thead>
                       <tr>
-                        <td><span class="material-name">{{ item.nome }}</span></td>
-                        <td>{{ item.especificar|default:"—" }}</td>
-                        <td>{% if item.link %}<a href="{{ item.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</td>
-                        <td><span class="material-qty">{{ item.quantidade|floatformat:0 }}</span></td>
-                        <td><span class="material-unit">{{ item.unidade }}</span></td>
-                        <td>{% if item.valor is not None %}R$ {{ item.valor|floatformat:2 }}{% else %}—{% endif %}</td>
-                        <td>{% if item.valor_total is not None %}R$ {{ item.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
-                        <td>
-                          {{ item.local|default:"—" }}
-                          {% if item.local.localizacao %}<small class="d-block">{{ item.local.localizacao }}</small>{% endif %}
-                          {% if item.local.numero_contato %}<small class="d-block">{{ item.local.numero_contato }}</small>{% endif %}
-                        </td>
-                        <td>{{ item.requisitado_por|default:"—" }}</td>
+                        <th>Pedido</th>
+                        <th>Especificar</th>
+                        <th>Imagem</th>
+                        <th>Qtd</th>
+                        <th>Unidade</th>
+                        <th>Valor</th>
+                        <th>Valor total</th>
+                        <th>Local de compra</th>
+                        <th>Requisitado por</th>
                       </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {% for item in grupo.pedidos %}
+                        <tr>
+                          <td><span class="pmv-item-name">{{ item.nome }}</span></td>
+                          <td>{{ item.especificar|default:"—" }}</td>
+                          <td>{% if item.link %}<a class="pmv-link" href="{{ item.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</td>
+                          <td><span class="pcf-badge brand pmv-qty">{{ item.quantidade|floatformat:0 }}</span></td>
+                          <td><span class="pmv-muted">{{ item.unidade }}</span></td>
+                          <td>{% if item.valor is not None %}R$ {{ item.valor|floatformat:2 }}{% else %}—{% endif %}</td>
+                          <td>{% if item.valor_total is not None %}R$ {{ item.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
+                          <td>
+                            {{ item.local|default:"—" }}
+                            {% if item.local.localizacao %}<small class="pmv-sub-line">{{ item.local.localizacao }}</small>{% endif %}
+                            {% if item.local.numero_contato %}<small class="pmv-sub-line">{{ item.local.numero_contato }}</small>{% endif %}
+                          </td>
+                          <td>{{ item.requisitado_por|default:"—" }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </details>
           {% empty %}
-            <div class="empty-materials">Sem pedidos para o filtro selecionado.</div>
+            <div class="pmv-empty-inline">Sem pedidos para o filtro selecionado.</div>
           {% endfor %}
 
         {% else %}
           {% for sala in salas_map %}
-            <details class="sala-card" {% if forloop.first %}open{% endif %}>
-              <summary class="sala-header">
-                <div class="sala-header-left">
-                  <div class="sala-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
-                    </svg>
-                  </div>
-                  <span class="sala-name">{{ sala.nome }}</span>
-                </div>
-
-                <div class="sala-header-right">
-                  <div class="sala-stats">
-                    <span class="sala-stat">Itens: <strong>{{ sala.total_itens }}</strong></span>
-                    <span class="sala-stat">Valor: <strong>R$ {{ sala.total_valor|floatformat:2 }}</strong></span>
-                  </div>
-                </div>
+            <details class="pcf-card pmv-group" {% if forloop.first %}open{% endif %}>
+              <summary class="pmv-group-head">
+                <span class="pmv-group-left">
+                  <span class="pcf-icon-tile tint-gold pmv-group-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/></svg>
+                  </span>
+                  <span class="pmv-group-name">{{ sala.nome }}</span>
+                </span>
+                <span class="pmv-group-stats">
+                  <span class="pcf-badge brand">Itens: {{ sala.total_itens }}</span>
+                  <span class="pcf-badge info">Valor: R$ {{ sala.total_valor|floatformat:2 }}</span>
+                  <svg class="pmv-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </span>
               </summary>
 
-              <div class="sala-content">
-                <table class="materials-table">
-                  <thead>
-                    <tr>
-                      <th>Material</th>
-                      <th>Especificar</th>
-                      <th>Imagem</th>
-                      <th>Qtd</th>
-                      <th>Unidade</th>
-                      <th>Valor</th>
-                      <th>Valor total</th>
-                      <th>Local de compra</th>
-                      <th>Requisitado por</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {% for material in sala.materiais %}
+              <div class="pmv-group-body">
+                <div class="pmv-table-scroll">
+                  <table class="pcf-table pmv-table">
+                    <thead>
                       <tr>
-                        <td><span class="material-name">{{ material.nome }}</span></td>
-                        <td>{{ material.especificar|default:"—" }}</td>
-                        <td>{% if material.link %}<a href="{{ material.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</td>
-                        <td><span class="material-qty">{{ material.quantidade|floatformat:0 }}</span></td>
-                        <td><span class="material-unit">{{ material.unidade }}</span></td>
-                        <td>{% if material.valor is not None %}R$ {{ material.valor|floatformat:2 }}{% else %}—{% endif %}</td>
-                        <td>{% if material.valor_total is not None %}R$ {{ material.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
-                        <td>
-                          {{ material.local|default:"—" }}
-                          {% if material.local.localizacao %}<small class="d-block">{{ material.local.localizacao }}</small>{% endif %}
-                          {% if material.local.numero_contato %}<small class="d-block">{{ material.local.numero_contato }}</small>{% endif %}
-                        </td>
-                        <td>{{ material.requisitado_por|default:"—" }}</td>
+                        <th>Material</th>
+                        <th>Especificar</th>
+                        <th>Imagem</th>
+                        <th>Qtd</th>
+                        <th>Unidade</th>
+                        <th>Valor</th>
+                        <th>Valor total</th>
+                        <th>Local de compra</th>
+                        <th>Requisitado por</th>
                       </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {% for material in sala.materiais %}
+                        <tr>
+                          <td><span class="pmv-item-name">{{ material.nome }}</span></td>
+                          <td>{{ material.especificar|default:"—" }}</td>
+                          <td>{% if material.link %}<a class="pmv-link" href="{{ material.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</td>
+                          <td><span class="pcf-badge brand pmv-qty">{{ material.quantidade|floatformat:0 }}</span></td>
+                          <td><span class="pmv-muted">{{ material.unidade }}</span></td>
+                          <td>{% if material.valor is not None %}R$ {{ material.valor|floatformat:2 }}{% else %}—{% endif %}</td>
+                          <td>{% if material.valor_total is not None %}R$ {{ material.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
+                          <td>
+                            {{ material.local|default:"—" }}
+                            {% if material.local.localizacao %}<small class="pmv-sub-line">{{ material.local.localizacao }}</small>{% endif %}
+                            {% if material.local.numero_contato %}<small class="pmv-sub-line">{{ material.local.numero_contato }}</small>{% endif %}
+                          </td>
+                          <td>{{ material.requisitado_por|default:"—" }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </details>
           {% empty %}
-            <div class="empty-materials">Sem materiais para o filtro selecionado.</div>
+            <div class="pmv-empty-inline">Sem materiais para o filtro selecionado.</div>
           {% endfor %}
         {% endif %}
       </div>
 
-      <a class="btn-back" href="/supply/">Voltar</a>
     {% endif %}
   </div>
 </div>
+
+{# Bloco enxuto: só LAYOUT específico desta tela. O visual vem das classes .pcf-* do design system. #}
+<style>
+  .pmv-page { background: hsl(var(--background)); min-height: 100%; }
+  .pmv-wrap { padding-top: clamp(1.75rem, 4vw, 2.75rem); padding-bottom: clamp(2.5rem, 6vw, 4rem); }
+
+  /* ── Cabeçalho leve ── */
+  .pmv-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .pmv-head-text { display: flex; flex-direction: column; gap: .45rem; min-width: 0; }
+  .pmv-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.5rem, 3.4vw, 2.15rem); color: var(--ink); }
+  .pmv-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .pmv-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* ── Filtros ── */
+  .pmv-filter { padding: 1.25rem; margin-bottom: 1rem; }
+  .pmv-filter-form { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+  .pmv-filter-group { flex: 1; min-width: 240px; }
+  .pmv-filter-group .pcf-input { width: 100%; }
+  .pmv-filter-btn { flex-shrink: 0; }
+
+  /* ── Abas ── */
+  .pmv-tabs { display: flex; gap: .5rem; flex-wrap: wrap; padding: .35rem; margin-bottom: 1.5rem; border-radius: 14px; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); box-shadow: var(--shadow-warm-sm, 0 8px 26px rgba(15,23,42,.06)); }
+  .pmv-tab { flex: 1; min-width: 120px; text-align: center; padding: .7rem 1.1rem; border-radius: 10px; font-weight: 800; font-size: .9rem; text-decoration: none; color: hsl(var(--muted-foreground)); transition: background .18s ease, color .18s ease; }
+  .pmv-tab:hover { color: #c9490a; background: #fff2e9; }
+  .pmv-tab.is-active { color: #fff; background: var(--brand-grad, linear-gradient(135deg, #f8a51b, #e8560f)); box-shadow: 0 6px 18px rgba(232, 86, 15, .22); }
+
+  /* ── Stats ── */
+  .pmv-stats { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  .pmv-stat { display: flex; align-items: center; gap: 1rem; }
+  .pmv-stat-body { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+  .pmv-stat-label { font-size: .82rem; color: hsl(var(--muted-foreground)); }
+  .pmv-stat-value { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+
+  /* ── Grupos (details) ── */
+  .pmv-groups { display: flex; flex-direction: column; gap: 1rem; }
+  .pmv-group { padding: 0; overflow: hidden; }
+  .pmv-group-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.25rem; cursor: pointer; list-style: none; }
+  .pmv-group-head::-webkit-details-marker { display: none; }
+  .pmv-group-left { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+  .pmv-group-icon { flex-shrink: 0; }
+  .pmv-group-name { font-weight: 800; font-size: 1.05rem; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pmv-group-stats { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; justify-content: flex-end; }
+  .pmv-chevron { color: hsl(var(--muted-foreground)); flex-shrink: 0; transition: transform .2s ease; }
+  .pmv-group[open] .pmv-chevron { transform: rotate(180deg); }
+  .pmv-group-body { padding: 0 1.25rem 1.25rem; }
+
+  /* ── Tabela ── */
+  .pmv-table-scroll { overflow-x: auto; border: 1px solid hsl(var(--border)); border-radius: 14px; }
+  .pmv-table { min-width: 760px; }
+  .pmv-table th { background: #fdf6f0; }
+  .pmv-table td { vertical-align: middle; }
+  .pmv-item-name { font-weight: 700; color: var(--ink); }
+  .pmv-qty { font-variant-numeric: tabular-nums; }
+  .pmv-muted { color: hsl(var(--muted-foreground)); }
+  .pmv-link { color: #d1500f; font-weight: 600; text-decoration: underline; }
+  .pmv-link:hover { color: #c9490a; }
+  .pmv-sub-line { display: block; font-size: .78rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Estados vazios ── */
+  .pmv-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
+  .pmv-empty-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; background: #fff0e6; color: #e8560f; }
+  .pmv-empty-title { margin: .4rem 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .pmv-empty-sub { margin: 0; max-width: 40ch; font-size: .88rem; color: hsl(var(--muted-foreground)); }
+  .pmv-empty-inline { text-align: center; padding: 2rem 1.5rem; color: hsl(var(--muted-foreground)); background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 16px; }
+
+  /* ── Breakpoints ── */
+  @media (min-width: 640px) {
+    .pmv-stats { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .pmv-filter-form { flex-direction: column; align-items: stretch; }
+    .pmv-filter-btn { width: 100%; }
+    .pmv-group-head { flex-direction: column; align-items: flex-start; }
+    .pmv-group-stats { width: 100%; justify-content: flex-start; }
+    .pmv-head-actions { width: 100%; }
+    .pmv-head-actions .pcf-btn { flex: 1; justify-content: center; }
+  }
+</style>
 {% endblock %}

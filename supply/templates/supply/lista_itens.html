@@ -4,52 +4,132 @@
 {% block head %}<link rel="stylesheet" href="{% static 'supply/supply.css' %}">{% endblock %}
 
 {% block content %}
-<div class="supply-page py-4 py-md-5">
-  <div class="container" style="max-width:1180px;">
-    <div class="supply-hero rounded-4 p-4 p-md-5 mb-4 text-white d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-      <div>
-        <div class="small text-uppercase fw-semibold opacity-75 mb-1">Supply</div>
-        <h1 class="h3 fw-bold mb-1">Controle de estoque</h1>
-        <p class="mb-0 opacity-75">Consulte quantidades e identifique rapidamente itens que precisam de reposição.</p>
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .est-). O visual vem das classes .pcf-*. #}
+<div class="est-page">
+  <div class="pcf-container est-wrap">
+
+    <!-- Cabeçalho leve -->
+    <header class="est-head">
+      <div class="est-head-text">
+        <span class="pcf-eyebrow">Supply</span>
+        <h1 class="est-title">Controle de estoque</h1>
+        <p class="est-sub">Consulte quantidades e identifique rapidamente itens que precisam de reposição.</p>
       </div>
-      <a href="{% url 'supply:supply_view' %}" class="btn btn-light fw-semibold px-4">Voltar ao Supply</a>
-    </div>
+      <div class="est-head-actions">
+        <a href="{% url 'supply:lista_movimentacoes' %}" class="pcf-btn pcf-btn-outline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+          Ver movimentações
+        </a>
+        <a href="{% url 'supply:supply_view' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          Voltar ao Supply
+        </a>
+      </div>
+    </header>
 
     {% if itens_estoque_baixo %}
-    <div class="alert alert-warning border-warning-subtle rounded-4 d-flex align-items-center gap-3 mb-4" role="alert">
-      <i class="bi bi-exclamation-triangle-fill fs-4"></i>
-      <div><strong>Atenção:</strong> {{ itens_estoque_baixo|length }} item(ns) com estoque baixo.</div>
+    <div class="est-alert" role="alert">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span><strong>Atenção:</strong> {{ itens_estoque_baixo|length }} item(ns) com estoque baixo.</span>
     </div>
     {% endif %}
 
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-      <div>
-        <h2 class="h5 fw-bold mb-1">Itens cadastrados</h2>
-        <p class="text-secondary small mb-0">O status considera a quantidade mínima configurada para cada item.</p>
+    <div class="est-listhead">
+      <div class="est-listhead-text">
+        <h2 class="est-h2">Itens cadastrados</h2>
+        <p class="est-h2-sub">O status considera a quantidade mínima configurada para cada item.</p>
       </div>
-      <a href="{% url 'supply:lista_movimentacoes' %}" class="btn btn-outline-primary fw-semibold">
-        <i class="bi bi-clock-history me-1"></i> Ver movimentações
-      </a>
     </div>
 
-    <div class="supply-table-shell table-responsive">
-      <table class="table table-hover align-middle">
-        <thead><tr><th>Item</th><th>Categoria</th><th>Quantidade atual</th><th>Unidade</th><th>Status</th></tr></thead>
-        <tbody>
-          {% for item in itens %}
-          <tr class="{% if item.estoque_baixo %}table-warning{% endif %}">
-            <td class="fw-semibold">{{ item.nome }}</td>
-            <td>{{ item.get_categoria_display }}</td>
-            <td>{{ item.quantidade_atual }}</td>
-            <td>{{ item.get_unidade_display }}</td>
-            <td>{% if item.estoque_baixo %}<span class="badge rounded-pill text-bg-warning">Estoque baixo</span>{% else %}<span class="badge rounded-pill text-bg-success">Disponível</span>{% endif %}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="5" class="text-center text-secondary py-5"><i class="bi bi-box-seam fs-2 d-block mb-2"></i>Nenhum item cadastrado.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="pcf-card est-tablecard">
+      <div class="est-tablescroll">
+        <table class="pcf-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Categoria</th>
+              <th>Quantidade atual</th>
+              <th>Unidade</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in itens %}
+            <tr>
+              <td class="est-strong">{{ item.nome }}</td>
+              <td>{{ item.get_categoria_display }}</td>
+              <td>{{ item.quantidade_atual }}</td>
+              <td>{{ item.get_unidade_display }}</td>
+              <td>
+                {% if item.quantidade_atual <= 0 %}
+                  <span class="pcf-badge danger">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    Zerado
+                  </span>
+                {% elif item.estoque_baixo %}
+                  <span class="pcf-badge warn">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Estoque baixo
+                  </span>
+                {% else %}
+                  <span class="pcf-badge ok">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                    Disponível
+                  </span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5">
+                <div class="est-empty">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                  <span>Nenhum item cadastrado.</span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+
   </div>
 </div>
+
+<style>
+  .est-page { background: hsl(var(--background)); }
+  .est-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Cabeçalho leve */
+  .est-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .est-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .est-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .est-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .est-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* Alerta de estoque baixo */
+  .est-alert { display: flex; align-items: center; gap: .75rem; padding: .9rem 1.1rem; margin-bottom: 1.5rem; border-radius: 16px; background: #fdf3dd; border: 1px solid #f2e0b0; color: #8a6a10; font-size: .92rem; }
+  .est-alert svg { flex-shrink: 0; }
+
+  /* Sub-cabeçalho da lista */
+  .est-listhead { margin-bottom: 1rem; }
+  .est-h2 { margin: 0 0 .2rem; font-weight: 800; letter-spacing: -.01em; font-size: 1.15rem; color: var(--ink); }
+  .est-h2-sub { margin: 0; font-size: .85rem; color: var(--ink-muted); }
+
+  /* Tabela */
+  .est-tablecard { padding: 0; overflow: hidden; }
+  .est-tablescroll { overflow-x: auto; }
+  .est-tablescroll table { min-width: 640px; }
+  .est-strong { font-weight: 700; color: var(--ink); }
+
+  /* Estado vazio */
+  .est-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; padding: clamp(2rem, 5vw, 3rem) 1.5rem; text-align: center; color: var(--ink-muted); }
+  .est-empty svg { color: #e8560f; }
+
+  @media (max-width: 560px) {
+    .est-head-actions { width: 100%; }
+    .est-head-actions .pcf-btn { flex: 1; }
+  }
+</style>
 {% endblock %}

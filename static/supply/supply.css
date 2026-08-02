@@ -1,11 +1,11 @@
 .supply-page,
 .supply-panel-page {
-  --supply-primary: #d97706;
-  --supply-primary-dark: #92400e;
-  --supply-secondary: #2563eb;
-  --supply-ink: #172033;
-  --supply-muted: #64748b;
-  --supply-border: #e2e8f0;
+  --supply-primary: #e8560f;
+  --supply-primary-dark: #c93f05;
+  --supply-secondary: #ff9040;
+  --supply-ink: #1c130e;
+  --supply-muted: #8a7566;
+  --supply-border: #f4e7de;
   min-height: 100vh;
   color: var(--supply-ink);
   background:
