@@ -2,246 +2,252 @@
 {% block titulo %}Fluxo de Caixa — Financeiro{% endblock %}
 
 {% block content %}
-<div class="fin-page">
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .flx-). O visual base vem das classes .pcf-*. #}
+<div class="flx-page">
+  <div class="pcf-container flx-wrap">
 
-  <div class="fin-header">
-    <div class="fin-container">
-      <div class="fin-header-inner">
-        <div class="fin-header-text">
-          <p class="fin-breadcrumb">
-            <a href="{% url 'adm:painel' %}" class="fin-breadcrumb-link">Financeiro</a>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-            Fluxo de Caixa
-          </p>
-          <h1 class="fin-title">Fluxo de Caixa</h1>
-          <p class="fin-sub">Linha do tempo de movimentações com saldo acumulado. Filtre por período, tipo ou categoria.</p>
-        </div>
-        <a href="?{{ request.GET.urlencode }}&exportar=csv" class="fin-btn fin-btn-outline fin-btn-export">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Exportar CSV
+    <!-- Cabeçalho leve -->
+    <header class="flx-head">
+      <div class="flx-head-text">
+        <a href="{% url 'adm:painel' %}" class="flx-breadcrumb">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          Financeiro
         </a>
+        <span class="pcf-eyebrow">Relatório</span>
+        <h1 class="flx-title">Fluxo de Caixa</h1>
+        <p class="flx-sub">Linha do tempo de movimentações com saldo acumulado. Filtre por período, tipo ou categoria.</p>
       </div>
-    </div>
-  </div>
-
-  <div class="fin-container fin-body">
+      <a href="?{{ request.GET.urlencode }}&exportar=csv" class="pcf-btn pcf-btn-outline flx-head-cta">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar CSV
+      </a>
+    </header>
 
     <!-- Filtros -->
-    <div class="fin-filters-card">
-      <form method="get" class="fin-filters-form">
-        <div class="fin-filter-group">
-          <label class="fin-filter-label">Tipo</label>
-          <select name="tipo" class="fin-select">
+    <div class="pcf-card flx-filters-card">
+      <form method="get" class="flx-filters-form">
+        <div class="pcf-field flx-filter-group">
+          <label class="pcf-label" for="flx-tipo">Tipo</label>
+          <select id="flx-tipo" name="tipo" class="pcf-input">
             <option value="">Todos</option>
             <option value="RECEITA" {% if filtro_tipo == 'RECEITA' %}selected{% endif %}>Receita</option>
             <option value="DESPESA" {% if filtro_tipo == 'DESPESA' %}selected{% endif %}>Despesa</option>
           </select>
         </div>
-        <div class="fin-filter-group">
-          <label class="fin-filter-label">Categoria</label>
-          <select name="categoria" class="fin-select">
+        <div class="pcf-field flx-filter-group">
+          <label class="pcf-label" for="flx-categoria">Categoria</label>
+          <select id="flx-categoria" name="categoria" class="pcf-input">
             <option value="">Todas</option>
             {% for cat in categorias %}
             <option value="{{ cat.pk }}" {% if filtro_categoria == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.nome }}</option>
             {% endfor %}
           </select>
         </div>
-        <div class="fin-filter-group">
-          <label class="fin-filter-label">De</label>
-          <input type="date" name="data_ini" value="{{ filtro_data_ini }}" class="fin-input">
+        <div class="pcf-field flx-filter-group">
+          <label class="pcf-label" for="flx-data-ini">De</label>
+          <input id="flx-data-ini" type="date" name="data_ini" value="{{ filtro_data_ini }}" class="pcf-input">
         </div>
-        <div class="fin-filter-group">
-          <label class="fin-filter-label">Até</label>
-          <input type="date" name="data_fim" value="{{ filtro_data_fim }}" class="fin-input">
+        <div class="pcf-field flx-filter-group">
+          <label class="pcf-label" for="flx-data-fim">Até</label>
+          <input id="flx-data-fim" type="date" name="data_fim" value="{{ filtro_data_fim }}" class="pcf-input">
         </div>
-        <div class="fin-filter-actions">
-          <button type="submit" class="fin-btn fin-btn-outline">Filtrar</button>
-          <a href="{% url 'adm:fluxo_caixa' %}" class="fin-btn fin-btn-ghost">Limpar</a>
+        <div class="flx-filter-actions">
+          <button type="submit" class="pcf-btn pcf-btn-primary pcf-btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Filtrar
+          </button>
+          <a href="{% url 'adm:fluxo_caixa' %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Limpar</a>
         </div>
       </form>
     </div>
 
     <!-- Saldo do período -->
-    <div class="fin-saldo-banner {% if saldo_final >= 0 %}fin-saldo-pos{% else %}fin-saldo-neg{% endif %}">
-      <div class="fin-saldo-label">Saldo no período</div>
-      <div class="fin-saldo-value">R$ {{ saldo_final|floatformat:2 }}</div>
+    <div class="flx-saldo-banner {% if saldo_final >= 0 %}flx-saldo-pos{% else %}flx-saldo-neg{% endif %}">
+      <div class="flx-saldo-info">
+        <span class="flx-saldo-label">Saldo no período</span>
+        <span class="flx-saldo-tag">
+          {% if saldo_final >= 0 %}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          Positivo
+          {% else %}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+          Negativo
+          {% endif %}
+        </span>
+      </div>
+      <div class="flx-saldo-value">R$ {{ saldo_final|floatformat:2 }}</div>
     </div>
 
+    <!-- Gráfico: evolução do saldo acumulado -->
+    {% if lancamentos_com_saldo %}
+    <div class="pcf-card flx-chart-card">
+      <div class="flx-card-head">
+        <h2 class="flx-card-title">Evolução do saldo acumulado</h2>
+        <p class="flx-card-desc">Saldo após cada movimentação no período filtrado.</p>
+      </div>
+      <div class="flx-chart">
+        <canvas id="graficoFluxo"></canvas>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Tabela -->
-    <div class="fin-table-card">
-      <table class="fin-table">
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Descrição</th>
-            <th>Categoria</th>
-            <th class="fin-th-right fin-color-pos">Entrada</th>
-            <th class="fin-th-right fin-color-neg">Saída</th>
-            <th class="fin-th-right">Saldo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for item in lancamentos_com_saldo %}
-          <tr>
-            <td class="fin-td-nowrap">{{ item.lan.data|date:"d/m/Y" }}</td>
-            <td class="fin-td-muted">{{ item.lan.descricao|default:item.lan.categoria.nome|truncatechars:42 }}</td>
-            <td><span class="fin-origin-tag">{{ item.lan.categoria.nome }}</span></td>
-            <td class="fin-td-right fin-td-bold fin-color-pos">
-              {% if item.lan.tipo == 'RECEITA' %}R$&nbsp;{{ item.lan.valor|floatformat:2 }}{% else %}<span class="fin-td-dash">—</span>{% endif %}
-            </td>
-            <td class="fin-td-right fin-td-bold fin-color-neg">
-              {% if item.lan.tipo == 'DESPESA' %}R$&nbsp;{{ item.lan.valor|floatformat:2 }}{% else %}<span class="fin-td-dash">—</span>{% endif %}
-            </td>
-            <td class="fin-td-right fin-td-saldo {% if item.saldo >= 0 %}fin-color-pos{% else %}fin-color-neg{% endif %}">
-              R$&nbsp;{{ item.saldo|floatformat:2 }}
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6">
-              <div class="fin-table-empty">
-                <div class="fin-empty-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <div class="pcf-card flx-table-card">
+      <div class="flx-table-scroll" style="overflow-x:auto">
+        <table class="pcf-table flx-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Descrição</th>
+              <th>Categoria</th>
+              <th class="flx-th-right flx-color-pos">Entrada</th>
+              <th class="flx-th-right flx-color-neg">Saída</th>
+              <th class="flx-th-right">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in lancamentos_com_saldo %}
+            <tr>
+              <td class="flx-td-nowrap">{{ item.lan.data|date:"d/m/Y" }}</td>
+              <td class="flx-td-muted">{{ item.lan.descricao|default:item.lan.categoria.nome|truncatechars:42 }}</td>
+              <td><span class="pcf-badge flx-origin-tag">{{ item.lan.categoria.nome }}</span></td>
+              <td class="flx-td-right flx-td-bold flx-color-pos">
+                {% if item.lan.tipo == 'RECEITA' %}R$&nbsp;{{ item.lan.valor|floatformat:2 }}{% else %}<span class="flx-td-dash">—</span>{% endif %}
+              </td>
+              <td class="flx-td-right flx-td-bold flx-color-neg">
+                {% if item.lan.tipo == 'DESPESA' %}R$&nbsp;{{ item.lan.valor|floatformat:2 }}{% else %}<span class="flx-td-dash">—</span>{% endif %}
+              </td>
+              <td class="flx-td-right flx-td-saldo {% if item.saldo >= 0 %}flx-color-pos{% else %}flx-color-neg{% endif %}">
+                R$&nbsp;{{ item.saldo|floatformat:2 }}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6">
+                <div class="flx-empty">
+                  <span class="pcf-icon-tile tint-orange" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  </span>
+                  <p class="flx-empty-title">Nenhum lançamento no período</p>
+                  <p class="flx-empty-sub">Ajuste os filtros ou adicione lançamentos no painel.</p>
                 </div>
-                <p class="fin-empty-title">Nenhum lançamento no período</p>
-                <p class="fin-empty-sub">Ajuste os filtros ou adicione lançamentos no painel.</p>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </div>
 </div>
 
+{% if lancamentos_com_saldo %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const flxLabels = [{% for item in lancamentos_com_saldo %}'{{ item.lan.data|date:"d/m/Y"|escapejs }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+  const flxSaldo  = [{% for item in lancamentos_com_saldo %}{{ item.saldo|stringformat:"f" }}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+  new Chart(document.getElementById('graficoFluxo').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: flxLabels,
+      datasets: [{
+        label: 'Saldo acumulado',
+        data: flxSaldo,
+        borderColor: '#e8560f',
+        backgroundColor: 'rgba(232,86,15,.14)',
+        borderWidth: 2,
+        fill: true,
+        tension: .25,
+        pointRadius: 3,
+        pointBackgroundColor: '#e8560f',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => 'R$ ' + Number(ctx.parsed.y).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) } }
+      },
+      scales: {
+        y: { ticks: { callback: v => 'R$ ' + Number(v).toLocaleString('pt-BR') }, grid: { color: '#f4e7de' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+</script>
+{% endif %}
+
 <style>
-*,*::before,*::after{box-sizing:border-box}
-.fin-page{background:hsl(var(--background));min-height:100vh}
-.fin-container{max-width:1060px;margin:0 auto;padding:0 1.5rem}
+  .flx-page { background: hsl(var(--background)); min-height: 100vh; }
+  .flx-wrap { padding-top: clamp(1.75rem, 4vw, 2.75rem); padding-bottom: clamp(2.5rem, 6vw, 4rem); }
 
-.fin-header{
-  background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);
-  padding:2.25rem 0 2.75rem;position:relative;overflow:hidden;
-}
-.fin-header::after{
-  content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;
-  background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%);
-}
-.fin-header-inner{
-  position:relative;z-index:1;
-  display:flex;align-items:flex-start;justify-content:space-between;
-  gap:1.5rem;flex-wrap:wrap;
-}
-.fin-breadcrumb{
-  display:inline-flex;align-items:center;gap:.375rem;
-  color:rgba(255,255,255,.45);font-size:.72rem;
-  font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .75rem;
-}
-.fin-breadcrumb-link{color:rgba(255,255,255,.55);text-decoration:none}
-.fin-breadcrumb-link:hover{color:#fff}
-.fin-title{font-size:clamp(1.375rem,3vw,1.875rem);font-weight:800;color:#fff;margin:0 0 .4rem;line-height:1.15}
-.fin-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0;max-width:440px;line-height:1.5}
+  /* Cabeçalho */
+  .flx-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .flx-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; align-items: flex-start; }
+  .flx-breadcrumb { display: inline-flex; align-items: center; gap: .3rem; font-size: .8rem; font-weight: 600; color: hsl(var(--muted-foreground)); text-decoration: none; }
+  .flx-breadcrumb:hover { color: #c9490a; }
+  .flx-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .flx-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); max-width: 440px; line-height: 1.5; }
+  .flx-head-cta { flex-shrink: 0; }
 
-.fin-btn{
-  display:inline-flex;align-items:center;gap:.45rem;
-  padding:.6rem 1.2rem;border-radius:.5rem;
-  font-size:.875rem;font-weight:600;text-decoration:none;
-  border:none;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;
-}
-.fin-btn-outline{
-  background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);
-  border:1px solid rgba(255,255,255,.2);
-}
-.fin-btn-outline:hover{background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.35)}
-.fin-btn-ghost{background:transparent;color:hsl(var(--muted-foreground));border:1px solid hsl(var(--border))}
-.fin-btn-ghost:hover{color:hsl(var(--foreground));background:hsl(var(--accent))}
-.fin-btn-export{position:relative;z-index:1}
+  /* Filtros */
+  .flx-filters-card { margin-bottom: 1.125rem; }
+  .flx-filters-form { display: flex; gap: .85rem; align-items: flex-end; flex-wrap: wrap; }
+  .flx-filter-group { min-width: 150px; flex: 1; }
+  .flx-filter-actions { display: flex; gap: .5rem; align-items: center; }
 
-/* filter row uses own outline style */
-.fin-filters-card .fin-btn-outline{
-  background:transparent;color:hsl(var(--foreground));
-  border:1px solid hsl(var(--border));
-}
-.fin-filters-card .fin-btn-outline:hover{background:hsl(var(--accent));color:hsl(var(--foreground))}
+  /* Banner de saldo */
+  .flx-saldo-banner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-radius: 18px; padding: 1rem 1.35rem; margin-bottom: 1.125rem; }
+  .flx-saldo-pos { background: #eaf7ef; border: 1px solid #cdeada; }
+  .flx-saldo-neg { background: #fdeaea; border: 1px solid #f6d4d4; }
+  .flx-saldo-info { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+  .flx-saldo-label { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-soft); }
+  .flx-saldo-tag { display: inline-flex; align-items: center; gap: .3rem; font-size: .74rem; font-weight: 800; padding: .18rem .55rem; border-radius: 999px; }
+  .flx-saldo-pos .flx-saldo-tag { background: #d6efe0; color: #1f7a49; }
+  .flx-saldo-neg .flx-saldo-tag { background: #f7d7d7; color: #b03636; }
+  .flx-saldo-value { font-size: 1.35rem; font-weight: 800; letter-spacing: -.02em; }
+  .flx-saldo-pos .flx-saldo-value { color: #1f7a49; }
+  .flx-saldo-neg .flx-saldo-value { color: #b03636; }
 
-.fin-body{padding-top:1.75rem;padding-bottom:4rem}
+  /* Gráfico */
+  .flx-chart-card { margin-bottom: 1.125rem; }
+  .flx-card-head { margin-bottom: 1rem; }
+  .flx-card-title { margin: 0 0 .2rem; font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .flx-card-desc { margin: 0; font-size: .85rem; color: hsl(var(--muted-foreground)); }
+  .flx-chart { height: 260px; }
 
-.fin-filters-card{
-  background:hsl(var(--card));border:1px solid hsl(var(--border));
-  border-radius:.875rem;padding:1.125rem 1.25rem;
-  margin-bottom:1.125rem;box-shadow:0 1px 3px rgba(0,0,0,.06);
-}
-.fin-filters-form{display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap}
-.fin-filter-group{display:flex;flex-direction:column;gap:.3rem}
-.fin-filter-label{font-size:.72rem;font-weight:700;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em}
-.fin-select,.fin-input{
-  height:36px;padding:0 .75rem;
-  border:1px solid hsl(var(--border));border-radius:.5rem;
-  background:hsl(var(--background));color:hsl(var(--foreground));
-  font-size:.85rem;outline:none;transition:border .15s;
-}
-.fin-select:focus,.fin-input:focus{border-color:#fe8210;box-shadow:0 0 0 3px rgba(254,130,16,.12)}
-.fin-filter-actions{display:flex;gap:.5rem;align-items:center}
+  /* Tabela */
+  .flx-table-card { padding: 0; overflow: hidden; }
+  .flx-table td { vertical-align: middle; }
+  .flx-th-right, .flx-td-right { text-align: right; }
+  .flx-td-nowrap { white-space: nowrap; color: hsl(var(--muted-foreground)); font-size: .82rem; }
+  .flx-td-muted { color: hsl(var(--muted-foreground)); font-size: .82rem; }
+  .flx-td-bold { font-weight: 700; }
+  .flx-td-saldo { font-weight: 800; font-size: .9rem; }
+  .flx-td-dash { color: hsl(var(--muted-foreground)); font-weight: 400; }
+  .flx-origin-tag { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+  .flx-color-pos { color: #1f7a49; }
+  .flx-color-neg { color: #b03636; }
+  thead .flx-color-pos, thead .flx-color-neg { color: inherit; }
 
-.fin-saldo-banner{
-  display:flex;align-items:center;justify-content:space-between;
-  border-radius:.875rem;padding:.875rem 1.25rem;
-  margin-bottom:1.125rem;
-}
-.fin-saldo-pos{background:#d1fae5;border:1px solid #a7f3d0}
-.fin-saldo-neg{background:#fee2e2;border:1px solid #fecaca}
-.fin-saldo-label{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:inherit;opacity:.7}
-.fin-saldo-value{font-size:1.25rem;font-weight:800}
-.fin-saldo-pos .fin-saldo-value{color:#065f46}
-.fin-saldo-neg .fin-saldo-value{color:#991b1b}
+  /* Estado vazio */
+  .flx-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2.75rem 1.5rem; }
+  .flx-empty .pcf-icon-tile { margin-bottom: .85rem; }
+  .flx-empty-title { margin: 0 0 .3rem; font-size: 1rem; font-weight: 700; color: var(--ink); }
+  .flx-empty-sub { margin: 0; font-size: .86rem; color: hsl(var(--muted-foreground)); }
 
-.fin-table-card{
-  background:hsl(var(--card));border:1px solid hsl(var(--border));
-  border-radius:1rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);
-}
-.fin-table{width:100%;border-collapse:collapse;font-size:.875rem}
-.fin-table thead tr{background:hsl(var(--accent));border-bottom:1px solid hsl(var(--border))}
-.fin-table th{
-  padding:.75rem 1rem;font-size:.72rem;font-weight:700;
-  color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;
-}
-.fin-table td{padding:.8rem 1rem;border-bottom:1px solid hsl(var(--border));vertical-align:middle}
-.fin-table tbody tr:last-child td{border-bottom:none}
-.fin-table tbody tr:hover{background:hsl(var(--accent))}
-.fin-th-right,.fin-td-right{text-align:right}
-.fin-td-nowrap{white-space:nowrap;color:hsl(var(--muted-foreground));font-size:.82rem}
-.fin-td-muted{color:hsl(var(--muted-foreground));font-size:.82rem}
-.fin-td-bold{font-weight:700}
-.fin-td-saldo{font-weight:800;font-size:.9rem}
-.fin-td-dash{color:hsl(var(--muted-foreground));font-weight:400}
-.fin-origin-tag{
-  display:inline-block;font-size:.72rem;font-weight:600;
-  background:hsl(var(--accent));color:hsl(var(--muted-foreground));
-  padding:.2rem .6rem;border-radius:9999px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;
-}
-.fin-color-pos{color:#059669}
-.fin-color-neg{color:#dc2626}
-
-.fin-table-empty{padding:3rem 2rem;text-align:center}
-.fin-empty-icon{
-  width:48px;height:48px;background:hsl(var(--accent));
-  border-radius:.875rem;display:flex;align-items:center;justify-content:center;
-  color:hsl(var(--muted-foreground));margin:0 auto .75rem;
-}
-.fin-empty-title{font-size:.9375rem;font-weight:600;color:hsl(var(--foreground));margin:0 0 .35rem}
-.fin-empty-sub{font-size:.825rem;color:hsl(var(--muted-foreground));margin:0}
-
-@media(max-width:768px){
-  .fin-container{padding:0 1rem}
-  .fin-header-inner{flex-direction:column;gap:1rem}
-  .fin-btn-export{width:100%;justify-content:center}
-  .fin-filters-form{gap:.5rem}
-  .fin-table{font-size:.8rem}
-  .fin-table th,.fin-table td{padding:.65rem .75rem}
-}
+  @media (max-width: 768px) {
+    .flx-head-cta { width: 100%; justify-content: center; }
+    .flx-filter-group { min-width: 130px; }
+  }
+  @media (max-width: 480px) {
+    .flx-filters-form { gap: .6rem; }
+    .flx-filter-group { min-width: 100%; }
+    .flx-filter-actions { width: 100%; }
+    .flx-filter-actions .pcf-btn { flex: 1; justify-content: center; }
+  }
 </style>
-
 {% endblock %}

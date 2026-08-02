@@ -2,291 +2,200 @@
 {% block titulo %}DRE — Financeiro{% endblock %}
 
 {% block content %}
-<div class="fin-page">
+{# Bloco enxuto: só o layout específico da tela (prefixo .dre-). Visual base vem das classes .pcf-*. #}
+<style>
+  .dre-page { background: hsl(var(--background)); }
+  .dre-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); max-width: 860px; }
 
-  <div class="fin-header">
-    <div class="fin-container">
-      <div class="fin-header-inner">
-        <div class="fin-header-text">
-          <p class="fin-breadcrumb">
-            <a href="{% url 'adm:painel' %}" class="fin-breadcrumb-link">Financeiro</a>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-            DRE
-          </p>
-          <h1 class="fin-title">Demonstrativo de Resultados</h1>
-          <p class="fin-sub">Receitas e despesas por categoria no período selecionado, com comparativo mensal opcional.</p>
-        </div>
+  /* Cabeçalho leve */
+  .dre-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .dre-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .dre-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .dre-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); max-width: 520px; }
+  .dre-back { display: inline-flex; align-items: center; gap: .35rem; font-size: .82rem; font-weight: 700; color: #c9490a; text-decoration: none; }
+  .dre-back:hover { text-decoration: underline; }
+
+  /* Filtro */
+  .dre-filters { display: flex; gap: .9rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .dre-filter-group { display: flex; flex-direction: column; gap: .35rem; }
+
+  /* Card do demonstrativo */
+  .dre-card { padding: 0; overflow: hidden; }
+  .dre-card-head { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; padding: 1.1rem 1.25rem; border-bottom: 1px solid #f4e7de; background: #fffaf6; }
+  .dre-card-title { margin: 0; font-size: 1rem; font-weight: 800; color: var(--ink); }
+
+  /* Tabela */
+  .dre-table { min-width: 460px; }
+  .dre-num { text-align: right !important; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .dre-group td { background: #fffaf6; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); border-bottom: 1px solid #f4e7de; }
+  .dre-group-inner { display: inline-flex; align-items: center; gap: .4rem; }
+  .dre-group.is-receita .dre-group-inner { color: #1f7a49; }
+  .dre-group.is-despesa .dre-group-inner { color: #b03636; }
+  .dre-cat { padding-left: 1.6rem !important; color: var(--ink-soft); }
+  .dre-pos { color: #1f7a49; font-weight: 700; }
+  .dre-neg { color: #b03636; font-weight: 700; }
+  .dre-muted { color: hsl(var(--muted-foreground)); }
+  .dre-total td { font-weight: 800; color: var(--ink); background: #fff7f1; border-top: 1px solid #f4e7de; }
+  .dre-result td { padding-block: 1rem !important; font-weight: 800; font-size: 1rem; border-top: 2px solid #f0dfd3; }
+  .dre-result.is-pos td { background: #eef9f1; }
+  .dre-result.is-neg td { background: #fdefef; }
+  .dre-result-val.is-pos { color: #1f7a49; font-size: 1.15rem; }
+  .dre-result-val.is-neg { color: #b03636; font-size: 1.15rem; }
+
+  /* Legenda */
+  .dre-legend { display: flex; align-items: center; gap: .375rem; flex-wrap: wrap; font-size: .78rem; color: hsl(var(--muted-foreground)); font-weight: 600; margin-top: 1rem; }
+  .dre-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dre-dot.cur { background: #e8560f; }
+  .dre-dot.cmp { background: #a8968b; }
+  .dre-dot.dlt { background: #1f7a49; }
+
+  @media (max-width: 560px) {
+    .dre-head-actions { width: 100%; }
+    .dre-filters .pcf-btn { width: 100%; justify-content: center; }
+  }
+</style>
+
+<div class="dre-page">
+  <div class="pcf-container dre-wrap">
+
+    <!-- Cabeçalho leve -->
+    <header class="dre-head">
+      <div class="dre-head-text">
+        <a href="{% url 'adm:painel' %}" class="dre-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          Financeiro
+        </a>
+        <span class="pcf-eyebrow">DRE</span>
+        <h1 class="dre-title">Demonstrativo de Resultados</h1>
+        <p class="dre-sub">Receitas e despesas por categoria no período selecionado, com comparativo mensal opcional.</p>
       </div>
-    </div>
-  </div>
-
-  <div class="fin-container fin-body">
+    </header>
 
     <!-- Filtro de período -->
-    <div class="fin-filters-card">
-      <form method="get" class="fin-filters-form">
-        <div class="fin-filter-group">
-          <label class="fin-filter-label">Período</label>
-          <input type="month" name="mes" value="{{ mes }}" class="fin-input">
+    <div class="pcf-card pcf-card-sm" style="margin-bottom:1.5rem">
+      <form method="get" action="{% url 'adm:dre' %}" class="dre-filters">
+        <div class="dre-filter-group">
+          <label class="pcf-label" for="dre-mes">Período</label>
+          <input id="dre-mes" type="month" name="mes" value="{{ mes }}" class="pcf-input">
         </div>
-        <div class="fin-filter-group">
-          <label class="fin-filter-label">Comparar com</label>
-          <input type="month" name="comparar" value="{{ comparar }}" class="fin-input fin-input-optional" placeholder="— opcional —">
+        <div class="dre-filter-group">
+          <label class="pcf-label" for="dre-comparar">Comparar com</label>
+          <input id="dre-comparar" type="month" name="comparar" value="{{ comparar }}" class="pcf-input" placeholder="— opcional —">
         </div>
-        <div class="fin-filter-actions">
-          <button type="submit" class="fin-btn fin-btn-outline-base">Aplicar</button>
-        </div>
+        <button type="submit" class="pcf-btn pcf-btn-primary">Aplicar</button>
       </form>
     </div>
 
     <!-- DRE principal -->
-    <div class="fin-dre-card">
+    <div class="pcf-card dre-card">
 
-      <div class="fin-dre-header">
-        <h2 class="fin-dre-title">Resultado — {{ mes }}</h2>
-        {% if dre_comp %}<span class="fin-dre-vs">vs. {{ comparar }}</span>{% endif %}
+      <div class="dre-card-head">
+        <h2 class="dre-card-title">Resultado — {{ mes }}</h2>
+        {% if dre_comp %}<span class="pcf-badge info">vs. {{ comparar }}</span>{% endif %}
       </div>
 
-      <!-- Receitas -->
-      <div class="fin-dre-section">
-        <div class="fin-dre-section-label fin-section-receita">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-          Receitas
-        </div>
-        {% for r in dre.receitas %}
-        <div class="fin-dre-row">
-          <span class="fin-dre-cat">{{ r.categoria__nome }}</span>
-          <span class="fin-dre-val">R$&nbsp;{{ r.total|floatformat:2 }}</span>
-          {% if dre_comp %}
-          <span class="fin-dre-comp">
-            {% for rc in dre_comp.receitas %}{% if rc.categoria__nome == r.categoria__nome %}R$&nbsp;{{ rc.total|floatformat:2 }}{% endif %}{% endfor %}
-            {% if not dre_comp.receitas %}—{% endif %}
-          </span>
-          <span class="fin-dre-delta">—</span>
-          {% endif %}
-        </div>
-        {% endfor %}
-        <div class="fin-dre-total fin-total-receita">
-          <span>Total Receitas</span>
-          <span class="fin-color-pos">R$&nbsp;{{ dre.total_receitas|floatformat:2 }}</span>
-          {% if dre_comp %}
-          <span class="fin-dre-comp fin-color-pos">R$&nbsp;{{ dre_comp.total_receitas|floatformat:2 }}</span>
-          <span class="fin-dre-delta"></span>
-          {% endif %}
-        </div>
-      </div>
+      <div style="overflow-x:auto">
+        <table class="pcf-table dre-table">
+          <thead>
+            <tr>
+              <th>Categoria</th>
+              <th class="dre-num">{{ mes }}</th>
+              {% if dre_comp %}
+              <th class="dre-num">{{ comparar }}</th>
+              <th class="dre-num">Δ</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
 
-      <div class="fin-dre-divider"></div>
+            <!-- Receitas -->
+            <tr class="dre-group is-receita">
+              <td colspan="{% if dre_comp %}4{% else %}2{% endif %}">
+                <span class="dre-group-inner">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
+                  Receitas
+                </span>
+              </td>
+            </tr>
+            {% for r in dre.receitas %}
+            <tr>
+              <td class="dre-cat">{{ r.categoria__nome }}</td>
+              <td class="dre-num dre-pos">R$&nbsp;{{ r.total|floatformat:2 }}</td>
+              {% if dre_comp %}
+              <td class="dre-num dre-muted">
+                {% for rc in dre_comp.receitas %}{% if rc.categoria__nome == r.categoria__nome %}R$&nbsp;{{ rc.total|floatformat:2 }}{% endif %}{% endfor %}
+                {% if not dre_comp.receitas %}—{% endif %}
+              </td>
+              <td class="dre-num dre-muted">—</td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+            <tr class="dre-total">
+              <td>Total Receitas</td>
+              <td class="dre-num dre-pos">R$&nbsp;{{ dre.total_receitas|floatformat:2 }}</td>
+              {% if dre_comp %}
+              <td class="dre-num dre-pos">R$&nbsp;{{ dre_comp.total_receitas|floatformat:2 }}</td>
+              <td class="dre-num"></td>
+              {% endif %}
+            </tr>
 
-      <!-- Despesas -->
-      <div class="fin-dre-section">
-        <div class="fin-dre-section-label fin-section-despesa">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-          Despesas
-        </div>
-        {% for d in dre.despesas %}
-        <div class="fin-dre-row">
-          <span class="fin-dre-cat">{{ d.categoria__nome }}</span>
-          <span class="fin-dre-val">R$&nbsp;{{ d.total|floatformat:2 }}</span>
-          {% if dre_comp %}
-          <span class="fin-dre-comp">
-            {% for dc in dre_comp.despesas %}{% if dc.categoria__nome == d.categoria__nome %}R$&nbsp;{{ dc.total|floatformat:2 }}{% endif %}{% endfor %}
-            {% if not dre_comp.despesas %}—{% endif %}
-          </span>
-          <span class="fin-dre-delta">—</span>
-          {% endif %}
-        </div>
-        {% endfor %}
-        <div class="fin-dre-total fin-total-despesa">
-          <span>Total Despesas</span>
-          <span class="fin-color-neg">R$&nbsp;{{ dre.total_despesas|floatformat:2 }}</span>
-          {% if dre_comp %}
-          <span class="fin-dre-comp fin-color-neg">R$&nbsp;{{ dre_comp.total_despesas|floatformat:2 }}</span>
-          <span class="fin-dre-delta"></span>
-          {% endif %}
-        </div>
-      </div>
+            <!-- Despesas -->
+            <tr class="dre-group is-despesa">
+              <td colspan="{% if dre_comp %}4{% else %}2{% endif %}">
+                <span class="dre-group-inner">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  Despesas
+                </span>
+              </td>
+            </tr>
+            {% for d in dre.despesas %}
+            <tr>
+              <td class="dre-cat">{{ d.categoria__nome }}</td>
+              <td class="dre-num dre-neg">R$&nbsp;{{ d.total|floatformat:2 }}</td>
+              {% if dre_comp %}
+              <td class="dre-num dre-muted">
+                {% for dc in dre_comp.despesas %}{% if dc.categoria__nome == d.categoria__nome %}R$&nbsp;{{ dc.total|floatformat:2 }}{% endif %}{% endfor %}
+                {% if not dre_comp.despesas %}—{% endif %}
+              </td>
+              <td class="dre-num dre-muted">—</td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+            <tr class="dre-total">
+              <td>Total Despesas</td>
+              <td class="dre-num dre-neg">R$&nbsp;{{ dre.total_despesas|floatformat:2 }}</td>
+              {% if dre_comp %}
+              <td class="dre-num dre-neg">R$&nbsp;{{ dre_comp.total_despesas|floatformat:2 }}</td>
+              <td class="dre-num"></td>
+              {% endif %}
+            </tr>
 
-      <div class="fin-dre-divider"></div>
+            <!-- Resultado -->
+            <tr class="dre-result {% if dre.resultado >= 0 %}is-pos{% else %}is-neg{% endif %}">
+              <td>Resultado do Período</td>
+              <td class="dre-num dre-result-val {% if dre.resultado >= 0 %}is-pos{% else %}is-neg{% endif %}">R$&nbsp;{{ dre.resultado|floatformat:2 }}</td>
+              {% if dre_comp %}
+              <td class="dre-num dre-muted">R$&nbsp;{{ dre_comp.resultado|floatformat:2 }}</td>
+              <td class="dre-num {% if deltas.resultado >= 0 %}dre-pos{% else %}dre-neg{% endif %}">
+                {% if deltas.resultado >= 0 %}+{% endif %}R$&nbsp;{{ deltas.resultado|floatformat:2 }}
+              </td>
+              {% endif %}
+            </tr>
 
-      <!-- Resultado -->
-      <div class="fin-dre-resultado {% if dre.resultado >= 0 %}fin-resultado-pos{% else %}fin-resultado-neg{% endif %}">
-        <span class="fin-resultado-label">Resultado do Período</span>
-        <span class="fin-resultado-val">R$&nbsp;{{ dre.resultado|floatformat:2 }}</span>
-        {% if dre_comp %}
-        <span class="fin-dre-comp fin-resultado-comp">R$&nbsp;{{ dre_comp.resultado|floatformat:2 }}</span>
-        <span class="fin-dre-delta fin-resultado-delta {% if deltas.resultado >= 0 %}fin-color-pos{% else %}fin-color-neg{% endif %}">
-          {% if deltas.resultado >= 0 %}+{% endif %}R$&nbsp;{{ deltas.resultado|floatformat:2 }}
-        </span>
-        {% endif %}
+          </tbody>
+        </table>
       </div>
 
     </div><!-- /dre-card -->
 
     {% if dre_comp %}
-    <div class="fin-legend">
-      <span class="fin-legend-dot fin-legend-current"></span> {{ mes }}
-      <span class="fin-legend-dot fin-legend-comp" style="margin-left:1rem"></span> {{ comparar }}
-      <span class="fin-legend-dot fin-legend-delta" style="margin-left:1rem"></span> Variação (Δ)
+    <div class="dre-legend">
+      <span class="dre-dot cur"></span> {{ mes }}
+      <span class="dre-dot cmp" style="margin-left:1rem"></span> {{ comparar }}
+      <span class="dre-dot dlt" style="margin-left:1rem"></span> Variação (Δ)
     </div>
     {% endif %}
 
   </div>
 </div>
-
-<style>
-*,*::before,*::after{box-sizing:border-box}
-.fin-page{background:hsl(var(--background));min-height:100vh}
-.fin-container{max-width:760px;margin:0 auto;padding:0 1.5rem}
-
-.fin-header{
-  background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);
-  padding:2.25rem 0 2.75rem;position:relative;overflow:hidden;
-}
-.fin-header::after{
-  content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;
-  background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%);
-}
-.fin-header-inner{position:relative;z-index:1;display:flex;flex-direction:column;gap:.25rem}
-.fin-breadcrumb{
-  display:inline-flex;align-items:center;gap:.375rem;
-  color:rgba(255,255,255,.45);font-size:.72rem;
-  font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .75rem;
-}
-.fin-breadcrumb-link{color:rgba(255,255,255,.55);text-decoration:none}
-.fin-breadcrumb-link:hover{color:#fff}
-.fin-title{font-size:clamp(1.375rem,3vw,1.875rem);font-weight:800;color:#fff;margin:0 0 .4rem;line-height:1.15}
-.fin-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0;max-width:480px;line-height:1.5}
-
-.fin-btn-outline-base{
-  display:inline-flex;align-items:center;gap:.45rem;
-  padding:.575rem 1.125rem;border-radius:.5rem;
-  font-size:.875rem;font-weight:600;text-decoration:none;
-  background:#fe8210;color:#fff;border:none;cursor:pointer;transition:all .15s;white-space:nowrap;
-}
-.fin-btn-outline-base:hover{background:#e87207}
-
-.fin-body{padding-top:1.75rem;padding-bottom:4rem}
-
-.fin-filters-card{
-  background:hsl(var(--card));border:1px solid hsl(var(--border));
-  border-radius:.875rem;padding:1.125rem 1.25rem;
-  margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.06);
-}
-.fin-filters-form{display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap}
-.fin-filter-group{display:flex;flex-direction:column;gap:.3rem}
-.fin-filter-label{font-size:.72rem;font-weight:700;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em}
-.fin-input{
-  height:36px;padding:0 .75rem;
-  border:1px solid hsl(var(--border));border-radius:.5rem;
-  background:hsl(var(--background));color:hsl(var(--foreground));
-  font-size:.85rem;outline:none;transition:border .15s;
-}
-.fin-input:focus{border-color:#fe8210;box-shadow:0 0 0 3px rgba(254,130,16,.12)}
-.fin-input-optional{color:hsl(var(--muted-foreground))}
-.fin-filter-actions{display:flex;gap:.5rem;align-items:flex-end}
-
-/* DRE card */
-.fin-dre-card{
-  background:hsl(var(--card));border:1px solid hsl(var(--border));
-  border-radius:1rem;overflow:hidden;
-  box-shadow:0 1px 3px rgba(0,0,0,.06);
-}
-.fin-dre-header{
-  display:flex;align-items:center;gap:.75rem;
-  padding:1.125rem 1.5rem;border-bottom:1px solid hsl(var(--border));
-  background:hsl(var(--accent));
-}
-.fin-dre-title{font-size:1rem;font-weight:700;color:hsl(var(--foreground));margin:0}
-.fin-dre-vs{
-  font-size:.75rem;font-weight:600;color:hsl(var(--muted-foreground));
-  background:hsl(var(--background));border:1px solid hsl(var(--border));
-  padding:.2rem .6rem;border-radius:9999px;
-}
-
-.fin-dre-section{padding:.5rem 0}
-.fin-dre-section-label{
-  display:flex;align-items:center;gap:.375rem;
-  font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
-  padding:.75rem 1.5rem .4rem;
-}
-.fin-section-receita{color:#059669}
-.fin-section-despesa{color:#dc2626}
-
-.fin-dre-row{
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:0 1.5rem;
-  padding:.5rem 1.5rem .5rem 2.25rem;
-  transition:background .1s;
-}
-.fin-dre-row:hover{background:hsl(var(--accent))}
-.fin-dre-cat{font-size:.875rem;color:hsl(var(--foreground))}
-.fin-dre-val{font-size:.875rem;font-weight:600;color:hsl(var(--foreground));text-align:right;white-space:nowrap}
-.fin-dre-comp{font-size:.8rem;color:hsl(var(--muted-foreground));text-align:right;white-space:nowrap}
-.fin-dre-delta{font-size:.8rem;font-weight:700;text-align:right;white-space:nowrap}
-
-/* When comparar column is shown, use 4-col grid */
-.fin-dre-row:has(.fin-dre-comp){grid-template-columns:1fr auto auto auto}
-.fin-dre-total:has(.fin-dre-comp){grid-template-columns:1fr auto auto auto}
-
-.fin-dre-total{
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:0 1.5rem;
-  padding:.75rem 1.5rem;
-  font-weight:700;font-size:.875rem;
-  border-top:1px solid hsl(var(--border));
-  margin-top:.25rem;
-}
-.fin-total-receita{background:#f0fdf4}
-.fin-total-despesa{background:#fff1f2}
-
-.fin-dre-divider{height:1px;background:hsl(var(--border));margin:0 1.5rem}
-
-/* Resultado final */
-.fin-dre-resultado{
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:0 1.5rem;
-  padding:1.25rem 1.5rem;
-  align-items:center;
-}
-.fin-dre-resultado:has(.fin-dre-comp){grid-template-columns:1fr auto auto auto}
-.fin-resultado-pos{background:linear-gradient(to right,#f0fdf4,hsl(var(--card)))}
-.fin-resultado-neg{background:linear-gradient(to right,#fff1f2,hsl(var(--card)))}
-.fin-resultado-label{font-size:.95rem;font-weight:800;color:hsl(var(--foreground))}
-.fin-resultado-val{font-size:1.25rem;font-weight:800;white-space:nowrap;text-align:right}
-.fin-resultado-pos .fin-resultado-val{color:#059669}
-.fin-resultado-neg .fin-resultado-val{color:#dc2626}
-.fin-resultado-comp{font-size:.9rem;color:hsl(var(--muted-foreground));text-align:right;white-space:nowrap}
-.fin-resultado-delta{font-size:.95rem;font-weight:800;text-align:right;white-space:nowrap}
-.fin-color-pos{color:#059669}
-.fin-color-neg{color:#dc2626}
-
-.fin-legend{
-  display:flex;align-items:center;gap:.375rem;
-  font-size:.75rem;color:hsl(var(--muted-foreground));font-weight:600;
-  margin-top:1rem;
-}
-.fin-legend-dot{
-  display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0;
-}
-.fin-legend-current{background:#fe8210}
-.fin-legend-comp{background:#94a3b8}
-.fin-legend-delta{background:#059669}
-
-@media(max-width:600px){
-  .fin-container{padding:0 1rem}
-  .fin-filters-form{gap:.5rem}
-  .fin-dre-row{grid-template-columns:1fr auto!important;font-size:.82rem}
-  .fin-dre-comp,.fin-dre-delta{display:none}
-  .fin-dre-total{grid-template-columns:1fr auto!important}
-  .fin-dre-resultado{grid-template-columns:1fr auto!important}
-  .fin-resultado-comp,.fin-resultado-delta{display:none}
-  .fin-dre-row,.fin-dre-total{padding-left:1.75rem;padding-right:1.25rem}
-  .fin-dre-resultado{padding:1rem 1.25rem}
-}
-</style>
-
 {% endblock %}

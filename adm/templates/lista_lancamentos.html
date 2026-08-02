@@ -2,241 +2,182 @@
 {% block titulo %}Lançamentos — Financeiro{% endblock %}
 
 {% block content %}
-<div class="fin-page">
+{# Bloco enxuto: só o LAYOUT específico desta tela (prefixo .lan-). O visual base vem das classes .pcf-*. #}
+<style>
+  .lan-page { background: hsl(var(--background)); }
+  .lan-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
 
-  <div class="fin-header">
-    <div class="fin-container">
-      <div class="fin-header-inner">
-        <div class="fin-header-text">
-          <p class="fin-breadcrumb">
-            <a href="{% url 'adm:painel' %}" class="fin-breadcrumb-link">Financeiro</a>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-            Lançamentos
-          </p>
-          <h1 class="fin-title">Lançamentos</h1>
-          <p class="fin-sub">Histórico completo de receitas e despesas com filtros por tipo, categoria e período.</p>
-        </div>
-        <a href="{% url 'adm:criar_lancamento' %}" class="fin-btn fin-btn-primary">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  /* Cabeçalho leve */
+  .lan-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .lan-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .lan-breadcrumb { display: inline-flex; align-items: center; gap: .375rem; font-size: .78rem; font-weight: 600; color: var(--ink-muted); }
+  .lan-breadcrumb a { color: #c9490a; text-decoration: none; }
+  .lan-breadcrumb a:hover { text-decoration: underline; }
+  .lan-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .lan-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); max-width: 44ch; }
+  .lan-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* Filtros */
+  .lan-filters { margin-bottom: 1.5rem; }
+  .lan-filters-form { display: flex; gap: .9rem; align-items: flex-end; flex-wrap: wrap; }
+  .lan-filter-group { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+  .lan-filter-actions { display: flex; gap: .5rem; align-items: center; }
+  .lan-select { min-width: 160px; }
+
+  /* Tabela */
+  .lan-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 18px; }
+  .lan-table { min-width: 720px; }
+  .lan-td-nowrap { white-space: nowrap; }
+  .lan-td-right { text-align: right; }
+  .lan-th-right { text-align: right; }
+  .lan-value { font-weight: 800; letter-spacing: -.01em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .lan-value.pos { color: #1f7a49; }
+  .lan-value.neg { color: #b03636; }
+  .lan-desc { color: var(--ink-soft); }
+  .lan-actions { display: inline-flex; gap: .4rem; justify-content: flex-end; }
+  .lan-del-form { display: inline; margin: 0; }
+
+  /* Estado vazio */
+  .lan-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; padding: 3rem 1.5rem; text-align: center; color: var(--ink-muted); }
+  .lan-empty-icon { width: 52px; height: 52px; border-radius: 16px; background: #fff0e6; color: #e8560f; display: flex; align-items: center; justify-content: center; margin-bottom: .25rem; }
+  .lan-empty-title { font-weight: 700; color: var(--ink); font-size: 1rem; }
+  .lan-empty-sub { font-size: .88rem; }
+
+  @media (max-width: 640px) {
+    .lan-head-actions { width: 100%; }
+    .lan-head-actions .pcf-btn { flex: 1; }
+    .lan-filters-form { gap: .6rem; }
+    .lan-filter-group, .lan-select { width: 100%; min-width: 0; }
+    .lan-filter-actions { width: 100%; }
+    .lan-filter-actions .pcf-btn { flex: 1; }
+  }
+</style>
+
+<div class="lan-page">
+  <div class="pcf-container lan-wrap">
+
+    <!-- Cabeçalho leve -->
+    <header class="lan-head">
+      <div class="lan-head-text">
+        <p class="lan-breadcrumb">
+          <a href="{% url 'adm:painel' %}">Financeiro</a>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          Lançamentos
+        </p>
+        <h1 class="lan-title">Lançamentos</h1>
+        <p class="lan-sub">Histórico completo de receitas e despesas com filtros por tipo, categoria e período.</p>
+      </div>
+      <div class="lan-head-actions">
+        <a href="{% url 'adm:criar_lancamento' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Novo Lançamento
         </a>
       </div>
-    </div>
-  </div>
-
-  <div class="fin-container fin-body">
+    </header>
 
     <!-- Filtros -->
-    <div class="fin-filters-card">
-      <form method="get" class="fin-filters-form">
-        <div class="fin-filter-group">
-          <label class="fin-filter-label">Tipo</label>
-          <select name="tipo" class="fin-select">
+    <div class="pcf-card pcf-card-sm lan-filters">
+      <form method="get" class="lan-filters-form">
+        <div class="lan-filter-group">
+          <label class="pcf-label" for="filtro-tipo">Tipo</label>
+          <select name="tipo" id="filtro-tipo" class="pcf-input lan-select">
             <option value="">Todos</option>
-            <option value="RECEITA" {% if filtro_tipo == 'RECEITA' %}selected{% endif %}>Receita</option>
-            <option value="DESPESA" {% if filtro_tipo == 'DESPESA' %}selected{% endif %}>Despesa</option>
+            <option value="RECEITA" {% if filtro_tipo == 'RECEITA' %}selected{% endif %}>Receita (entrada)</option>
+            <option value="DESPESA" {% if filtro_tipo == 'DESPESA' %}selected{% endif %}>Despesa (saída)</option>
           </select>
         </div>
-        <div class="fin-filter-group">
-          <label class="fin-filter-label">Categoria</label>
-          <select name="categoria" class="fin-select">
+        <div class="lan-filter-group">
+          <label class="pcf-label" for="filtro-categoria">Categoria</label>
+          <select name="categoria" id="filtro-categoria" class="pcf-input lan-select">
             <option value="">Todas</option>
             {% for cat in categorias %}
             <option value="{{ cat.pk }}" {% if filtro_categoria == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.nome }}</option>
             {% endfor %}
           </select>
         </div>
-        <div class="fin-filter-group">
-          <label class="fin-filter-label">Mês</label>
-          <input type="month" name="mes" value="{{ filtro_mes }}" class="fin-input">
+        <div class="lan-filter-group">
+          <label class="pcf-label" for="filtro-mes">Mês</label>
+          <input type="month" name="mes" id="filtro-mes" value="{{ filtro_mes }}" class="pcf-input lan-select">
         </div>
-        <div class="fin-filter-actions">
-          <button type="submit" class="fin-btn fin-btn-outline">Filtrar</button>
-          <a href="{% url 'adm:lista_lancamentos' %}" class="fin-btn fin-btn-ghost">Limpar</a>
+        <div class="lan-filter-actions">
+          <button type="submit" class="pcf-btn pcf-btn-outline pcf-btn-sm">Filtrar</button>
+          <a href="{% url 'adm:lista_lancamentos' %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Limpar</a>
         </div>
       </form>
     </div>
 
     <!-- Tabela -->
-    <div class="fin-table-card">
-      <table class="fin-table">
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Categoria</th>
-            <th>Descrição</th>
-            <th class="fin-th-right">Valor</th>
-            <th>Origem</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for lan in lancamentos %}
-          <tr>
-            <td class="fin-td-nowrap">{{ lan.data|date:"d/m/Y" }}</td>
-            <td>
-              <span class="fin-type-badge {% if lan.tipo == 'RECEITA' %}fin-badge-receita{% else %}fin-badge-despesa{% endif %}">
-                {{ lan.categoria.nome }}
-              </span>
-            </td>
-            <td class="fin-td-muted">{{ lan.descricao|default:"—"|truncatechars:50 }}</td>
-            <td class="fin-td-right fin-td-bold {% if lan.tipo == 'RECEITA' %}fin-color-pos{% else %}fin-color-neg{% endif %}">
-              {% if lan.tipo == 'RECEITA' %}+{% else %}−{% endif %} R$&nbsp;{{ lan.valor|floatformat:2 }}
-            </td>
-            <td><span class="fin-origin-tag">{{ lan.get_origem_display }}</span></td>
-            <td class="fin-td-actions">
-              {% if lan.origem == 'MANUAL' %}
-              <a href="{% url 'adm:editar_lancamento' lan.pk %}" class="fin-action-link">Editar</a>
-              <a href="{% url 'adm:deletar_lancamento' lan.pk %}" class="fin-action-link fin-action-del">Remover</a>
-              {% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6">
-              <div class="fin-table-empty">
-                <div class="fin-empty-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <div class="pcf-card" style="padding:0;">
+      <div class="lan-table-scroll">
+        <table class="pcf-table lan-table">
+          <thead>
+            <tr>
+              <th class="lan-td-nowrap">Data</th>
+              <th>Movimento</th>
+              <th>Categoria</th>
+              <th>Descrição</th>
+              <th class="lan-th-right">Valor</th>
+              <th>Origem</th>
+              <th class="lan-th-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for lan in lancamentos %}
+            <tr>
+              <td class="lan-td-nowrap">{{ lan.data|date:"d/m/Y" }}</td>
+              <td>
+                {% if lan.tipo == 'RECEITA' %}
+                <span class="pcf-badge ok">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                  Entrada
+                </span>
+                {% else %}
+                <span class="pcf-badge danger">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                  Saída
+                </span>
+                {% endif %}
+              </td>
+              <td class="lan-td-nowrap">{{ lan.categoria.nome }}</td>
+              <td class="lan-desc">{{ lan.descricao|default:"—"|truncatechars:50 }}</td>
+              <td class="lan-td-right">
+                <span class="lan-value {% if lan.tipo == 'RECEITA' %}pos{% else %}neg{% endif %}">
+                  {% if lan.tipo == 'RECEITA' %}+{% else %}−{% endif %} R$&nbsp;{{ lan.valor|floatformat:2 }}
+                </span>
+              </td>
+              <td><span class="pcf-badge">{{ lan.get_origem_display }}</span></td>
+              <td class="lan-td-right">
+                {% if lan.origem == 'MANUAL' %}
+                <span class="lan-actions">
+                  <a href="{% url 'adm:editar_lancamento' lan.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Editar</a>
+                  <form method="post" action="{% url 'adm:deletar_lancamento' lan.pk %}" class="lan-del-form" onsubmit="return confirm('Remover permanentemente este lançamento?');">
+                    {% csrf_token %}
+                    <button type="submit" class="pcf-btn pcf-btn-ghost pcf-btn-sm" style="color:#b03636;">Remover</button>
+                  </form>
+                </span>
+                {% else %}
+                <span class="pcf-badge" title="Lançamentos automáticos não são editáveis">Automático</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7">
+                <div class="lan-empty">
+                  <span class="lan-empty-icon" aria-hidden="true">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  </span>
+                  <p class="lan-empty-title">Nenhum lançamento encontrado</p>
+                  <p class="lan-empty-sub">Tente ajustar os filtros ou adicione um novo lançamento.</p>
                 </div>
-                <p class="fin-empty-title">Nenhum lançamento encontrado</p>
-                <p class="fin-empty-sub">Tente ajustar os filtros ou adicione um novo lançamento.</p>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </div>
 </div>
-
-<style>
-*,*::before,*::after{box-sizing:border-box}
-.fin-page{background:hsl(var(--background));min-height:100vh}
-.fin-container{max-width:1060px;margin:0 auto;padding:0 1.5rem}
-
-.fin-header{
-  background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);
-  padding:2.25rem 0 2.75rem;position:relative;overflow:hidden;
-}
-.fin-header::after{
-  content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;
-  background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%);
-}
-.fin-header-inner{
-  position:relative;z-index:1;
-  display:flex;align-items:flex-start;justify-content:space-between;
-  gap:1.5rem;flex-wrap:wrap;
-}
-.fin-breadcrumb{
-  display:inline-flex;align-items:center;gap:.375rem;
-  color:rgba(255,255,255,.45);font-size:.72rem;
-  font-weight:600;letter-spacing:.06em;text-transform:uppercase;
-  margin:0 0 .75rem;
-}
-.fin-breadcrumb-link{color:rgba(255,255,255,.55);text-decoration:none}
-.fin-breadcrumb-link:hover{color:#fff}
-.fin-title{font-size:clamp(1.375rem,3vw,1.875rem);font-weight:800;color:#fff;margin:0 0 .4rem;line-height:1.15}
-.fin-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0;max-width:420px;line-height:1.5}
-
-.fin-btn{
-  display:inline-flex;align-items:center;gap:.45rem;
-  padding:.6rem 1.2rem;border-radius:.5rem;
-  font-size:.875rem;font-weight:600;text-decoration:none;
-  border:none;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;
-}
-.fin-btn-primary{background:#fe8210;color:#fff;position:relative;z-index:1}
-.fin-btn-primary:hover{background:#e87207;color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(254,130,16,.4)}
-.fin-btn-outline{background:transparent;color:hsl(var(--foreground));border:1px solid hsl(var(--border))}
-.fin-btn-outline:hover{background:hsl(var(--accent));color:hsl(var(--foreground))}
-.fin-btn-ghost{background:transparent;color:hsl(var(--muted-foreground));border:1px solid transparent}
-.fin-btn-ghost:hover{color:hsl(var(--foreground));background:hsl(var(--accent))}
-
-.fin-body{padding-top:1.75rem;padding-bottom:4rem}
-
-/* Filters */
-.fin-filters-card{
-  background:hsl(var(--card));border:1px solid hsl(var(--border));
-  border-radius:.875rem;padding:1.125rem 1.25rem;
-  margin-bottom:1.25rem;
-  box-shadow:0 1px 3px rgba(0,0,0,.06);
-}
-.fin-filters-form{display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap}
-.fin-filter-group{display:flex;flex-direction:column;gap:.3rem}
-.fin-filter-label{font-size:.72rem;font-weight:700;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em}
-.fin-select,.fin-input{
-  height:36px;padding:0 .75rem;
-  border:1px solid hsl(var(--border));border-radius:.5rem;
-  background:hsl(var(--background));color:hsl(var(--foreground));
-  font-size:.85rem;outline:none;transition:border .15s;
-}
-.fin-select:focus,.fin-input:focus{border-color:#fe8210;box-shadow:0 0 0 3px rgba(254,130,16,.12)}
-.fin-filter-actions{display:flex;gap:.5rem;align-items:center}
-
-/* Table */
-.fin-table-card{
-  background:hsl(var(--card));border:1px solid hsl(var(--border));
-  border-radius:1rem;overflow:hidden;
-  box-shadow:0 1px 3px rgba(0,0,0,.06);
-}
-.fin-table{width:100%;border-collapse:collapse;font-size:.875rem}
-.fin-table thead tr{background:hsl(var(--accent));border-bottom:1px solid hsl(var(--border))}
-.fin-table th{
-  padding:.75rem 1rem;font-size:.72rem;font-weight:700;
-  color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em;
-  white-space:nowrap;
-}
-.fin-table td{padding:.8rem 1rem;border-bottom:1px solid hsl(var(--border));vertical-align:middle}
-.fin-table tbody tr:last-child td{border-bottom:none}
-.fin-table tbody tr:hover{background:hsl(var(--accent))}
-.fin-th-right,.fin-td-right{text-align:right}
-.fin-td-nowrap{white-space:nowrap;color:hsl(var(--muted-foreground));font-size:.82rem}
-.fin-td-muted{color:hsl(var(--muted-foreground));font-size:.82rem}
-.fin-td-bold{font-weight:700}
-.fin-td-actions{text-align:right;white-space:nowrap}
-
-.fin-type-badge{
-  display:inline-block;font-size:.72rem;font-weight:700;
-  padding:.25rem .625rem;border-radius:9999px;
-}
-.fin-badge-receita{background:#d1fae5;color:#065f46}
-.fin-badge-despesa{background:#fee2e2;color:#991b1b}
-.fin-origin-tag{
-  display:inline-block;font-size:.68rem;font-weight:600;
-  background:#f1f5f9;color:#64748b;
-  padding:.2rem .5rem;border-radius:9999px;text-transform:uppercase;letter-spacing:.04em;
-}
-.fin-color-pos{color:#059669}
-.fin-color-neg{color:#dc2626}
-
-.fin-action-link{
-  font-size:.78rem;font-weight:600;padding:.25rem .6rem;
-  border-radius:.375rem;text-decoration:none;border:1px solid hsl(var(--border));
-  color:hsl(var(--foreground));background:transparent;
-  transition:all .12s;margin-left:.25rem;display:inline-block;
-}
-.fin-action-link:hover{background:hsl(var(--accent))}
-.fin-action-del{color:#dc2626;border-color:#fecaca}
-.fin-action-del:hover{background:#fee2e2}
-
-.fin-table-empty{padding:3rem 2rem;text-align:center}
-.fin-empty-icon{
-  width:48px;height:48px;background:hsl(var(--accent));
-  border-radius:.875rem;display:flex;align-items:center;justify-content:center;
-  color:hsl(var(--muted-foreground));margin:0 auto .75rem;
-}
-.fin-empty-title{font-size:.9375rem;font-weight:600;color:hsl(var(--foreground));margin:0 0 .35rem}
-.fin-empty-sub{font-size:.825rem;color:hsl(var(--muted-foreground));margin:0}
-
-@media(max-width:768px){
-  .fin-container{padding:0 1rem}
-  .fin-header-inner{flex-direction:column;gap:1rem}
-  .fin-btn-primary{width:100%;justify-content:center}
-  .fin-filters-form{gap:.5rem}
-  .fin-table{font-size:.8rem}
-  .fin-table th,.fin-table td{padding:.65rem .75rem}
-}
-</style>
-
 {% endblock %}

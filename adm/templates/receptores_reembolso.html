@@ -2,104 +2,107 @@
 {% block titulo %}Receptores de Notificação — Financeiro{% endblock %}
 
 {% block content %}
-<div class="fin-page">
-  <div class="fin-header">
-    <div class="fin-container">
-      <div class="fin-header-inner">
-        <div class="fin-header-text">
-          <p class="fin-breadcrumb">
-            <a href="{% url 'adm:painel' %}" class="fin-breadcrumb-link">Financeiro</a>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-            Receptores de Notificação
-          </p>
-          <h1 class="fin-title">Receptores de E-mail</h1>
-          <p class="fin-sub">Gerencie quem recebe notificações de novos pedidos de reembolso.</p>
-        </div>
-        <a href="{% url 'adm:receptor_criar' %}" class="fin-btn fin-btn-primary">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+{# Bloco enxuto: só o layout específico da tela (prefixo .rec-). Visual base vem das classes .pcf-*. #}
+<style>
+  .rec-page { background: hsl(var(--background)); }
+  .rec-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); max-width: 860px; }
+
+  /* Cabeçalho leve */
+  .rec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .rec-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .rec-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .rec-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); max-width: 520px; }
+  .rec-back { display: inline-flex; align-items: center; gap: .35rem; font-size: .82rem; font-weight: 700; color: #c9490a; text-decoration: none; }
+  .rec-back:hover { text-decoration: underline; }
+
+  /* Tabela */
+  .rec-card { padding: 0; overflow: hidden; }
+  .rec-table { min-width: 520px; }
+  .rec-table td { color: var(--ink-soft); vertical-align: middle; }
+  .rec-name { font-weight: 700; color: var(--ink); }
+  .rec-actions { text-align: right; white-space: nowrap; }
+  .rec-del-form { display: inline; margin: 0; }
+  .rec-del-btn { font: inherit; }
+
+  /* Estado vazio */
+  .rec-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .35rem; padding: 3rem 2rem; }
+  .rec-empty-title { font-size: .95rem; font-weight: 700; color: var(--ink); margin: 0; }
+  .rec-empty-sub { font-size: .85rem; color: hsl(var(--muted-foreground)); margin: 0; }
+
+  @media (max-width: 560px) {
+    .rec-head-actions { width: 100%; }
+    .rec-head-actions .pcf-btn { width: 100%; justify-content: center; }
+  }
+</style>
+
+<div class="rec-page">
+  <div class="pcf-container rec-wrap">
+
+    <!-- Cabeçalho leve -->
+    <header class="rec-head">
+      <div class="rec-head-text">
+        <a href="{% url 'adm:painel' %}" class="rec-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          Financeiro
+        </a>
+        <span class="pcf-eyebrow">Receptores</span>
+        <h1 class="rec-title">Receptores de E-mail</h1>
+        <p class="rec-sub">Gerencie quem recebe notificações de novos pedidos de reembolso.</p>
+      </div>
+      <div class="rec-head-actions">
+        <a href="{% url 'adm:receptor_criar' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Novo Receptor
         </a>
       </div>
-    </div>
-  </div>
+    </header>
 
-  <div class="fin-container fin-body">
-    <div class="fin-table-card">
-      <table class="fin-table">
-        <thead>
-          <tr><th>Nome</th><th>E-mail</th><th>Status</th><th></th></tr>
-        </thead>
-        <tbody>
-          {% for r in receptores %}
-          <tr>
-            <td class="fin-td-name">{{ r.nome }}</td>
-            <td class="fin-td-muted">{{ r.email }}</td>
-            <td>
-              {% if r.ativo %}
-              <span class="fin-status-badge fin-status-on">Ativo</span>
-              {% else %}
-              <span class="fin-status-badge fin-status-off">Inativo</span>
-              {% endif %}
-            </td>
-            <td class="fin-td-actions">
-              <a href="{% url 'adm:receptor_editar' r.pk %}" class="fin-action-link">Editar</a>
-              <a href="{% url 'adm:receptor_deletar' r.pk %}" class="fin-action-link fin-action-del">Remover</a>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="4">
-            <div class="fin-table-empty">
-              <div class="fin-empty-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    <!-- Lista -->
+    <div class="pcf-card rec-card">
+      <div style="overflow-x:auto">
+        <table class="pcf-table rec-table">
+          <thead>
+            <tr><th>Nome</th><th>E-mail</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for r in receptores %}
+            <tr>
+              <td class="rec-name">{{ r.nome }}</td>
+              <td>{{ r.email }}</td>
+              <td>
+                {% if r.ativo %}
+                <span class="pcf-badge ok">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  Ativo
+                </span>
+                {% else %}
+                <span class="pcf-badge">Inativo</span>
+                {% endif %}
+              </td>
+              <td class="rec-actions">
+                <a href="{% url 'adm:receptor_editar' r.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Editar</a>
+                <form method="post" action="{% url 'adm:receptor_deletar' r.pk %}" class="rec-del-form" onsubmit="return confirm('Remover o receptor {{ r.nome|escapejs }}? Ele não receberá mais notificações de reembolso.');">
+                  {% csrf_token %}
+                  <button type="submit" class="pcf-btn pcf-btn-ghost pcf-btn-sm rec-del-btn" style="color:#b03636">Remover</button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4">
+              <div class="rec-empty">
+                <span class="pcf-icon-tile tint-orange" aria-hidden="true">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </span>
+                <p class="rec-empty-title">Nenhum receptor cadastrado</p>
+                <p class="rec-empty-sub">Adicione e-mails para receber notificações de reembolso.</p>
               </div>
-              <p class="fin-empty-title">Nenhum receptor cadastrado</p>
-              <p class="fin-empty-sub">Adicione e-mails para receber notificações de reembolso.</p>
-            </div>
-          </td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+
   </div>
 </div>
-
-<style>
-*,*::before,*::after{box-sizing:border-box}
-.fin-page{background:hsl(var(--background));min-height:100vh}
-.fin-container{max-width:800px;margin:0 auto;padding:0 1.5rem}
-.fin-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.25rem 0 2.75rem;position:relative;overflow:hidden}
-.fin-header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)}
-.fin-header-inner{position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:1.5rem;flex-wrap:wrap}
-.fin-breadcrumb{display:inline-flex;align-items:center;gap:.375rem;color:rgba(255,255,255,.45);font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .75rem}
-.fin-breadcrumb-link{color:rgba(255,255,255,.55);text-decoration:none}
-.fin-breadcrumb-link:hover{color:#fff}
-.fin-title{font-size:clamp(1.375rem,3vw,1.875rem);font-weight:800;color:#fff;margin:0 0 .4rem;line-height:1.15}
-.fin-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0}
-.fin-btn{display:inline-flex;align-items:center;gap:.45rem;padding:.6rem 1.2rem;border-radius:.5rem;font-size:.875rem;font-weight:600;text-decoration:none;border:none;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;position:relative;z-index:1}
-.fin-btn-primary{background:#fe8210;color:#fff}
-.fin-btn-primary:hover{background:#e87207;color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(254,130,16,.4)}
-.fin-body{padding-top:1.75rem;padding-bottom:4rem}
-.fin-table-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:1rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.fin-table{width:100%;border-collapse:collapse;font-size:.875rem}
-.fin-table thead tr{background:hsl(var(--accent));border-bottom:1px solid hsl(var(--border))}
-.fin-table th{padding:.75rem 1.25rem;font-size:.72rem;font-weight:700;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em}
-.fin-table td{padding:.875rem 1.25rem;border-bottom:1px solid hsl(var(--border));vertical-align:middle}
-.fin-table tbody tr:last-child td{border-bottom:none}
-.fin-table tbody tr:hover{background:hsl(var(--accent))}
-.fin-td-name{font-weight:600}
-.fin-td-muted{color:hsl(var(--muted-foreground));font-size:.875rem}
-.fin-td-actions{text-align:right;white-space:nowrap}
-.fin-status-badge{display:inline-block;font-size:.72rem;font-weight:700;padding:.25rem .625rem;border-radius:9999px}
-.fin-status-on{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
-.fin-status-off{background:#f8fafc;color:#94a3b8;border:1px solid #e2e8f0}
-.fin-action-link{font-size:.78rem;font-weight:600;padding:.25rem .625rem;border-radius:.375rem;text-decoration:none;border:1px solid hsl(var(--border));color:hsl(var(--foreground));background:transparent;transition:all .12s;margin-left:.25rem;display:inline-block}
-.fin-action-link:hover{background:hsl(var(--accent))}
-.fin-action-del{color:#dc2626;border-color:#fecaca}
-.fin-action-del:hover{background:#fee2e2}
-.fin-table-empty{padding:3rem 2rem;text-align:center}
-.fin-empty-icon{width:48px;height:48px;background:hsl(var(--accent));border-radius:.875rem;display:flex;align-items:center;justify-content:center;color:hsl(var(--muted-foreground));margin:0 auto .75rem}
-.fin-empty-title{font-size:.9375rem;font-weight:600;color:hsl(var(--foreground));margin:0 0 .35rem}
-.fin-empty-sub{font-size:.825rem;color:hsl(var(--muted-foreground));margin:0}
-@media(max-width:768px){.fin-container{padding:0 1rem}.fin-header-inner{flex-direction:column;gap:1rem}.fin-btn-primary{width:100%;justify-content:center}}
-</style>
 {% endblock %}

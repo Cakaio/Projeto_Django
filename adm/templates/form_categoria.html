@@ -2,72 +2,68 @@
 {% block titulo %}{{ titulo }} — Financeiro{% endblock %}
 
 {% block content %}
-<div class="fin-page">
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .fcat-). O visual base vem das classes .pcf-*. #}
+<div class="fcat-page">
+  <div class="pcf-container fcat-wrap">
 
-  <div class="fin-header">
-    <div class="fin-container">
-      <div class="fin-header-inner">
-        <div class="fin-header-text">
-          <p class="fin-breadcrumb">
-            <a href="{% url 'adm:painel' %}" class="fin-breadcrumb-link">Financeiro</a>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-            <a href="{% url 'adm:lista_categorias' %}" class="fin-breadcrumb-link">Categorias</a>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-            {{ titulo }}
-          </p>
-          <h1 class="fin-title">{{ titulo }}</h1>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="fin-container fin-body">
+    <!-- Cabeçalho leve -->
+    <header class="fcat-head">
+      <nav class="fcat-breadcrumb" aria-label="Trilha de navegação">
+        <a href="{% url 'adm:painel' %}">Financeiro</a>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        <a href="{% url 'adm:lista_categorias' %}">Categorias</a>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        <span>{{ titulo }}</span>
+      </nav>
+      <h1 class="fcat-title">{{ titulo }}</h1>
+    </header>
 
     {% if confirmar_delecao %}
     <!-- Confirmação de remoção -->
-    <div class="fin-confirm-card">
-      <div class="fin-confirm-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-      </div>
-      <div class="fin-confirm-text">
-        <p class="fin-confirm-title">Remover categoria?</p>
-        <p class="fin-confirm-sub">
+    <div class="fcat-confirm-card">
+      <span class="pcf-icon-tile fcat-confirm-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </span>
+      <div class="fcat-confirm-text">
+        <p class="fcat-confirm-title">Remover categoria?</p>
+        <p class="fcat-confirm-sub">
           Isso irá remover permanentemente a categoria <strong>{{ objeto.nome }}</strong>.
           Só é possível se não houver lançamentos vinculados a ela.
         </p>
       </div>
     </div>
-    <form method="post" class="fin-confirm-actions">
+    <form method="post" class="fcat-actions">
       {% csrf_token %}
-      <button type="submit" class="fin-btn fin-btn-danger">Sim, remover</button>
-      <a href="{% url 'adm:lista_categorias' %}" class="fin-btn fin-btn-outline">Cancelar</a>
+      <button type="submit" class="pcf-btn fcat-btn-danger">Sim, remover</button>
+      <a href="{% url 'adm:lista_categorias' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
     </form>
 
     {% else %}
     <!-- Formulário -->
-    <div class="fin-form-card">
+    <div class="pcf-card fcat-form-card">
       <form method="post">
         {% csrf_token %}
-        <div class="fin-field">
-          <label class="fin-label">{{ form.nome.label }}</label>
+        <div class="pcf-field fcat-field">
+          <label class="pcf-label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
           {{ form.nome }}
-          {% if form.nome.errors %}<p class="fin-error">{{ form.nome.errors|join:", " }}</p>{% endif %}
+          {% if form.nome.errors %}<p class="fcat-error">{{ form.nome.errors|join:", " }}</p>{% endif %}
         </div>
-        <div class="fin-field">
-          <label class="fin-label">{{ form.tipo.label }}</label>
+        <div class="pcf-field fcat-field">
+          <label class="pcf-label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
           {{ form.tipo }}
-          {% if form.tipo.errors %}<p class="fin-error">{{ form.tipo.errors|join:", " }}</p>{% endif %}
+          {% if form.tipo.errors %}<p class="fcat-error">{{ form.tipo.errors|join:", " }}</p>{% endif %}
         </div>
-        <div class="fin-field fin-field-check">
+        <div class="fcat-field-check">
           {{ form.ativo }}
-          <label class="fin-label-check">{{ form.ativo.label }}</label>
+          <label class="fcat-label-check" for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}</label>
+          {% if form.ativo.errors %}<p class="fcat-error">{{ form.ativo.errors|join:", " }}</p>{% endif %}
         </div>
-        <div class="fin-form-actions">
-          <button type="submit" class="fin-btn fin-btn-primary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        <div class="fcat-actions">
+          <button type="submit" class="pcf-btn pcf-btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Salvar
           </button>
-          <a href="{% url 'adm:lista_categorias' %}" class="fin-btn fin-btn-outline">Cancelar</a>
+          <a href="{% url 'adm:lista_categorias' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
         </div>
       </form>
     </div>
@@ -77,94 +73,49 @@
 </div>
 
 <style>
-*,*::before,*::after{box-sizing:border-box}
-.fin-page{background:hsl(var(--background));min-height:100vh}
-.fin-container{max-width:480px;margin:0 auto;padding:0 1.5rem}
+  .fcat-page { background: hsl(var(--background)); min-height: 100vh; }
+  .fcat-wrap { max-width: 560px; padding-top: clamp(1.75rem, 4vw, 2.75rem); padding-bottom: clamp(2.5rem, 6vw, 4rem); }
 
-.fin-header{
-  background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);
-  padding:2.25rem 0 2.75rem;position:relative;overflow:hidden;
-}
-.fin-header::after{
-  content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;
-  background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%);
-}
-.fin-header-inner{position:relative;z-index:1}
-.fin-breadcrumb{
-  display:inline-flex;align-items:center;gap:.375rem;
-  color:rgba(255,255,255,.45);font-size:.72rem;
-  font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .75rem;
-}
-.fin-breadcrumb-link{color:rgba(255,255,255,.55);text-decoration:none}
-.fin-breadcrumb-link:hover{color:#fff}
-.fin-title{font-size:clamp(1.25rem,3vw,1.625rem);font-weight:800;color:#fff;margin:0;line-height:1.15}
+  /* Cabeçalho */
+  .fcat-head { margin-bottom: 1.5rem; }
+  .fcat-breadcrumb { display: inline-flex; align-items: center; gap: .35rem; font-size: .78rem; font-weight: 600; color: hsl(var(--muted-foreground)); margin-bottom: .6rem; flex-wrap: wrap; }
+  .fcat-breadcrumb a { color: hsl(var(--muted-foreground)); text-decoration: none; }
+  .fcat-breadcrumb a:hover { color: #c9490a; }
+  .fcat-breadcrumb span { color: var(--ink); }
+  .fcat-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-size: clamp(1.5rem, 3vw, 2.1rem); color: var(--ink); }
 
-.fin-btn{
-  display:inline-flex;align-items:center;gap:.45rem;
-  padding:.625rem 1.25rem;border-radius:.5rem;
-  font-size:.875rem;font-weight:600;text-decoration:none;
-  border:none;cursor:pointer;transition:all .15s;white-space:nowrap;
-}
-.fin-btn-primary{background:#fe8210;color:#fff}
-.fin-btn-primary:hover{background:#e87207;color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(254,130,16,.4)}
-.fin-btn-outline{background:transparent;color:hsl(var(--foreground));border:1px solid hsl(var(--border))}
-.fin-btn-outline:hover{background:hsl(var(--accent))}
-.fin-btn-danger{background:#dc2626;color:#fff}
-.fin-btn-danger:hover{background:#b91c1c;color:#fff}
+  /* Formulário */
+  .fcat-field { margin-bottom: 1.25rem; }
+  .fcat-form-card input[type="text"],
+  .fcat-form-card select {
+    width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff;
+    border: 1px solid #f0dfd3; color: var(--ink); font-size: .92rem; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .fcat-form-card input[type="text"]:focus,
+  .fcat-form-card select:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242,107,33,.15); }
+  .fcat-error { margin: .35rem 0 0; font-size: .78rem; font-weight: 600; color: #b03636; }
 
-.fin-body{padding-top:1.75rem;padding-bottom:4rem}
+  .fcat-field-check { display: flex; align-items: center; gap: .625rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .fcat-form-card input[type="checkbox"] { width: 18px; height: 18px; border-radius: 5px; cursor: pointer; accent-color: #e8560f; flex-shrink: 0; }
+  .fcat-label-check { font-size: .9rem; font-weight: 600; color: var(--ink); margin: 0; cursor: pointer; }
+  .fcat-field-check .fcat-error { flex-basis: 100%; }
 
-.fin-form-card{
-  background:hsl(var(--card));border:1px solid hsl(var(--border));
-  border-radius:1rem;padding:1.75rem;
-  box-shadow:0 1px 3px rgba(0,0,0,.06);
-}
-.fin-field{margin-bottom:1.25rem}
-.fin-label{
-  display:block;font-size:.8rem;font-weight:700;
-  color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em;
-  margin-bottom:.45rem;
-}
-.fin-form-card input[type="text"],
-.fin-form-card select{
-  width:100%;padding:.625rem .875rem;
-  border:1px solid hsl(var(--border));border-radius:.5rem;
-  background:hsl(var(--background));color:hsl(var(--foreground));
-  font-size:.9rem;outline:none;transition:border .15s;
-  font-family:inherit;
-}
-.fin-form-card input:focus,
-.fin-form-card select:focus{
-  border-color:#fe8210;box-shadow:0 0 0 3px rgba(254,130,16,.12);
-}
-.fin-error{font-size:.78rem;color:#dc2626;font-weight:600;margin:.3rem 0 0}
-.fin-field-check{display:flex;align-items:center;gap:.625rem;margin-bottom:1.5rem}
-.fin-label-check{font-size:.875rem;font-weight:600;color:hsl(var(--foreground));margin:0;cursor:pointer}
-.fin-form-card input[type="checkbox"]{
-  width:17px;height:17px;border-radius:.25rem;cursor:pointer;accent-color:#fe8210;
-}
-.fin-form-actions{display:flex;gap:.75rem}
+  .fcat-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
 
-.fin-confirm-card{
-  background:#fff7ed;border:1px solid #fed7aa;
-  border-radius:1rem;padding:1.5rem;
-  display:flex;gap:1rem;align-items:flex-start;
-  margin-bottom:1.25rem;
-}
-.fin-confirm-icon{
-  width:44px;height:44px;background:#fee2e2;color:#dc2626;
-  border-radius:.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.fin-confirm-title{font-size:1rem;font-weight:700;color:#9a3412;margin:0 0 .35rem}
-.fin-confirm-sub{font-size:.875rem;color:#c2410c;margin:0;line-height:1.5}
-.fin-confirm-actions{display:flex;gap:.75rem}
+  /* Confirmação */
+  .fcat-confirm-card { display: flex; gap: 1rem; align-items: flex-start; background: #fff2e9; border: 1px solid #fbe3d3; border-radius: 20px; padding: 1.4rem 1.5rem; margin-bottom: 1.25rem; }
+  .fcat-confirm-icon { background: #fdeaea; color: #b03636; }
+  .fcat-confirm-text { min-width: 0; }
+  .fcat-confirm-title { margin: 0 0 .35rem; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .fcat-confirm-sub { margin: 0; font-size: .88rem; line-height: 1.55; color: var(--ink-soft); }
+  .fcat-btn-danger { background: #d64545; color: #fff; }
+  .fcat-btn-danger:hover { background: #c23a3a; color: #fff; transform: translateY(-1px); }
 
-@media(max-width:520px){
-  .fin-container{padding:0 1rem}
-  .fin-form-card{padding:1.25rem}
-  .fin-form-actions{flex-direction:column}
-  .fin-confirm-card{flex-direction:column;gap:.75rem}
-}
+  @media (max-width: 520px) {
+    .fcat-actions { flex-direction: column; }
+    .fcat-actions .pcf-btn { width: 100%; }
+    .fcat-confirm-card { flex-direction: column; gap: .75rem; }
+  }
 </style>
-
 {% endblock %}

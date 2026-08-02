@@ -3,385 +3,289 @@
 
 {% block content %}
 <div class="fin-page">
+  <div class="pcf-container fin-wrap">
 
-  <!-- ── HEADER ── -->
-  <div class="fin-header">
-    <div class="fin-container">
-      <div class="fin-header-inner">
-        <div class="fin-header-text">
-          <p class="fin-breadcrumb">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            Módulo Financeiro
-          </p>
-          <h1 class="fin-title">Painel Financeiro</h1>
-          <p class="fin-sub">Acompanhe receitas, despesas e o resultado do Projeto Criança Feliz.</p>
-        </div>
-        <a href="{% url 'adm:criar_lancamento' %}" class="fin-btn fin-btn-primary">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Novo Lançamento
-        </a>
+    <!-- ─────────────────────────── CABEÇALHO LEVE ─────────────────────────── -->
+    <header class="fin-head" data-reveal>
+      <div class="fin-head-text">
+        <span class="pcf-eyebrow">Módulo Financeiro</span>
+        <h1 class="fin-title">Painel Financeiro</h1>
+        <p class="fin-sub">Acompanhe receitas, despesas e o resultado do Projeto Criança Feliz.</p>
       </div>
-    </div>
-  </div>
+      <a href="{% url 'adm:criar_lancamento' %}" class="pcf-btn pcf-btn-primary fin-head-cta">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Lançamento
+      </a>
+    </header>
 
-  <div class="fin-container fin-body">
-
-    <!-- ── KPI CARDS ── -->
-    <div class="fin-kpi-row">
+    <!-- ─────────────────────────────── KPIs ─────────────────────────────── -->
+    <section class="fin-kpis" data-reveal>
 
       <!-- Saldo -->
-      <div class="fin-kpi {% if saldo >= 0 %}fin-kpi-pos{% else %}fin-kpi-neg{% endif %}">
+      <div class="pcf-card fin-kpi {% if saldo >= 0 %}fin-kpi-pos{% else %}fin-kpi-neg{% endif %}">
         <div class="fin-kpi-top">
-          <div class="fin-kpi-icon fin-icon-saldo">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-          </div>
-          <span class="fin-badge {% if saldo >= 0 %}fin-badge-pos{% else %}fin-badge-neg{% endif %}">
+          <span class="pcf-icon-tile {% if saldo >= 0 %}tint-green{% else %}tint-orange{% endif %}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          </span>
+          <span class="pcf-badge {% if saldo >= 0 %}ok{% else %}danger{% endif %}">
             {% if saldo >= 0 %}Positivo{% else %}Negativo{% endif %}
           </span>
         </div>
-        <div class="fin-kpi-label">Saldo Total</div>
-        <div class="fin-kpi-value {% if saldo >= 0 %}fin-color-pos{% else %}fin-color-neg{% endif %}">
-          R$ {{ saldo|floatformat:2 }}
+        <div class="pcf-stat">
+          <span class="lbl">Saldo Total</span>
+          <span class="num {% if saldo >= 0 %}fin-color-pos{% else %}fin-color-neg{% endif %}">R$ {{ saldo|floatformat:2 }}</span>
         </div>
-        <div class="fin-kpi-sub">Receitas menos despesas</div>
+        <p class="fin-kpi-help">Receitas menos despesas</p>
       </div>
 
       <!-- Receitas -->
-      <div class="fin-kpi">
+      <div class="pcf-card fin-kpi">
         <div class="fin-kpi-top">
-          <div class="fin-kpi-icon fin-icon-receita">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-          </div>
+          <span class="pcf-icon-tile tint-green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </span>
         </div>
-        <div class="fin-kpi-label">Total Receitas</div>
-        <div class="fin-kpi-value fin-color-pos">R$ {{ total_receitas|floatformat:2 }}</div>
-        <div class="fin-kpi-sub">Todas as entradas registradas</div>
+        <div class="pcf-stat">
+          <span class="lbl">Total Receitas</span>
+          <span class="num fin-color-pos">R$ {{ total_receitas|floatformat:2 }}</span>
+        </div>
+        <p class="fin-kpi-help">Todas as entradas registradas</p>
       </div>
 
       <!-- Despesas -->
-      <div class="fin-kpi">
+      <div class="pcf-card fin-kpi">
         <div class="fin-kpi-top">
-          <div class="fin-kpi-icon fin-icon-despesa">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
-          </div>
+          <span class="pcf-icon-tile tint-orange">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+          </span>
         </div>
-        <div class="fin-kpi-label">Total Despesas</div>
-        <div class="fin-kpi-value fin-color-neg">R$ {{ total_despesas|floatformat:2 }}</div>
-        <div class="fin-kpi-sub">Todas as saídas registradas</div>
+        <div class="pcf-stat">
+          <span class="lbl">Total Despesas</span>
+          <span class="num fin-color-neg">R$ {{ total_despesas|floatformat:2 }}</span>
+        </div>
+        <p class="fin-kpi-help">Todas as saídas registradas</p>
       </div>
 
-    </div>
+    </section>
 
-    <!-- ── FERRAMENTAS ── -->
-    <div class="fin-section">
-      <h2 class="fin-section-title">Ferramentas</h2>
-      <div class="fin-tools-grid">
+    <!-- ─────────────────────────── FERRAMENTAS ─────────────────────────── -->
+    <section class="fin-section" data-reveal>
+      <div class="fin-section-head">
+        <h2 class="fin-section-title">Ferramentas</h2>
+      </div>
 
-        <a href="{% url 'adm:fluxo_caixa' %}" class="fin-tool-card">
-          <div class="fin-tool-icon fin-tool-green">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          </div>
-          <div class="fin-tool-body">
-            <div class="fin-tool-title">Fluxo de Caixa</div>
-            <div class="fin-tool-desc">Linha do tempo com saldo acumulado e exportação CSV</div>
-          </div>
-          <svg class="fin-tool-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      <div class="fin-tools">
+
+        <a href="{% url 'adm:fluxo_caixa' %}" class="pcf-card pcf-hoverable fin-tool">
+          <span class="pcf-icon-tile tint-green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </span>
+          <span class="fin-tool-body">
+            <span class="fin-tool-title">Fluxo de Caixa</span>
+            <span class="fin-tool-desc">Linha do tempo com saldo acumulado e exportação CSV</span>
+          </span>
+          <svg class="fin-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
 
-        <a href="{% url 'adm:dre' %}" class="fin-tool-card">
-          <div class="fin-tool-icon fin-tool-purple">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-          </div>
-          <div class="fin-tool-body">
-            <div class="fin-tool-title">DRE</div>
-            <div class="fin-tool-desc">Demonstrativo de resultados com comparativo mensal</div>
-          </div>
-          <svg class="fin-tool-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        <a href="{% url 'adm:dre' %}" class="pcf-card pcf-hoverable fin-tool">
+          <span class="pcf-icon-tile tint-blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          </span>
+          <span class="fin-tool-body">
+            <span class="fin-tool-title">DRE</span>
+            <span class="fin-tool-desc">Demonstrativo de resultados com comparativo mensal</span>
+          </span>
+          <svg class="fin-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
 
-        <a href="{% url 'adm:lista_lancamentos' %}" class="fin-tool-card">
-          <div class="fin-tool-icon fin-tool-orange">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          </div>
-          <div class="fin-tool-body">
-            <div class="fin-tool-title">Lançamentos</div>
-            <div class="fin-tool-desc">Histórico completo com filtros por tipo e período</div>
-          </div>
-          <svg class="fin-tool-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        <a href="{% url 'adm:lista_lancamentos' %}" class="pcf-card pcf-hoverable fin-tool">
+          <span class="pcf-icon-tile tint-orange">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </span>
+          <span class="fin-tool-body">
+            <span class="fin-tool-title">Lançamentos</span>
+            <span class="fin-tool-desc">Histórico completo com filtros por tipo e período</span>
+          </span>
+          <svg class="fin-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
 
-        <a href="{% url 'adm:lista_categorias' %}" class="fin-tool-card">
-          <div class="fin-tool-icon fin-tool-slate">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-          </div>
-          <div class="fin-tool-body">
-            <div class="fin-tool-title">Categorias</div>
-            <div class="fin-tool-desc">Gerencie as categorias de receitas e despesas</div>
-          </div>
-          <svg class="fin-tool-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        <a href="{% url 'adm:lista_categorias' %}" class="pcf-card pcf-hoverable fin-tool">
+          <span class="pcf-icon-tile tint-gold">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          </span>
+          <span class="fin-tool-body">
+            <span class="fin-tool-title">Categorias</span>
+            <span class="fin-tool-desc">Gerencie as categorias de receitas e despesas</span>
+          </span>
+          <svg class="fin-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
 
-        <a href="{% url 'forms_pcf:reembolso_inbox' %}" class="fin-tool-card">
-          <div class="fin-tool-icon fin-tool-blue">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          </div>
-          <div class="fin-tool-body">
-            <div class="fin-tool-title">
+        <a href="{% url 'forms_pcf:reembolso_inbox' %}" class="pcf-card pcf-hoverable fin-tool">
+          <span class="pcf-icon-tile tint-blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </span>
+          <span class="fin-tool-body">
+            <span class="fin-tool-title">
               Reembolsos
               {% if reembolsos_pendentes %}
-              <span class="fin-tool-pending-badge">{{ reembolsos_pendentes }}</span>
+              <span class="pcf-badge danger fin-pending">{{ reembolsos_pendentes }}</span>
               {% endif %}
-            </div>
-            <div class="fin-tool-desc">Aprovar ou rejeitar pedidos de reembolso dos voluntários</div>
-          </div>
-          <svg class="fin-tool-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </span>
+            <span class="fin-tool-desc">Aprovar ou rejeitar pedidos de reembolso dos voluntários</span>
+          </span>
+          <svg class="fin-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </a>
 
       </div>
-    </div>
+    </section>
 
-    <!-- ── ÚLTIMAS MOVIMENTAÇÕES ── -->
-    <div class="fin-section fin-section-last">
-      <div class="fin-section-header">
-        <div>
+    <!-- ─────────────────────── ÚLTIMAS MOVIMENTAÇÕES ─────────────────────── -->
+    <section class="fin-section fin-section-last" data-reveal>
+      <div class="fin-section-head">
+        <div class="fin-section-head-text">
           <h2 class="fin-section-title">Últimas Movimentações</h2>
-          <p class="fin-section-sub">Os 10 lançamentos mais recentes</p>
+          <p class="fin-section-desc">Os 10 lançamentos mais recentes</p>
         </div>
-        <a href="{% url 'adm:lista_lancamentos' %}" class="fin-btn fin-btn-outline fin-btn-sm">Ver todos</a>
+        <a href="{% url 'adm:lista_lancamentos' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver todos</a>
       </div>
 
-      <div class="fin-tx-list">
-        {% for lan in ultimos %}
-        <div class="fin-tx-item">
-          <div class="fin-tx-icon {% if lan.tipo == 'RECEITA' %}fin-tx-up{% else %}fin-tx-down{% endif %}">
-            {% if lan.tipo == 'RECEITA' %}
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-            {% else %}
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-            {% endif %}
-          </div>
-          <div class="fin-tx-info">
-            <div class="fin-tx-cat">{{ lan.categoria.nome }}</div>
-            <div class="fin-tx-desc">{{ lan.descricao|default:"Sem descrição"|truncatechars:55 }}</div>
-          </div>
-          <div class="fin-tx-right">
-            <div class="fin-tx-amount {% if lan.tipo == 'RECEITA' %}fin-color-pos{% else %}fin-color-neg{% endif %}">
-              {% if lan.tipo == 'RECEITA' %}+{% else %}−{% endif %} R$&nbsp;{{ lan.valor|floatformat:2 }}
-            </div>
-            <div class="fin-tx-date">{{ lan.data|date:"d/m/Y" }}</div>
-            {% if lan.origem == 'SUPPLY' %}<span class="fin-tx-tag">supply</span>{% endif %}
-          </div>
+      <div class="pcf-card fin-tx-card">
+        {% if ultimos %}
+        <div class="fin-tx-scroll" style="overflow-x:auto">
+          <table class="pcf-table fin-tx-table">
+            <thead>
+              <tr>
+                <th>Movimentação</th>
+                <th>Data</th>
+                <th>Origem</th>
+                <th class="fin-th-right">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for lan in ultimos %}
+              <tr>
+                <td>
+                  <div class="fin-tx-mov">
+                    <span class="pcf-icon-tile {% if lan.tipo == 'RECEITA' %}tint-green{% else %}tint-orange{% endif %} fin-tx-icon">
+                      {% if lan.tipo == 'RECEITA' %}
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
+                      {% else %}
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                      {% endif %}
+                    </span>
+                    <span class="fin-tx-info">
+                      <span class="fin-tx-cat">{{ lan.categoria.nome }}</span>
+                      <span class="fin-tx-desc">{{ lan.descricao|default:"Sem descrição"|truncatechars:55 }}</span>
+                    </span>
+                  </div>
+                </td>
+                <td class="fin-tx-date">{{ lan.data|date:"d/m/Y" }}</td>
+                <td>
+                  {% if lan.origem == 'SUPPLY' %}
+                  <span class="pcf-badge info">Supply</span>
+                  {% else %}
+                  <span class="pcf-badge">Manual</span>
+                  {% endif %}
+                </td>
+                <td class="fin-th-right">
+                  <span class="fin-tx-amount {% if lan.tipo == 'RECEITA' %}fin-color-pos{% else %}fin-color-neg{% endif %}">
+                    {% if lan.tipo == 'RECEITA' %}+{% else %}−{% endif %}&nbsp;R$&nbsp;{{ lan.valor|floatformat:2 }}
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-        {% empty %}
+        {% else %}
         <div class="fin-empty">
           <div class="fin-empty-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           </div>
           <p class="fin-empty-title">Nenhum lançamento ainda</p>
           <p class="fin-empty-sub">Adicione o primeiro lançamento para começar o controle financeiro.</p>
-          <a href="{% url 'adm:criar_lancamento' %}" class="fin-btn fin-btn-outline" style="margin-top:.25rem;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <a href="{% url 'adm:criar_lancamento' %}" class="pcf-btn pcf-btn-outline">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Novo Lançamento
           </a>
         </div>
-        {% endfor %}
+        {% endif %}
       </div>
-    </div>
+    </section>
 
   </div>
 </div>
 
+{# Bloco enxuto: só LAYOUT específico desta tela. O visual vem das classes .pcf-* (tailwindcss/input.css). #}
 <style>
-*,*::before,*::after{box-sizing:border-box}
-.fin-page{background:hsl(var(--background));min-height:100vh}
+  .fin-page { background: hsl(var(--background)); min-height: 100vh; }
+  .fin-wrap { padding-top: clamp(1.75rem, 4vw, 2.75rem); padding-bottom: clamp(2.5rem, 6vw, 4rem); }
 
-/* Container */
-.fin-container{max-width:1060px;margin:0 auto;padding:0 1.5rem}
+  /* ── Cabeçalho leve ── */
+  .fin-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
+  .fin-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .fin-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.6rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .fin-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); max-width: 52ch; }
+  .fin-head-cta { flex-shrink: 0; }
 
-/* Header */
-.fin-header{
-  background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);
-  padding:2.75rem 0 3.25rem;
-  position:relative;overflow:hidden;
-}
-.fin-header::before{
-  content:'';position:absolute;inset:0;
-  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23ffffff' fill-opacity='0.025'%3E%3Ccircle cx='30' cy='30' r='30'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
-}
-.fin-header::after{
-  content:'';position:absolute;bottom:-2px;left:0;right:0;height:52px;
-  background:hsl(var(--background));
-  clip-path:ellipse(55% 100% at 50% 100%);
-}
-.fin-header-inner{
-  position:relative;z-index:1;
-  display:flex;align-items:flex-start;justify-content:space-between;
-  gap:1.5rem;flex-wrap:wrap;
-}
-.fin-breadcrumb{
-  display:inline-flex;align-items:center;gap:.375rem;
-  color:rgba(255,255,255,.45);font-size:.72rem;
-  font-weight:600;letter-spacing:.06em;text-transform:uppercase;
-  margin:0 0 .75rem;
-}
-.fin-title{
-  font-size:clamp(1.5rem,3vw,2.125rem);font-weight:800;
-  color:#fff;margin:0 0 .5rem;line-height:1.15;
-}
-.fin-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0;max-width:420px;line-height:1.6}
+  /* ── KPIs ── */
+  .fin-kpis { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 2.5rem; }
+  .fin-kpi { display: flex; flex-direction: column; gap: .65rem; }
+  .fin-kpi-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .fin-kpi-pos { border-top: 3px solid #2e8b57; }
+  .fin-kpi-neg { border-top: 3px solid #d1500f; }
+  .fin-kpi .pcf-stat .num { font-size: clamp(1.5rem, 3vw, 1.9rem); }
+  .fin-kpi-help { margin: 0; font-size: .75rem; color: hsl(var(--muted-foreground)); }
+  .fin-color-pos { color: #2e8b57; }
+  .fin-color-neg { color: #d1500f; }
 
-/* Buttons */
-.fin-btn{
-  display:inline-flex;align-items:center;gap:.45rem;
-  padding:.625rem 1.25rem;border-radius:.5rem;
-  font-size:.875rem;font-weight:600;text-decoration:none;
-  border:none;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0;
-}
-.fin-btn-primary{background:#fe8210;color:#fff;position:relative;z-index:1}
-.fin-btn-primary:hover{background:#e87207;color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(254,130,16,.4)}
-.fin-btn-outline{background:transparent;color:hsl(var(--foreground));border:1px solid hsl(var(--border))}
-.fin-btn-outline:hover{background:hsl(var(--accent));color:hsl(var(--foreground))}
-.fin-btn-sm{padding:.4rem .875rem;font-size:.8rem}
+  /* ── Seções ── */
+  .fin-section { margin-bottom: 2.5rem; }
+  .fin-section-last { margin-bottom: 0; }
+  .fin-section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .fin-section-head-text { display: flex; flex-direction: column; gap: .2rem; }
+  .fin-section-title { margin: 0; font-size: clamp(1.15rem, 2.4vw, 1.4rem); font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .fin-section-desc { margin: 0; font-size: .85rem; color: hsl(var(--muted-foreground)); }
 
-/* Body */
-.fin-body{padding-top:2rem;padding-bottom:4.5rem}
+  /* ── Ferramentas ── */
+  .fin-tools { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  .fin-tool { display: flex; align-items: center; gap: 1rem; text-decoration: none; color: var(--ink); }
+  .fin-tool:hover { color: var(--ink); }
+  .fin-tool-body { display: flex; flex-direction: column; gap: .2rem; min-width: 0; flex: 1; }
+  .fin-tool-title { font-weight: 800; font-size: .98rem; letter-spacing: -.01em; color: var(--ink); }
+  .fin-tool-desc { font-size: .8rem; line-height: 1.45; color: var(--ink-muted); }
+  .fin-pending { padding: .1rem .5rem; margin-left: .35rem; vertical-align: middle; }
+  .fin-arrow { color: var(--ink-muted); flex-shrink: 0; transition: transform .18s ease, color .18s ease; }
+  .fin-tool:hover .fin-arrow { transform: translateX(3px); color: #e8560f; }
 
-/* KPI row */
-.fin-kpi-row{
-  display:grid;grid-template-columns:repeat(3,1fr);
-  gap:1rem;margin-top:-1.75rem;margin-bottom:2.5rem;position:relative;z-index:2;
-}
-.fin-kpi{
-  background:hsl(var(--card));border:1px solid hsl(var(--border));
-  border-radius:1rem;padding:1.375rem 1.5rem;
-  box-shadow:0 1px 3px rgba(0,0,0,.07),0 4px 12px rgba(0,0,0,.05);
-  transition:box-shadow .15s,transform .15s;
-  display:flex;flex-direction:column;gap:.3rem;
-}
-.fin-kpi:hover{box-shadow:0 6px 24px rgba(0,0,0,.1);transform:translateY(-2px)}
-.fin-kpi-pos{border-top:3px solid #059669}
-.fin-kpi-neg{border-top:3px solid #dc2626}
-.fin-kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
-.fin-kpi-icon{
-  width:38px;height:38px;border-radius:.625rem;
-  display:flex;align-items:center;justify-content:center;
-}
-.fin-icon-saldo {background:#f1f5f9;color:#475569}
-.fin-icon-receita{background:#d1fae5;color:#059669}
-.fin-icon-despesa{background:#fee2e2;color:#dc2626}
-.fin-badge{font-size:.68rem;font-weight:700;padding:.2rem .6rem;border-radius:9999px;line-height:1.4}
-.fin-badge-pos{background:#d1fae5;color:#065f46}
-.fin-badge-neg{background:#fee2e2;color:#991b1b}
-.fin-kpi-label{
-  font-size:.72rem;font-weight:700;
-  color:hsl(var(--muted-foreground));
-  text-transform:uppercase;letter-spacing:.05em;
-}
-.fin-kpi-value{font-size:1.6rem;font-weight:800;line-height:1.1;margin:.15rem 0}
-.fin-color-pos{color:#059669}
-.fin-color-neg{color:#dc2626}
-.fin-kpi-sub{font-size:.73rem;color:hsl(var(--muted-foreground));margin-top:.1rem}
+  /* ── Tabela de movimentações ── */
+  .fin-tx-card { padding: 0; overflow: hidden; }
+  .fin-tx-scroll { width: 100%; }
+  .fin-tx-table { min-width: 640px; }
+  .fin-th-right { text-align: right; }
+  .fin-tx-mov { display: flex; align-items: center; gap: .8rem; min-width: 0; }
+  .fin-tx-icon { width: 36px; height: 36px; border-radius: 11px; }
+  .fin-tx-info { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+  .fin-tx-cat { font-size: .9rem; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fin-tx-desc { font-size: .78rem; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fin-tx-date { white-space: nowrap; color: var(--ink-muted); }
+  .fin-tx-amount { font-size: .92rem; font-weight: 800; white-space: nowrap; }
 
-/* Sections */
-.fin-section{margin-bottom:2.5rem}
-.fin-section-last{margin-bottom:0}
-.fin-section-header{
-  display:flex;align-items:flex-start;justify-content:space-between;
-  gap:1rem;margin-bottom:1.125rem;flex-wrap:wrap;
-}
-.fin-section-title{font-size:1.0625rem;font-weight:700;color:hsl(var(--foreground));margin:0 0 .2rem}
-.fin-section-sub{font-size:.8rem;color:hsl(var(--muted-foreground));margin:0}
+  /* ── Estado vazio ── */
+  .fin-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .55rem; text-align: center; padding: clamp(2.5rem, 6vw, 3.5rem) 1.5rem; }
+  .fin-empty-icon { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 16px; background: #fff0e6; color: #e8560f; margin-bottom: .3rem; }
+  .fin-empty-title { margin: 0; font-size: 1.02rem; font-weight: 800; color: var(--ink); }
+  .fin-empty-sub { margin: 0; max-width: 34ch; font-size: .86rem; color: var(--ink-muted); }
+  .fin-empty .pcf-btn { margin-top: .4rem; }
 
-/* Tools grid */
-.fin-tools-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.875rem}
-.fin-tool-card{
-  display:flex;align-items:center;gap:1rem;
-  background:hsl(var(--card));border:1px solid hsl(var(--border));
-  border-radius:.875rem;padding:1.1rem 1.25rem;
-  text-decoration:none;color:hsl(var(--foreground));
-  box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s;
-}
-.fin-tool-card:hover{
-  box-shadow:0 6px 24px rgba(0,0,0,.1);transform:translateY(-2px);
-  border-color:#fe8210;color:hsl(var(--foreground));
-}
-.fin-tool-icon{
-  width:44px;height:44px;border-radius:.75rem;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.fin-tool-green {background:#d1fae5;color:#059669}
-.fin-tool-purple{background:#ede9fe;color:#7c3aed}
-.fin-tool-orange{background:#fff7ed;color:#fe8210}
-.fin-tool-slate {background:#f1f5f9;color:#64748b}
-.fin-tool-blue{background:#e0f2fe;color:#0284c7}
-.fin-tool-pending-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;background:#dc2626;color:#fff;font-size:.65rem;font-weight:800;border-radius:9999px;margin-left:.375rem;vertical-align:middle}
-.fin-tool-body{flex:1;min-width:0}
-.fin-tool-title{font-size:.9rem;font-weight:700;margin:0 0 .15rem;line-height:1.3}
-.fin-tool-desc{font-size:.775rem;color:hsl(var(--muted-foreground));margin:0;line-height:1.4}
-.fin-tool-arrow{color:hsl(var(--muted-foreground));flex-shrink:0;transition:transform .15s,color .15s}
-.fin-tool-card:hover .fin-tool-arrow{transform:translateX(3px);color:#fe8210}
-
-/* Transaction list */
-.fin-tx-list{
-  background:hsl(var(--card));border:1px solid hsl(var(--border));
-  border-radius:1rem;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden;
-}
-.fin-tx-item{
-  display:flex;align-items:center;gap:.875rem;
-  padding:.875rem 1.25rem;border-bottom:1px solid hsl(var(--border));
-  transition:background .1s;
-}
-.fin-tx-item:last-child{border-bottom:none}
-.fin-tx-item:hover{background:hsl(var(--accent))}
-.fin-tx-icon{
-  width:36px;height:36px;border-radius:.625rem;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.fin-tx-up  {background:#d1fae5;color:#059669}
-.fin-tx-down{background:#fee2e2;color:#dc2626}
-.fin-tx-info{flex:1;min-width:0}
-.fin-tx-cat {font-size:.875rem;font-weight:600;color:hsl(var(--foreground));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fin-tx-desc{font-size:.775rem;color:hsl(var(--muted-foreground));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.1rem}
-.fin-tx-right{text-align:right;flex-shrink:0}
-.fin-tx-amount{font-size:.9rem;font-weight:700;white-space:nowrap}
-.fin-tx-date{font-size:.72rem;color:hsl(var(--muted-foreground));margin-top:.1rem}
-.fin-tx-tag{
-  display:inline-block;font-size:.62rem;font-weight:700;
-  background:#f1f5f9;color:#64748b;
-  padding:.1rem .4rem;border-radius:9999px;
-  text-transform:uppercase;letter-spacing:.04em;margin-top:.2rem;
-}
-
-/* Empty */
-.fin-empty{
-  display:flex;flex-direction:column;align-items:center;
-  text-align:center;padding:3rem 2rem;
-  color:hsl(var(--muted-foreground));gap:.5rem;
-}
-.fin-empty-icon{
-  width:52px;height:52px;background:hsl(var(--accent));
-  border-radius:.875rem;display:flex;align-items:center;justify-content:center;
-  color:hsl(var(--muted-foreground));margin-bottom:.25rem;
-}
-.fin-empty-title{font-size:.9375rem;font-weight:600;color:hsl(var(--foreground));margin:0}
-.fin-empty-sub{font-size:.825rem;margin:0;max-width:280px;line-height:1.5}
-
-/* Responsive */
-@media (max-width:820px){
-  .fin-kpi-row{grid-template-columns:1fr;margin-top:1.5rem}
-  .fin-tools-grid{grid-template-columns:1fr}
-  .fin-header{padding:2rem 0 2.75rem}
-  .fin-header-inner{flex-direction:column;gap:1rem}
-  .fin-btn-primary{width:100%;justify-content:center}
-}
-@media (max-width:520px){
-  .fin-container{padding:0 1rem}
-  .fin-kpi-value{font-size:1.375rem}
-  .fin-tool-desc{display:none}
-  .fin-tx-item{gap:.625rem;padding:.75rem 1rem}
-  .fin-tx-icon{width:32px;height:32px}
-  .fin-section-header{flex-direction:column;align-items:flex-start}
-}
+  /* ── Breakpoints ── */
+  @media (min-width: 640px) {
+    .fin-kpis { grid-template-columns: repeat(3, 1fr); }
+    .fin-tools { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .fin-head-cta { width: 100%; }
+    .fin-tool-desc { display: none; }
+  }
 </style>
-
 {% endblock %}
