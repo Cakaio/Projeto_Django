@@ -1,70 +1,193 @@
 {% extends "base.html" %}
 {% block titulo %}Minhas pautas{% endblock %}
-{% block head %}
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;600;700;800&display=swap');
-  .board{--ink:#16243a;--coral:#ed684e;--sand:#efe7d8;--paper:#fffdf8;min-height:calc(100vh - 70px);background:#e9e1d3;color:var(--ink);font-family:Manrope,sans-serif;padding-bottom:6rem}
-  .board-head{background:var(--ink);color:white;padding:3.5rem clamp(1rem,5vw,4rem) 5rem;position:relative;overflow:hidden}
-  .board-head:after{content:"";position:absolute;width:320px;height:320px;border:70px solid rgba(237,104,78,.12);border-radius:50%;right:-80px;top:-150px}
-  .head-inner,.board-grid{max-width:1180px;margin:auto}.head-title{font:clamp(2.8rem,7vw,5.6rem)/.9 "DM Serif Display";letter-spacing:-.03em;margin:.5rem 0}
-  .new-pauta{display:inline-flex;background:var(--coral);color:white;text-decoration:none;padding:.8rem 1rem;font-weight:800;border-radius:2px;box-shadow:5px 5px 0 rgba(255,255,255,.16)}
-  .secondary-link{display:inline-flex;color:#dbe0e8;text-decoration:none;padding:.75rem .9rem;border:1px solid rgba(255,255,255,.25);font-size:.78rem;font-weight:700}
-  .group-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:1.5rem}.group-tag{font-size:.72rem;border:1px solid rgba(255,255,255,.25);padding:.35rem .6rem;color:#dbe0e8}
-  .board-grid{margin-top:-2.3rem;position:relative;z-index:2;padding:0 1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:1.1rem}
-  .pauta-card{background:var(--paper);border:1px solid #d6cdbd;box-shadow:0 14px 30px rgba(22,36,58,.08);animation:cardIn .45s both;display:flex;flex-direction:column}
-  .card-stripe{height:5px;background:var(--coral)}.card-body-pauta{padding:1.25rem}.area-mark{font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--coral);font-weight:800}
-  .pauta-title{font:1.75rem/1.05 "DM Serif Display";margin:.6rem 0}.pauta-description{white-space:pre-line;color:#596474;font-size:.86rem;line-height:1.65}
-  .meta-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #e7e0d5;border-bottom:1px solid #e7e0d5;margin-top:1rem}.meta-item{padding:.7rem 0;font-size:.72rem}.meta-item+ .meta-item{border-left:1px solid #e7e0d5;padding-left:.8rem}
-  .comments{padding:1rem 1.25rem 1.25rem;background:#faf6ee;margin-top:auto}.comment{display:flex;gap:.6rem;margin-bottom:.8rem}.avatar{width:28px;height:28px;border-radius:50%;background:var(--ink);color:white;display:grid;place-items:center;font-size:.62rem;font-weight:800;flex:none;overflow:hidden}.avatar img{width:100%;height:100%;object-fit:cover}
-  .comment-text{font-size:.78rem;color:#4b5869;margin:.15rem 0;white-space:pre-line}.comment-input{width:100%;border:1px solid #d9d0c1;background:white;padding:.65rem;font-size:.78rem;resize:vertical;outline:none}.comment-submit{border:0;background:var(--ink);color:white;font-size:.72rem;font-weight:800;padding:.55rem .8rem;margin-top:.4rem}
-  .status-badge{display:inline-flex;align-items:center;gap:.35rem;color:white;padding:.3rem .55rem;font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;font-weight:800}.status-badge:before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
-  .ack-bar{display:flex;gap:.45rem;align-items:center;padding:0 1.25rem 1rem}.ack-btn{border:1px solid #cfc6b7;background:transparent;color:#4f5a68;padding:.48rem .65rem;font-size:.7rem;font-weight:800}.ack-btn.primary{background:#e7efc8;border-color:#bdcc84;color:#314414}
-  .empty-board{grid-column:1/-1;background:var(--paper);border:1px dashed #a9a08f;text-align:center;padding:4rem 1rem}
-  @keyframes cardIn{from{opacity:0;transform:translateY(14px) rotate(.5deg)}}
-</style>
-{% endblock %}
+
 {% block content %}
-<section class="board">
-  <header class="board-head"><div class="head-inner" style="position:relative;z-index:1">
-    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
-      <div><p style="color:#ed684e;text-transform:uppercase;letter-spacing:.18em;font-size:.7rem;font-weight:800;margin:0">Quadro pessoal</p><h1 class="head-title">Pautas na mesa</h1><p style="color:#aeb7c4;margin:0">Somente o que foi direcionado aos seus grupos atuais.</p></div>
-      <div class="d-flex flex-wrap gap-2"><a href="{% url 'gerenciamento:minhas_pautas' %}" class="secondary-link">Pautas da minha área</a><a href="{% url 'gerenciamento:criar_pauta' %}" class="new-pauta">＋ Nova pauta</a></div>
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .pta-). O visual base vem das classes .pcf-*. #}
+<style>
+  .pta-page { background: hsl(var(--background)); }
+  .pta-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Cabeçalho leve */
+  .pta-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .pta-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .pta-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .pta-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .pta-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* Chips de grupos */
+  .pta-groups { display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: 1.75rem; }
+
+  /* Grid de cards */
+  .pta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 1.25rem; }
+  .pta-card { display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden; }
+  .pta-card-body { padding: 1.35rem 1.35rem 1.1rem; display: flex; flex-direction: column; gap: .55rem; }
+  .pta-card-top { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; }
+  .pta-area { font-size: .68rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #c9490a; }
+  .pta-status { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; font-weight: 700; color: var(--ink); }
+  .pta-status .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .pta-for { font-size: .74rem; color: var(--ink-muted); }
+  .pta-card-title { margin: .1rem 0 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .pta-desc { margin: 0; font-size: .88rem; line-height: 1.6; color: var(--ink-soft); white-space: pre-line; }
+
+  .pta-meta { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-top: .5rem; padding-top: .9rem; border-top: 1px solid #f4e7de; }
+  .pta-meta-item { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+  .pta-meta-label { font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+  .pta-meta-value { font-size: .82rem; font-weight: 700; color: var(--ink); }
+
+  /* Barra de ciência */
+  .pta-ack { padding: 0 1.35rem 1.1rem; }
+  .pta-ack form { margin: 0; }
+
+  /* Comentários */
+  .pta-comments { padding: 1.1rem 1.35rem 1.35rem; background: #fffaf6; border-top: 1px solid #f4e7de; margin-top: auto; }
+  .pta-comments-head { font-size: .66rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 .8rem; }
+  .pta-comment { display: flex; gap: .6rem; margin-bottom: .8rem; }
+  .pta-avatar { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; background: var(--brand-grad); color: #fff; display: flex; align-items: center; justify-content: center; font-size: .64rem; font-weight: 800; overflow: hidden; text-transform: uppercase; }
+  .pta-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .pta-comment-who { font-size: .74rem; font-weight: 700; color: var(--ink); }
+  .pta-comment-when { font-size: .66rem; color: var(--ink-muted); }
+  .pta-comment-text { margin: .15rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--ink-soft); white-space: pre-line; }
+
+  /* Campo de comentário (widget forms.py: class="comment-input") */
+  .comment-input {
+    width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff;
+    border: 1px solid #f0dfd3; color: var(--ink); font-size: .88rem; font-family: inherit; resize: vertical;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .comment-input:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
+  .pta-comment-form { margin: 0; display: flex; flex-direction: column; gap: .5rem; align-items: flex-start; }
+
+  /* Estado vazio */
+  .pta-empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
+  .pta-empty-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; background: #fff0e6; color: #e8560f; }
+  .pta-empty-title { margin: .4rem 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .pta-empty-sub { margin: 0; max-width: 40ch; font-size: .88rem; color: var(--ink-muted); }
+  .pta-empty .pcf-btn { margin-top: .4rem; }
+
+  @media (max-width: 560px) {
+    .pta-head-actions { width: 100%; }
+    .pta-head-actions .pcf-btn { flex: 1; justify-content: center; }
+  }
+</style>
+
+<div class="pta-page">
+  <div class="pcf-container pta-wrap">
+
+    <!-- Cabeçalho leve -->
+    <header class="pta-head">
+      <div class="pta-head-text">
+        <span class="pcf-eyebrow">Quadro pessoal</span>
+        <h1 class="pta-title">Pautas na mesa</h1>
+        <p class="pta-sub">Somente o que foi direcionado aos seus grupos atuais.</p>
+      </div>
+      <div class="pta-head-actions">
+        <a href="{% url 'gerenciamento:minhas_pautas' %}" class="pcf-btn pcf-btn-outline">Pautas da minha área</a>
+        <a href="{% url 'gerenciamento:criar_pauta' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova pauta
+        </a>
+      </div>
+    </header>
+
+    <!-- Grupos do usuário + alternância de ocultas -->
+    <div class="pta-groups">
+      {% for grupo in grupos_do_usuario %}
+        <span class="pcf-badge brand">{{ grupo.nome }}</span>
+      {% empty %}
+        <span class="pcf-badge">Você ainda não pertence a nenhum grupo</span>
+      {% endfor %}
+      <a class="pcf-badge info" style="text-decoration:none" href="{% if mostrar_ocultas %}{% url 'gerenciamento:pautas' %}{% else %}?ocultas=1{% endif %}">
+        {% if mostrar_ocultas %}← Ver ativas{% else %}Ocultadas ({{ total_ocultas }}){% endif %}
+      </a>
     </div>
-    <div class="group-tabs">{% for grupo in grupos_do_usuario %}<span class="group-tag">{{ grupo.nome }}</span>{% empty %}<span class="group-tag">Você ainda não pertence a nenhum grupo</span>{% endfor %}<a class="group-tag" style="text-decoration:none" href="{% if mostrar_ocultas %}{% url 'gerenciamento:pautas' %}{% else %}?ocultas=1{% endif %}">{% if mostrar_ocultas %}← Ver ativas{% else %}Ocultadas ({{ total_ocultas }}){% endif %}</a></div>
-  </div></header>
-  <main class="board-grid">
-    {% for pauta in pautas %}
-    <article class="pauta-card" style="animation-delay:{{ forloop.counter0 }}00ms">
-      <div class="card-stripe"></div>
-      <div class="card-body-pauta">
-        <div class="d-flex justify-content-between gap-2"><span class="area-mark">{{ pauta.get_emitido_por_area_display }}</span><span class="status-badge" style="background:{{ pauta.status_cor }}">{{ pauta.get_status_display }}</span></div>
-        <div style="font-size:.68rem;color:#7c8490;margin-top:.5rem">Para {{ pauta.grupo.nome }}</div>
-        <h2 class="pauta-title">{{ pauta.titulo }}</h2>
-        <div class="pauta-description">{{ pauta.descricao }}</div>
-        <div class="meta-grid">
-          <div class="meta-item"><span style="color:#89909a">Emitido por</span><br><strong>{{ pauta.criado_por.get_full_name|default:pauta.criado_por.username }}</strong></div>
-          <div class="meta-item"><span style="color:#89909a">Prazo</span><br><strong>{{ pauta.ddl|date:"d/m/Y · H:i" }}</strong></div>
+
+    <!-- Cards de pautas -->
+    <div class="pta-grid">
+      {% for pauta in pautas %}
+        <article class="pcf-card pta-card">
+          <div class="pta-card-body">
+            <div class="pta-card-top">
+              <span class="pta-area">{{ pauta.get_emitido_por_area_display }}</span>
+              <span class="pta-status">
+                <span class="dot" style="background:{{ pauta.status_cor }}" aria-hidden="true"></span>
+                {{ pauta.get_status_display }}
+              </span>
+            </div>
+            <div class="pta-for">Para {{ pauta.grupo.nome }}</div>
+            <h2 class="pta-card-title">{{ pauta.titulo }}</h2>
+            <p class="pta-desc">{{ pauta.descricao }}</p>
+            <div class="pta-meta">
+              <div class="pta-meta-item">
+                <span class="pta-meta-label">Emitido por</span>
+                <span class="pta-meta-value">{{ pauta.criado_por.get_full_name|default:pauta.criado_por.username }}</span>
+              </div>
+              <div class="pta-meta-item">
+                <span class="pta-meta-label">Prazo</span>
+                <span class="pta-meta-value">{{ pauta.ddl|date:"d/m/Y · H:i" }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ciência / ocultar -->
+          <div class="pta-ack">
+            <form method="post" action="{% url 'gerenciamento:alternar_ciencia' pauta.pk %}">
+              {% csrf_token %}
+              {% if mostrar_ocultas %}
+                <input type="hidden" name="acao" value="restaurar">
+                <input type="hidden" name="origem" value="ocultas">
+                <button class="pcf-btn pcf-btn-outline pcf-btn-sm pcf-btn-block" type="submit">Restaurar no quadro</button>
+              {% else %}
+                <input type="hidden" name="acao" value="ocultar">
+                <button class="pcf-btn {% if pauta.usuario_ciente %}pcf-btn-outline{% else %}pcf-btn-primary{% endif %} pcf-btn-sm pcf-btn-block" type="submit">
+                  {% if pauta.usuario_ciente %}
+                    Ciente · ocultar
+                  {% else %}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                    Ciente e ocultar
+                  {% endif %}
+                </button>
+              {% endif %}
+            </form>
+          </div>
+
+          <!-- Comentários -->
+          <section class="pta-comments">
+            <p class="pta-comments-head">{{ pauta.comentarios.count }} comentário{{ pauta.comentarios.count|pluralize }}</p>
+            {% for comentario in pauta.comentarios.all %}
+              <div class="pta-comment">
+                <span class="pta-avatar" aria-hidden="true">
+                  {% if comentario.autor.foto %}
+                    <img src="{{ comentario.autor.foto.url }}" alt="">
+                  {% else %}
+                    {{ comentario.autor.first_name|first|upper }}{{ comentario.autor.last_name|first|upper }}
+                  {% endif %}
+                </span>
+                <div>
+                  <span class="pta-comment-who">{{ comentario.autor.get_full_name|default:comentario.autor.username }}</span>
+                  <span class="pta-comment-when"> · {{ comentario.criado_em|date:"d/m H:i" }}</span>
+                  <p class="pta-comment-text">{{ comentario.texto }}</p>
+                </div>
+              </div>
+            {% endfor %}
+            <form class="pta-comment-form" method="post" action="{% url 'gerenciamento:comentar_pauta' pauta.pk %}">
+              {% csrf_token %}
+              {{ comentario_form.texto }}
+              <button class="pcf-btn pcf-btn-dark pcf-btn-sm" type="submit">Comentar</button>
+            </form>
+          </section>
+        </article>
+      {% empty %}
+        <div class="pta-empty">
+          <div class="pta-empty-icon">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <p class="pta-empty-title">Mesa vazia</p>
+          <p class="pta-empty-sub">Nenhuma pauta foi direcionada aos seus grupos atuais.</p>
+          <a href="{% url 'gerenciamento:criar_pauta' %}" class="pcf-btn pcf-btn-primary">Criar uma pauta</a>
         </div>
-      </div>
-      <div class="ack-bar">
-        <form method="post" action="{% url 'gerenciamento:alternar_ciencia' pauta.pk %}">{% csrf_token %}
-          {% if mostrar_ocultas %}<input type="hidden" name="acao" value="restaurar"><input type="hidden" name="origem" value="ocultas"><button class="ack-btn primary" type="submit">Restaurar no quadro</button>
-          {% else %}<input type="hidden" name="acao" value="ocultar"><button class="ack-btn {% if not pauta.usuario_ciente %}primary{% endif %}" type="submit">{% if pauta.usuario_ciente %}Ciente · ocultar{% else %}✓ Ciente e ocultar{% endif %}</button>{% endif %}
-        </form>
-      </div>
-      <section class="comments">
-        <p style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800;margin-bottom:.8rem">{{ pauta.comentarios.count }} comentário{{ pauta.comentarios.count|pluralize }}</p>
-        {% for comentario in pauta.comentarios.all %}
-        <div class="comment"><span class="avatar">{% if comentario.autor.foto %}<img src="{{ comentario.autor.foto.url }}" alt="">{% else %}{{ comentario.autor.first_name|first|upper }}{{ comentario.autor.last_name|first|upper }}{% endif %}</span>
-          <div><strong style="font-size:.72rem">{{ comentario.autor.get_full_name|default:comentario.autor.username }}</strong><span style="font-size:.65rem;color:#9298a0"> · {{ comentario.criado_em|date:"d/m H:i" }}</span><p class="comment-text">{{ comentario.texto }}</p></div>
-        </div>
-        {% endfor %}
-        <form method="post" action="{% url 'gerenciamento:comentar_pauta' pauta.pk %}">{% csrf_token %}{{ comentario_form.texto }}<button class="comment-submit" type="submit">Comentar</button></form>
-      </section>
-    </article>
-    {% empty %}
-    <div class="empty-board"><div style="font:3rem 'DM Serif Display'">Mesa vazia.</div><p style="color:#687382">Nenhuma pauta foi direcionada aos seus grupos atuais.</p><a href="{% url 'gerenciamento:criar_pauta' %}" class="new-pauta">Criar uma pauta</a></div>
-    {% endfor %}
-  </main>
-</section>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
 {% endblock %}

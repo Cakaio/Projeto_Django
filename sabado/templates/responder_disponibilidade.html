@@ -4,291 +4,142 @@
 {% block titulo %}Disponibilidade — {{ sabado.data|date:"d/m/Y" }}{% endblock %}
 
 {% block content %}
-<style>
-  /* ── Opções customizadas (radio / checkbox) ── */
-  .opt-wrap input[type="radio"],
-  .opt-wrap input[type="checkbox"] {
-    position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
-  }
-  .opt-label {
-    display: flex; align-items: center; gap: .85rem;
-    padding: .9rem 1.1rem;
-    border: 1.5px solid #e5e7eb; border-radius: .875rem;
-    background: #fff; cursor: pointer;
-    font-size: .95rem; font-weight: 500; color: #374151;
-    transition: border-color .15s, background .15s;
-    user-select: none; width: 100%;
-  }
-  .opt-label:hover { border-color: #fe8210; background: #fff7ed; }
-  .opt-label.checked { border-color: #fe8210; background: #fff7ed; color: #c75f06; font-weight: 600; }
+<div class="rd-page">
+  <div class="pcf-container rd-wrap">
 
-  .opt-indicator {
-    width: 1.2rem; height: 1.2rem; flex-shrink: 0;
-    border: 2px solid #d1d5db; background: #fff;
-    display: grid; place-items: center;
-    transition: border-color .15s, background .15s;
-  }
-  .opt-indicator.round  { border-radius: 50%; }
-  .opt-indicator.square { border-radius: .3rem; }
-  .opt-label.checked .opt-indicator { border-color: #fe8210; background: #fe8210; }
-  .opt-label.checked .opt-indicator.round::after {
-    content:''; width:.45rem; height:.45rem; background:#fff; border-radius:50%; display:block;
-  }
-  .opt-label.checked .opt-indicator.square::after {
-    content:''; width:.35rem; height:.62rem;
-    border:2px solid #fff; border-top:none; border-left:none;
-    transform:rotate(45deg) translateY(-1px); display:block;
-  }
+    <!-- Cabeçalho leve -->
+    <header class="rd-head">
+      <span class="pcf-eyebrow">Sábado do Projeto</span>
+      <h1 class="rd-title">Sua disponibilidade</h1>
+      <p class="rd-sub">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        {{ sabado.data|date:"l, d \d\e F \d\e Y" }}
+      </p>
+    </header>
 
-  /* ── Stepper (mobile only) ── */
-  .step-page { display: none; flex-direction: column; gap: .75rem; animation: fadeIn .22s ease; }
-  .step-page.active { display: flex; }
-  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-
-  .prog-bar { height: 4px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
-  .prog-fill { height: 100%; border-radius: 99px; transition: width .3s ease;
-               background: linear-gradient(90deg,#c75f06,#fe8210); }
-
-  /* ── Desktop: mostra todos os passos ── */
-  @media (min-width: 768px) {
-    .step-page { display: flex !important; }
-    .stepper-nav { display: none !important; }
-    .stepper-header { display: none !important; }
-    .desktop-submit { display: flex !important; }
-    .desktop-form { gap: 2rem; }
-    .section-divider {
-      border: none; border-top: 1.5px solid #f3f4f6; margin: 0;
-    }
-  }
-
-  .desktop-submit { display: none; }
-
-  /* ── Seção card (desktop) ── */
-  .form-section-title {
-    display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem;
-  }
-  .form-section-icon {
-    width: 2.25rem; height: 2.25rem; border-radius: .625rem;
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  }
-  .form-section-label {
-    font-size: .68rem; font-weight: 700; color: #9ca3af;
-    text-transform: uppercase; letter-spacing: .06em;
-  }
-  .form-section-heading {
-    font-size: 1.1rem; font-weight: 800; color: #111827; margin: 0;
-  }
-</style>
-
-<div class="min-h-screen bg-gray-50 flex flex-col">
-
-  <!-- Header -->
-  <div style="background:linear-gradient(135deg,#c75f06 0%,#fe8210 100%)" class="px-5 pt-6 pb-5 text-white flex-shrink-0">
-    <div class="max-w-2xl mx-auto">
-      <div class="flex items-center gap-3 mb-3">
-        <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-          <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-            <rect x="3" y="4" width="18" height="18" rx="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-        </div>
-        <div>
-          <p class="text-white/70 text-xs font-medium">Sábado do Projeto</p>
-          <p class="font-bold text-base leading-tight">{{ sabado.data|date:"d \d\e F \d\e Y" }}</p>
-        </div>
-      </div>
-
-      <!-- Barra de progresso (mobile only) -->
-      <div class="stepper-header">
-        <div class="prog-bar mb-1">
-          <div class="prog-fill" id="progFill" style="width:25%"></div>
-        </div>
-        <div class="flex justify-between text-white/70 text-xs">
-          <span id="progLabel">Pergunta 1 de 4</span>
-          <span id="progPct">25%</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Conteúdo -->
-  <div class="flex-1 flex flex-col max-w-2xl mx-auto w-full px-4 py-4">
-
-
-    <form method="post" id="dispForm" class="flex flex-col flex-1 desktop-form">
+    <!-- Card do formulário -->
+    <form method="post" id="dispForm" class="pcf-card rd-card">
       {% csrf_token %}
 
-      <!-- PASSO 1 — Presença -->
-      <div class="step-page active" data-step="1">
-        <div class="form-section-title">
-          <div class="form-section-icon" style="background:linear-gradient(135deg,#c75f06,#fe8210)">
-            <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24">
-              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          </div>
-          <div>
-            <p class="form-section-label">Presença</p>
-            <h2 class="form-section-heading">Você vai ao projeto neste sábado?</h2>
+      <!-- 1) Presença -->
+      <section class="rd-section">
+        <div class="rd-sec-head">
+          <span class="pcf-icon-tile tint-orange">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </span>
+          <div class="rd-sec-text">
+            <span class="rd-sec-label">Presença</span>
+            <h2 class="rd-sec-title">Você vai ao projeto neste sábado?</h2>
           </div>
         </div>
-        <div class="flex flex-col gap-2.5">
-          {% for widget in form.vai_ao_projeto %}
-          <div class="opt-wrap relative">
-            {{ widget.tag }}
-            <label for="{{ widget.id_for_label }}" class="opt-label" data-type="radio">
-              <span class="opt-indicator round"></span>
-              {{ widget.choice_label }}
-            </label>
+        <div class="pcf-field">
+          <div class="seg rd-seg" role="radiogroup" aria-label="Você vai ao projeto neste sábado?">
+            {% for widget in form.vai_ao_projeto %}
+              {{ widget.tag }}
+              <label class="seg-btn {% if not forloop.first %}seg-btn-r{% endif %}" for="{{ widget.id_for_label }}">{{ widget.choice_label }}</label>
+            {% endfor %}
           </div>
-          {% endfor %}
+          {% if form.vai_ao_projeto.errors %}
+            <p class="rd-error">{{ form.vai_ao_projeto.errors|join:", " }}</p>
+          {% endif %}
         </div>
-        {% if form.vai_ao_projeto.errors %}
-          <p class="text-red-500 text-xs mt-1">{{ form.vai_ao_projeto.errors|join:", " }}</p>
-        {% endif %}
-      </div>
+      </section>
 
-      <hr class="section-divider hidden md:block">
+      <hr class="rd-divider">
 
-      <!-- PASSO 2 — Horários -->
-      <div class="step-page" data-step="2">
-        <div class="form-section-title">
-          <div class="form-section-icon" style="background:linear-gradient(135deg,#059669,#34d399)">
-            <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-          </div>
-          <div>
-            <p class="form-section-label">Horários</p>
-            <h2 class="form-section-heading">Você pode ajudar em quais horários?</h2>
+      <!-- 2) Horários -->
+      <section class="rd-section">
+        <div class="rd-sec-head">
+          <span class="pcf-icon-tile tint-green">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </span>
+          <div class="rd-sec-text">
+            <span class="rd-sec-label">Horários</span>
+            <h2 class="rd-sec-title">Você pode ajudar em quais horários?</h2>
           </div>
         </div>
-        <p class="text-xs text-red-500 font-medium -mt-2 mb-1">
-          ⚠️ NÃO selecione que pode ajudar a sua própria área.
+        <p class="rd-warn">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          NÃO selecione que pode ajudar a sua própria área.
         </p>
-        <div class="flex flex-col gap-2.5">
-          {% for widget in form.pode_ajudar %}
-          <div class="opt-wrap relative">
-            {{ widget.tag }}
-            <label for="{{ widget.id_for_label }}" class="opt-label" data-type="checkbox">
-              <span class="opt-indicator square"></span>
-              {{ widget.choice_label }}
-            </label>
+        <div class="pcf-field">
+          <div class="rd-opts">
+            {% for widget in form.pode_ajudar %}
+              <div class="rd-opt-wrap">
+                {{ widget.tag }}
+                <label class="rd-opt" for="{{ widget.id_for_label }}">
+                  <span class="rd-check rd-check-square" aria-hidden="true"></span>
+                  {{ widget.choice_label }}
+                </label>
+              </div>
+            {% endfor %}
           </div>
-          {% endfor %}
+          {% if form.pode_ajudar.errors %}
+            <p class="rd-error">{{ form.pode_ajudar.errors|join:", " }}</p>
+          {% endif %}
         </div>
-        {% if form.pode_ajudar.errors %}
-          <p class="text-red-500 text-xs mt-1">{{ form.pode_ajudar.errors|join:", " }}</p>
-        {% endif %}
-      </div>
+      </section>
 
-      <hr class="section-divider hidden md:block">
+      <hr class="rd-divider">
 
-      <!-- PASSO 3 — Carro -->
-      <div class="step-page" data-step="3">
-        <div class="form-section-title">
-          <div class="form-section-icon" style="background:linear-gradient(135deg,#2563eb,#60a5fa)">
-            <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24">
-              <path d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v5a2 2 0 01-2 2h-2"/>
-              <circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>
-            </svg>
-          </div>
-          <div>
-            <p class="form-section-label">Transporte</p>
-            <h2 class="form-section-heading">Vai de carro e pode dar carona?</h2>
-          </div>
-        </div>
-        <div class="flex flex-col gap-2.5">
-          {% for widget in form.vai_de_carro %}
-          <div class="opt-wrap relative">
-            {{ widget.tag }}
-            <label for="{{ widget.id_for_label }}" class="opt-label" data-type="radio">
-              <span class="opt-indicator round"></span>
-              {{ widget.choice_label }}
-            </label>
-          </div>
-          {% endfor %}
-        </div>
-        {% if form.vai_de_carro.errors %}
-          <p class="text-red-500 text-xs mt-1">{{ form.vai_de_carro.errors|join:", " }}</p>
-        {% endif %}
-      </div>
-
-      <hr class="section-divider hidden md:block">
-
-      <!-- PASSO 4 — Saúde -->
-      <div class="step-page" data-step="4">
-        <div class="form-section-title">
-          <div class="form-section-icon" style="background:linear-gradient(135deg,#db2777,#f472b6)">
-            <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24">
-              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-            </svg>
-          </div>
-          <div>
-            <p class="form-section-label">Saúde</p>
-            <h2 class="form-section-heading">Como você está se sentindo essa semana?</h2>
+      <!-- 3) Transporte -->
+      <section class="rd-section">
+        <div class="rd-sec-head">
+          <span class="pcf-icon-tile tint-blue">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v5a2 2 0 01-2 2h-2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+          </span>
+          <div class="rd-sec-text">
+            <span class="rd-sec-label">Transporte</span>
+            <h2 class="rd-sec-title">Vai de carro e pode dar carona?</h2>
           </div>
         </div>
-        <div class="flex flex-col gap-2.5">
-          {% for widget in form.saude %}
-          <div class="opt-wrap relative">
-            {{ widget.tag }}
-            <label for="{{ widget.id_for_label }}" class="opt-label" data-type="radio">
-              <span class="opt-indicator round"></span>
-              {{ widget.choice_label }}
-            </label>
+        <div class="pcf-field">
+          <div class="seg rd-seg" role="radiogroup" aria-label="Vai de carro e pode dar carona?">
+            {% for widget in form.vai_de_carro %}
+              {{ widget.tag }}
+              <label class="seg-btn {% if not forloop.first %}seg-btn-r{% endif %}" for="{{ widget.id_for_label }}">{{ widget.choice_label }}</label>
+            {% endfor %}
           </div>
-          {% endfor %}
+          {% if form.vai_de_carro.errors %}
+            <p class="rd-error">{{ form.vai_de_carro.errors|join:", " }}</p>
+          {% endif %}
         </div>
-        {% if form.saude.errors %}
-          <p class="text-red-500 text-xs mt-1">{{ form.saude.errors|join:", " }}</p>
-        {% endif %}
-      </div>
+      </section>
 
-      <!-- Navegação (mobile only) -->
-      <div class="stepper-nav mt-4 pt-4 flex gap-3">
-        <button type="button" id="btnBack"
-                class="flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl
-                       border border-gray-200 bg-white text-gray-600 font-semibold text-sm
-                       hover:bg-gray-50 transition-colors hidden"
-                onclick="goStep(-1)">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
-          Voltar
-        </button>
+      <hr class="rd-divider">
 
-        <button type="button" id="btnNext"
-                class="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl
-                       text-white font-bold text-sm transition-all active:scale-95"
-                style="background:linear-gradient(135deg,#c75f06,#fe8210);box-shadow:0 4px 14px rgba(254,130,16,.3)"
-                onclick="goStep(1)">
-          Próxima
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </button>
+      <!-- 4) Saúde -->
+      <section class="rd-section">
+        <div class="rd-sec-head">
+          <span class="pcf-icon-tile" style="background:#fdeaf3;color:#db2777;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          </span>
+          <div class="rd-sec-text">
+            <span class="rd-sec-label">Saúde</span>
+            <h2 class="rd-sec-title">Como você está se sentindo essa semana?</h2>
+          </div>
+        </div>
+        <div class="pcf-field">
+          <div class="seg rd-seg" role="radiogroup" aria-label="Como você está se sentindo essa semana?">
+            {% for widget in form.saude %}
+              {{ widget.tag }}
+              <label class="seg-btn {% if not forloop.first %}seg-btn-r{% endif %}" for="{{ widget.id_for_label }}">{{ widget.choice_label }}</label>
+            {% endfor %}
+          </div>
+          {% if form.saude.errors %}
+            <p class="rd-error">{{ form.saude.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+      </section>
 
-        <button type="submit" id="btnSalvarMobile"
-                class="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl
-                       text-white font-bold text-sm transition-all active:scale-95 hidden"
-                style="background:linear-gradient(135deg,#c75f06,#fe8210);box-shadow:0 4px 14px rgba(254,130,16,.3)">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-          Confirmar
-        </button>
-      </div>
-
-      <!-- Botão confirmar (desktop only) -->
-      <div class="desktop-submit pt-2">
-        <button type="submit" id="btnSalvarDesktop"
-                class="flex items-center justify-center gap-2 py-3.5 px-8 rounded-xl
-                       text-white font-bold text-sm transition-all active:scale-95"
-                style="background:linear-gradient(135deg,#c75f06,#fe8210);box-shadow:0 4px 14px rgba(254,130,16,.3)">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+      <!-- Ações -->
+      <div class="rd-actions">
+        <a href="{% url 'sabado:resumo_sabado' %}?sabado={{ sabado.pk }}" class="pcf-btn pcf-btn-outline">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          Voltar ao painel
+        </a>
+        <button type="submit" id="btnSalvar" class="pcf-btn pcf-btn-primary pcf-btn-lg">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
           Confirmar disponibilidade
         </button>
       </div>
@@ -297,67 +148,88 @@
   </div>
 </div>
 
+{# Layout específico desta tela — todo o visual base vem das classes .pcf-* #}
+<style>
+  .rd-page { background: hsl(var(--background)); min-height: 100%; }
+  .rd-wrap { max-width: 720px; padding-top: clamp(1.75rem, 5vw, 3rem); padding-bottom: clamp(3rem, 7vw, 5rem); }
+
+  /* Cabeçalho */
+  .rd-head { margin-bottom: 1.5rem; }
+  .rd-title { margin: .75rem 0 .4rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1;
+              font-size: clamp(1.6rem, 4vw, 2.2rem); color: var(--ink); }
+  .rd-sub { display: inline-flex; align-items: center; gap: .45rem; margin: 0;
+            font-size: .9rem; color: hsl(var(--muted-foreground)); text-transform: capitalize; }
+
+  /* Card / seções */
+  .rd-card { display: flex; flex-direction: column; gap: 1.5rem; padding: clamp(1.25rem, 4vw, 2rem); }
+  .rd-section { display: flex; flex-direction: column; gap: 1rem; }
+  .rd-sec-head { display: flex; align-items: center; gap: .85rem; }
+  .rd-sec-text { min-width: 0; }
+  .rd-sec-label { font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+                  color: hsl(var(--muted-foreground)); }
+  .rd-sec-title { margin: .1rem 0 0; font-size: clamp(1rem, 2.4vw, 1.15rem); font-weight: 800;
+                  letter-spacing: -.01em; color: var(--ink); }
+  .rd-divider { border: none; border-top: 1px solid hsl(var(--border)); margin: 0; }
+
+  /* Toggle Sim/Não (.seg do design system) — full width e coloração escopada
+     (os inputs vêm do Django sem a classe .seg-radio, então cor e ocultação ficam aqui) */
+  .rd-seg { display: flex; width: 100%; max-width: 100%; }
+  .rd-seg input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+  .rd-seg .seg-btn { flex: 1; text-align: center; padding: .75rem 1rem; line-height: 1.25; }
+  .rd-seg input[value="True"]:checked + .seg-btn  { background: #16a34a; color: #fff; }
+  .rd-seg input[value="False"]:checked + .seg-btn { background: var(--ink-soft); color: #fff; }
+  .rd-seg input:focus-visible + .seg-btn { box-shadow: inset 0 0 0 2px rgba(242,107,33,.55); }
+
+  /* Opções múltiplas (faixas de horário) — cards com checkbox */
+  .rd-opts { display: flex; flex-direction: column; gap: .6rem; }
+  .rd-opt-wrap { position: relative; }
+  .rd-opt-wrap input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+  .rd-opt {
+    display: flex; align-items: center; gap: .8rem; width: 100%; cursor: pointer;
+    padding: .8rem 1rem; border: 1px solid hsl(var(--border)); border-radius: 12px;
+    background: #fff; font-size: .92rem; font-weight: 500; color: var(--ink-soft);
+    transition: border-color .15s, background .15s, color .15s; user-select: none;
+  }
+  .rd-opt:hover { border-color: #f7c9a8; background: #fff8f3; }
+  .rd-opt-wrap input:checked + .rd-opt { border-color: #f26b21; background: #fff2e9; color: #c9490a; font-weight: 600; }
+  .rd-opt-wrap input:focus-visible + .rd-opt { box-shadow: 0 0 0 3px rgba(242,107,33,.15); }
+  .rd-check {
+    width: 1.2rem; height: 1.2rem; flex-shrink: 0; border: 2px solid #d9c7ba; background: #fff;
+    display: grid; place-items: center; transition: border-color .15s, background .15s;
+  }
+  .rd-check-square { border-radius: .35rem; }
+  .rd-opt-wrap input:checked + .rd-opt .rd-check { border-color: #f26b21; background: #f26b21; }
+  .rd-opt-wrap input:checked + .rd-opt .rd-check-square::after {
+    content: ''; width: .35rem; height: .62rem; border: 2px solid #fff; border-top: none; border-left: none;
+    transform: rotate(45deg) translateY(-1px); display: block;
+  }
+
+  /* Avisos / erros */
+  .rd-warn { display: flex; align-items: flex-start; gap: .5rem; margin: -.25rem 0 0;
+             padding: .6rem .8rem; border-radius: 12px; background: #fdeaea; border: 1px solid #f7cccc;
+             color: #b03636; font-size: .82rem; font-weight: 600; }
+  .rd-warn svg { flex-shrink: 0; margin-top: .05rem; }
+  .rd-error { margin: .1rem 0 0; font-size: .8rem; color: #b03636; font-weight: 600; }
+
+  /* Ações */
+  .rd-actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: flex-end;
+                padding-top: .5rem; border-top: 1px solid hsl(var(--border)); }
+
+  @media (max-width: 480px) {
+    .rd-actions { flex-direction: column-reverse; }
+    .rd-actions .pcf-btn { width: 100%; }
+    .rd-seg .seg-btn { padding: .7rem .6rem; font-size: .82rem; }
+  }
+</style>
+
 <script>
-  const TOTAL = 4;
-  let current = 1;
-  const isMobile = () => window.innerWidth < 768;
-
-  const steps    = () => document.querySelectorAll('.step-page');
-  const btnBack  = document.getElementById('btnBack');
-  const btnNext  = document.getElementById('btnNext');
-  const btnSaveM = document.getElementById('btnSalvarMobile');
-  const btnSaveD = document.getElementById('btnSalvarDesktop');
-  const progFill = document.getElementById('progFill');
-  const progLabel= document.getElementById('progLabel');
-  const progPct  = document.getElementById('progPct');
-
-  function updateUI() {
-    if (!isMobile()) return; // desktop: tudo visível
-    steps().forEach(s => s.classList.toggle('active', +s.dataset.step === current));
-    const pct = Math.round((current / TOTAL) * 100);
-    if (progFill)  progFill.style.width = pct + '%';
-    if (progLabel) progLabel.textContent = `Pergunta ${current} de ${TOTAL}`;
-    if (progPct)   progPct.textContent   = pct + '%';
-    btnBack.classList.toggle('hidden', current === 1);
-    btnNext.classList.toggle('hidden', current === TOTAL);
-    btnSaveM.classList.toggle('hidden', current !== TOTAL);
-    syncLabels();
-  }
-
-  function goStep(dir) {
-    const next = current + dir;
-    if (next < 1 || next > TOTAL) return;
-    current = next;
-    updateUI();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function syncLabels() {
-    document.querySelectorAll('.opt-wrap').forEach(wrap => {
-      const inp = wrap.querySelector('input');
-      const lbl = wrap.querySelector('.opt-label');
-      if (inp && lbl) lbl.classList.toggle('checked', inp.checked);
-    });
-  }
-
-  document.querySelectorAll('.opt-label').forEach(lbl => {
-    lbl.addEventListener('click', () => setTimeout(syncLabels, 0));
-  });
-
-  /* Disable ao submeter */
-  function disableSubmit(btn) {
+  // Evita duplo envio (o estado "marcado" dos campos é tratado 100% por CSS).
+  document.getElementById('dispForm').addEventListener('submit', function () {
+    var btn = document.getElementById('btnSalvar');
     if (!btn) return;
     btn.disabled = true;
-    btn.style.opacity = '.7';
-    btn.innerHTML = `<svg width="15" height="15" class="animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-    </svg> Salvando…`;
-  }
-
-  document.getElementById('dispForm').addEventListener('submit', function() {
-    disableSubmit(isMobile() ? btnSaveM : btnSaveD);
+    btn.style.opacity = '.75';
+    btn.innerHTML = 'Salvando…';
   });
-
-  updateUI();
 </script>
 {% endblock %}

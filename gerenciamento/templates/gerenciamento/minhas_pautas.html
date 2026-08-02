@@ -1,40 +1,134 @@
 {% extends "base.html" %}
 {% block titulo %}Pautas da minha área{% endblock %}
-{% block head %}
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@400;600;700;800&display=swap');
-  .mine{--ink:#16243a;--orange:#ed684e;background:#f3ecdf;min-height:calc(100vh - 70px);padding:clamp(2rem,5vw,4.5rem) 1rem 6rem;color:var(--ink);font-family:Manrope,sans-serif}
-  .mine-wrap{max-width:1100px;margin:auto}.mine-title{font:clamp(2.8rem,7vw,5.4rem)/.92 "DM Serif Display";letter-spacing:-.04em;margin:.7rem 0}
-  .summary{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #d6cdbd;background:#fffaf2;margin:2rem 0}.summary-cell{padding:1rem;border-right:1px solid #d6cdbd}.summary-cell:last-child{border:0}.summary-number{font:2rem "DM Serif Display"}
-  .mine-list{display:grid;gap:.75rem}.mine-card{display:grid;grid-template-columns:8px 1fr auto;background:#fff;border:1px solid #d8d0c2;box-shadow:0 8px 20px rgba(22,36,58,.05);transition:.18s}.mine-card:hover{transform:translateX(4px);box-shadow:0 12px 25px rgba(22,36,58,.1)}
-  .mine-stripe{background:var(--status)}.mine-content{padding:1rem 1.2rem}.mine-edit{display:flex;align-items:center;padding:1rem;color:var(--ink);font-size:.75rem;font-weight:800;text-decoration:none;border-left:1px solid #e6dfd4}
-  .mine-pill{display:inline-block;color:#fff;background:var(--status);font-size:.62rem;padding:.25rem .45rem;text-transform:uppercase;font-weight:800;letter-spacing:.06em}
-  .top-action{background:var(--ink);color:#fff;text-decoration:none;padding:.75rem 1rem;font-weight:800;font-size:.8rem}
-  @media(max-width:650px){.summary{grid-template-columns:1fr 1fr}.summary-cell:nth-child(2){border-right:0}.summary-cell:nth-child(-n+2){border-bottom:1px solid #d6cdbd}.mine-card{grid-template-columns:6px 1fr}.mine-edit{grid-column:2;border-left:0;border-top:1px solid #e6dfd4;padding:.65rem 1.2rem}.mine-title{font-size:3.3rem}}
-</style>
-{% endblock %}
+
 {% block content %}
-<section class="mine"><div class="mine-wrap">
-  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-    <header><a href="{% url 'gerenciamento:pautas' %}" style="color:#667180;text-decoration:none;font-size:.78rem">← Quadro recebido</a><p style="color:#ed684e;text-transform:uppercase;letter-spacing:.17em;font-size:.7rem;font-weight:800;margin:1.6rem 0 .5rem">Área {{ user.get_area_display }}</p><h1 class="mine-title">Pautas que emitimos.</h1><p style="color:#667180">Você pode editar qualquer pauta emitida pela sua área atual.</p></header>
-    <a href="{% url 'gerenciamento:criar_pauta' %}" class="top-action">＋ Nova pauta</a>
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .mpt-). O visual base vem das classes .pcf-*. #}
+<style>
+  .mpt-page { background: hsl(var(--background)); }
+  .mpt-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Voltar */
+  .mpt-back { display: inline-flex; align-items: center; gap: .35rem; font-size: .82rem; font-weight: 600; color: var(--ink-muted); text-decoration: none; margin-bottom: 1rem; }
+  .mpt-back:hover { color: #c9490a; }
+
+  /* Cabeçalho leve */
+  .mpt-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .mpt-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .mpt-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .mpt-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .mpt-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* Resumo (stats) */
+  .mpt-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.75rem; }
+  .mpt-stat { padding: 1.1rem 1.2rem; }
+
+  /* Lista */
+  .mpt-list { display: flex; flex-direction: column; gap: .75rem; }
+  .mpt-card { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.2rem; }
+  .mpt-stripe { width: 5px; align-self: stretch; border-radius: 999px; flex-shrink: 0; background: var(--status); }
+  .mpt-content { flex: 1; min-width: 0; }
+  .mpt-card-top { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-bottom: .3rem; }
+  .mpt-status { display: inline-flex; align-items: center; gap: .4rem; font-size: .7rem; font-weight: 700; color: var(--ink); }
+  .mpt-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--status); flex-shrink: 0; }
+  .mpt-for { font-size: .74rem; color: var(--ink-muted); }
+  .mpt-card-title { margin: 0 0 .2rem; font-size: 1.1rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .mpt-card-meta { margin: 0; font-size: .78rem; color: var(--ink-muted); }
+  .mpt-edit { flex-shrink: 0; }
+
+  /* Estado vazio */
+  .mpt-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
+  .mpt-empty-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; background: #fff0e6; color: #e8560f; }
+  .mpt-empty-title { margin: .4rem 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .mpt-empty-sub { margin: 0; max-width: 40ch; font-size: .88rem; color: var(--ink-muted); }
+
+  @media (max-width: 720px) {
+    .mpt-summary { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .mpt-head-actions { width: 100%; }
+    .mpt-head-actions .pcf-btn { flex: 1; justify-content: center; }
+    .mpt-card { flex-wrap: wrap; }
+    .mpt-edit { width: 100%; }
+    .mpt-edit.pcf-btn { justify-content: center; }
+  }
+</style>
+
+<div class="mpt-page">
+  <div class="pcf-container mpt-wrap">
+
+    <a href="{% url 'gerenciamento:pautas' %}" class="mpt-back">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Quadro recebido
+    </a>
+
+    <!-- Cabeçalho leve -->
+    <header class="mpt-head">
+      <div class="mpt-head-text">
+        <span class="pcf-eyebrow">Área {{ user.get_area_display }}</span>
+        <h1 class="mpt-title">Pautas que emitimos</h1>
+        <p class="mpt-sub">Você pode editar qualquer pauta emitida pela sua área atual.</p>
+      </div>
+      <div class="mpt-head-actions">
+        <a href="{% url 'gerenciamento:criar_pauta' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova pauta
+        </a>
+      </div>
+    </header>
+
+    <!-- Resumo -->
+    <div class="mpt-summary">
+      <div class="pcf-card pcf-card-sm pcf-stat mpt-stat">
+        <span class="num">{{ pautas|length }}</span>
+        <span class="lbl">Total</span>
+      </div>
+      <div class="pcf-card pcf-card-sm pcf-stat mpt-stat">
+        <span class="num">{{ totais.a_fazer|default:0 }}</span>
+        <span class="lbl">A fazer</span>
+      </div>
+      <div class="pcf-card pcf-card-sm pcf-stat mpt-stat">
+        <span class="num">{{ totais.em_execucao|default:0 }}</span>
+        <span class="lbl">Em execução</span>
+      </div>
+      <div class="pcf-card pcf-card-sm pcf-stat mpt-stat">
+        <span class="num">{{ totais.finalizadas|default:0 }}</span>
+        <span class="lbl">Finalizadas</span>
+      </div>
+    </div>
+
+    <!-- Lista -->
+    <div class="mpt-list">
+      {% for pauta in pautas %}
+        <article class="pcf-card pcf-hoverable mpt-card" style="--status:{{ pauta.status_cor }}">
+          <span class="mpt-stripe" aria-hidden="true"></span>
+          <div class="mpt-content">
+            <div class="mpt-card-top">
+              <span class="mpt-status">
+                <span class="dot" aria-hidden="true"></span>
+                {{ pauta.get_status_display }}
+              </span>
+              <span class="mpt-for">Para {{ pauta.grupo.nome }}</span>
+            </div>
+            <h2 class="mpt-card-title">{{ pauta.titulo }}</h2>
+            <p class="mpt-card-meta">Prazo {{ pauta.ddl|date:"d/m/Y H:i" }} · {{ pauta.comentarios.count }} comentário{{ pauta.comentarios.count|pluralize }}</p>
+          </div>
+          <a class="pcf-btn pcf-btn-outline pcf-btn-sm mpt-edit" href="{% url 'gerenciamento:editar_pauta' pauta.pk %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Editar
+          </a>
+        </article>
+      {% empty %}
+        <div class="mpt-empty">
+          <div class="mpt-empty-icon">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <p class="mpt-empty-title">Nada emitido ainda</p>
+          <p class="mpt-empty-sub">Sua área ainda não criou pautas.</p>
+          <a href="{% url 'gerenciamento:criar_pauta' %}" class="pcf-btn pcf-btn-primary">Criar uma pauta</a>
+        </div>
+      {% endfor %}
+    </div>
+
   </div>
-  <div class="summary">
-    <div class="summary-cell"><div class="summary-number">{{ pautas|length }}</div><small>Total</small></div>
-    <div class="summary-cell"><div class="summary-number">{{ totais.a_fazer|default:0 }}</div><small>A fazer</small></div>
-    <div class="summary-cell"><div class="summary-number">{{ totais.em_execucao|default:0 }}</div><small>Em execução</small></div>
-    <div class="summary-cell"><div class="summary-number">{{ totais.finalizadas|default:0 }}</div><small>Finalizadas</small></div>
-  </div>
-  <div class="mine-list">
-    {% for pauta in pautas %}
-    <article class="mine-card" style="--status:{{ pauta.status_cor }}">
-      <div class="mine-stripe"></div><div class="mine-content">
-        <div class="d-flex flex-wrap gap-2 align-items-center"><span class="mine-pill">{{ pauta.get_status_display }}</span><span style="font-size:.7rem;color:#7b8490">Para {{ pauta.grupo.nome }}</span></div>
-        <h2 style="font:1.55rem 'DM Serif Display';margin:.5rem 0 .25rem">{{ pauta.titulo }}</h2>
-        <p style="font-size:.76rem;color:#6d7784;margin:0">Prazo {{ pauta.ddl|date:"d/m/Y H:i" }} · {{ pauta.comentarios.count }} comentário{{ pauta.comentarios.count|pluralize }}</p>
-      </div><a class="mine-edit" href="{% url 'gerenciamento:editar_pauta' pauta.pk %}">Editar →</a>
-    </article>
-    {% empty %}<div style="text-align:center;padding:4rem;background:#fff;border:1px dashed #b8ae9e"><h2 style="font:2.5rem 'DM Serif Display'">Nada emitido ainda.</h2><p>Sua área ainda não criou pautas.</p></div>{% endfor %}
-  </div>
-</div></section>
+</div>
 {% endblock %}

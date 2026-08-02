@@ -1,82 +1,106 @@
 {% extends 'base.html' %}
-{% block titulo %}Feedback de Área — PCF{% endblock %}
+{% block titulo %}Dores & Sugestões — PCF{% endblock %}
 
 {% block content %}
-<div class="fp-page">
-  <div class="fp-header">
-    <div class="fp-container">
-      <p class="fp-breadcrumb">
-        <a href="{% url 'inicio' %}" class="fp-breadcrumb-link">Início</a>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-        Dores & Sugestões
-      </p>
-      <h1 class="fp-title">Dores & Sugestões</h1>
-      <p class="fp-sub">Relate dores da sua área, do PCF em geral e deixe sugestões de projetos. Anônimo — sua identidade não é registrada. Basta preencher uma das caixas.</p>
-    </div>
+<div class="pcf-container fbk-wrap">
+
+  <!-- Cabeçalho leve -->
+  <header class="fbk-head">
+    <span class="pcf-eyebrow">Feedback anônimo</span>
+    <h1 class="fbk-title">Dores &amp; Sugestões</h1>
+    <p class="fbk-sub">Relate dores da sua área, do PCF em geral e deixe sugestões de projetos. Sua identidade não é registrada. Basta preencher uma das caixas.</p>
+  </header>
+
+  <!-- Aviso de anonimato -->
+  <div class="fbk-anon" role="note">
+    <span class="pcf-icon-tile tint-green fbk-anon-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </span>
+    <p class="fbk-anon-text"><strong>Anônimo:</strong> não guardamos quem enviou. Fale com liberdade — vamos usar suas respostas só para melhorar o projeto.</p>
   </div>
 
-  <div class="fp-container fp-body">
-    <div class="fp-card">
-      <form method="post">
-        {% csrf_token %}
-        {% if form.non_field_errors %}<p class="fp-error" style="margin-bottom:1rem">{{ form.non_field_errors|join:", " }}</p>{% endif %}
-        <div class="fp-field">
-          <label class="fp-label">{{ form.area.label }}</label>
-          {{ form.area }}
-          {% if form.area.errors %}<p class="fp-error">{{ form.area.errors|join:", " }}</p>{% endif %}
-        </div>
-        <div class="fp-field">
-          <label class="fp-label">{{ form.descricao.label }}</label>
-          {{ form.descricao }}
-          {% if form.descricao.errors %}<p class="fp-error">{{ form.descricao.errors|join:", " }}</p>{% endif %}
-        </div>
-        <div class="fp-field">
-          <label class="fp-label">{{ form.dor_geral.label }}</label>
-          {{ form.dor_geral }}
-          {% if form.dor_geral.errors %}<p class="fp-error">{{ form.dor_geral.errors|join:", " }}</p>{% endif %}
-        </div>
-        <div class="fp-field">
-          <label class="fp-label">{{ form.sugestao.label }}</label>
-          {{ form.sugestao }}
-          {% if form.sugestao.errors %}<p class="fp-error">{{ form.sugestao.errors|join:", " }}</p>{% endif %}
-        </div>
-        <div class="fp-actions">
-          <button type="submit" class="fp-btn fp-btn-primary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            Enviar Feedback
-          </button>
-          <a href="{% url 'inicio' %}" class="fp-btn fp-btn-outline">Cancelar</a>
-        </div>
-      </form>
-    </div>
+  <div class="pcf-card fbk-card">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="fbk-alert" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>{{ form.non_field_errors|join:", " }}</span>
+      </div>
+      {% endif %}
+
+      <div class="pcf-field fbk-field">
+        <label class="pcf-label" for="{{ form.area.id_for_label }}">{{ form.area.label }}</label>
+        {{ form.area }}
+        {% if form.area.errors %}<p class="fbk-error">{{ form.area.errors|join:", " }}</p>{% endif %}
+      </div>
+
+      <div class="pcf-field fbk-field">
+        <label class="pcf-label" for="{{ form.descricao.id_for_label }}">{{ form.descricao.label }}</label>
+        {{ form.descricao }}
+        {% if form.descricao.errors %}<p class="fbk-error">{{ form.descricao.errors|join:", " }}</p>{% endif %}
+      </div>
+
+      <div class="pcf-field fbk-field">
+        <label class="pcf-label" for="{{ form.dor_geral.id_for_label }}">{{ form.dor_geral.label }}</label>
+        {{ form.dor_geral }}
+        {% if form.dor_geral.errors %}<p class="fbk-error">{{ form.dor_geral.errors|join:", " }}</p>{% endif %}
+      </div>
+
+      <div class="pcf-field fbk-field">
+        <label class="pcf-label" for="{{ form.sugestao.id_for_label }}">{{ form.sugestao.label }}</label>
+        {{ form.sugestao }}
+        {% if form.sugestao.errors %}<p class="fbk-error">{{ form.sugestao.errors|join:", " }}</p>{% endif %}
+      </div>
+
+      <div class="fbk-actions">
+        <button type="submit" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          Enviar Feedback
+        </button>
+        <a href="{% url 'inicio' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+      </div>
+    </form>
   </div>
+
 </div>
 
 <style>
-*,*::before,*::after{box-sizing:border-box}
-.fp-page{background:hsl(var(--background));min-height:100vh}
-.fp-container{max-width:560px;margin:0 auto;padding:0 1.5rem}
-.fp-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.25rem 0 2.75rem;position:relative;overflow:hidden}
-.fp-header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)}
-.fp-breadcrumb{display:inline-flex;align-items:center;gap:.375rem;color:rgba(255,255,255,.45);font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .75rem;position:relative;z-index:1}
-.fp-breadcrumb-link{color:rgba(255,255,255,.55);text-decoration:none}
-.fp-breadcrumb-link:hover{color:#fff}
-.fp-title{font-size:clamp(1.25rem,3vw,1.75rem);font-weight:800;color:#fff;margin:0 0 .4rem;line-height:1.15;position:relative;z-index:1}
-.fp-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0;position:relative;z-index:1}
-.fp-body{padding-top:1.75rem;padding-bottom:4rem}
-.fp-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:1rem;padding:1.75rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.fp-field{margin-bottom:1.25rem}
-.fp-label{display:block;font-size:.8rem;font-weight:700;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em;margin-bottom:.45rem}
-.fp-card select,.fp-card textarea{width:100%;padding:.625rem .875rem;border:1px solid hsl(var(--border));border-radius:.5rem;background:hsl(var(--background));color:hsl(var(--foreground));font-size:.9rem;outline:none;transition:border .15s;font-family:inherit}
-.fp-card select:focus,.fp-card textarea:focus{border-color:#fe8210;box-shadow:0 0 0 3px rgba(254,130,16,.12)}
-.fp-card textarea{min-height:120px;resize:vertical}
-.fp-error{font-size:.78rem;color:#dc2626;font-weight:600;margin:.3rem 0 0}
-.fp-actions{display:flex;gap:.75rem;padding-top:.25rem}
-.fp-btn{display:inline-flex;align-items:center;gap:.45rem;padding:.625rem 1.25rem;border-radius:.5rem;font-size:.875rem;font-weight:600;text-decoration:none;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
-.fp-btn-primary{background:#fe8210;color:#fff}
-.fp-btn-primary:hover{background:#e87207;color:#fff;transform:translateY(-1px);box-shadow:0 4px 14px rgba(254,130,16,.4)}
-.fp-btn-outline{background:transparent;color:hsl(var(--foreground));border:1px solid hsl(var(--border))}
-.fp-btn-outline:hover{background:hsl(var(--accent))}
-@media(max-width:520px){.fp-container{padding:0 1rem}.fp-card{padding:1.25rem}.fp-actions{flex-direction:column}}
+  .fbk-wrap { max-width: 620px; padding-top: clamp(1.75rem, 5vw, 3rem); padding-bottom: clamp(3rem, 7vw, 5rem); }
+  .fbk-head { margin-bottom: 1.25rem; }
+  .fbk-title { margin: .5rem 0 .4rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-size: clamp(1.6rem, 4vw, 2.15rem); color: var(--ink); }
+  .fbk-sub { margin: 0; font-size: .95rem; line-height: 1.6; color: hsl(var(--muted-foreground)); }
+
+  .fbk-anon { display: flex; align-items: flex-start; gap: .8rem; margin-bottom: 1.25rem; padding: .9rem 1rem; border-radius: 16px; background: #eef9f1; border: 1px solid #cfead8; }
+  .fbk-anon-icon { width: 40px; height: 40px; }
+  .fbk-anon-text { margin: 0; font-size: .84rem; line-height: 1.5; color: #256a45; }
+
+  .fbk-card { padding: clamp(1.25rem, 4vw, 1.85rem); }
+  .fbk-field { margin-bottom: 1.25rem; }
+
+  /* Widgets renderizados pelo Django (form-control / form-select) → visual pcf-input */
+  .fbk-card select,
+  .fbk-card textarea,
+  .fbk-card input {
+    width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff;
+    border: 1px solid #f0dfd3; color: var(--ink); font-size: .92rem; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .fbk-card select:focus,
+  .fbk-card textarea:focus,
+  .fbk-card input:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
+  .fbk-card textarea { min-height: 110px; resize: vertical; line-height: 1.5; }
+
+  .fbk-error { margin: .35rem 0 0; font-size: .8rem; font-weight: 600; color: #b03636; }
+  .fbk-alert { display: flex; align-items: center; gap: .55rem; margin-bottom: 1.25rem; padding: .75rem .9rem; border-radius: 14px; background: #fdeaea; border: 1px solid #f3cccc; color: #b03636; font-size: .86rem; font-weight: 600; }
+  .fbk-alert svg { flex-shrink: 0; }
+
+  .fbk-actions { display: flex; gap: .75rem; padding-top: .25rem; }
+
+  @media (max-width: 480px) {
+    .fbk-actions { flex-direction: column; }
+    .fbk-actions .pcf-btn { width: 100%; }
+  }
 </style>
 {% endblock %}

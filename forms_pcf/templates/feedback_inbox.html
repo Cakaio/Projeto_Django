@@ -2,77 +2,108 @@
 {% block titulo %}Inbox de Feedbacks — PCF{% endblock %}
 
 {% block content %}
-<div class="fp-page">
-  <div class="fp-header">
-    <div class="fp-container-wide">
-      <div class="fp-header-inner">
-        <div>
-          <p class="fp-breadcrumb">
-            <a href="{% url 'inicio' %}" class="fp-breadcrumb-link">Início</a>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
-            Inbox de Feedbacks
-          </p>
-          <h1 class="fp-title">Dores & Sugestões</h1>
-          <p class="fp-sub">Dores das áreas, dores do PCF em geral e sugestões de projetos.</p>
-        </div>
-      </div>
-    </div>
-  </div>
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .fbk-). #}
+{# O visual base vem das classes .pcf-* do design system (tailwindcss/input.css). #}
+<div class="fbk-page">
+  <div class="pcf-container fbk-wrap">
 
-  <div class="fp-container-wide fp-body">
-    <div class="fp-inbox-card">
-      {% for fb in feedbacks %}
-      <div class="fp-inbox-item" data-id="{{ fb.pk }}">
-        <div class="fp-inbox-meta">
-          <span class="fp-area-badge">{{ fb.get_area_display }}</span>
-          <span class="fp-inbox-date">{{ fb.criado_em|date:"d/m/Y H:i" }}</span>
-        </div>
-        {% if fb.descricao %}<div class="fp-sec"><span class="fp-sec-label">Dores da área</span><p class="fp-inbox-full-text">{{ fb.descricao }}</p></div>{% endif %}
-        {% if fb.dor_geral %}<div class="fp-sec"><span class="fp-sec-label">Dores do PCF em geral</span><p class="fp-inbox-full-text">{{ fb.dor_geral }}</p></div>{% endif %}
-        {% if fb.sugestao %}<div class="fp-sec"><span class="fp-sec-label sug">Sugestão de projeto</span><p class="fp-inbox-full-text">{{ fb.sugestao }}</p></div>{% endif %}
+    <!-- Cabeçalho leve -->
+    <header class="fbk-head">
+      <div class="fbk-head-text">
+        <a href="{% url 'inicio' %}" class="fbk-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          Início
+        </a>
+        <span class="pcf-eyebrow">Feedbacks</span>
+        <h1 class="fbk-title">Dores &amp; Sugestões</h1>
+        <p class="fbk-sub">Dores das áreas, dores do PCF em geral e sugestões de projetos.</p>
       </div>
-      {% empty %}
-      <div class="fp-empty">
-        <div class="fp-empty-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    </header>
+
+    <!-- Lista de feedbacks -->
+    <div class="fbk-list">
+      {% for fb in feedbacks %}
+      <article class="pcf-card fbk-item" data-id="{{ fb.pk }}">
+        <div class="fbk-item-meta">
+          <span class="pcf-badge brand fbk-area">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+          {{ fb.get_area_display }}</span>
+          <span class="fbk-date">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {{ fb.criado_em|date:"d/m/Y H:i" }}
+          </span>
         </div>
-        <p class="fp-empty-title">Nenhum feedback recebido ainda</p>
-        <p class="fp-empty-sub">Quando as áreas enviarem feedbacks, eles aparecerão aqui.</p>
+
+        {% if fb.descricao %}
+        <div class="fbk-sec">
+          <span class="fbk-sec-label"><span class="fbk-dot dot-orange" aria-hidden="true"></span>Dores da área</span>
+          <p class="fbk-text">{{ fb.descricao }}</p>
+        </div>
+        {% endif %}
+        {% if fb.dor_geral %}
+        <div class="fbk-sec">
+          <span class="fbk-sec-label"><span class="fbk-dot dot-red" aria-hidden="true"></span>Dores do PCF em geral</span>
+          <p class="fbk-text">{{ fb.dor_geral }}</p>
+        </div>
+        {% endif %}
+        {% if fb.sugestao %}
+        <div class="fbk-sec">
+          <span class="fbk-sec-label sug"><span class="fbk-dot dot-green" aria-hidden="true"></span>Sugestão de projeto</span>
+          <p class="fbk-text">{{ fb.sugestao }}</p>
+        </div>
+        {% endif %}
+      </article>
+      {% empty %}
+      <div class="pcf-card fbk-empty">
+        <div class="fbk-empty-icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <p class="fbk-empty-title">Nenhum feedback recebido ainda</p>
+        <p class="fbk-empty-sub">Quando as áreas enviarem feedbacks, eles aparecerão aqui.</p>
       </div>
       {% endfor %}
     </div>
+
   </div>
 </div>
 
 <style>
-*,*::before,*::after{box-sizing:border-box}
-.fp-page{background:hsl(var(--background));min-height:100vh}
-.fp-container-wide{max-width:860px;margin:0 auto;padding:0 1.5rem}
-.fp-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.25rem 0 2.75rem;position:relative;overflow:hidden}
-.fp-header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)}
-.fp-header-inner{position:relative;z-index:1}
-.fp-breadcrumb{display:inline-flex;align-items:center;gap:.375rem;color:rgba(255,255,255,.45);font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0 0 .75rem}
-.fp-breadcrumb-link{color:rgba(255,255,255,.55);text-decoration:none}
-.fp-breadcrumb-link:hover{color:#fff}
-.fp-title{font-size:clamp(1.375rem,3vw,1.875rem);font-weight:800;color:#fff;margin:0 0 .4rem;line-height:1.15}
-.fp-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0}
-.fp-body{padding-top:1.75rem;padding-bottom:4rem}
-.fp-inbox-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:1rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.fp-inbox-item{padding:1.125rem 1.375rem;border-bottom:1px solid hsl(var(--border))}
-.fp-inbox-item:last-child{border-bottom:none}
-.fp-inbox-meta{display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem}
-.fp-area-badge{font-size:.72rem;font-weight:700;background:hsl(var(--accent));color:hsl(var(--foreground));padding:.25rem .65rem;border-radius:9999px;border:1px solid hsl(var(--border))}
-.fp-inbox-date{font-size:.78rem;color:hsl(var(--muted-foreground));margin-left:auto}
-.fp-toggle-btn{background:none;border:none;cursor:pointer;color:hsl(var(--muted-foreground));padding:.25rem;display:flex;align-items:center;border-radius:.25rem}
-.fp-toggle-btn:hover{background:hsl(var(--accent))}
-.fp-inbox-full-text{font-size:.875rem;color:hsl(var(--foreground));margin:0;line-height:1.6;white-space:pre-wrap}
-.fp-sec{margin-top:.6rem}
-.fp-sec-label{display:inline-block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:hsl(var(--muted-foreground));margin-bottom:.2rem}
-.fp-sec-label.sug{color:#166534}
-.fp-empty{padding:3rem 2rem;text-align:center}
-.fp-empty-icon{width:48px;height:48px;background:hsl(var(--accent));border-radius:.875rem;display:flex;align-items:center;justify-content:center;color:hsl(var(--muted-foreground));margin:0 auto .75rem}
-.fp-empty-title{font-size:.9375rem;font-weight:600;color:hsl(var(--foreground));margin:0 0 .35rem}
-.fp-empty-sub{font-size:.825rem;color:hsl(var(--muted-foreground));margin:0}
-@media(max-width:768px){.fp-container-wide{padding:0 1rem}}
+  /* ── Página / cabeçalho ── */
+  .fbk-page { background: hsl(var(--background)); }
+  .fbk-wrap { max-width: 880px; padding-block: clamp(2rem, 5vw, 3.25rem); }
+  .fbk-head { margin-bottom: 1.5rem; }
+  .fbk-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .fbk-back { display: inline-flex; align-items: center; gap: .3rem; align-self: flex-start; font-size: .8rem; font-weight: 600; color: var(--ink-muted); text-decoration: none; margin-bottom: .1rem; }
+  .fbk-back:hover { color: #c9490a; }
+  .fbk-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .fbk-sub { margin: 0; max-width: 60ch; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Lista ── */
+  .fbk-list { display: flex; flex-direction: column; gap: 1rem; }
+  .fbk-item { padding: 1.25rem 1.4rem; }
+  .fbk-item-meta { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .35rem; }
+  .fbk-area { text-transform: uppercase; letter-spacing: .04em; }
+  .fbk-date { display: inline-flex; align-items: center; gap: .35rem; margin-left: auto; font-size: .78rem; color: var(--ink-muted); white-space: nowrap; }
+  .fbk-date svg { color: var(--ink-muted); flex-shrink: 0; }
+
+  /* ── Seções da mensagem ── */
+  .fbk-sec { margin-top: .85rem; }
+  .fbk-sec-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-muted); margin-bottom: .3rem; }
+  .fbk-sec-label.sug { color: #1f7a49; }
+  .fbk-dot { width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0; }
+  .fbk-dot.dot-orange { background: #e8560f; }
+  .fbk-dot.dot-red { background: #d64545; }
+  .fbk-dot.dot-green { background: #2e8b57; }
+  .fbk-text { margin: 0; font-size: .9rem; line-height: 1.6; color: var(--ink-soft); white-space: pre-wrap; }
+
+  /* ── Estado vazio ── */
+  .fbk-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem; text-align: center; padding: clamp(2.25rem, 6vw, 3.5rem) 1.5rem; }
+  .fbk-empty-icon { display: flex; align-items: center; justify-content: center; width: 54px; height: 54px; border-radius: 16px; background: #fff0e6; color: #e8560f; margin-bottom: .35rem; }
+  .fbk-empty-title { margin: 0; font-size: 1rem; font-weight: 800; color: var(--ink); }
+  .fbk-empty-sub { margin: 0; max-width: 38ch; font-size: .85rem; color: var(--ink-muted); }
+
+  @media (max-width: 560px) {
+    .fbk-date { margin-left: 0; }
+  }
 </style>
 {% endblock %}

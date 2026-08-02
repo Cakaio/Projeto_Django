@@ -2,34 +2,37 @@
 {% block titulo %}Reembolso Enviado — PCF{% endblock %}
 
 {% block content %}
-<div class="fp-page">
-  <div class="fp-header">
-    <div class="fp-container">
-      <h1 class="fp-title">Pedido Enviado!</h1>
-      <p class="fp-sub">Seu pedido de reembolso foi recebido pelo ADM/FIN.</p>
+<div class="pcf-container rms-wrap">
+  <div class="pcf-card rms-card">
+    <span class="rms-icon" aria-hidden="true">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </span>
+
+    <span class="pcf-badge ok rms-badge">Pedido recebido</span>
+    <h1 class="rms-title">Pedido enviado!</h1>
+    <p class="rms-sub">Seu pedido de reembolso foi recebido pelo <strong>ADM/FIN</strong>. O time foi notificado e analisará sua solicitação em breve.</p>
+
+    <div class="rms-actions">
+      <a href="{% url 'inicio' %}" class="pcf-btn pcf-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+        Voltar ao Início
+      </a>
     </div>
-  </div>
-  <div class="fp-container fp-body" style="text-align:center">
-    <div class="fp-success-icon">
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-    <p style="color:hsl(var(--muted-foreground));margin:.75rem 0 1.5rem;font-size:.9rem">O time de ADM/FIN foi notificado e analisará seu pedido em breve.</p>
-    <a href="{% url 'inicio' %}" class="fp-btn fp-btn-primary" style="display:inline-flex">Voltar ao Início</a>
   </div>
 </div>
 
 <style>
-*,*::before,*::after{box-sizing:border-box}
-.fp-page{background:hsl(var(--background));min-height:100vh}
-.fp-container{max-width:480px;margin:0 auto;padding:0 1.5rem}
-.fp-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.25rem 0 2.75rem;position:relative;overflow:hidden}
-.fp-header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:48px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)}
-.fp-title{font-size:clamp(1.25rem,3vw,1.75rem);font-weight:800;color:#fff;margin:0 0 .4rem;line-height:1.15;position:relative;z-index:1}
-.fp-sub{font-size:.875rem;color:rgba(255,255,255,.55);margin:0;position:relative;z-index:1}
-.fp-body{padding-top:2.5rem;padding-bottom:4rem}
-.fp-success-icon{width:72px;height:72px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .5rem}
-.fp-btn{display:inline-flex;align-items:center;gap:.45rem;padding:.625rem 1.25rem;border-radius:.5rem;font-size:.875rem;font-weight:600;text-decoration:none;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
-.fp-btn-primary{background:#fe8210;color:#fff}
-.fp-btn-primary:hover{background:#e87207;color:#fff}
+  .rms-wrap { max-width: 520px; padding-top: clamp(2.5rem, 8vw, 5rem); padding-bottom: clamp(3rem, 8vw, 5rem); }
+  .rms-card { text-align: center; padding: clamp(1.75rem, 6vw, 2.75rem); }
+  .rms-icon { display: inline-flex; align-items: center; justify-content: center; width: 76px; height: 76px; margin-bottom: 1.1rem; border-radius: 22px; background: #eaf7ef; color: #1f7a49; }
+  .rms-badge { margin-bottom: .85rem; }
+  .rms-title { margin: 0 0 .6rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-size: clamp(1.5rem, 4vw, 2rem); color: var(--ink); }
+  .rms-sub { margin: 0 auto 1.75rem; max-width: 42ch; font-size: .95rem; line-height: 1.6; color: hsl(var(--muted-foreground)); }
+  .rms-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; }
+
+  @media (max-width: 480px) {
+    .rms-actions { flex-direction: column; }
+    .rms-actions .pcf-btn { width: 100%; }
+  }
 </style>
 {% endblock %}
