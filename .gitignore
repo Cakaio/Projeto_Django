@@ -35,3 +35,7 @@ package-lock.json
 node_modules/
 .env
 semanario_form_errors.log
+# Preview local (nao versionar)
+TESTE/settings_preview.py
+_preview_staticroot/
+*.sqlite3
