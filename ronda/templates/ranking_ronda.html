@@ -1,81 +1,126 @@
 {% extends 'base.html' %}
 {% load ronda_extras %}
-{% block title %}Ranking de Rondas {{ ano }}{% endblock %}
+{% block titulo %}Ranking de Rondas {{ ano }}{% endblock %}
 {% block content %}
+{# Layout específico desta tela (prefixo .rk-). Visual base vem das classes .pcf-*. #}
 <style>
-  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4.5rem;text-align:center;position:relative;overflow:hidden}
-  .rd-header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)}
-  .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
-  .rd-header p{opacity:.75;margin:.5rem 0 0}
-  .rd-body{max-width:900px;margin:-2rem auto 2rem;padding:0 1rem;position:relative;z-index:1}
-  .rd-table{width:100%;border-collapse:collapse}
-  .rd-table th,.rd-table td{border:1px solid hsl(var(--border));padding:.6rem .75rem;font-size:.875rem}
-  .rd-table th{background:hsl(var(--muted));font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em}
-  .rd-badge-nunca{background:#f1f5f9;color:#64748b;display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:700}
-  .rd-badge-ok{background:#dcfce7;color:#166534;display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:700}
-  .rd-badge-antigo{background:#fef9c3;color:#854d0e;display:inline-block;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:700}
-  .rd-score-pill{background:#fe8210;color:#fff;border-radius:9999px;padding:.15rem .6rem;font-size:.75rem;font-weight:700}
-</style>
-<div class="rd-header">
-  <h1>Ranking de Rondas</h1>
-  <p>Ano {{ ano }} — voluntários elegíveis ordenados por score</p>
-</div>
-<div class="rd-body">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
-    <a href="{% url 'ronda:painel' %}" class="btn btn-sm btn-outline-secondary">← Painel</a>
-    <form method="get" style="display:flex;gap:.5rem;align-items:center">
-      <select name="area" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
-        <option value="">Todas as áreas</option>
-        {% for val, label in areas_elegiveis %}
-        <option value="{{ val }}" {% if area_filtro == val %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </form>
-  </div>
+  .rk-page { background: hsl(var(--background)); }
+  .rk-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); max-width: 980px; }
 
-  <div style="background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);overflow:hidden">
-    <table class="rd-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Voluntário</th>
-          <th>Área</th>
-          <th>Score {{ ano }}</th>
-          <th>Última ronda</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in voluntarios %}
-        <tr>
-          <td style="color:hsl(var(--muted-foreground));font-size:.75rem">{{ forloop.counter }}</td>
-          <td><strong>{{ item.vol.get_full_name }}</strong></td>
-          <td style="font-size:.8rem">{{ item.vol.get_area_display }}</td>
-          <td><span class="rd-score-pill">{{ item.pontos }} pt</span></td>
-          <td>
-            {% if item.badge == 'nunca' %}
-            <span class="rd-badge-nunca">Nunca fez</span>
-            {% elif item.badge == 'antigo' %}
-            <span class="rd-badge-antigo">{{ item.ultima|date:"d/m/Y" }}</span>
-            {% else %}
-            <span class="rd-badge-ok">{{ item.ultima|date:"d/m/Y" }}</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if item.pontos > 0 %}
-            {% with score=item.vol.scores_ronda.all %}
-            {% for s in score %}{% if s.ano == ano %}
-            <a href="{% url 'ronda:score_editar' s.pk %}" class="btn btn-sm btn-outline-secondary" style="font-size:.7rem">Editar score</a>
-            {% endif %}{% endfor %}
+  .rk-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .rk-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .rk-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .rk-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .rk-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; align-items: center; }
+
+  .rk-select { padding: .55rem .8rem; border-radius: 12px; background: #fff; border: 1px solid #f0dfd3; color: var(--ink); font-size: .88rem; font-family: inherit; cursor: pointer; }
+  .rk-select:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242,107,33,.15); }
+
+  .rk-card { padding: 0; overflow: hidden; }
+  .rk-scroll { overflow-x: auto; }
+
+  .rk-pos { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #fff2e9; color: #c9490a; font-weight: 800; font-size: .78rem; }
+  .rk-vol { font-weight: 700; color: var(--ink); }
+  .rk-area { font-size: .82rem; color: var(--ink-muted); }
+
+  .rk-score { display: flex; align-items: center; gap: .6rem; min-width: 150px; }
+  .rk-score-pill { display: inline-flex; align-items: center; padding: .18rem .6rem; border-radius: 999px; font-size: .74rem; font-weight: 800; color: #fff; background: var(--brand-grad); white-space: nowrap; }
+  .rk-bar { width: 90px; }
+
+  .rk-empty { display: flex; flex-direction: column; align-items: center; gap: .75rem; padding: 3rem 1.5rem; color: var(--ink-muted); text-align: center; }
+  .rk-empty svg { color: #f2b48c; }
+
+  @media (max-width: 560px) {
+    .rk-head-actions { width: 100%; }
+    .rk-head-actions form, .rk-select { width: 100%; }
+  }
+</style>
+
+<div class="rk-page">
+  <div class="pcf-container rk-wrap">
+
+    <header class="rk-head">
+      <div class="rk-head-text">
+        <span class="pcf-eyebrow">Ronda · {{ ano }}</span>
+        <h1 class="rk-title">Ranking de Rondas</h1>
+        <p class="rk-sub">Voluntários elegíveis ordenados por score — quem fez menos rondas aparece primeiro.</p>
+      </div>
+      <div class="rk-head-actions">
+        <a href="{% url 'ronda:painel' %}" class="pcf-btn pcf-btn-outline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Painel
+        </a>
+        <form method="get">
+          <label for="rk-area" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Filtrar por área</label>
+          <select name="area" id="rk-area" class="rk-select" onchange="this.form.submit()">
+            <option value="">Todas as áreas</option>
+            {% for val, label in areas_elegiveis %}
+            <option value="{{ val }}" {% if area_filtro == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </div>
+    </header>
+
+    {% if voluntarios %}
+    <div class="pcf-card rk-card">
+      <div class="rk-scroll">
+        <table class="pcf-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Voluntário</th>
+              <th>Área</th>
+              <th>Score {{ ano }}</th>
+              <th>Última ronda</th>
+              <th style="text-align:right">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% with maxpts=voluntarios|last %}
+            {% for item in voluntarios %}
+            <tr>
+              <td><span class="rk-pos">{{ forloop.counter }}</span></td>
+              <td><span class="rk-vol">{{ item.vol.get_full_name }}</span></td>
+              <td><span class="rk-area">{{ item.vol.get_area_display }}</span></td>
+              <td>
+                <div class="rk-score">
+                  <span class="rk-score-pill">{{ item.pontos }} pt</span>
+                  <div class="pcf-progress rk-bar" aria-hidden="true"><span style="width:{% widthratio item.pontos maxpts.pontos 100 %}%"></span></div>
+                </div>
+              </td>
+              <td>
+                {% if item.badge == 'nunca' %}
+                  <span class="pcf-badge warn">Nunca fez</span>
+                {% elif item.badge == 'antigo' %}
+                  <span class="pcf-badge warn">{{ item.ultima|date:"d/m/Y" }}</span>
+                {% else %}
+                  <span class="pcf-badge ok">{{ item.ultima|date:"d/m/Y" }}</span>
+                {% endif %}
+              </td>
+              <td style="text-align:right">
+                {% if item.pontos > 0 %}
+                {% with score=item.vol.scores_ronda.all %}
+                {% for s in score %}{% if s.ano == ano %}
+                <a href="{% url 'ronda:score_editar' s.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Editar score</a>
+                {% endif %}{% endfor %}
+                {% endwith %}
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
             {% endwith %}
-            {% endif %}
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="6" style="text-align:center;color:hsl(var(--muted-foreground));padding:2rem">Nenhum voluntário elegível.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="pcf-card rk-empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      <p style="margin:0">Nenhum voluntário elegível.</p>
+    </div>
+    {% endif %}
+
   </div>
 </div>
 {% endblock %}

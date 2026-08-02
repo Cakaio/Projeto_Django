@@ -1,98 +1,210 @@
 {% extends 'base.html' %}
-{% block title %}Rondas do Sábado{% endblock %}
+{% block titulo %}Rondas do Sábado{% endblock %}
+
 {% block content %}
-<div class="relative overflow-hidden text-white text-center"
-     style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.5rem 1rem 4.5rem">
-  <div class="max-w-3xl mx-auto">
-    <h1 class="text-2xl md:text-3xl font-bold">Rondas do Sábado</h1>
-    <p class="opacity-75 text-sm mt-1">Voluntários escalados para as rondas do PCF</p>
-  </div>
-  <div class="absolute left-0 right-0" style="bottom:-2px;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)"></div>
-</div>
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .rp-). O visual base   #}
+{# vem das classes .pcf-* do design system (tailwindcss/input.css).              #}
+<style>
+  .rp-page { background: hsl(var(--background)); }
+  .rp-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); max-width: 900px; }
 
-<div class="max-w-3xl mx-auto px-4 -mt-8 relative z-10 pb-16">
-  {% if not blocos %}
-  <div class="bg-card border border-dashed border-border rounded-lg p-12 text-center text-muted-foreground">
-    Nenhuma ronda aprovada ainda.
-  </div>
-  {% else %}
+  /* Cabeçalho leve */
+  .rp-head { margin-bottom: 1.75rem; }
+  .rp-head-text { display: flex; flex-direction: column; gap: .5rem; }
+  .rp-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .rp-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
 
-  {% for bloco in blocos %}
-  {% if forloop.first %}
-  <!-- Próxima/última ronda em destaque -->
-  <div class="bg-card rounded-xl p-6 mb-6" style="border:2px solid #fe8210">
-    <div class="flex items-center justify-between flex-wrap gap-2 mb-4">
-      <h2 class="text-xl font-bold text-slate-800">{{ bloco.cfg.sabado.data|date:"d/m/Y" }} — {{ bloco.cfg.sabado.tema }}</h2>
-      <div class="flex gap-2">
-        {% if bloco.cfg.dia_de_evento %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style="background:#fed7aa;color:#9a3412">Dia de Evento</span>{% endif %}
-        <span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-green-100 text-green-700">Aprovada</span>
+  /* Bloco em destaque (ronda mais recente) */
+  .rp-featured { border: 2px solid #f7c9a8; border-radius: 24px; margin-bottom: 1.5rem; }
+  .rp-block-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+  .rp-block-title { margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .rp-block-badges { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+
+  /* Histórico (accordion) */
+  .rp-hist { padding: 0; overflow: hidden; margin-bottom: .75rem; }
+  .rp-hist-summary { display: flex; align-items: center; gap: .75rem; padding: 1rem 1.25rem; cursor: pointer; list-style: none; user-select: none; }
+  .rp-hist-summary::-webkit-details-marker { display: none; }
+  .rp-hist-date { font-weight: 700; color: var(--ink); flex-grow: 1; min-width: 0; font-size: .95rem; }
+  .rp-hist-arrow { color: var(--ink-muted); flex-shrink: 0; transition: transform .25s ease; }
+  .rp-hist[open] > .rp-hist-summary .rp-hist-arrow { transform: rotate(180deg); }
+  .rp-hist-body { padding: 0 1.25rem 1.25rem; }
+
+  /* Janela de horário */
+  .rp-janela { margin-top: 1.1rem; }
+  .rp-janela:first-child { margin-top: 0; }
+  .rp-jtime { display: inline-flex; align-items: center; gap: .4rem; margin: 0 0 .6rem; font-size: .82rem; font-weight: 800; letter-spacing: .02em; color: #c9490a; text-transform: none; }
+  .rp-jtime svg { color: #e8560f; flex-shrink: 0; }
+
+  /* Linha (local) */
+  .rp-lines { display: flex; flex-direction: column; gap: .6rem; }
+  .rp-line { background: #fffaf6; border: 1px solid #f4e7de; border-radius: 16px; padding: .8rem .95rem; }
+  .rp-line-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin-bottom: .6rem; }
+  .rp-local { display: inline-flex; align-items: center; gap: .4rem; font-size: .9rem; font-weight: 700; color: var(--ink); min-width: 0; }
+  .rp-local svg { color: #e8560f; flex-shrink: 0; }
+  .rp-badges { display: inline-flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+
+  /* Chips de voluntários */
+  .rp-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .rp-chip { display: inline-flex; align-items: center; gap: .35rem; background: #fff; border: 1px solid #f0dfd3; border-radius: 999px; padding: .3rem .7rem; font-size: .85rem; font-weight: 600; color: var(--ink-soft); }
+  .rp-chip.is-me { background: #eaf7ef; border-color: #bfe6ce; color: #1f7a49; }
+  .rp-subtag { font-size: .62rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #7c3aed; background: #f3edff; border-radius: 999px; padding: .05rem .4rem; }
+  .rp-youtag { font-size: .62rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #1f7a49; background: #d7f0e1; border-radius: 999px; padding: .05rem .4rem; }
+  .rp-chip-empty { font-size: .82rem; color: var(--ink-muted); font-style: italic; padding: .3rem .2rem; }
+
+  /* Duplas (dia de evento) */
+  .rp-duplas { display: flex; flex-direction: column; gap: .6rem; }
+  .rp-dupla { display: flex; align-items: flex-start; gap: .6rem; flex-wrap: wrap; }
+  .rp-dupla-lbl { flex-shrink: 0; font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); background: #fff0e6; border-radius: 999px; padding: .25rem .6rem; margin-top: .1rem; }
+
+  /* Estado vazio */
+  .rp-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
+  .rp-empty-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; background: #fff0e6; color: #e8560f; }
+  .rp-empty-title { margin: .4rem 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .rp-empty-sub { margin: 0; max-width: 34ch; font-size: .88rem; color: var(--ink-muted); }
+
+  @media (max-width: 480px) {
+    .rp-chips { width: 100%; }
+  }
+</style>
+
+<div class="rp-page">
+  <div class="pcf-container rp-wrap">
+
+    <!-- Cabeçalho leve -->
+    <header class="rp-head">
+      <div class="rp-head-text">
+        <span class="pcf-eyebrow">Rondas do Sábado</span>
+        <h1 class="rp-title">Escala de Rondas</h1>
+        <p class="rp-sub">Voluntários escalados para as rondas do sábado no PCF.</p>
       </div>
-    </div>
-    {% if bloco.cfg.dia_de_evento %}
-      {% include '_grade_evento_publica.html' with grade_evento=bloco.grade_evento %}
-    {% else %}
-    {% for j in bloco.grade %}
-    <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-700 mt-4 mb-2">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      {{ j.inicio|time:"H:i" }}–{{ j.fim|time:"H:i" }}
-    </h3>
-    <div class="space-y-2">
-      {% for linha in j.linhas %}
-      <div class="flex items-start gap-3 bg-slate-50 rounded-lg p-3">
-        <span class="inline-flex items-center gap-1 text-sm font-semibold text-slate-700 min-w-32">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          {{ linha.local.nome|default:"—" }}
-        </span>
-        <div class="flex flex-wrap gap-2">
-          {% for escala in linha.escalas.all %}
-          <span class="inline-flex items-center gap-1 bg-white border border-border rounded-md px-2 py-1 text-sm text-slate-700">
-            {{ escala.voluntario.get_full_name }}
-            {% if escala.is_substituto %}<span class="text-[.65rem]" style="color:#7c3aed">(sub)</span>{% endif %}
-          </span>
-          {% empty %}<span class="text-sm text-muted-foreground">—</span>
-          {% endfor %}
+    </header>
+
+    {% if not blocos %}
+      <div class="rp-empty">
+        <div class="rp-empty-icon" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         </div>
+        <p class="rp-empty-title">Nenhuma ronda aprovada ainda</p>
+        <p class="rp-empty-sub">Assim que uma escala de ronda for aprovada, ela aparecerá aqui.</p>
       </div>
-      {% endfor %}
-    </div>
-    {% endfor %}
-    {% endif %}
-  </div>
-  {% else %}
-  <!-- Histórico -->
-  <details class="bg-card border border-border rounded-lg mb-2 group">
-    <summary class="cursor-pointer font-semibold text-slate-700 p-4 flex items-center justify-between">
-      <span>{{ bloco.cfg.sabado.data|date:"d/m/Y" }} — {{ bloco.cfg.sabado.tema }}</span>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="group-open:rotate-180 transition-transform text-muted-foreground"><polyline points="6 9 12 15 18 9"/></svg>
-    </summary>
-    <div class="px-4 pb-4">
-      {% if bloco.cfg.dia_de_evento %}
-        {% include '_grade_evento_publica.html' with grade_evento=bloco.grade_evento %}
-      {% else %}
-      {% for j in bloco.grade %}
-      <h4 class="text-sm font-semibold text-slate-600 mt-3 mb-2">{{ j.inicio|time:"H:i" }}–{{ j.fim|time:"H:i" }}</h4>
-      <div class="space-y-2">
-        {% for linha in j.linhas %}
-        <div class="flex items-start gap-3 bg-slate-50 rounded-lg p-3">
-          <span class="text-sm font-semibold text-slate-700 min-w-32">{{ linha.local.nome|default:"—" }}</span>
-          <div class="flex flex-wrap gap-2">
-            {% for escala in linha.escalas.all %}
-            <span class="inline-flex items-center gap-1 bg-white border border-border rounded-md px-2 py-1 text-sm text-slate-700">
-              {{ escala.voluntario.get_full_name }}
-              {% if escala.is_substituto %}<span class="text-[.65rem]" style="color:#7c3aed">(sub)</span>{% endif %}
+    {% else %}
+
+      {% for bloco in blocos %}
+      {% if forloop.first %}
+      <!-- Ronda mais recente em destaque -->
+      <section class="pcf-card rp-featured">
+        <div class="rp-block-head">
+          <h2 class="rp-block-title">{{ bloco.cfg.sabado.data|date:"d/m/Y" }} — {{ bloco.cfg.sabado.tema }}</h2>
+          <div class="rp-block-badges">
+            {% if bloco.cfg.dia_de_evento %}<span class="pcf-badge brand">Dia de Evento</span>{% endif %}
+            <span class="pcf-badge ok">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              Aprovada
             </span>
-            {% empty %}<span class="text-sm text-muted-foreground">—</span>
-            {% endfor %}
           </div>
         </div>
-        {% endfor %}
-      </div>
-      {% endfor %}
+
+        {% if bloco.cfg.dia_de_evento %}
+          {% include '_grade_evento_publica.html' with grade_evento=bloco.grade_evento %}
+        {% else %}
+          {% for j in bloco.grade %}
+          <div class="rp-janela">
+            <h3 class="rp-jtime">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {{ j.inicio|time:"H:i" }}–{{ j.fim|time:"H:i" }}
+            </h3>
+            <div class="rp-lines">
+              {% for linha in j.linhas %}
+              <div class="rp-line">
+                <div class="rp-line-top">
+                  <span class="rp-local">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    {{ linha.local.nome|default:"—" }}
+                  </span>
+                  <span class="rp-badges">
+                    {% for escala in linha.escalas.all %}{% if escala.voluntario_id == user.id %}<span class="pcf-badge ok">Você</span>{% endif %}{% endfor %}
+                    {% with n=linha.escalas.all|length %}
+                      {% if n == 0 %}<span class="pcf-badge warn">Vago</span>
+                      {% elif n == 1 %}<span class="pcf-badge danger">Falta 1</span>
+                      {% else %}<span class="pcf-badge brand">Completo</span>{% endif %}
+                    {% endwith %}
+                  </span>
+                </div>
+                <div class="rp-chips">
+                  {% for escala in linha.escalas.all %}
+                  <span class="rp-chip {% if escala.voluntario_id == user.id %}is-me{% endif %}">
+                    {{ escala.voluntario.get_full_name }}
+                    {% if escala.is_substituto %}<span class="rp-subtag">sub</span>{% endif %}
+                    {% if escala.voluntario_id == user.id %}<span class="rp-youtag">você</span>{% endif %}
+                  </span>
+                  {% empty %}<span class="rp-chip-empty">Ninguém escalado</span>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        {% endif %}
+      </section>
+
+      {% else %}
+      <!-- Histórico -->
+      <details class="pcf-card rp-hist">
+        <summary class="rp-hist-summary">
+          <span class="rp-hist-date">{{ bloco.cfg.sabado.data|date:"d/m/Y" }} — {{ bloco.cfg.sabado.tema }}</span>
+          {% if bloco.cfg.dia_de_evento %}<span class="pcf-badge brand">Evento</span>{% endif %}
+          <svg class="rp-hist-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="rp-hist-body">
+          {% if bloco.cfg.dia_de_evento %}
+            {% include '_grade_evento_publica.html' with grade_evento=bloco.grade_evento %}
+          {% else %}
+            {% for j in bloco.grade %}
+            <div class="rp-janela">
+              <h3 class="rp-jtime">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                {{ j.inicio|time:"H:i" }}–{{ j.fim|time:"H:i" }}
+              </h3>
+              <div class="rp-lines">
+                {% for linha in j.linhas %}
+                <div class="rp-line">
+                  <div class="rp-line-top">
+                    <span class="rp-local">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      {{ linha.local.nome|default:"—" }}
+                    </span>
+                    <span class="rp-badges">
+                      {% for escala in linha.escalas.all %}{% if escala.voluntario_id == user.id %}<span class="pcf-badge ok">Você</span>{% endif %}{% endfor %}
+                      {% with n=linha.escalas.all|length %}
+                        {% if n == 0 %}<span class="pcf-badge warn">Vago</span>
+                        {% elif n == 1 %}<span class="pcf-badge danger">Falta 1</span>
+                        {% else %}<span class="pcf-badge brand">Completo</span>{% endif %}
+                      {% endwith %}
+                    </span>
+                  </div>
+                  <div class="rp-chips">
+                    {% for escala in linha.escalas.all %}
+                    <span class="rp-chip {% if escala.voluntario_id == user.id %}is-me{% endif %}">
+                      {{ escala.voluntario.get_full_name }}
+                      {% if escala.is_substituto %}<span class="rp-subtag">sub</span>{% endif %}
+                      {% if escala.voluntario_id == user.id %}<span class="rp-youtag">você</span>{% endif %}
+                    </span>
+                    {% empty %}<span class="rp-chip-empty">Ninguém escalado</span>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </details>
       {% endif %}
-    </div>
-  </details>
-  {% endif %}
-  {% endfor %}
-  {% endif %}
+      {% endfor %}
+
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

@@ -1,206 +1,275 @@
 {% extends 'base.html' %}
 {% load ronda_extras %}
-{% block title %}Ronda — {{ cfg.sabado.data|date:"d/m/Y" }}{% endblock %}
+{% block titulo %}Ronda — {{ cfg.sabado.data|date:"d/m/Y" }}{% endblock %}
 {% block content %}
-<div class="relative overflow-hidden text-white text-center"
-     style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.5rem 1rem 4.5rem">
-  <div class="max-w-3xl mx-auto">
-    <h1 class="text-2xl md:text-3xl font-bold">Ronda — {{ cfg.sabado.data|date:"d/m/Y" }}</h1>
-    <p class="opacity-80 text-sm mt-1 flex items-center justify-center gap-2 flex-wrap">
-      <span>{{ cfg.sabado.tema }}</span>
-      {% if cfg.dia_de_evento %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style="background:#fed7aa;color:#9a3412">Dia de Evento</span>{% endif %}
-      {% if cfg.status == 'PENDENTE_SORTEIO' %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-slate-200 text-slate-700">Pendente de Sorteio</span>
-      {% elif cfg.status == 'SORTEADA' %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-blue-200 text-blue-800">Sorteada</span>
-      {% elif cfg.status == 'APROVADA' %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-green-200 text-green-800">Aprovada</span>
-      {% else %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-red-200 text-red-800">Reprovada</span>{% endif %}
-    </p>
-  </div>
-  <div class="absolute left-0 right-0" style="bottom:-2px;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)"></div>
-</div>
+{# Layout específico desta tela (prefixo .rd-). O visual base vem das classes .pcf-*. #}
+<style>
+  .rd-page { background: hsl(var(--background)); }
+  .rd-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
 
-<div class="max-w-3xl mx-auto px-4 -mt-8 relative z-10 pb-16">
+  /* Cabeçalho leve */
+  .rd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .rd-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .rd-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .rd-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .rd-head-actions { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+  .rd-head-actions form { margin: 0; }
 
-  {% if messages %}
-  <div class="space-y-2 mb-4">
-    {% for msg in messages %}
-    <div class="px-4 py-3 rounded-lg text-sm border
-      {% if msg.tags == 'error' %}bg-red-50 border-red-200 text-red-700
-      {% elif msg.tags == 'success' %}bg-green-50 border-green-200 text-green-700
-      {% else %}bg-blue-50 border-blue-200 text-blue-700{% endif %}">{{ msg }}</div>
-    {% endfor %}
-  </div>
-  {% endif %}
+  /* Botões de ação com semântica que o DS não cobre (verde/vermelho) */
+  .rd-btn-ok { background: #16a34a; color: #fff; border-color: transparent; }
+  .rd-btn-ok:hover { background: #15803d; color: #fff; transform: translateY(-1px); }
+  .rd-btn-danger { background: #fff; color: #b91c1c; border-color: #fecaca; }
+  .rd-btn-danger:hover { background: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
 
-  <!-- Confirmados / pool -->
-  <div class="flex items-center gap-3 bg-card border border-border rounded-lg p-4 mb-4">
-    <span class="inline-flex items-center justify-center w-10 h-10 rounded-full {% if pool_insuficiente %}bg-amber-100 text-amber-600{% else %}bg-green-100 text-green-600{% endif %} flex-shrink-0">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    </span>
-    <div class="flex-1 text-sm">
-      <strong class="text-slate-800">{{ confirmados }}</strong> voluntário(s) confirmaram presença ·
-      precisa de <strong class="text-slate-800">{{ necessarios }}</strong> para preencher todas as linhas.
-      {% if pool_insuficiente %}<div class="text-amber-600 font-medium mt-0.5">Atenção: podem faltar voluntários para completar a escala.</div>{% endif %}
-    </div>
-  </div>
+  /* Alertas / mensagens */
+  .rd-alert { padding: .75rem 1rem; border-radius: 12px; font-size: .88rem; border: 1px solid; }
+  .rd-alert.error   { background: #fdeaea; border-color: #f6cccc; color: #b03636; }
+  .rd-alert.success { background: #eaf7ef; border-color: #cbe9d6; color: #1f7a49; }
+  .rd-alert.info    { background: #eaf0fb; border-color: #d3e0f5; color: #2f5296; }
 
-  <!-- Ações -->
-  <div class="flex flex-wrap gap-2 mb-5">
-    <a href="{% url 'ronda:painel' %}" class="inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">← Painel</a>
+  /* Painel confirmados */
+  .rd-pool { display: flex; align-items: center; gap: .9rem; }
+  .rd-pool-txt { flex: 1; font-size: .9rem; color: var(--ink-soft); }
+  .rd-pool-txt strong { color: var(--ink); }
 
-    {% if cfg.status == 'PENDENTE_SORTEIO' or cfg.status == 'REPROVADA' %}
-    <form method="post" action="{% url 'ronda:configuracao_sortear' cfg.pk %}">{% csrf_token %}
-      <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800">
-        🎲 {% if cfg.status == 'REPROVADA' %}Re-sortear{% else %}Sortear{% endif %}
-      </button>
-    </form>
-    {% endif %}
+  /* Grade / escala */
+  .rd-block { margin-bottom: 1.5rem; }
+  .rd-block-h { display: flex; align-items: center; gap: .5rem; font-size: .9rem; font-weight: 700; color: var(--ink-soft); margin-bottom: .6rem; }
+  .rd-local { display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem; }
+  .rd-local-nome { font-weight: 700; color: var(--ink); }
+  .rd-dupla-lbl { font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: .5rem; }
+  .rd-sub-box { border: 1px solid #f4e7de; border-radius: 14px; padding: .8rem; }
 
-    {% if cfg.status == 'SORTEADA' %}
-    <form method="post" action="{% url 'ronda:configuracao_sortear' cfg.pk %}">{% csrf_token %}
-      <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">🎲 Re-sortear</button>
-    </form>
-    <form method="post" action="{% url 'ronda:configuracao_aprovar' cfg.pk %}">{% csrf_token %}
-      <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-white bg-green-600 hover:bg-green-700">✓ Aprovar</button>
-    </form>
-    <button type="button" onclick="document.getElementById('form-reprovar').classList.toggle('hidden')"
-            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-card border border-red-200 text-red-600 hover:bg-red-50">✗ Reprovar</button>
-    {% endif %}
+  /* Pill do voluntário */
+  .rd-pills { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .rd-pill { display: inline-flex; align-items: center; gap: .5rem; background: #fff6f0; border: 1px solid #fbe3d3; border-radius: 999px; padding: .35rem .5rem .35rem .8rem; font-size: .85rem; }
+  .rd-pill-nome { color: var(--ink); font-weight: 600; }
+  .rd-pill-pts { border-radius: 999px; color: #fff; font-size: .65rem; font-weight: 800; padding: .1rem .45rem; background: var(--brand-grad); }
+  .rd-pill-ult { font-size: .68rem; color: var(--ink-muted); }
+  .rd-pill-never { font-size: .68rem; border-radius: 999px; background: #f4efeb; color: #8a7566; padding: .1rem .45rem; }
+  .rd-pill-sub { border-radius: 999px; color: #fff; font-size: .65rem; font-weight: 700; padding: .1rem .45rem; background: #7c3aed; }
+  .rd-none { font-size: .88rem; color: var(--ink-muted); }
 
-    {% if cfg.status != 'APROVADA' %}
-    <a href="{% url 'ronda:configuracao_editar' cfg.pk %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      Editar
-    </a>
-    {% endif %}
+  /* Form de troca (swap) */
+  .rd-swap { display: flex; gap: .5rem; margin-top: .5rem; }
+  .rd-swap select { flex: 1; max-width: 20rem; height: 2.25rem; padding: 0 .55rem; font-size: .78rem; background: hsl(var(--card)); color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); border-radius: 10px; }
+  .rd-swap select:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242,107,33,.15); }
 
-    {% if cfg.status == 'APROVADA' %}
-    <a href="{% url 'ronda:configuracao_imprimir' cfg.pk %}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-      Imprimir
-    </a>
-    {% endif %}
+  /* Reprovar inline */
+  .rd-reprovar { background: #fdeaea; border: 1px solid #f6cccc; border-radius: 16px; padding: 1rem; margin-bottom: 1.25rem; }
+  .rd-reprovar input { flex: 1; height: 2.5rem; padding: 0 .8rem; border-radius: 10px; border: 1px solid #f6cccc; font-size: .88rem; font-family: inherit; }
+  .rd-reprovar input:focus { outline: none; border-color: #f0a5a5; box-shadow: 0 0 0 3px rgba(217,54,54,.12); }
 
-    <button type="button" onclick="confirmDel()"
-            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-card border border-red-200 text-red-600 hover:bg-red-50">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-      Excluir
-    </button>
-    <form id="formExcluir" method="post" action="{% url 'ronda:configuracao_deletar' cfg.pk %}" class="hidden">{% csrf_token %}</form>
-  </div>
+  /* Estado vazio */
+  .rd-empty { border: 1.5px dashed #f2d3bd; border-radius: 16px; padding: 2.5rem; text-align: center; color: var(--ink-muted); background: #fffaf6; }
 
-  <!-- Reprovar (inline) -->
-  {% if cfg.status == 'SORTEADA' %}
-  <form id="form-reprovar" method="post" action="{% url 'ronda:configuracao_reprovar' cfg.pk %}" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 mb-5">{% csrf_token %}
-    <label class="block text-sm font-medium text-red-700 mb-2">Motivo da reprovação</label>
-    <div class="flex gap-2">
-      <input type="text" name="observacao" required placeholder="Descreva o ajuste necessário…"
-             class="flex-1 h-10 px-3 rounded-md border border-red-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-200">
-      <button type="submit" class="px-4 rounded-md text-sm font-semibold text-white bg-red-600 hover:bg-red-700">Confirmar</button>
-    </div>
-  </form>
-  {% endif %}
+  @media (max-width: 560px) {
+    .rd-swap select { max-width: none; }
+  }
+</style>
 
-  {% if cfg.observacao %}
-  <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5 text-sm text-amber-800"><strong>Observação:</strong> {{ cfg.observacao }}</div>
-  {% endif %}
+<div class="rd-page">
+  <div class="pcf-container rd-wrap" style="max-width: 900px;">
 
-  <!-- Grade -->
-  {% if cfg.dia_de_evento %}
-  <p class="text-sm text-muted-foreground mb-3">Cada local tem 4 pessoas fixas em 2 duplas. O revezamento 2×2 (30 em 30 min) é combinado entre elas no dia.</p>
-  <div class="space-y-3">
-    {% for item in grade_evento %}
-    <div class="bg-card border border-border rounded-lg p-4">
-      <div class="flex items-center gap-2 mb-3">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <span class="font-semibold text-slate-800">{{ item.local.nome|default:"— sem local —" }}</span>
+    <!-- Cabeçalho leve -->
+    <header class="rd-head">
+      <div class="rd-head-text">
+        <span class="pcf-eyebrow">Escala de Ronda</span>
+        <h1 class="rd-title">Ronda — {{ cfg.sabado.data|date:"d/m/Y" }}</h1>
+        <p class="rd-sub">
+          <span>{{ cfg.sabado.tema }}</span>
+          {% if cfg.dia_de_evento %}<span class="pcf-badge brand">Dia de Evento</span>{% endif %}
+          {% if cfg.status == 'PENDENTE_SORTEIO' %}<span class="pcf-badge warn">Pendente de Sorteio</span>
+          {% elif cfg.status == 'SORTEADA' %}<span class="pcf-badge info">Sorteada</span>
+          {% elif cfg.status == 'APROVADA' %}<span class="pcf-badge ok">Aprovada</span>
+          {% else %}<span class="pcf-badge danger">Reprovada</span>{% endif %}
+        </p>
       </div>
-      <div class="grid sm:grid-cols-2 gap-3">
-        <div class="rounded-lg border border-border p-3">
-          <div class="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Dupla 1</div>
-          <div class="flex flex-wrap gap-2">
-            {% for escala in item.dupla1 %}
-            <div class="inline-flex items-center gap-2 bg-accent rounded-lg pl-3 pr-2 py-1.5 text-sm">
-              <span class="text-slate-800">{{ escala.voluntario.get_full_name }}</span>
-              <span class="rounded-full text-white text-[.65rem] font-bold px-1.5 py-0.5" style="background:#fe8210">{{ scores|get_item:escala.voluntario_id|default:0 }} pt</span>
-              {% with u=ultima_ronda|get_item:escala.voluntario_id %}{% if u %}<span class="text-[.65rem] text-muted-foreground">últ. {{ u|date:"d/m" }}</span>{% else %}<span class="text-[.65rem] rounded-full bg-slate-100 text-slate-500 px-1.5 py-0.5">nunca fez</span>{% endif %}{% endwith %}
-            </div>
-            {% empty %}<span class="text-sm text-muted-foreground">—</span>{% endfor %}
-          </div>
-        </div>
-        <div class="rounded-lg border border-border p-3">
-          <div class="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-2">Dupla 2</div>
-          <div class="flex flex-wrap gap-2">
-            {% for escala in item.dupla2 %}
-            <div class="inline-flex items-center gap-2 bg-accent rounded-lg pl-3 pr-2 py-1.5 text-sm">
-              <span class="text-slate-800">{{ escala.voluntario.get_full_name }}</span>
-              <span class="rounded-full text-white text-[.65rem] font-bold px-1.5 py-0.5" style="background:#fe8210">{{ scores|get_item:escala.voluntario_id|default:0 }} pt</span>
-              {% with u=ultima_ronda|get_item:escala.voluntario_id %}{% if u %}<span class="text-[.65rem] text-muted-foreground">últ. {{ u|date:"d/m" }}</span>{% else %}<span class="text-[.65rem] rounded-full bg-slate-100 text-slate-500 px-1.5 py-0.5">nunca fez</span>{% endif %}{% endwith %}
-            </div>
-            {% empty %}<span class="text-sm text-muted-foreground">—</span>{% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-    {% empty %}
-    <div class="bg-card border border-dashed border-border rounded-lg p-10 text-center text-muted-foreground">
-      Nenhum local cadastrado. <a href="{% url 'ronda:configuracao_editar' cfg.pk %}" class="text-primary font-medium underline">Adicionar locais</a>
-    </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  {% for bloco in grade %}
-  <div class="mb-5">
-    <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      {{ bloco.inicio|time:"H:i" }}–{{ bloco.fim|time:"H:i" }}
-    </h3>
-    <div class="space-y-2">
-      {% for linha in bloco.linhas %}
-      <div class="bg-card border border-border rounded-lg p-4">
-        <div class="flex items-center gap-2 mb-2">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-primary"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span class="font-semibold text-slate-800">{{ linha.local.nome|default:"— sem local —" }}</span>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          {% for escala in linha.escalas.all %}
-          <div class="inline-flex items-center gap-2 bg-accent rounded-lg pl-3 pr-2 py-1.5 text-sm">
-            <span class="text-slate-800">{{ escala.voluntario.get_full_name }}</span>
-            <span class="rounded-full text-white text-[.65rem] font-bold px-1.5 py-0.5" style="background:#fe8210">{{ scores|get_item:escala.voluntario_id|default:0 }} pt</span>
-            {% with u=ultima_ronda|get_item:escala.voluntario_id %}
-              {% if u %}<span class="text-[.65rem] text-muted-foreground">últ. {{ u|date:"d/m" }}</span>
-              {% else %}<span class="text-[.65rem] rounded-full bg-slate-100 text-slate-500 px-1.5 py-0.5">nunca fez</span>{% endif %}
-            {% endwith %}
-            {% if escala.is_substituto %}<span class="rounded-full text-white text-[.65rem] px-1.5 py-0.5" style="background:#7c3aed">sub</span>{% endif %}
-          </div>
-          {% empty %}
-          <span class="text-sm text-muted-foreground">— nenhum voluntário sorteado —</span>
-          {% endfor %}
-        </div>
+
+      <!-- Ações -->
+      <div class="rd-head-actions">
+        <a href="{% url 'ronda:painel' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Painel
+        </a>
+
+        {% if cfg.status == 'PENDENTE_SORTEIO' or cfg.status == 'REPROVADA' %}
+        <form method="post" action="{% url 'ronda:configuracao_sortear' cfg.pk %}">{% csrf_token %}
+          <button type="submit" class="pcf-btn pcf-btn-dark pcf-btn-sm">
+            🎲 {% if cfg.status == 'REPROVADA' %}Re-sortear{% else %}Sortear{% endif %}
+          </button>
+        </form>
+        {% endif %}
 
         {% if cfg.status == 'SORTEADA' %}
-        {% for escala in linha.escalas.all %}
-        <form method="post" action="{% url 'ronda:escala_swap' escala.pk %}" class="flex gap-2 mt-2">{% csrf_token %}
-          <select name="voluntario_novo_pk" class="flex-1 max-w-xs h-9 px-2 text-xs rounded-md border border-border">
-            <option value="">↔ Trocar {{ escala.voluntario.get_full_name }} por…</option>
-            {% for vol in elegiveis %}{% if vol != escala.voluntario %}
-            <option value="{{ vol.pk }}">{{ vol.get_full_name }} ({{ scores|get_item:vol.pk|default:0 }}pt)</option>
-            {% endif %}{% endfor %}
-          </select>
-          <button type="submit" class="px-3 h-9 rounded-md text-xs font-medium bg-card border border-border text-slate-700 hover:bg-accent">Trocar</button>
+        <form method="post" action="{% url 'ronda:configuracao_sortear' cfg.pk %}">{% csrf_token %}
+          <button type="submit" class="pcf-btn pcf-btn-outline pcf-btn-sm">🎲 Re-sortear</button>
         </form>
-        {% endfor %}
+        <form method="post" action="{% url 'ronda:configuracao_aprovar' cfg.pk %}">{% csrf_token %}
+          <button type="submit" class="pcf-btn rd-btn-ok pcf-btn-sm">✓ Aprovar</button>
+        </form>
+        <button type="button" onclick="document.getElementById('form-reprovar').classList.toggle('hidden')"
+                class="pcf-btn rd-btn-danger pcf-btn-sm">✗ Reprovar</button>
         {% endif %}
+
+        {% if cfg.status != 'APROVADA' %}
+        <a href="{% url 'ronda:configuracao_editar' cfg.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editar
+        </a>
+        {% endif %}
+
+        {% if cfg.status == 'APROVADA' %}
+        <a href="{% url 'ronda:configuracao_imprimir' cfg.pk %}" target="_blank" class="pcf-btn pcf-btn-outline pcf-btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir
+        </a>
+        {% endif %}
+
+        <button type="button" onclick="confirmDel()" class="pcf-btn rd-btn-danger pcf-btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          Excluir
+        </button>
+        <form id="formExcluir" method="post" action="{% url 'ronda:configuracao_deletar' cfg.pk %}" class="hidden">{% csrf_token %}</form>
+      </div>
+    </header>
+
+    {% if messages %}
+    <div class="space-y-2 mb-4" style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;">
+      {% for msg in messages %}
+      <div class="rd-alert {% if msg.tags == 'error' %}error{% elif msg.tags == 'success' %}success{% else %}info{% endif %}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Confirmados / pool -->
+    <div class="pcf-card rd-pool" style="margin-bottom:1rem;">
+      <span class="pcf-icon-tile {% if pool_insuficiente %}tint-gold{% else %}tint-green{% endif %}" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </span>
+      <div class="rd-pool-txt">
+        <strong>{{ confirmados }}</strong> voluntário(s) confirmaram presença ·
+        precisa de <strong>{{ necessarios }}</strong> para preencher todas as linhas.
+        {% if pool_insuficiente %}<div style="color:#8a6a10;font-weight:600;margin-top:.15rem;">⚠ Atenção: podem faltar voluntários para completar a escala.</div>{% endif %}
+      </div>
+    </div>
+
+    <!-- Reprovar (inline) -->
+    {% if cfg.status == 'SORTEADA' %}
+    <form id="form-reprovar" method="post" action="{% url 'ronda:configuracao_reprovar' cfg.pk %}" class="hidden rd-reprovar">{% csrf_token %}
+      <label for="rd-reprovar-obs" style="display:block;font-size:.85rem;font-weight:600;color:#b03636;margin-bottom:.5rem;">Motivo da reprovação</label>
+      <div style="display:flex;gap:.5rem;">
+        <input id="rd-reprovar-obs" type="text" name="observacao" required placeholder="Descreva o ajuste necessário…">
+        <button type="submit" class="pcf-btn rd-btn-danger pcf-btn-sm" style="background:#dc2626;color:#fff;border-color:transparent;">Confirmar</button>
+      </div>
+    </form>
+    {% endif %}
+
+    {% if cfg.observacao %}
+    <div class="pcf-card" style="background:#fdf3dd;border-color:#f0e2bd;color:#8a6a10;margin-bottom:1.25rem;">
+      <strong>Observação:</strong> {{ cfg.observacao }}
+    </div>
+    {% endif %}
+
+    <!-- Grade -->
+    {% if cfg.dia_de_evento %}
+    <p class="rd-none" style="margin-bottom:.75rem;">Cada local tem 4 pessoas fixas em 2 duplas. O revezamento 2×2 (30 em 30 min) é combinado entre elas no dia.</p>
+    <div style="display:flex;flex-direction:column;gap:.9rem;">
+      {% for item in grade_evento %}
+      <div class="pcf-card">
+        <div class="rd-local">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8560f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span class="rd-local-nome">{{ item.local.nome|default:"— sem local —" }}</span>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-3" style="display:grid;gap:.75rem;">
+          <div class="rd-sub-box">
+            <div class="rd-dupla-lbl">Dupla 1</div>
+            <div class="rd-pills">
+              {% for escala in item.dupla1 %}
+              <div class="rd-pill">
+                <span class="rd-pill-nome">{{ escala.voluntario.get_full_name }}</span>
+                <span class="rd-pill-pts">{{ scores|get_item:escala.voluntario_id|default:0 }} pt</span>
+                {% with u=ultima_ronda|get_item:escala.voluntario_id %}{% if u %}<span class="rd-pill-ult">últ. {{ u|date:"d/m" }}</span>{% else %}<span class="rd-pill-never">nunca fez</span>{% endif %}{% endwith %}
+              </div>
+              {% empty %}<span class="rd-none">—</span>{% endfor %}
+            </div>
+          </div>
+          <div class="rd-sub-box">
+            <div class="rd-dupla-lbl">Dupla 2</div>
+            <div class="rd-pills">
+              {% for escala in item.dupla2 %}
+              <div class="rd-pill">
+                <span class="rd-pill-nome">{{ escala.voluntario.get_full_name }}</span>
+                <span class="rd-pill-pts">{{ scores|get_item:escala.voluntario_id|default:0 }} pt</span>
+                {% with u=ultima_ronda|get_item:escala.voluntario_id %}{% if u %}<span class="rd-pill-ult">últ. {{ u|date:"d/m" }}</span>{% else %}<span class="rd-pill-never">nunca fez</span>{% endif %}{% endwith %}
+              </div>
+              {% empty %}<span class="rd-none">—</span>{% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="rd-empty">
+        Nenhum local cadastrado. <a href="{% url 'ronda:configuracao_editar' cfg.pk %}" style="color:#c9490a;font-weight:600;text-decoration:underline;">Adicionar locais</a>
       </div>
       {% endfor %}
     </div>
+    {% else %}
+    {% for bloco in grade %}
+    <div class="rd-block">
+      <h3 class="rd-block-h">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8560f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        {{ bloco.inicio|time:"H:i" }}–{{ bloco.fim|time:"H:i" }}
+      </h3>
+      <div style="display:flex;flex-direction:column;gap:.5rem;">
+        {% for linha in bloco.linhas %}
+        <div class="pcf-card">
+          <div class="rd-local">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8560f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="rd-local-nome">{{ linha.local.nome|default:"— sem local —" }}</span>
+          </div>
+          <div class="rd-pills">
+            {% for escala in linha.escalas.all %}
+            <div class="rd-pill">
+              <span class="rd-pill-nome">{{ escala.voluntario.get_full_name }}</span>
+              <span class="rd-pill-pts">{{ scores|get_item:escala.voluntario_id|default:0 }} pt</span>
+              {% with u=ultima_ronda|get_item:escala.voluntario_id %}
+                {% if u %}<span class="rd-pill-ult">últ. {{ u|date:"d/m" }}</span>
+                {% else %}<span class="rd-pill-never">nunca fez</span>{% endif %}
+              {% endwith %}
+              {% if escala.is_substituto %}<span class="rd-pill-sub">sub</span>{% endif %}
+            </div>
+            {% empty %}
+            <span class="rd-none">— nenhum voluntário sorteado —</span>
+            {% endfor %}
+          </div>
+
+          {% if cfg.status == 'SORTEADA' %}
+          {% for escala in linha.escalas.all %}
+          <form method="post" action="{% url 'ronda:escala_swap' escala.pk %}" class="rd-swap">{% csrf_token %}
+            <label for="swap-{{ escala.pk }}" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Trocar {{ escala.voluntario.get_full_name }} por outro voluntário</label>
+            <select id="swap-{{ escala.pk }}" name="voluntario_novo_pk">
+              <option value="">↔ Trocar {{ escala.voluntario.get_full_name }} por…</option>
+              {% for vol in elegiveis %}{% if vol != escala.voluntario %}
+              <option value="{{ vol.pk }}">{{ vol.get_full_name }} ({{ scores|get_item:vol.pk|default:0 }}pt)</option>
+              {% endif %}{% endfor %}
+            </select>
+            <button type="submit" class="pcf-btn pcf-btn-outline pcf-btn-sm">Trocar</button>
+          </form>
+          {% endfor %}
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="rd-empty">
+      Nenhuma linha de escala cadastrada.
+      <a href="{% url 'ronda:configuracao_editar' cfg.pk %}" style="color:#c9490a;font-weight:600;text-decoration:underline;">Adicionar linhas</a>
+    </div>
+    {% endfor %}
+    {% endif %}
   </div>
-  {% empty %}
-  <div class="bg-card border border-dashed border-border rounded-lg p-10 text-center text-muted-foreground">
-    Nenhuma linha de escala cadastrada.
-    <a href="{% url 'ronda:configuracao_editar' cfg.pk %}" class="text-primary font-medium underline">Adicionar linhas</a>
-  </div>
-  {% endfor %}
-  {% endif %}
 </div>
 
 <script>

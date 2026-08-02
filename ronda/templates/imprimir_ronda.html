@@ -3,19 +3,22 @@
 <head>
   <meta charset="utf-8">
   <title>Escala de Ronda — {{ cfg.sabado.data|date:"d/m/Y" }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
-    body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; margin: 0; padding: 2rem; }
-    .cabecalho { text-align: center; border-bottom: 3px solid #fe8210; padding-bottom: 1rem; margin-bottom: 1.5rem; }
-    .cabecalho h1 { margin: 0; font-size: 1.4rem; }
-    .cabecalho p { margin: .25rem 0 0; color: #475569; }
+    body { font-family: 'Archivo', Arial, Helvetica, sans-serif; color: #1c130e; margin: 0; padding: 2rem; }
+    .cabecalho { text-align: center; border-bottom: 3px solid #e8560f; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+    .cabecalho h1 { margin: 0; font-size: 1.4rem; font-weight: 800; letter-spacing: -.02em; color: #1c130e; }
+    .cabecalho p { margin: .25rem 0 0; color: #5a4a41; }
     .janela { margin-bottom: 1.25rem; page-break-inside: avoid; }
-    .janela h2 { font-size: 1rem; background: #0f172a; color: #fff; padding: .4rem .75rem; border-radius: 6px; margin: 0 0 .5rem; }
+    .janela h2 { font-size: 1rem; font-weight: 700; color: #1c130e; padding: .4rem .75rem; border-left: 4px solid #e8560f; border-bottom: 2px solid #1c130e; margin: 0 0 .5rem; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #cbd5e1; padding: .55rem .75rem; text-align: left; font-size: .9rem; }
-    th { background: #f1f5f9; width: 30%; }
-    .btn-imprimir { position: fixed; top: 1rem; right: 1rem; background: #fe8210; color: #fff; border: none; padding: .6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; }
-    @media print { .btn-imprimir { display: none; } body { padding: 0; } }
+    th, td { border: 1px solid #e5d6c9; padding: .55rem .75rem; text-align: left; font-size: .9rem; }
+    th { background: #fff0e6; color: #1c130e; font-weight: 700; width: 30%; }
+    .btn-imprimir { position: fixed; top: 1rem; right: 1rem; background: #e8560f; color: #fff; border: none; padding: .6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: inherit; }
+    @media print { .btn-imprimir { display: none; } body { padding: 0; } th { background: #fff0e6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
   </style>
 </head>
 <body>
@@ -41,7 +44,7 @@
       {% endfor %}
     </tbody>
   </table>
-  <p style="margin-top:.75rem;color:#475569;font-size:.85rem">Revezamento 2×2 a cada 30 min, combinado entre as duplas no dia.</p>
+  <p style="margin-top:.75rem;color:#5a4a41;font-size:.85rem">Revezamento 2×2 a cada 30 min, combinado entre as duplas no dia.</p>
   {% else %}
   {% for bloco in grade %}
   <div class="janela">

@@ -1,53 +1,79 @@
 {% extends 'base.html' %}
-{% block title %}{{ titulo }}{% endblock %}
+{% block titulo %}{{ titulo }}{% endblock %}
 {% block content %}
+{# Layout específico desta tela (prefixo .fl-). Visual base vem das classes .pcf-*. #}
 <style>
+  .fl-page { background: hsl(var(--background)); }
+  .fl-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); max-width: 560px; }
+
+  .fl-head { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1.5rem; }
+  .fl-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-size: clamp(1.5rem, 3vw, 2.1rem); color: var(--ink); }
+  .fl-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+
   #localForm input[type="text"], #localForm input[type="number"] {
-    width:100%; height:2.5rem; padding:0 .6rem;
-    background:hsl(var(--card)); color:hsl(var(--foreground));
-    border:1px solid hsl(var(--border)); border-radius:calc(var(--radius) - 2px); font-size:.9rem;
+    width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff;
+    border: 1px solid #f0dfd3; color: var(--ink); font-size: .92rem; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
   }
-  #localForm input:focus { outline:none; border-color:#fe8210; box-shadow:0 0 0 3px rgba(254,130,16,.15); }
-  #localForm input[type="checkbox"] { width:1.1rem; height:1.1rem; accent-color:#fe8210; }
+  #localForm input:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242,107,33,.15); }
+  #localForm input[type="checkbox"] { width: 1.15rem; height: 1.15rem; accent-color: #e8560f; cursor: pointer; }
+
+  .fl-check { display: flex; align-items: center; gap: .55rem; }
+  .fl-check label { font-size: .9rem; font-weight: 600; color: var(--ink-soft); cursor: pointer; }
+  .fl-err { color: #b03636; font-size: .82rem; margin-top: .3rem; }
+  .fl-actions { display: flex; gap: .6rem; margin-top: 1.6rem; flex-wrap: wrap; }
+
+  .fl-danger-box { display: flex; gap: .75rem; align-items: flex-start; padding: 1rem; border-radius: 14px; background: #fdeaea; border: 1px solid #f6cccc; color: #8f2f2f; }
+  .fl-danger-box svg { flex-shrink: 0; margin-top: .1rem; }
 </style>
 
-<div class="relative overflow-hidden text-white text-center"
-     style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.5rem 1rem 4.5rem">
-  <div class="max-w-md mx-auto">
-    <h1 class="text-2xl md:text-3xl font-bold">{{ titulo }}</h1>
-  </div>
-  <div class="absolute left-0 right-0" style="bottom:-2px;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)"></div>
-</div>
+<div class="fl-page">
+  <div class="pcf-container fl-wrap">
 
-<div class="max-w-md mx-auto px-4 -mt-8 relative z-10 pb-16">
-  <div class="bg-card border border-border rounded-lg p-6">
-    {% if confirmar_delecao %}
-      <p class="text-slate-700">Tem certeza que deseja remover <strong>{{ objeto.nome }}</strong>?</p>
-      <form method="post" id="localForm">{% csrf_token %}
-        <div class="flex gap-2 mt-5">
-          <button type="submit" class="px-4 py-2 rounded-md text-sm font-semibold text-white bg-red-600 hover:bg-red-700">Remover</button>
-          <a href="{% url 'ronda:locais' %}" class="px-4 py-2 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">Cancelar</a>
+    <header class="fl-head">
+      <span class="pcf-eyebrow">Ronda</span>
+      <h1 class="fl-title">{{ titulo }}</h1>
+      {% if not confirmar_delecao %}<p class="fl-sub">Locais ativos ficam disponíveis para as escalas de ronda.</p>{% endif %}
+    </header>
+
+    <div class="pcf-card">
+      {% if confirmar_delecao %}
+        <div class="fl-danger-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <p style="margin:0">Tem certeza que deseja remover <strong>{{ objeto.nome }}</strong>? Esta ação não pode ser desfeita.</p>
         </div>
-      </form>
-    {% else %}
-      <form method="post" id="localForm">{% csrf_token %}
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">{{ form.nome.label }}</label>
+        <form method="post" id="localForm">{% csrf_token %}
+          <div class="fl-actions">
+            <button type="submit" class="pcf-btn" style="background:#d64545;color:#fff">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Remover
+            </button>
+            <a href="{% url 'ronda:locais' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+          </div>
+        </form>
+      {% else %}
+        <form method="post" id="localForm">{% csrf_token %}
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
             {{ form.nome }}
-            {% if form.nome.errors %}<p class="text-red-600 text-sm mt-1">{{ form.nome.errors|join:", " }}</p>{% endif %}
+            {% if form.nome.errors %}<p class="fl-err">{{ form.nome.errors|join:", " }}</p>{% endif %}
           </div>
-          <div class="flex items-center gap-2">
+          <div class="fl-check" style="margin-top:1.1rem">
             {{ form.ativo }}
-            <label class="text-sm font-medium text-slate-700">{{ form.ativo.label }}</label>
+            <label for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}</label>
           </div>
-        </div>
-        <div class="flex gap-2 mt-6">
-          <button type="submit" class="px-5 py-2.5 rounded-md text-sm font-semibold text-white" style="background:#fe8210">Salvar</button>
-          <a href="{% url 'ronda:locais' %}" class="px-5 py-2.5 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">Cancelar</a>
-        </div>
-      </form>
-    {% endif %}
+          {% if form.ativo.errors %}<p class="fl-err">{{ form.ativo.errors|join:", " }}</p>{% endif %}
+          <div class="fl-actions">
+            <button type="submit" class="pcf-btn pcf-btn-primary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Salvar
+            </button>
+            <a href="{% url 'ronda:locais' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+
   </div>
 </div>
 {% endblock %}

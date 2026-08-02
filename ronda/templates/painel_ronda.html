@@ -1,137 +1,194 @@
 {% extends 'base.html' %}
-{% block title %}Gestão de Rondas{% endblock %}
+{% block titulo %}Gestão de Rondas{% endblock %}
+
 {% block content %}
-<div class="relative overflow-hidden text-white text-center"
-     style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.5rem 1rem 4.5rem">
-  <div class="max-w-4xl mx-auto">
-    <h1 class="text-2xl md:text-3xl font-bold">Gestão de Rondas</h1>
-    <p class="opacity-75 text-sm mt-1">Monte a escala, sorteie, aprove e acompanhe as rondas do sábado</p>
-  </div>
-  <div class="absolute left-0 right-0" style="bottom:-2px;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)"></div>
-</div>
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .pn-). O visual base    #}
+{# vem das classes .pcf-* do design system (tailwindcss/input.css).              #}
+<style>
+  .pn-page { background: hsl(var(--background)); }
+  .pn-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); max-width: 960px; }
 
-<div class="max-w-4xl mx-auto px-4 -mt-8 relative z-10 pb-16">
+  /* Cabeçalho leve */
+  .pn-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .pn-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .pn-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .pn-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .pn-head-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
 
-  <!-- Resumo -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-    <div class="bg-card border border-border rounded-lg p-4 text-center">
-      <div class="text-2xl font-bold text-slate-500">{{ resumo.pendentes }}</div>
-      <div class="text-xs uppercase tracking-wide text-muted-foreground mt-1">Pendentes</div>
-    </div>
-    <div class="bg-card border border-border rounded-lg p-4 text-center">
-      <div class="text-2xl font-bold text-blue-600">{{ resumo.sorteadas }}</div>
-      <div class="text-xs uppercase tracking-wide text-muted-foreground mt-1">A aprovar</div>
-    </div>
-    <div class="bg-card border border-border rounded-lg p-4 text-center">
-      <div class="text-2xl font-bold text-green-600">{{ resumo.aprovadas }}</div>
-      <div class="text-xs uppercase tracking-wide text-muted-foreground mt-1">Aprovadas</div>
-    </div>
-    <div class="bg-card border border-border rounded-lg p-4 text-center">
-      <div class="text-2xl font-bold text-red-600">{{ resumo.reprovadas }}</div>
-      <div class="text-xs uppercase tracking-wide text-muted-foreground mt-1">Reprovadas</div>
-    </div>
-  </div>
+  /* Resumo */
+  .pn-resumo { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; margin-bottom: 1.5rem; }
+  .pn-stat { text-align: center; padding: 1rem .75rem; }
+  .pn-stat-num { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+  .pn-stat-lbl { margin-top: .35rem; font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+  .pn-stat-num.is-pend { color: var(--ink-soft); }
+  .pn-stat-num.is-sort { color: #2f5296; }
+  .pn-stat-num.is-aprv { color: #1f7a49; }
+  .pn-stat-num.is-repr { color: #b03636; }
 
-  <!-- Próxima ronda em destaque -->
-  {% if proxima %}
-  <a href="{% url 'ronda:configuracao_detalhe' proxima.pk %}"
-     class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg p-4 mb-5 hover:bg-green-100 transition-colors">
-    <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-600 text-white flex-shrink-0">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-    </span>
-    <div class="flex-1">
-      <div class="text-xs uppercase tracking-wide text-green-700 font-semibold">Próxima ronda aprovada</div>
-      <div class="font-semibold text-slate-800">{{ proxima.sabado.data|date:"d/m/Y" }} — {{ proxima.sabado.tema }}</div>
-    </div>
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-green-600"><path d="M9 18l6-6-6-6"/></svg>
-  </a>
-  {% endif %}
+  /* Próxima ronda */
+  .pn-proxima { display: flex; align-items: center; gap: .9rem; padding: 1rem 1.1rem; border-radius: 18px; background: #eaf7ef; border: 1px solid #bfe6ce; text-decoration: none; margin-bottom: 1.5rem; transition: transform .18s ease, box-shadow .18s ease; }
+  .pn-proxima:hover { transform: translateY(-2px); box-shadow: var(--shadow-warm-sm); }
+  .pn-proxima-icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 12px; background: #2e8b57; color: #fff; flex-shrink: 0; }
+  .pn-proxima-body { flex: 1; min-width: 0; }
+  .pn-proxima-eyebrow { font-size: .66rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #1f7a49; }
+  .pn-proxima-tema { font-weight: 700; color: var(--ink); font-size: .95rem; }
+  .pn-proxima-arrow { color: #2e8b57; flex-shrink: 0; }
 
-  <!-- Barra de ações -->
-  <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-    <div class="flex flex-wrap gap-1.5">
-      <a href="{% url 'ronda:painel' %}"
-         class="px-3 py-1.5 rounded-md text-sm font-medium {% if not status_filtro %}bg-slate-800 text-white{% else %}bg-card border border-border text-muted-foreground hover:bg-accent{% endif %}">Todas</a>
-      <a href="?status=PENDENTE_SORTEIO"
-         class="px-3 py-1.5 rounded-md text-sm font-medium {% if status_filtro == 'PENDENTE_SORTEIO' %}bg-slate-800 text-white{% else %}bg-card border border-border text-muted-foreground hover:bg-accent{% endif %}">Pendentes</a>
-      <a href="?status=SORTEADA"
-         class="px-3 py-1.5 rounded-md text-sm font-medium {% if status_filtro == 'SORTEADA' %}bg-slate-800 text-white{% else %}bg-card border border-border text-muted-foreground hover:bg-accent{% endif %}">A aprovar</a>
-      <a href="?status=APROVADA"
-         class="px-3 py-1.5 rounded-md text-sm font-medium {% if status_filtro == 'APROVADA' %}bg-slate-800 text-white{% else %}bg-card border border-border text-muted-foreground hover:bg-accent{% endif %}">Aprovadas</a>
-    </div>
-    <div class="flex gap-2">
-      <a href="{% url 'ronda:locais' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        Locais
-      </a>
-      <a href="{% url 'ronda:ranking' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
-        Ranking
-      </a>
-      <a href="{% url 'ronda:configuracao_criar' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white" style="background:#fe8210">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Nova Ronda
-      </a>
-    </div>
-  </div>
+  /* Barra de filtros + ações */
+  .pn-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+  .pn-filtros { display: inline-flex; align-items: center; gap: .25rem; padding: .3rem; background: #fff6f0; border: 1px solid #fbe3d3; border-radius: 999px; flex-wrap: wrap; }
+  .pn-pill { padding: .4rem .85rem; border-radius: 999px; font-size: .82rem; font-weight: 700; color: var(--ink-soft); text-decoration: none; white-space: nowrap; transition: background .15s, color .15s; }
+  .pn-pill:hover { background: #fff; color: #c9490a; }
+  .pn-pill.active { background: var(--ink); color: #fff; }
 
-  <!-- Lista -->
-  <div class="space-y-3">
-    {% for cfg in configuracoes %}
-    <div class="bg-card border border-border rounded-lg p-4">
-      <div class="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-semibold text-slate-800">{{ cfg.sabado.data|date:"d/m/Y" }}</span>
-            <span class="text-muted-foreground">·</span>
-            <span class="text-slate-600">{{ cfg.sabado.tema }}</span>
-            {% if cfg.status == 'PENDENTE_SORTEIO' %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-slate-100 text-slate-600">Pendente</span>
-            {% elif cfg.status == 'SORTEADA' %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-blue-100 text-blue-700">Sorteada</span>
-            {% elif cfg.status == 'APROVADA' %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-green-100 text-green-700">Aprovada</span>
-            {% else %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-red-100 text-red-700">Reprovada</span>{% endif %}
-            {% if cfg.dia_de_evento %}<span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style="background:#fed7aa;color:#9a3412">Evento</span>{% endif %}
+  /* Lista de rondas */
+  .pn-list { display: flex; flex-direction: column; gap: .75rem; }
+  .pn-item { display: flex; align-items: flex-start; justify-content: space-between; gap: .9rem; flex-wrap: wrap; }
+  .pn-item-info { min-width: 0; }
+  .pn-item-title { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+  .pn-item-data { font-weight: 800; color: var(--ink); font-size: .98rem; }
+  .pn-item-sep { color: var(--ink-muted); }
+  .pn-item-tema { color: var(--ink-soft); font-size: .92rem; }
+  .pn-item-meta { margin-top: .35rem; font-size: .78rem; color: var(--ink-muted); }
+  .pn-item-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+  /* Estado vazio */
+  .pn-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; text-align: center; padding: clamp(2.5rem, 6vw, 3.5rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; color: var(--ink-muted); }
+  .pn-empty a { color: #c9490a; font-weight: 700; text-decoration: underline; }
+
+  @media (min-width: 640px) {
+    .pn-resumo { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .pn-item-actions { width: 100%; }
+    .pn-item-actions .pcf-btn { flex: 1; }
+  }
+</style>
+
+<div class="pn-page">
+  <div class="pcf-container pn-wrap">
+
+    <!-- Cabeçalho leve -->
+    <header class="pn-head">
+      <div class="pn-head-text">
+        <span class="pcf-eyebrow">Rondas</span>
+        <h1 class="pn-title">Gestão de Rondas</h1>
+        <p class="pn-sub">Monte a escala, sorteie, aprove e acompanhe as rondas do sábado.</p>
+      </div>
+      <div class="pn-head-actions">
+        <a href="{% url 'ronda:locais' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Locais
+        </a>
+        <a href="{% url 'ronda:ranking' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
+          Ranking
+        </a>
+        <a href="{% url 'ronda:configuracao_criar' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova Ronda
+        </a>
+      </div>
+    </header>
+
+    <!-- Resumo -->
+    <div class="pn-resumo">
+      <div class="pcf-card-sm pn-stat">
+        <div class="pn-stat-num is-pend">{{ resumo.pendentes }}</div>
+        <div class="pn-stat-lbl">Pendentes</div>
+      </div>
+      <div class="pcf-card-sm pn-stat">
+        <div class="pn-stat-num is-sort">{{ resumo.sorteadas }}</div>
+        <div class="pn-stat-lbl">A aprovar</div>
+      </div>
+      <div class="pcf-card-sm pn-stat">
+        <div class="pn-stat-num is-aprv">{{ resumo.aprovadas }}</div>
+        <div class="pn-stat-lbl">Aprovadas</div>
+      </div>
+      <div class="pcf-card-sm pn-stat">
+        <div class="pn-stat-num is-repr">{{ resumo.reprovadas }}</div>
+        <div class="pn-stat-lbl">Reprovadas</div>
+      </div>
+    </div>
+
+    <!-- Próxima ronda em destaque -->
+    {% if proxima %}
+    <a href="{% url 'ronda:configuracao_detalhe' proxima.pk %}" class="pn-proxima">
+      <span class="pn-proxima-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </span>
+      <div class="pn-proxima-body">
+        <div class="pn-proxima-eyebrow">Próxima ronda aprovada</div>
+        <div class="pn-proxima-tema">{{ proxima.sabado.data|date:"d/m/Y" }} — {{ proxima.sabado.tema }}</div>
+      </div>
+      <svg class="pn-proxima-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+    </a>
+    {% endif %}
+
+    <!-- Filtros -->
+    <div class="pn-toolbar">
+      <div class="pn-filtros">
+        <a href="{% url 'ronda:painel' %}" class="pn-pill {% if not status_filtro %}active{% endif %}">Todas</a>
+        <a href="?status=PENDENTE_SORTEIO" class="pn-pill {% if status_filtro == 'PENDENTE_SORTEIO' %}active{% endif %}">Pendentes</a>
+        <a href="?status=SORTEADA" class="pn-pill {% if status_filtro == 'SORTEADA' %}active{% endif %}">A aprovar</a>
+        <a href="?status=APROVADA" class="pn-pill {% if status_filtro == 'APROVADA' %}active{% endif %}">Aprovadas</a>
+      </div>
+    </div>
+
+    <!-- Lista -->
+    <div class="pn-list">
+      {% for cfg in configuracoes %}
+      <div class="pcf-card pn-item">
+        <div class="pn-item-info">
+          <div class="pn-item-title">
+            <span class="pn-item-data">{{ cfg.sabado.data|date:"d/m/Y" }}</span>
+            <span class="pn-item-sep">·</span>
+            <span class="pn-item-tema">{{ cfg.sabado.tema }}</span>
+            {% if cfg.status == 'PENDENTE_SORTEIO' %}<span class="pcf-badge">Pendente</span>
+            {% elif cfg.status == 'SORTEADA' %}<span class="pcf-badge info">Sorteada</span>
+            {% elif cfg.status == 'APROVADA' %}<span class="pcf-badge ok">Aprovada</span>
+            {% else %}<span class="pcf-badge danger">Reprovada</span>{% endif %}
+            {% if cfg.dia_de_evento %}<span class="pcf-badge brand">Evento</span>{% endif %}
           </div>
-          <div class="text-xs text-muted-foreground mt-1">{{ cfg.horarios.count }} linha(s) de escala</div>
+          <div class="pn-item-meta">{{ cfg.horarios.count }} linha(s) de escala</div>
         </div>
-        <div class="flex flex-wrap gap-2">
-          <a href="{% url 'ronda:configuracao_detalhe' cfg.pk %}"
-             class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium bg-slate-800 text-white hover:bg-slate-700">
+        <div class="pn-item-actions">
+          <a href="{% url 'ronda:configuracao_detalhe' cfg.pk %}" class="pcf-btn pcf-btn-dark pcf-btn-sm">
             Ver / Sortear
           </a>
           {% if cfg.status != 'APROVADA' %}
-          <a href="{% url 'ronda:configuracao_editar' cfg.pk %}"
-             class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <a href="{% url 'ronda:configuracao_editar' cfg.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Editar
           </a>
           {% endif %}
           <button type="button"
                   onclick="confirmarExclusao('{% url 'ronda:configuracao_deletar' cfg.pk %}', '{{ cfg.sabado.data|date:'d/m/Y' }}', '{{ cfg.status }}')"
-                  class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium bg-card border border-red-200 text-red-600 hover:bg-red-50">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                  class="pcf-btn pcf-btn-sm" style="background:#fdeaea;color:#b03636;border-color:#f6cccc">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
             Excluir
           </button>
         </div>
       </div>
+      {% empty %}
+      <div class="pn-empty">
+        <p>Nenhuma ronda {% if status_filtro %}com esse status{% endif %} ainda.</p>
+        <a href="{% url 'ronda:configuracao_criar' %}">Criar a primeira</a>
+      </div>
+      {% endfor %}
     </div>
-    {% empty %}
-    <div class="bg-card border border-dashed border-border rounded-lg p-10 text-center text-muted-foreground">
-      Nenhuma ronda {% if status_filtro %}com esse status{% endif %} ainda.
-      <a href="{% url 'ronda:configuracao_criar' %}" class="text-primary font-medium underline">Criar a primeira</a>
-    </div>
-    {% endfor %}
   </div>
 </div>
 
 <!-- Modal de confirmação de exclusão -->
 <div id="modalExcluir" class="hidden fixed inset-0 z-50 items-center justify-center bg-black/40 p-4" style="display:none">
-  <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
-    <h3 class="text-lg font-bold text-slate-800">Excluir ronda?</h3>
-    <p id="modalExcluirTexto" class="text-sm text-muted-foreground mt-2"></p>
+  <div class="pcf-card" style="max-width:24rem;width:100%">
+    <h3 class="text-lg font-bold" style="color:var(--ink)">Excluir ronda?</h3>
+    <p id="modalExcluirTexto" class="text-sm mt-2" style="color:hsl(var(--muted-foreground))"></p>
     <form id="modalExcluirForm" method="post">{% csrf_token %}
       <div class="flex justify-end gap-2 mt-5">
-        <button type="button" onclick="fecharExclusao()" class="px-4 py-2 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">Cancelar</button>
-        <button type="submit" class="px-4 py-2 rounded-md text-sm font-semibold bg-red-600 text-white hover:bg-red-700">Excluir</button>
+        <button type="button" onclick="fecharExclusao()" class="pcf-btn pcf-btn-outline pcf-btn-sm">Cancelar</button>
+        <button type="submit" class="pcf-btn pcf-btn-sm" style="background:#b03636;color:#fff">Excluir</button>
       </div>
     </form>
   </div>

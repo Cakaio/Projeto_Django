@@ -1,30 +1,65 @@
 {% extends 'base.html' %}
-{% block title %}Editar Score — {{ score.voluntario.get_full_name }}{% endblock %}
+{% block titulo %}Editar Score — {{ score.voluntario.get_full_name }}{% endblock %}
 {% block content %}
+{# Layout específico desta tela (prefixo .sc-). Visual base vem das classes .pcf-*. #}
 <style>
-  .rd-header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);color:#fff;padding:2.5rem 0 4rem;text-align:center;clip-path:ellipse(55% 100% at 50% 100%)}
-  .rd-header h1{font-size:1.75rem;font-weight:700;margin:0}
-  .rd-header p{opacity:.75;margin:.5rem 0 0}
-  .rd-body{max-width:420px;margin:-2rem auto 2rem;padding:0 1rem}
-  .rd-card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1.5rem}
+  .sc-page { background: hsl(var(--background)); }
+  .sc-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); max-width: 480px; }
+
+  .sc-head { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1.5rem; }
+  .sc-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-size: clamp(1.5rem, 3vw, 2.1rem); color: var(--ink); }
+  .sc-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+
+  .sc-vol { display: flex; align-items: center; gap: .75rem; padding-bottom: 1.1rem; margin-bottom: 1.1rem; border-bottom: 1px solid #f4e7de; }
+  .sc-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; background: var(--brand-grad); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.05rem; text-transform: uppercase; }
+  .sc-vol-nome { font-weight: 700; color: var(--ink); }
+  .sc-vol-ano { font-size: .82rem; color: var(--ink-muted); }
+
+  #scoreForm input[type="number"], #scoreForm input {
+    width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff;
+    border: 1px solid #f0dfd3; color: var(--ink); font-size: .92rem; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  #scoreForm input:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242,107,33,.15); }
+
+  .sc-err { color: #b03636; font-size: .82rem; margin-top: .3rem; }
+  .sc-actions { display: flex; gap: .6rem; margin-top: 1.5rem; flex-wrap: wrap; }
 </style>
-<div class="rd-header">
-  <h1>Editar Score</h1>
-  <p>{{ score.voluntario.get_full_name }} — {{ score.ano }}</p>
-</div>
-<div class="rd-body">
-  <div class="rd-card">
-    <form method="post">{% csrf_token %}
-      <div class="mb-3">
-        <label class="form-label fw-semibold">{{ form.pontos.label }}</label>
-        {{ form.pontos }}
-        {% if form.pontos.errors %}<div class="text-danger small">{{ form.pontos.errors|join:", " }}</div>{% endif %}
+
+<div class="sc-page">
+  <div class="pcf-container sc-wrap">
+
+    <header class="sc-head">
+      <span class="pcf-eyebrow">Ronda</span>
+      <h1 class="sc-title">Editar Score</h1>
+      <p class="sc-sub">Ajuste manual da pontuação de rondas do voluntário.</p>
+    </header>
+
+    <div class="pcf-card">
+      <div class="sc-vol">
+        <span class="sc-avatar" aria-hidden="true">{{ score.voluntario.get_full_name|slice:":1" }}</span>
+        <div>
+          <div class="sc-vol-nome">{{ score.voluntario.get_full_name }}</div>
+          <div class="sc-vol-ano">Ano {{ score.ano }}</div>
+        </div>
       </div>
-      <div style="display:flex;gap:.5rem">
-        <button type="submit" class="btn" style="background:#fe8210;color:#fff;border:none">Salvar</button>
-        <a href="{% url 'ronda:ranking' %}" class="btn btn-outline-secondary">Cancelar</a>
-      </div>
-    </form>
+
+      <form method="post" id="scoreForm">{% csrf_token %}
+        <div class="pcf-field">
+          <label class="pcf-label" for="{{ form.pontos.id_for_label }}">{{ form.pontos.label }}</label>
+          {{ form.pontos }}
+          {% if form.pontos.errors %}<p class="sc-err">{{ form.pontos.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="sc-actions">
+          <button type="submit" class="pcf-btn pcf-btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Salvar
+          </button>
+          <a href="{% url 'ronda:ranking' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+        </div>
+      </form>
+    </div>
+
   </div>
 </div>
 {% endblock %}

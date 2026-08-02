@@ -1,110 +1,131 @@
 {% extends 'base.html' %}
-{% block title %}{% if modo == 'editar' %}Editar Ronda{% else %}Nova Ronda{% endif %}{% endblock %}
+{% block titulo %}{% if modo == 'editar' %}Editar Ronda{% else %}Nova Ronda{% endif %}{% endblock %}
 {% block content %}
+{# Layout específico desta tela (prefixo .rd-). O visual base vem das classes .pcf-*. #}
 <style>
-  /* Inputs/selects no padrão shadcn dentro deste form */
+  .rd-page { background: hsl(var(--background)); }
+  .rd-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Cabeçalho leve */
+  .rd-head-page { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1.5rem; }
+  .rd-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .rd-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+
+  /* Inputs/selects no padrão PCF dentro deste form */
   #rondaForm input[type="time"],
   #rondaForm select {
-    width:100%; height:2.5rem; padding:0 .6rem;
-    background:hsl(var(--card)); color:hsl(var(--foreground));
-    border:1px solid hsl(var(--border)); border-radius:calc(var(--radius) - 2px);
-    font-size:.9rem;
+    width: 100%; height: 2.5rem; padding: 0 .6rem;
+    background: hsl(var(--card)); color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border)); border-radius: 12px;
+    font-size: .9rem; font-family: inherit;
   }
   #rondaForm input[type="time"]:focus,
   #rondaForm select:focus {
-    outline:none; border-color:#fe8210; box-shadow:0 0 0 3px rgba(254,130,16,.15);
+    outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242,107,33,.15);
   }
-  #rondaForm select:disabled { opacity:.7; background:hsl(var(--muted)); }
-  .rd-head, .rd-row { display:grid; gap:.5rem; align-items:center; grid-template-columns:1fr 1fr 1.4fr 84px; }
-  .rd-row.marcado-deletar { opacity:.4; }
-  .rd-row.marcado-deletar input, .rd-row.marcado-deletar select { text-decoration:line-through; }
+  #rondaForm select:disabled { opacity: .7; background: hsl(var(--muted)); }
+
+  .rd-sec-lbl { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+
+  /* Grade de linhas de escala */
+  .rd-head, .rd-row { display: grid; gap: .5rem; align-items: center; grid-template-columns: 1fr 1fr 1.4fr 84px; }
+  .rd-row.marcado-deletar { opacity: .4; }
+  .rd-row.marcado-deletar input, .rd-row.marcado-deletar select { text-decoration: line-through; }
   /* Modo dia de evento: sem horários, só Local */
-  #rondaForm.modo-evento .rd-head, #rondaForm.modo-evento .rd-row { grid-template-columns:1fr 84px; }
-  #rondaForm.modo-evento .col-hora { display:none !important; }
+  #rondaForm.modo-evento .rd-head, #rondaForm.modo-evento .rd-row { grid-template-columns: 1fr 84px; }
+  #rondaForm.modo-evento .col-hora { display: none !important; }
+
+  /* Botão-ícone (duplicar / remover) */
+  .rd-icon-btn { width: 2.25rem; height: 2.25rem; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: var(--ink-soft); cursor: pointer; transition: background .15s, border-color .15s; }
+  .rd-icon-btn:hover { background: hsl(var(--accent)); }
+  .rd-icon-btn.danger { border-color: #fecaca; background: #fef2f2; color: #dc2626; }
+  .rd-icon-btn.danger:hover { background: #fee2e2; }
+
+  .rd-add { width: 100%; margin-top: .75rem; padding: .7rem; border-radius: 12px; border: 1.5px dashed #f2d3bd; background: transparent; font-size: .88rem; color: var(--ink-muted); cursor: pointer; font-family: inherit; transition: background .15s; }
+  .rd-add:hover { background: #fffaf6; }
+
+  .rd-check-label { display: flex; align-items: flex-start; gap: .75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f4e7de; cursor: pointer; }
+  .rd-err { color: #b03636; font-size: .82rem; margin-top: .35rem; }
 </style>
 
-<div class="relative overflow-hidden text-white text-center"
-     style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.5rem 1rem 4.5rem">
-  <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl md:text-3xl font-bold">{% if modo == 'editar' %}Editar Ronda{% else %}Nova Ronda{% endif %}</h1>
-    <p class="opacity-75 text-sm mt-1">Defina o sábado e as linhas de escala (horário + local)</p>
-  </div>
-  <div class="absolute left-0 right-0" style="bottom:-2px;height:56px;background:hsl(var(--background));clip-path:ellipse(55% 100% at 50% 100%)"></div>
-</div>
+<div class="rd-page">
+  <div class="pcf-container rd-wrap" style="max-width: 720px;">
 
-<div class="max-w-2xl mx-auto px-4 -mt-8 relative z-10 pb-16">
-  <form id="rondaForm" method="post">{% csrf_token %}
-    {{ formset.management_form }}
+    <!-- Cabeçalho leve -->
+    <header class="rd-head-page">
+      <span class="pcf-eyebrow">Escala de Ronda</span>
+      <h1 class="rd-title">{% if modo == 'editar' %}Editar Ronda{% else %}Nova Ronda{% endif %}</h1>
+      <p class="rd-sub">Defina o sábado e as linhas de escala (horário + local).</p>
+    </header>
 
-    <!-- Sábado -->
-    <div class="bg-card border border-border rounded-lg p-5 mb-4">
-      <label class="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Sábado do evento</label>
-      {{ form.sabado }}
-      {% if form.sabado.errors %}<p class="text-red-600 text-sm mt-1">{{ form.sabado.errors|join:", " }}</p>{% endif %}
-      {% if modo == 'editar' %}<p class="text-xs text-muted-foreground mt-2">O sábado não pode ser alterado na edição.</p>{% endif %}
+    <form id="rondaForm" method="post">{% csrf_token %}
+      {{ formset.management_form }}
 
-      <label class="flex items-start gap-3 mt-4 pt-4 border-t border-border cursor-pointer">
-        <span class="mt-0.5">{{ form.dia_de_evento }}</span>
-        <span>
-          <span class="block text-sm font-medium text-slate-800">Ronda em dia de evento</span>
-          <span class="block text-xs text-muted-foreground">4 pessoas fixas por local (2 duplas), sem horários. O revezamento 2x2 é combinado no dia.</span>
-        </span>
-      </label>
-    </div>
+      <!-- Sábado -->
+      <div class="pcf-card" style="margin-bottom:1rem;">
+        <label for="{{ form.sabado.id_for_label }}" class="rd-sec-lbl" style="display:block;margin-bottom:.5rem;">Sábado do evento</label>
+        {{ form.sabado }}
+        {% if form.sabado.errors %}<p class="rd-err">{{ form.sabado.errors|join:", " }}</p>{% endif %}
+        {% if modo == 'editar' %}<p class="rd-sub" style="font-size:.8rem;margin-top:.5rem;">O sábado não pode ser alterado na edição.</p>{% endif %}
 
-    <!-- Linhas de escala -->
-    <div class="bg-card border border-border rounded-lg p-5 mb-4">
-      <div class="flex items-center justify-between mb-3">
-        <label class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Linhas de escala</label>
-        <span class="text-xs text-muted-foreground">2 voluntários sorteados por linha</span>
+        <label class="rd-check-label">
+          <span style="margin-top:.15rem;">{{ form.dia_de_evento }}</span>
+          <span>
+            <span style="display:block;font-size:.9rem;font-weight:600;color:var(--ink);">Ronda em dia de evento</span>
+            <span style="display:block;font-size:.8rem;color:var(--ink-muted);">4 pessoas fixas por local (2 duplas), sem horários. O revezamento 2x2 é combinado no dia.</span>
+          </span>
+        </label>
       </div>
 
-      <div class="rd-head hidden md:grid px-1 mb-1">
-        <span class="col-hora text-xs font-semibold text-muted-foreground">Início</span>
-        <span class="col-hora text-xs font-semibold text-muted-foreground">Fim</span>
-        <span class="text-xs font-semibold text-muted-foreground">Local</span>
-        <span></span>
-      </div>
-
-      <div id="linhas-container" class="space-y-2">
-        {% for hform in formset %}
-        <div class="rd-row">
-          <span class="col-hora">{{ hform.hora_inicio }}</span>
-          <span class="col-hora">{{ hform.hora_fim }}</span>
-          {{ hform.local }}
-          <div class="flex gap-1 justify-end">
-            <button type="button" title="Duplicar" onclick="duplicarLinha(this)"
-                    class="w-9 h-9 flex items-center justify-center rounded-md border border-border bg-card text-slate-600 hover:bg-accent">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            </button>
-            <button type="button" title="Remover" onclick="removerLinha(this)"
-                    class="w-9 h-9 flex items-center justify-center rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          {% for hidden in hform.hidden_fields %}{{ hidden }}{% endfor %}
-          <div class="hidden">{{ hform.DELETE }}</div>
-          {% if hform.errors %}<p class="col-span-full text-red-600 text-xs">{{ hform.errors }}</p>{% endif %}
+      <!-- Linhas de escala -->
+      <div class="pcf-card" style="margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;gap:.5rem;flex-wrap:wrap;">
+          <span class="rd-sec-lbl">Linhas de escala</span>
+          <span class="rd-sub" style="font-size:.8rem;">2 voluntários sorteados por linha</span>
         </div>
-        {% endfor %}
+
+        <div class="rd-head hidden md:grid" style="padding-inline:.25rem;margin-bottom:.25rem;">
+          <span class="col-hora rd-sec-lbl">Início</span>
+          <span class="col-hora rd-sec-lbl">Fim</span>
+          <span class="rd-sec-lbl">Local</span>
+          <span></span>
+        </div>
+
+        <div id="linhas-container" style="display:flex;flex-direction:column;gap:.5rem;">
+          {% for hform in formset %}
+          <div class="rd-row">
+            <span class="col-hora">{{ hform.hora_inicio }}</span>
+            <span class="col-hora">{{ hform.hora_fim }}</span>
+            {{ hform.local }}
+            <div style="display:flex;gap:.25rem;justify-content:flex-end;">
+              <button type="button" title="Duplicar" onclick="duplicarLinha(this)" class="rd-icon-btn" aria-label="Duplicar linha">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+              <button type="button" title="Remover" onclick="removerLinha(this)" class="rd-icon-btn danger" aria-label="Remover linha">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            {% for hidden in hform.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="hidden">{{ hform.DELETE }}</div>
+            {% if hform.errors %}<p class="rd-err" style="grid-column:1/-1;">{{ hform.errors }}</p>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if formset.non_form_errors %}<p class="rd-err" style="margin-top:.5rem;">{{ formset.non_form_errors|join:", " }}</p>{% endif %}
+
+        <button type="button" id="add-linha" class="rd-add">+ Adicionar linha</button>
       </div>
 
-      {% if formset.non_form_errors %}<p class="text-red-600 text-sm mt-2">{{ formset.non_form_errors|join:", " }}</p>{% endif %}
-
-      <button type="button" id="add-linha"
-              class="w-full mt-3 py-2.5 rounded-md border border-dashed border-border text-sm text-muted-foreground hover:bg-accent">
-        + Adicionar linha
-      </button>
-    </div>
-
-    <div class="flex gap-2">
-      <button type="submit" class="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-md text-sm font-semibold text-white" style="background:#fe8210">
-        {% if modo == 'editar' %}Salvar alterações{% else %}Criar e ir para sorteio{% endif %}
-      </button>
-      <a href="{% if modo == 'editar' %}{% url 'ronda:configuracao_detalhe' cfg.pk %}{% else %}{% url 'ronda:painel' %}{% endif %}"
-         class="px-5 py-2.5 rounded-md text-sm font-medium bg-card border border-border text-slate-700 hover:bg-accent">Cancelar</a>
-    </div>
-  </form>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        <button type="submit" class="pcf-btn pcf-btn-primary">
+          {% if modo == 'editar' %}Salvar alterações{% else %}Criar e ir para sorteio{% endif %}
+        </button>
+        <a href="{% if modo == 'editar' %}{% url 'ronda:configuracao_detalhe' cfg.pk %}{% else %}{% url 'ronda:painel' %}{% endif %}"
+           class="pcf-btn pcf-btn-outline">Cancelar</a>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>
