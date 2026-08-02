@@ -1,181 +1,187 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block titulo %}Presença dos Voluntários{% endblock %}
+
 {% block content %}
-<div class="container main-container">
+<div class="vv-page">
+  <div class="pcf-container vv-wrap">
 
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">Presença dos Voluntários</h1>
-      <p class="page-subtitle">Visualize a frequência por área e por sábados selecionados.</p>
-    </div>
-  </div>
-
-  <form method="get" class="filter-card">
-    <div class="filter-grid">
-
-      <div class="filter-group">
-        <label for="area">Área</label>
-        <select name="area" id="area" class="form-control">
-          <option value="TODAS" {% if area_atual == "TODAS" %}selected{% endif %}>Todas</option>
-          {% for area_item in areas_disponiveis %}
-            <option value="{{ area_item }}" {% if area_atual == area_item %}selected{% endif %}>
-              {{ area_item }}
-            </option>
-          {% endfor %}
-        </select>
+    <!-- ─────────────────────────── CABEÇALHO LEVE ─────────────────────────── -->
+    <header class="vv-head" data-reveal>
+      <div class="vv-head-text">
+        <span class="pcf-eyebrow">Relatório</span>
+        <h1 class="vv-title">Presença dos Voluntários</h1>
+        <p class="vv-sub">Visualize a frequência por área e por sábados selecionados.</p>
       </div>
+      <a href="{% url 'voluntario:registrar_presencas' %}" class="pcf-btn pcf-btn-primary vv-head-cta">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Fazer chamada
+      </a>
+    </header>
 
-      <div class="filter-group sabados-group">
-        <div class="sabados-header">
-          <label>Sábados</label>
-          <div class="sabados-actions">
-            <button type="button" class="btn btn-light btn-sm" onclick="marcarTodos()">Marcar todos</button>
-            <button type="button" class="btn btn-light btn-sm" onclick="limparTodos()">Limpar</button>
+    <!-- ─────────────────────────────── FILTROS ─────────────────────────────── -->
+    <section class="pcf-card vv-card vv-filtros" data-reveal>
+      <form method="get">
+        <div class="vv-filtros-grid">
+
+          <!-- Área -->
+          <div class="pcf-field">
+            <label class="pcf-label" for="area">Área</label>
+            <select id="area" name="area" class="pcf-input vv-select">
+              <option value="TODAS" {% if area_atual == "TODAS" %}selected{% endif %}>Todas</option>
+              {% for area_item in areas_disponiveis %}
+                <option value="{{ area_item }}" {% if area_atual == area_item %}selected{% endif %}>{{ area_item }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Sábados -->
+          <div class="pcf-field">
+            <div class="vv-sabados-head">
+              <label class="pcf-label">Sábados</label>
+              <div class="vv-sabados-tools">
+                <button type="button" onclick="marcarTodos()" class="pcf-btn pcf-btn-ghost pcf-btn-sm vv-mini-btn">Marcar todos</button>
+                <button type="button" onclick="limparTodos()" class="pcf-btn pcf-btn-ghost pcf-btn-sm vv-mini-btn">Limpar</button>
+              </div>
+            </div>
+            <div class="vv-sabados-box">
+              {% for sabado in sabados_disponiveis %}
+                <label class="vv-check">
+                  <input type="checkbox" name="sabados" value="{{ sabado.id }}"
+                         {% if sabado.id in sabados_selecionados %}checked{% endif %}>
+                  <span>{{ sabado.data|date:"d/m/Y" }}</span>
+                </label>
+              {% empty %}
+                <p class="vv-empty-inline">Nenhum sábado cadastrado.</p>
+              {% endfor %}
+            </div>
           </div>
         </div>
 
-        <div class="sabados-box">
-          {% for sabado in sabados_disponiveis %}
-            <label class="checkbox-item">
-              <input
-                type="checkbox"
-                name="sabados"
-                value="{{ sabado.id }}"
-                {% if sabado.id in sabados_selecionados %}checked{% endif %}
-              >
-              <span>{{ sabado.data|date:"d/m/Y" }}</span>
-            </label>
-          {% empty %}
-            <p>Nenhum sábado cadastrado.</p>
-          {% endfor %}
+        <div class="vv-filtros-actions">
+          <button type="submit" class="pcf-btn pcf-btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Aplicar filtros
+          </button>
         </div>
+      </form>
+    </section>
+
+    <!-- ─────────────────────────────── KPIs ─────────────────────────────── -->
+    <section class="vv-kpis" data-reveal>
+      <div class="pcf-card pcf-card-sm vv-kpi">
+        <span class="vv-kpi-label">Total de voluntários</span>
+        <span class="vv-kpi-num">{{ total_voluntarios }}</span>
+      </div>
+      <div class="pcf-card pcf-card-sm vv-kpi">
+        <span class="vv-kpi-label">Sábados selecionados</span>
+        <span class="vv-kpi-num">{{ total_sabados }}</span>
+      </div>
+      <div class="pcf-card pcf-card-sm vv-kpi vv-kpi-ok">
+        <span class="vv-kpi-label">Presenças</span>
+        <span class="vv-kpi-num">{{ total_presentes }}</span>
+      </div>
+      <div class="pcf-card pcf-card-sm vv-kpi vv-kpi-danger">
+        <span class="vv-kpi-label">Ausências</span>
+        <span class="vv-kpi-num">{{ total_ausentes }}</span>
+      </div>
+      <div class="pcf-card pcf-card-sm vv-kpi vv-kpi-warn">
+        <span class="vv-kpi-label">Justificadas</span>
+        <span class="vv-kpi-num">{{ total_justificadas }}</span>
+      </div>
+      <div class="pcf-card pcf-card-sm vv-kpi vv-kpi-brand">
+        <span class="vv-kpi-label">% Presença geral</span>
+        <span class="vv-kpi-num">{{ percentual_geral }}%</span>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────── GRÁFICO ─────────────────────────────── -->
+    <section class="pcf-card vv-card" data-reveal>
+      <div class="vv-card-head">
+        <h2 class="vv-card-title">Presença por sábado</h2>
+        <p class="vv-card-desc">Quantidade de voluntários presentes em cada sábado selecionado.</p>
+      </div>
+      <div class="vv-chart">
+        <canvas id="graficoPresencas"></canvas>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────── TABELA ─────────────────────────────── -->
+    <section class="pcf-card vv-card vv-table-card" data-reveal>
+      <div class="vv-card-head">
+        <h2 class="vv-card-title">Tabela de frequência</h2>
+        <p class="vv-card-desc">Status de presença por voluntário e percentual individual.</p>
       </div>
 
-    </div>
+      <div class="vv-legend" aria-hidden="false">
+        <span class="vv-leg"><span class="vv-chip vv-chip-p">P</span> Presente</span>
+        <span class="vv-leg"><span class="vv-chip vv-chip-a">A</span> Ausente</span>
+        <span class="vv-leg"><span class="vv-chip vv-chip-j">J</span> Justificada</span>
+        <span class="vv-leg"><span class="vv-chip vv-chip-n">—</span> Sem registro</span>
+      </div>
 
-    <div class="filter-actions">
-      <button type="submit" class="btn btn-primary">Aplicar filtros</button>
-    </div>
-  </form>
-
-
-  <div class="cards-grid">
-    <div class="info-card">
-      <div class="info-label">Total de voluntários</div>
-      <div class="info-value">{{ total_voluntarios }}</div>
-    </div>
-
-    <div class="info-card">
-      <div class="info-label">Sábados selecionados</div>
-      <div class="info-value">{{ total_sabados }}</div>
-    </div>
-
-    <div class="info-card">
-      <div class="info-label">Presenças</div>
-      <div class="info-value">{{ total_presentes }}</div>
-    </div>
-
-    <div class="info-card">
-      <div class="info-label">Ausências</div>
-      <div class="info-value">{{ total_ausentes }}</div>
-    </div>
-
-    <div class="info-card">
-      <div class="info-label">Justificadas</div>
-      <div class="info-value">{{ total_justificadas }}</div>
-    </div>
-
-    <div class="info-card destaque">
-      <div class="info-label">% Presença geral</div>
-      <div class="info-value">{{ percentual_geral }}%</div>
-    </div>
-  </div>
-
-
-  <div class="chart-card">
-    <div class="section-header">
-      <h2>Presença por sábado</h2>
-      <p>Quantidade de voluntários presentes em cada sábado selecionado.</p>
-    </div>
-
-    <div class="chart-wrapper">
-      <canvas id="graficoPresencas"></canvas>
-    </div>
-  </div>
-
-
-  <div class="table-card">
-    <div class="section-header">
-      <h2>Tabela de frequência</h2>
-      <p>Status de presença por voluntário e percentual individual.</p>
-    </div>
-
-    <div class="table-responsive">
-      <table class="custom-table">
-        <thead>
-          <tr>
-            <th>Voluntário</th>
-            <th>Área</th>
-            {% for sabado in sabados %}
-              <th>{{ sabado.data|date:"d/m" }}</th>
-            {% endfor %}
-            <th>% Presença</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for linha in dados_tabela %}
+      <div class="vv-table-scroll" style="overflow-x:auto">
+        <table class="vv-table" style="min-width:{{ sabados|length|add:3 }}00px">
+          <thead>
             <tr>
-              <td class="col-nome">
-                {{ linha.voluntario.get_full_name|default:linha.voluntario.username }}
-              </td>
-              <td>{{ linha.area }}</td>
-
-              {% for item in linha.presencas %}
-                <td>
-                  {% if item.status == "PRESENTE" %}
-                    <span class="status-badge status-presente">Presente</span>
-                  {% elif item.status == "AUSENTE" %}
-                    <span class="status-badge status-ausente">Ausente</span>
-                  {% elif item.status == "JUSTIFICADA" %}
-                    <span class="status-badge status-justificada">Justificada</span>
-                  {% else %}
-                    <span class="status-badge status-semregistro">-</span>
-                  {% endif %}
-                </td>
+              <th class="vv-sticky vv-col-nome">Voluntário</th>
+              <th>Área</th>
+              {% for sabado in sabados %}
+                <th class="vv-th-center">{{ sabado.data|date:"d/m" }}</th>
               {% endfor %}
-
-              <td>
-                <span class="percentual-badge">{{ linha.percentual }}%</span>
+              <th class="vv-th-center">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in dados_tabela %}
+            <tr>
+              <td class="vv-sticky vv-col-nome vv-nome">{{ linha.voluntario.get_full_name|default:linha.voluntario.username }}</td>
+              <td><span class="pcf-badge brand vv-area-badge">{{ linha.area }}</span></td>
+              {% for item in linha.presencas %}
+              <td class="vv-td-center">
+                {% if item.status == "PRESENTE" %}
+                  <span class="vv-chip vv-chip-p" title="Presente">P</span>
+                {% elif item.status == "AUSENTE" %}
+                  <span class="vv-chip vv-chip-a" title="Ausente">A</span>
+                {% elif item.status == "JUSTIFICADA" %}
+                  <span class="vv-chip vv-chip-j" title="Justificada">J</span>
+                {% else %}
+                  <span class="vv-chip vv-chip-n" title="Sem registro">—</span>
+                {% endif %}
+              </td>
+              {% endfor %}
+              <td class="vv-td-center">
+                <span class="vv-pct
+                  {% if linha.percentual >= 75 %}vv-pct-ok
+                  {% elif linha.percentual >= 50 %}vv-pct-warn
+                  {% else %}vv-pct-danger{% endif %}">
+                  {{ linha.percentual }}%
+                </span>
               </td>
             </tr>
-          {% empty %}
+            {% empty %}
             <tr>
-              <td colspan="{{ sabados|length|add:3 }}" class="empty-cell">
+              <td colspan="{{ sabados|length|add:3 }}" class="vv-table-empty">
                 Nenhum voluntário encontrado com os filtros selecionados.
               </td>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
   </div>
-
 </div>
-
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  function marcarTodos() {
-    document.querySelectorAll('input[name="sabados"]').forEach(cb => cb.checked = true);
-  }
-
-  function limparTodos() {
-    document.querySelectorAll('input[name="sabados"]').forEach(cb => cb.checked = false);
-  }
+  function marcarTodos()  { document.querySelectorAll('input[name="sabados"]').forEach(c => c.checked = true); }
+  function limparTodos()  { document.querySelectorAll('input[name="sabados"]').forEach(c => c.checked = false); }
 
   const labels = JSON.parse('{{ grafico_labels_json|escapejs }}');
-  const dados = JSON.parse('{{ grafico_presentes_json|escapejs }}');
+  const dados  = JSON.parse('{{ grafico_presentes_json|escapejs }}');
 
   const ctx = document.getElementById('graficoPresencas').getContext('2d');
 
@@ -186,294 +192,125 @@
       datasets: [{
         label: 'Voluntários presentes',
         data: dados,
-        borderWidth: 1
+        backgroundColor: 'rgba(232,86,15,.22)',
+        borderColor: '#e8560f',
+        borderWidth: 2,
+        borderRadius: 6,
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
       scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            precision: 0
-          }
-        }
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f4e7de' } },
+        x: { grid: { display: false } }
       }
     }
   });
 </script>
 
-
+{# Bloco enxuto: só LAYOUT específico desta tela. O visual vem das classes .pcf-* (tailwindcss/input.css). #}
 <style>
-  .main-container {
-    padding: 2rem 0;
+  .vv-page { background: hsl(var(--background)); min-height: 100vh; }
+  .vv-wrap { padding-top: clamp(1.75rem, 4vw, 2.75rem); padding-bottom: clamp(2.5rem, 6vw, 4rem); }
+
+  /* ── Cabeçalho ── */
+  .vv-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .vv-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .vv-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.6rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .vv-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .vv-head-cta { flex-shrink: 0; }
+
+  /* ── Cards genéricos ── */
+  .vv-card { margin-bottom: 1.25rem; }
+  .vv-card-head { margin-bottom: 1rem; }
+  .vv-card-title { margin: 0 0 .2rem; font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .vv-card-desc { margin: 0; font-size: .85rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Filtros ── */
+  .vv-filtros-grid { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+  .vv-select { cursor: pointer; }
+  .vv-sabados-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+  .vv-sabados-tools { display: flex; gap: .4rem; flex-wrap: wrap; }
+  .vv-mini-btn { padding: .3rem .7rem; font-size: .74rem; }
+  .vv-sabados-box {
+    display: flex; flex-wrap: wrap; gap: .5rem; align-content: flex-start;
+    max-height: 10rem; overflow-y: auto;
+    padding: .75rem; border: 1px solid #f0dfd3; border-radius: 12px; background: var(--cream);
   }
+  .vv-check { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; user-select: none;
+    font-size: .78rem; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+  .vv-check input { width: 15px; height: 15px; accent-color: #e8560f; cursor: pointer; }
+  .vv-empty-inline { margin: 0; font-size: .78rem; font-style: italic; color: var(--ink-muted); }
+  .vv-filtros-actions { display: flex; justify-content: flex-end; margin-top: 1.1rem; }
 
-  .page-header {
-    margin-bottom: 1.5rem;
+  /* ── KPIs ── */
+  .vv-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+  .vv-kpi { display: flex; flex-direction: column; gap: .25rem; }
+  .vv-kpi-label { font-size: .72rem; font-weight: 700; letter-spacing: .04em; color: var(--ink-muted); }
+  .vv-kpi-num { font-size: clamp(1.4rem, 3vw, 1.9rem); font-weight: 800; letter-spacing: -.02em; color: var(--ink); line-height: 1; }
+  .vv-kpi-ok     .vv-kpi-label { color: #1f7a49; }
+  .vv-kpi-ok     .vv-kpi-num   { color: #1f7a49; }
+  .vv-kpi-danger .vv-kpi-label { color: #b03636; }
+  .vv-kpi-danger .vv-kpi-num   { color: #b03636; }
+  .vv-kpi-warn   .vv-kpi-label { color: #8a6a10; }
+  .vv-kpi-warn   .vv-kpi-num   { color: #8a6a10; }
+  .vv-kpi-brand { background: var(--brand-grad); border-color: transparent; }
+  .vv-kpi-brand .vv-kpi-label { color: rgba(255,255,255,.85); }
+  .vv-kpi-brand .vv-kpi-num   { color: #fff; }
+
+  /* ── Gráfico ── */
+  .vv-chart { height: 280px; }
+
+  /* ── Legenda da tabela ── */
+  .vv-legend { display: flex; flex-wrap: wrap; gap: .9rem; margin-bottom: 1rem; }
+  .vv-leg { display: inline-flex; align-items: center; gap: .4rem; font-size: .76rem; font-weight: 600; color: var(--ink-soft); }
+
+  /* ── Chips de status (usados na tabela e legenda) ── */
+  .vv-chip { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+    border-radius: 9px; font-size: .74rem; font-weight: 800; }
+  .vv-chip-p { background: #eaf7ef; color: #1f7a49; }
+  .vv-chip-a { background: #fdeaea; color: #b03636; }
+  .vv-chip-j { background: #fdf3dd; color: #8a6a10; }
+  .vv-chip-n { background: #f4efeb; color: #a8968b; font-weight: 600; }
+
+  /* ── Tabela ── */
+  .vv-table-card { padding-bottom: 1rem; }
+  .vv-table-scroll { border-top: 1px solid #f4e7de; margin: 0 -.35rem; }
+  .vv-table { width: 100%; border-collapse: collapse; }
+  .vv-table th { text-align: left; font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    color: #a8968b; padding: .7rem .8rem; border-bottom: 1px solid #f4e7de; background: var(--cream); white-space: nowrap; }
+  .vv-table td { padding: .65rem .8rem; border-bottom: 1px solid #f7e9df; font-size: .86rem; color: var(--ink-soft); white-space: nowrap; }
+  .vv-table tbody tr:last-child td { border-bottom: 0; }
+  .vv-table tbody tr { transition: background .12s ease; }
+  .vv-table tbody tr:hover td { background: #fffaf6; }
+  .vv-th-center, .vv-td-center { text-align: center; }
+  .vv-nome { font-weight: 700; color: var(--ink); }
+  .vv-sticky { position: sticky; left: 0; z-index: 1; }
+  th.vv-sticky { background: var(--cream); }
+  td.vv-sticky { background: #fff; }
+  .vv-table tbody tr:hover td.vv-sticky { background: #fffaf6; }
+  .vv-area-badge { font-size: .68rem; }
+  .vv-table-empty { padding: 2.75rem 1rem !important; text-align: center; color: var(--ink-muted); font-size: .88rem; }
+
+  /* ── Percentual ── */
+  .vv-pct { display: inline-block; padding: .2rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 800; }
+  .vv-pct-ok     { background: #eaf7ef; color: #1f7a49; }
+  .vv-pct-warn   { background: #fdf3dd; color: #8a6a10; }
+  .vv-pct-danger { background: #fdeaea; color: #b03636; }
+
+  /* ── Breakpoints ── */
+  @media (min-width: 640px) {
+    .vv-filtros-grid { grid-template-columns: 260px 1fr; }
+    .vv-kpis { grid-template-columns: repeat(3, 1fr); }
   }
-
-  .page-title {
-    font-size: 2rem;
-    font-weight: 700;
-    margin: 0;
+  @media (min-width: 1024px) {
+    .vv-kpis { grid-template-columns: repeat(6, 1fr); }
   }
-
-  .page-subtitle {
-    color: #6b7280;
-    margin-top: 0.35rem;
-  }
-
-  .filter-card,
-  .chart-card,
-  .table-card,
-  .info-card {
-    background: #fff;
-    border-radius: 18px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-  }
-
-  .filter-card {
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .filter-grid {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 1.25rem;
-  }
-
-  .filter-group label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-  }
-
-  .form-control {
-    width: 100%;
-    border: 1px solid #d1d5db;
-    border-radius: 12px;
-    padding: 0.75rem 0.9rem;
-    font-size: 0.95rem;
-  }
-
-  .sabados-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .sabados-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .sabados-box {
-    max-height: 220px;
-    overflow-y: auto;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 0.85rem;
-    background: #fafafa;
-  }
-
-  .checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    margin-bottom: 0.55rem;
-    font-size: 0.95rem;
-  }
-
-  .checkbox-item:last-child {
-    margin-bottom: 0;
-  }
-
-  .filter-actions {
-    margin-top: 1.2rem;
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  .btn {
-    border: none;
-    border-radius: 12px;
-    padding: 0.7rem 1rem;
-    cursor: pointer;
-    font-weight: 600;
-  }
-
-  .btn-sm {
-    padding: 0.45rem 0.75rem;
-    font-size: 0.85rem;
-  }
-
-  .btn-primary {
-    background: #111827;
-    color: white;
-  }
-
-  .btn-light {
-    background: #f3f4f6;
-    color: #111827;
-  }
-
-  .cards-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .info-card {
-    padding: 1.25rem;
-  }
-
-  .info-card.destaque {
-    border: 2px solid #111827;
-  }
-
-  .info-label {
-    font-size: 0.9rem;
-    color: #6b7280;
-    margin-bottom: 0.45rem;
-  }
-
-  .info-value {
-    font-size: 1.7rem;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  .chart-card,
-  .table-card {
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .section-header {
-    margin-bottom: 1rem;
-  }
-
-  .section-header h2 {
-    margin: 0;
-    font-size: 1.2rem;
-    font-weight: 700;
-  }
-
-  .section-header p {
-    margin: 0.35rem 0 0;
-    color: #6b7280;
-  }
-
-  .chart-wrapper {
-    height: 360px;
-  }
-
-  .table-responsive {
-    overflow-x: auto;
-  }
-
-  .custom-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 900px;
-  }
-
-  .custom-table th,
-  .custom-table td {
-    padding: 0.9rem 0.75rem;
-    border-bottom: 1px solid #e5e7eb;
-    text-align: center;
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-
-  .custom-table th {
-    background: #f9fafb;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  .custom-table .col-nome {
-    text-align: left;
-    font-weight: 600;
-  }
-
-  .status-badge {
-    display: inline-block;
-    border-radius: 999px;
-    padding: 0.35rem 0.7rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-  }
-
-  .status-presente {
-    background: #dcfce7;
-    color: #166534;
-  }
-
-  .status-ausente {
-    background: #fee2e2;
-    color: #991b1b;
-  }
-
-  .status-justificada {
-    background: #fef3c7;
-    color: #92400e;
-  }
-
-  .status-semregistro {
-    background: #f3f4f6;
-    color: #6b7280;
-  }
-
-  .percentual-badge {
-    display: inline-block;
-    background: #111827;
-    color: #fff;
-    padding: 0.35rem 0.75rem;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 0.85rem;
-  }
-
-  .empty-cell {
-    text-align: center;
-    color: #6b7280;
-    padding: 2rem !important;
-  }
-
-  @media (max-width: 1200px) {
-    .cards-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-
-  @media (max-width: 768px) {
-    .filter-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .cards-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .sabados-header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-  }
-
   @media (max-width: 480px) {
-    .cards-grid {
-      grid-template-columns: 1fr;
-    }
+    .vv-head-cta { width: 100%; }
+    .vv-filtros-actions .pcf-btn { width: 100%; }
   }
 </style>
 {% endblock %}

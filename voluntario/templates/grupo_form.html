@@ -1,44 +1,100 @@
 {% extends "base.html" %}
 {% block titulo %}{% if grupo %}Editar{% else %}Criar{% endif %} grupo{% endblock %}
-{% block head %}
-<style>
-  .builder{--ink:#17231c;--green:#236b49;--lime:#dff07c;background:#f4f2e9;min-height:calc(100vh - 72px);padding:3rem 1rem 6rem;color:var(--ink)}
-  .builder-wrap{max-width:900px;margin:auto}.builder-title{font-size:clamp(2rem,5vw,3.5rem);font-weight:850;letter-spacing:-.04em}
-  .builder-card{background:#fff;border:1px solid #d9dbd2;border-radius:1.25rem;padding:clamp(1.2rem,4vw,2rem);box-shadow:0 20px 50px rgba(23,35,28,.08)}
-  .grupo-name-input{width:100%;border:0;border-bottom:2px solid #cad0c8;padding:.7rem 0;font-size:1.35rem;font-weight:700;outline:none}.grupo-name-input:focus{border-color:var(--green)}
-  .rule-box{border:1px solid #dce0d8;border-radius:1rem;padding:1rem;margin-top:1rem;background:#fafbf7;position:relative}
-  .option-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.45rem}.check-chip input{position:absolute;opacity:0}
-  .check-chip span{display:block;border:1px solid #d7dbd4;border-radius:.65rem;padding:.55rem .65rem;font-size:.8rem;cursor:pointer;background:#fff}.check-chip input:checked+span{background:#e8f1c1;border-color:#aaba58;color:#213516;font-weight:700}
-  .save-btn{border:0;background:var(--ink);color:#fff;border-radius:.75rem;padding:.8rem 1.25rem;font-weight:800}.add-btn{border:1px dashed #7e9c89;background:#f4faf5;color:var(--green);border-radius:.75rem;padding:.7rem 1rem;font-weight:700}
-</style>
-{% endblock %}
 {% block content %}
-<section class="builder"><div class="builder-wrap">
-  <a href="{% url 'voluntario:grupos' %}" style="color:#526159;text-decoration:none">← Voltar aos grupos</a>
-  <p style="color:#236b49;text-transform:uppercase;letter-spacing:.16em;font-size:.72rem;font-weight:800;margin:2rem 0 .5rem">Construtor de regras</p>
-  <h1 class="builder-title">{% if grupo %}Ajustar grupo{% else %}Um grupo que se atualiza sozinho.{% endif %}</h1>
-  <p style="color:#68736c;max-width:650px;margin-bottom:2rem">Em uma regra, cargo e área funcionam juntos. Regras diferentes são alternativas.</p>
-  <form method="post" class="builder-card" id="grupoForm">{% csrf_token %}
-    <label style="font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;font-weight:800">Nome do grupo</label>
-    {{ form.nome }}{{ form.regras }}
-    {% if form.errors %}<div class="alert alert-danger mt-3">{{ form.errors }}</div>{% endif %}
-    <div id="rules"></div>
-    <button class="add-btn mt-3" type="button" id="addRule">＋ Adicionar alternativa (OU)</button>
-    <div class="d-flex justify-content-between align-items-center gap-3 mt-4">
-      {% if grupo %}<button type="submit" form="deleteForm" class="btn btn-link text-danger p-0" onclick="return confirm('Excluir este grupo?')">Excluir grupo</button>{% else %}<span></span>{% endif %}
-      <button class="save-btn" type="submit">Salvar grupo →</button>
-    </div>
-  </form>
-  {% if grupo %}<form id="deleteForm" method="post" action="{% url 'voluntario:excluir_grupo' grupo.pk %}">{% csrf_token %}</form>{% endif %}
-</div></section>
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .gfm-). O visual base #}
+{# vem das classes .pcf-* do design system (tailwindcss/input.css).            #}
+<style>
+  .gfm-page { background: hsl(var(--background)); }
+  .gfm-wrap { max-width: 900px; margin-inline: auto; padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  .gfm-back { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; font-weight: 600; color: var(--ink-soft); text-decoration: none; margin-bottom: 1.5rem; }
+  .gfm-back:hover { color: #c9490a; }
+
+  .gfm-head { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1.75rem; }
+  .gfm-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .gfm-sub { margin: 0; max-width: 60ch; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+
+  /* Campo nome (widget .grupo-name-input renderizado pelo GrupoForm) */
+  .grupo-name-input { width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff; border: 1px solid #f0dfd3; color: var(--ink); font-size: 1.05rem; font-weight: 700; font-family: inherit; transition: border-color .15s, box-shadow .15s; }
+  .grupo-name-input:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
+
+  /* Regras / alternativas (montadas por JS) */
+  .gfm-rule-box { border: 1px solid #f4e7de; border-radius: 16px; padding: 1rem; margin-top: 1rem; background: #fffaf6; }
+  .gfm-rule-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .gfm-rule-head strong { font-size: .95rem; color: var(--ink); }
+  .gfm-rule-remove { border: 0; background: transparent; color: #b03636; font-size: .82rem; font-weight: 700; cursor: pointer; padding: 0; }
+  .gfm-rule-remove:hover { text-decoration: underline; }
+  .gfm-rule-label { display: block; font-size: .78rem; font-weight: 700; color: var(--ink-soft); margin: .9rem 0 .4rem; }
+  .gfm-rule-label .hint { color: var(--ink-muted); font-weight: 500; }
+
+  .gfm-option-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: .45rem; }
+  .gfm-chip input { position: absolute; opacity: 0; pointer-events: none; }
+  .gfm-chip span { display: block; border: 1px solid #f0dfd3; border-radius: 10px; padding: .55rem .65rem; font-size: .82rem; color: var(--ink-soft); cursor: pointer; background: #fff; transition: border-color .15s, background .15s, color .15s; user-select: none; }
+  .gfm-chip span:hover { border-color: #f7c9a8; }
+  .gfm-chip input:checked + span { background: #fff0e6; border-color: #f7b98a; color: #c9490a; font-weight: 700; }
+  .gfm-chip input:focus-visible + span { box-shadow: 0 0 0 3px rgba(242, 107, 33, .18); }
+
+  .gfm-add { margin-top: 1rem; border: 1px dashed #f2c6a5; background: #fff8f3; color: #c9490a; border-radius: 12px; padding: .7rem 1rem; font-weight: 700; font-size: .88rem; cursor: pointer; width: 100%; }
+  .gfm-add:hover { background: #fff0e6; }
+
+  .gfm-foot { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; }
+  .gfm-del-link { border: 0; background: transparent; color: #b03636; font-weight: 700; font-size: .88rem; cursor: pointer; padding: 0; }
+  .gfm-del-link:hover { text-decoration: underline; }
+
+  .gfm-error { margin-top: 1rem; padding: .8rem 1rem; border-radius: 12px; background: #fdeaea; border: 1px solid #f6cccc; color: #b03636; font-size: .85rem; }
+</style>
+
+<div class="gfm-page">
+  <div class="gfm-wrap">
+
+    <a href="{% url 'voluntario:grupos' %}" class="gfm-back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Voltar aos grupos
+    </a>
+
+    <header class="gfm-head">
+      <span class="pcf-eyebrow">Construtor de regras</span>
+      <h1 class="gfm-title">{% if grupo %}Ajustar grupo{% else %}Um grupo que se atualiza sozinho.{% endif %}</h1>
+      <p class="gfm-sub">Em uma regra, cargo e área funcionam juntos (E). Regras diferentes são alternativas (OU).</p>
+    </header>
+
+    <form method="post" class="pcf-card" id="grupoForm">{% csrf_token %}
+      <div class="pcf-field">
+        <label class="pcf-label" for="{{ form.nome.id_for_label }}">Nome do grupo</label>
+        {{ form.nome }}
+      </div>
+      {{ form.regras }}
+
+      {% if form.errors %}<div class="gfm-error">{{ form.errors }}</div>{% endif %}
+
+      <div id="rules"></div>
+      <button class="gfm-add" type="button" id="addRule">＋ Adicionar alternativa (OU)</button>
+
+      <div class="gfm-foot">
+        {% if grupo %}
+          <button type="submit" form="deleteForm" class="gfm-del-link" onclick="return confirm('Excluir este grupo?')">Excluir grupo</button>
+        {% else %}
+          <span></span>
+        {% endif %}
+        <button class="pcf-btn pcf-btn-primary" type="submit">
+          Salvar grupo
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+    </form>
+    {% if grupo %}<form id="deleteForm" method="post" action="{% url 'voluntario:excluir_grupo' grupo.pk %}">{% csrf_token %}</form>{% endif %}
+
+  </div>
+</div>
+
 {{ regras_iniciais|json_script:"initial-rules" }}
 <script>
 const areas = [{% for value,label in areas %}{value:"{{ value|escapejs }}",label:"{{ label|escapejs }}"},{% endfor %}];
 const cargos = [{% for value,label in cargos %}{value:"{{ value|escapejs }}",label:"{{ label|escapejs }}"},{% endfor %}];
 const rulesEl=document.getElementById("rules"), hidden=document.getElementById("id_regras");
 let rules=JSON.parse(JSON.parse(document.getElementById("initial-rules").textContent));
-function chips(items,selected,type,i){return `<div class="option-grid">${items.map(x=>`<label class="check-chip"><input type="checkbox" data-i="${i}" data-type="${type}" value="${x.value}" ${selected.includes(x.value)?"checked":""}><span>${x.label}</span></label>`).join("")}</div>`}
-function render(){rulesEl.innerHTML=rules.map((r,i)=>`<div class="rule-box"><div class="d-flex justify-content-between"><strong>Regra ${i+1}</strong>${rules.length>1?`<button type="button" class="btn btn-link text-danger p-0 remove" data-i="${i}">remover</button>`:""}</div><p class="small text-muted mt-3 mb-2">Áreas <span style="color:#999">(qualquer uma das escolhidas)</span></p>${chips(areas,r.areas,"areas",i)}<p class="small text-muted mt-3 mb-2">Cargos <span style="color:#999">(qualquer um dos escolhidos)</span></p>${chips(cargos,r.cargos,"cargos",i)}</div>`).join("");hidden.value=JSON.stringify(rules)}
+function chips(items,selected,type,i){return `<div class="gfm-option-grid">${items.map(x=>`<label class="gfm-chip"><input type="checkbox" data-i="${i}" data-type="${type}" value="${x.value}" ${selected.includes(x.value)?"checked":""}><span>${x.label}</span></label>`).join("")}</div>`}
+function render(){rulesEl.innerHTML=rules.map((r,i)=>`<div class="gfm-rule-box"><div class="gfm-rule-head"><strong>Regra ${i+1}</strong>${rules.length>1?`<button type="button" class="gfm-rule-remove remove" data-i="${i}">remover</button>`:""}</div><span class="gfm-rule-label">Áreas <span class="hint">(qualquer uma das escolhidas)</span></span>${chips(areas,r.areas,"areas",i)}<span class="gfm-rule-label">Cargos <span class="hint">(qualquer um dos escolhidos)</span></span>${chips(cargos,r.cargos,"cargos",i)}</div>`).join("");hidden.value=JSON.stringify(rules)}
 rulesEl.addEventListener("change",e=>{if(e.target.matches("input[type=checkbox]")){const a=rules[+e.target.dataset.i][e.target.dataset.type];e.target.checked?a.push(e.target.value):a.splice(a.indexOf(e.target.value),1);hidden.value=JSON.stringify(rules)}});
 rulesEl.addEventListener("click",e=>{if(e.target.classList.contains("remove")){rules.splice(+e.target.dataset.i,1);render()}});
 document.getElementById("addRule").onclick=()=>{rules.push({areas:[],cargos:[]});render()};

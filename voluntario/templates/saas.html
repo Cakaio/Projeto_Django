@@ -4,37 +4,40 @@
 {% block titulo %}SAAS — Gestão de Ocorrências{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 pb-12">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .saas- para a listagem). #}
+{# O visual base vem das classes .pcf-* do design system (tailwindcss/input.css).  #}
+<div class="saas-page">
+  <div class="pcf-container saas-wrap">
 
-    <!-- Hero -->
-    <div class="rounded-2xl p-6 sm:p-8 mb-6 text-white" style="background:linear-gradient(135deg,#c75f06,#fe8210)">
-      <h1 class="text-xl sm:text-2xl font-bold mb-1">SAAS — Advertências &amp; Suspensões</h1>
-      <p class="text-white/80 text-sm">Gerencie ocorrências dos voluntários do Projeto Criança Feliz</p>
-    </div>
+    <!-- Cabeçalho leve -->
+    <header class="saas-head">
+      <div class="saas-head-text">
+        <span class="pcf-eyebrow">Gestão de Talentos</span>
+        <h1 class="saas-title">Advertências &amp; Suspensões</h1>
+        <p class="saas-sub">Acompanhe alertas, advertências e períodos de observação dos voluntários do Projeto Criança Feliz.</p>
+      </div>
+    </header>
 
     <!-- Toolbar -->
-    <div class="flex flex-wrap gap-2 mb-4 items-center">
+    <div class="saas-toolbar">
       <!-- Busca -->
-      <div class="relative flex-1 min-w-48">
-        <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="searchInput" type="text" placeholder="Buscar por nome ou apelido…" oninput="filtrar()"
-          class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all">
+      <div class="saas-search">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <label for="searchInput" class="saas-sr-only">Buscar por nome ou apelido</label>
+        <input id="searchInput" type="text" placeholder="Buscar por nome ou apelido…" oninput="filtrar()" autocomplete="off">
       </div>
 
       <!-- Ordenação -->
-      <button id="btnAZ" onclick="ordenar('az')"
-        class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-600 border border-gray-200 rounded-lg bg-white text-gray-700 hover:border-orange-400 hover:text-orange-600 transition-all whitespace-nowrap">
-        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M11 18h2"/></svg>A → Z
+      <button id="btnAZ" onclick="ordenar('az')" type="button" class="pcf-btn pcf-btn-outline pcf-btn-sm saas-nowrap">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M7 12h10M11 18h2"/></svg>A → Z
       </button>
-      <button id="btnZA" onclick="ordenar('za')"
-        class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-600 border border-gray-200 rounded-lg bg-white text-gray-700 hover:border-orange-400 hover:text-orange-600 transition-all whitespace-nowrap">
-        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M3 18h18M7 12h10M11 6h2"/></svg>Z → A
+      <button id="btnZA" onclick="ordenar('za')" type="button" class="pcf-btn pcf-btn-outline pcf-btn-sm saas-nowrap">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18h18M7 12h10M11 6h2"/></svg>Z → A
       </button>
 
       <!-- Área -->
-      <select id="areaSelect" onchange="filtrar()"
-        class="px-3 py-2 text-xs font-semibold border border-gray-200 rounded-lg bg-white text-gray-700 outline-none cursor-pointer focus:border-orange-400 transition-all">
+      <label for="areaSelect" class="saas-sr-only">Filtrar por área</label>
+      <select id="areaSelect" onchange="filtrar()" class="saas-select">
         <option value="">Todas as áreas</option>
         {% for codigo, label in areas %}
           <option value="{{ codigo }}">{{ label }}</option>
@@ -42,31 +45,30 @@
       </select>
 
       <!-- Agrupar -->
-      <label class="inline-flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-gray-700">
-        <input type="checkbox" id="groupByArea" onchange="filtrar()" class="w-4 h-4 accent-orange-500 cursor-pointer">
+      <label class="saas-check">
+        <input type="checkbox" id="groupByArea" onchange="filtrar()">
         Agrupar por área
       </label>
     </div>
 
     <!-- Tabela (scroll horizontal no mobile) -->
-    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm border-collapse min-w-[700px]">
+    <div class="pcf-card saas-tablecard">
+      <div class="saas-scroll" style="overflow-x:auto">
+        <table class="pcf-table saas-table">
           <thead>
-            <tr class="bg-gray-50 border-b border-gray-200">
-              <th class="text-left px-4 py-3 text-xs font-700 text-gray-500 uppercase tracking-wide whitespace-nowrap">Membro</th>
-              <th class="text-left px-4 py-3 text-xs font-700 text-gray-500 uppercase tracking-wide whitespace-nowrap">Apelido</th>
-              <th class="text-left px-4 py-3 text-xs font-700 text-gray-500 uppercase tracking-wide whitespace-nowrap">Área</th>
-              <th class="text-left px-4 py-3 text-xs font-700 text-gray-500 uppercase tracking-wide whitespace-nowrap">Alertas</th>
-              <th class="text-left px-4 py-3 text-xs font-700 text-gray-500 uppercase tracking-wide whitespace-nowrap">Advertências</th>
-              <th class="text-left px-4 py-3 text-xs font-700 text-gray-500 uppercase tracking-wide whitespace-nowrap">Período de Obs.</th>
-              <th class="text-left px-4 py-3 text-xs font-700 text-gray-500 uppercase tracking-wide whitespace-nowrap">Ação</th>
+            <tr>
+              <th>Membro</th>
+              <th>Apelido</th>
+              <th>Área</th>
+              <th>Alertas</th>
+              <th>Advertências</th>
+              <th>Período de Obs.</th>
+              <th>Ação</th>
             </tr>
           </thead>
           <tbody id="tableBody">
             {% for d in dados %}
-            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                data-nome="{{ d.voluntario.get_full_name|lower }} {{ d.voluntario.username|lower }}"
+            <tr data-nome="{{ d.voluntario.get_full_name|lower }} {{ d.voluntario.username|lower }}"
                 data-apelido="{{ d.voluntario.apelido|default:''|lower }}"
                 data-area="{{ d.voluntario.area|default:'' }}"
                 data-pk="{{ d.voluntario.pk }}"
@@ -187,24 +189,27 @@
       </div>
 
       <!-- Empty state -->
-      <div id="emptyState" class="hidden text-center py-12 text-gray-400">
-        <svg class="mx-auto mb-3 opacity-30" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <p class="text-sm">Nenhum membro encontrado para essa busca.</p>
+      <div id="emptyState" class="saas-empty" style="display:none">
+        <div class="saas-empty-icon" aria-hidden="true">
+          <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <p class="saas-empty-title">Nenhum membro encontrado</p>
+        <p class="saas-empty-sub">Ajuste a busca ou o filtro de área para ver resultados.</p>
       </div>
 
       <!-- Footer paginação -->
-      <div id="pagFooter" class="flex items-center justify-between flex-wrap gap-3 px-4 py-3 border-t border-gray-100 bg-gray-50">
-        <div class="flex items-center gap-2">
-          <span id="pagInfo" class="text-xs text-gray-500"></span>
-          <select id="pagSize" onchange="paginaAtual=1;renderPaginacao()"
-            class="border border-gray-200 rounded-lg px-2 py-1 text-xs font-semibold bg-white text-gray-700 cursor-pointer outline-none focus:border-orange-400">
+      <div id="pagFooter" class="saas-pagfoot">
+        <div class="saas-pag-left">
+          <span id="pagInfo" class="saas-pag-info"></span>
+          <label for="pagSize" class="saas-sr-only">Itens por página</label>
+          <select id="pagSize" onchange="paginaAtual=1;renderPaginacao()" class="saas-select saas-select-sm">
             <option value="10">10 / pág</option>
             <option value="25" selected>25 / pág</option>
             <option value="50">50 / pág</option>
             <option value="9999">Todos</option>
           </select>
         </div>
-        <div id="pagControls" class="flex items-center gap-1"></div>
+        <div id="pagControls" class="saas-pag-controls"></div>
       </div>
     </div>
 
@@ -214,30 +219,30 @@
 {% csrf_token %}
 
 <!-- Modal Foto -->
-<div id="fotoModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,.7)">
-  <div class="relative max-w-sm w-full" style="animation:mIn .18s ease;">
-    <button onclick="fecharFoto()" class="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center text-gray-500 hover:text-gray-800 border-0 cursor-pointer z-10">
+<div id="fotoModal" class="saas-modal-overlay saas-foto-overlay" style="display:none">
+  <div class="saas-foto-box">
+    <button onclick="fecharFoto()" class="saas-foto-close" aria-label="Fechar">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
-    <img id="fotoImg" src="" alt="" class="w-full rounded-2xl shadow-2xl object-cover">
-    <p id="fotoNome" class="text-center text-white font-semibold mt-3 text-sm"></p>
+    <img id="fotoImg" src="" alt="" class="saas-foto-img">
+    <p id="fotoNome" class="saas-foto-nome"></p>
   </div>
 </div>
 
 <!-- Modal Histórico -->
-<div id="historicoModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,.45)">
-  <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl" style="animation:mIn .18s ease;max-height:90vh;display:flex;flex-direction:column;">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-      <span id="histNome" class="font-700 text-gray-900 text-base">Histórico de Ocorrências</span>
-      <button onclick="fecharHistorico()" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 border-0 bg-transparent cursor-pointer">
+<div id="historicoModal" class="saas-modal-overlay" style="display:none">
+  <div class="saas-dialog">
+    <div class="saas-dialog-head">
+      <span id="histNome" class="saas-dialog-title">Histórico de Ocorrências</span>
+      <button onclick="fecharHistorico()" class="saas-dialog-x" aria-label="Fechar">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <div id="histBody" class="px-6 py-4 overflow-y-auto flex-1" style="max-height:420px;">
-      <p class="text-center text-gray-400 text-sm py-6">Carregando…</p>
+    <div id="histBody" class="saas-dialog-body">
+      <p class="h-empty">Carregando…</p>
     </div>
-    <div class="flex justify-end px-6 py-4 border-t border-gray-100">
-      <button onclick="fecharHistorico()" class="px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors cursor-pointer">Fechar</button>
+    <div class="saas-dialog-foot">
+      <button onclick="fecharHistorico()" class="pcf-btn pcf-btn-outline pcf-btn-sm">Fechar</button>
     </div>
   </div>
 </div>
@@ -259,75 +264,152 @@
 </template>
 
 <!-- Modal Aplicar Ocorrência -->
-<div id="ocorrenciaModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,.45)">
-  <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl" style="animation:mIn .18s ease;max-height:92vh;display:flex;flex-direction:column;">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+<div id="ocorrenciaModal" class="saas-modal-overlay" style="display:none">
+  <div class="saas-dialog saas-dialog-lg">
+    <div class="saas-dialog-head">
       <div>
-        <span class="font-700 text-gray-900 text-base">Aplicar Ocorrências</span>
-        <p class="text-xs text-gray-400 mt-0.5">Adicione uma ou mais regras — todas serão enviadas num único e-mail.</p>
+        <span class="saas-dialog-title">Aplicar Ocorrências</span>
+        <p class="saas-dialog-hint">Adicione uma ou mais regras — todas serão enviadas num único e-mail.</p>
       </div>
-      <button onclick="fecharModal()" class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 border-0 bg-transparent cursor-pointer flex-shrink-0">
+      <button onclick="fecharModal()" class="saas-dialog-x" aria-label="Fechar">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <form method="POST" action="{% url 'voluntario:criar_ocorrencia' %}" id="ocorrenciaForm" class="flex flex-col overflow-hidden flex-1">
+    <form method="POST" action="{% url 'voluntario:criar_ocorrencia' %}" id="ocorrenciaForm" class="saas-form">
       {% csrf_token %}
       <input type="hidden" name="advertido_id" id="modalId">
 
-      <div class="px-6 pt-4 pb-2 flex-shrink-0">
-        <p class="text-xs font-700 text-gray-500 uppercase tracking-wide mb-1.5">Voluntário</p>
-        <div id="modalNome" class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-600 text-gray-800">—</div>
+      <div class="saas-form-vol">
+        <p class="saas-form-vol-label">Voluntário</p>
+        <div id="modalNome" class="saas-form-vol-name">—</div>
       </div>
 
       <!-- Lista de regras (scroll) -->
-      <div id="regrasList" class="px-6 py-2 space-y-3 overflow-y-auto flex-1" style="max-height:380px;"></div>
+      <div id="regrasList" class="saas-regras-list"></div>
 
       <!-- Botão adicionar -->
-      <div class="px-6 py-2 flex-shrink-0">
-        <button type="button" onclick="addRegraRow()"
-          class="w-full flex items-center justify-center gap-1.5 py-2 border border-dashed border-gray-300 rounded-xl text-sm font-600 text-gray-500 hover:border-orange-400 hover:text-orange-600 hover:bg-orange-50 transition-all cursor-pointer bg-transparent">
+      <div class="saas-add-wrap">
+        <button type="button" onclick="addRegraRow()" class="saas-add-btn">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Adicionar outra regra
         </button>
       </div>
 
-      <div class="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 flex-shrink-0">
-        <button type="button" onclick="fecharModal()"
-          class="px-4 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors cursor-pointer">Cancelar</button>
-        <button type="submit" id="btnConfirmar"
-          class="px-4 py-2 rounded-lg text-white font-semibold text-sm transition-all cursor-pointer border-0"
-          style="background:linear-gradient(135deg,#c75f06,#fe8210)">Confirmar</button>
+      <div class="saas-dialog-foot">
+        <button type="button" onclick="fecharModal()" class="pcf-btn pcf-btn-outline pcf-btn-sm">Cancelar</button>
+        <button type="submit" id="btnConfirmar" class="pcf-btn pcf-btn-primary pcf-btn-sm">Confirmar</button>
       </div>
     </form>
   </div>
 </div>
 
 <style>
-  @keyframes mIn { from{opacity:0;transform:scale(.96) translateY(-6px)} to{opacity:1;transform:scale(1) translateY(0)} }
-  .group-header td { background:#f3f4f6;padding:.5rem 1rem;font-size:.72rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #e5e7eb; }
-  .h-occ-item { display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;padding:.7rem .85rem;border:1px solid #e5e7eb;border-radius:.625rem;margin-bottom:.5rem; }
-  .h-occ-item:last-child { margin-bottom:0; }
-  .h-occ-badge { display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .5rem;border-radius:9999px;font-size:.7rem;font-weight:700;white-space:nowrap;flex-shrink:0; }
-  .h-occ-badge.alt { background:#fef9c3;color:#854d0e; }
-  .h-occ-badge.adv { background:#fef3c7;color:#d97706; }
-  .h-occ-badge.sus { background:#fee2e2;color:#dc2626; }
-  .h-occ-meta { font-size:.75rem;color:#6b7280;margin-top:.15rem; }
-  .h-occ-razao { font-size:.8rem;color:#374151;margin-top:.25rem;font-style:italic; }
-  .btn-del-occ { background:none;border:none;cursor:pointer;color:#d1d5db;padding:.25rem;border-radius:.375rem;line-height:0;flex-shrink:0;transition:color .15s,background .15s; }
-  .btn-del-occ:hover { color:#dc2626;background:#fee2e2; }
-  .h-empty { text-align:center;color:#6b7280;font-size:.85rem;padding:1.5rem 0; }
-  .pag-btn { min-width:30px;height:30px;padding:0 .4rem;border:1.5px solid #e5e7eb;border-radius:.5rem;background:#fff;font-size:.78rem;font-weight:600;color:#374151;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s; }
-  .pag-btn:hover:not(:disabled) { border-color:#fe8210;color:#c75f06; }
-  .pag-btn.active { border-color:#fe8210;background:#fe8210;color:#fff; }
-  .pag-btn:disabled { opacity:.38;cursor:not-allowed; }
-  .regra-row { border:1px solid #e5e7eb;border-radius:.75rem;padding:.75rem;background:#fafafa;position:relative; }
-  .regra-row select { width:100%;padding:.45rem .65rem;border:1px solid #e5e7eb;border-radius:.5rem;font-size:.8rem;background:#fff;color:#1f2937;outline:none;cursor:pointer; }
-  .regra-row select:focus { border-color:#fe8210;box-shadow:0 0 0 2px rgba(254,130,16,.12); }
-  .regra-row textarea { width:100%;padding:.4rem .65rem;border:1px solid #e5e7eb;border-radius:.5rem;font-size:.8rem;background:#fff;color:#374151;outline:none;resize:none;margin-top:.5rem;box-sizing:border-box; }
-  .regra-row textarea:focus { border-color:#fe8210;box-shadow:0 0 0 2px rgba(254,130,16,.12); }
-  .regra-row .row-num { font-size:.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem; }
-  .btn-remove-row { position:absolute;top:.5rem;right:.5rem;background:none;border:none;cursor:pointer;color:#d1d5db;padding:.2rem;border-radius:.35rem;line-height:0;transition:color .15s,background .15s; }
-  .btn-remove-row:hover { color:#dc2626;background:#fee2e2; }
+  /* ── Página / cabeçalho ── */
+  .saas-page { background: hsl(var(--background)); }
+  .saas-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+  .saas-head { margin-bottom: 1.5rem; }
+  .saas-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .saas-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .saas-sub { margin: 0; max-width: 60ch; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .saas-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ── Toolbar ── */
+  .saas-toolbar { display: flex; flex-wrap: wrap; gap: .625rem; align-items: center; margin-bottom: 1.25rem; }
+  .saas-nowrap { white-space: nowrap; }
+  .saas-search { position: relative; flex: 1; min-width: 12rem; display: flex; align-items: center; gap: .6rem; background: hsl(var(--card)); border: 1px solid #f0dfd3; border-radius: 14px; padding: .6rem .9rem; box-shadow: var(--shadow-warm-sm); }
+  .saas-search svg { color: var(--ink-muted); flex-shrink: 0; }
+  .saas-search input { border: none; outline: none; flex: 1; min-width: 0; font-size: .92rem; color: var(--ink); background: transparent; font-family: inherit; }
+  .saas-search input::placeholder { color: var(--ink-muted); }
+  .saas-select { padding: .5rem .8rem; font-size: .82rem; font-weight: 600; border: 1px solid #f0dfd3; border-radius: 12px; background: hsl(var(--card)); color: var(--ink-soft); outline: none; cursor: pointer; font-family: inherit; }
+  .saas-select:focus { border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
+  .saas-select-sm { padding: .35rem .6rem; font-size: .78rem; }
+  .saas-check { display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; user-select: none; font-size: .82rem; font-weight: 600; color: var(--ink-soft); }
+  .saas-check input { width: 1rem; height: 1rem; accent-color: #e8560f; cursor: pointer; }
+
+  /* ── Tabela ── */
+  .saas-tablecard { padding: 0; overflow: hidden; }
+  .saas-table { min-width: 700px; }
+  .saas-table th { background: #fff7f1; color: var(--ink-muted); padding: .8rem 1rem; white-space: nowrap; border-bottom: 1px solid #f4e7de; }
+  .saas-table tbody tr { transition: background .15s ease; }
+  .saas-table tbody tr:hover { background: #fffaf6; }
+  .saas-table td { border-bottom: 1px solid #f7e9df; }
+  /* Cabeçalho de grupo (injetado pelo JS) */
+  .group-header td { background: #fff0e6; padding: .5rem 1rem; font-size: .72rem; font-weight: 700; color: #c9490a; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid #f4e7de; }
+
+  /* ── Estado vazio ── */
+  .saas-empty { display: none; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; text-align: center; padding: clamp(2rem, 5vw, 3.25rem) 1.5rem; }
+  .saas-empty-icon { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 14px; background: #fff0e6; color: #e8560f; }
+  .saas-empty-title { margin: .3rem 0 0; font-size: 1rem; font-weight: 800; color: var(--ink); }
+  .saas-empty-sub { margin: 0; max-width: 34ch; font-size: .85rem; color: var(--ink-muted); }
+
+  /* ── Rodapé de paginação ── */
+  .saas-pagfoot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; padding: .85rem 1rem; border-top: 1px solid #f4e7de; background: #fffaf6; }
+  .saas-pag-left { display: flex; align-items: center; gap: .6rem; }
+  .saas-pag-info { font-size: .78rem; color: var(--ink-muted); }
+  .saas-pag-controls { display: flex; align-items: center; gap: .3rem; }
+  .pag-btn { min-width: 30px; height: 30px; padding: 0 .4rem; border: 1.5px solid #f0dfd3; border-radius: .625rem; background: hsl(var(--card)); font-size: .78rem; font-weight: 600; color: var(--ink-soft); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .pag-btn:hover:not(:disabled) { border-color: #f7c9a8; color: #c9490a; }
+  .pag-btn.active { border-color: #e8560f; background: var(--brand-grad); color: #fff; }
+  .pag-btn:disabled { opacity: .38; cursor: not-allowed; }
+
+  /* ── Overlays / modais ── */
+  .saas-modal-overlay { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 1rem; background: rgba(28,19,14,.45); backdrop-filter: blur(4px); }
+  .saas-modal-overlay.open { display: flex; }
+  .saas-dialog { display: flex; flex-direction: column; width: 100%; max-width: 32rem; max-height: 92vh; background: hsl(var(--card)); border: 1px solid #f4e7de; border-radius: 20px; box-shadow: var(--shadow-warm-lg); animation: saasIn .18s ease; overflow: hidden; }
+  .saas-dialog-lg { max-width: 34rem; }
+  .saas-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 1.1rem 1.4rem; border-bottom: 1px solid #f4e7de; flex-shrink: 0; }
+  .saas-dialog-title { font-weight: 800; font-size: 1.02rem; color: var(--ink); letter-spacing: -.01em; }
+  .saas-dialog-hint { margin: .2rem 0 0; font-size: .76rem; color: var(--ink-muted); }
+  .saas-dialog-x { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: none; border-radius: 10px; background: transparent; color: var(--ink-muted); cursor: pointer; flex-shrink: 0; transition: all .15s; }
+  .saas-dialog-x:hover { background: #fff0e6; color: #c9490a; }
+  .saas-dialog-body { padding: 1rem 1.4rem; overflow-y: auto; flex: 1; max-height: 420px; }
+  .saas-dialog-foot { display: flex; justify-content: flex-end; gap: .6rem; padding: 1rem 1.4rem; border-top: 1px solid #f4e7de; flex-shrink: 0; }
+
+  /* ── Modal foto ── */
+  .saas-foto-overlay { background: rgba(28,19,14,.7); }
+  .saas-foto-box { position: relative; width: 100%; max-width: 22rem; animation: saasIn .18s ease; }
+  .saas-foto-close { position: absolute; top: -.75rem; right: -.75rem; width: 32px; height: 32px; border-radius: 999px; background: #fff; box-shadow: var(--shadow-warm-sm); display: flex; align-items: center; justify-content: center; color: var(--ink-muted); border: none; cursor: pointer; z-index: 10; }
+  .saas-foto-close:hover { color: var(--ink); }
+  .saas-foto-img { width: 100%; border-radius: 20px; box-shadow: var(--shadow-warm-lg); object-fit: cover; }
+  .saas-foto-nome { text-align: center; color: #fff; font-weight: 600; margin-top: .75rem; font-size: .9rem; }
+
+  /* ── Formulário de ocorrência ── */
+  .saas-form { display: flex; flex-direction: column; overflow: hidden; flex: 1; }
+  .saas-form-vol { padding: 1rem 1.4rem .3rem; flex-shrink: 0; }
+  .saas-form-vol-label { margin: 0 0 .35rem; font-size: .68rem; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .saas-form-vol-name { padding: .55rem .75rem; background: #fffaf6; border: 1px solid #f0dfd3; border-radius: 12px; font-size: .88rem; font-weight: 600; color: var(--ink); }
+  .saas-regras-list { padding: .5rem 1.4rem; display: flex; flex-direction: column; gap: .75rem; overflow-y: auto; flex: 1; max-height: 380px; }
+  .saas-add-wrap { padding: .3rem 1.4rem .5rem; flex-shrink: 0; }
+  .saas-add-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .55rem; border: 1.5px dashed #f0dfd3; border-radius: 12px; font-size: .85rem; font-weight: 600; color: var(--ink-muted); background: transparent; cursor: pointer; transition: all .15s; }
+  .saas-add-btn:hover { border-color: #f7c9a8; color: #c9490a; background: #fff7f1; }
+  .regra-row { border: 1px solid #f0dfd3; border-radius: 14px; padding: .8rem; background: #fffaf6; position: relative; }
+  .regra-row select { width: 100%; padding: .45rem .65rem; border: 1px solid #f0dfd3; border-radius: 10px; font-size: .82rem; background: hsl(var(--card)); color: var(--ink); outline: none; cursor: pointer; font-family: inherit; }
+  .regra-row select:focus { border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242,107,33,.15); }
+  .regra-row textarea { width: 100%; padding: .45rem .65rem; border: 1px solid #f0dfd3; border-radius: 10px; font-size: .82rem; background: hsl(var(--card)); color: var(--ink-soft); outline: none; resize: none; margin-top: .5rem; box-sizing: border-box; font-family: inherit; }
+  .regra-row textarea:focus { border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242,107,33,.15); }
+  .regra-row .row-num { font-size: .66rem; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .4rem; }
+  .btn-remove-row { position: absolute; top: .5rem; right: .5rem; background: none; border: none; cursor: pointer; color: #d1a99a; padding: .2rem; border-radius: .4rem; line-height: 0; transition: color .15s, background .15s; }
+  .btn-remove-row:hover { color: #b03636; background: #fdeaea; }
+
+  /* ── Itens do histórico (injetados pelo JS) ── */
+  .h-occ-item { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; padding: .7rem .85rem; border: 1px solid #f4e7de; border-radius: 14px; margin-bottom: .5rem; }
+  .h-occ-item:last-child { margin-bottom: 0; }
+  .h-occ-badge { display: inline-flex; align-items: center; gap: .25rem; padding: .15rem .5rem; border-radius: 9999px; font-size: .7rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+  .h-occ-badge.alt { background: #fdf3dd; color: #8a6a10; }
+  .h-occ-badge.adv { background: #fef3c7; color: #d97706; }
+  .h-occ-badge.sus { background: #fdeaea; color: #b03636; }
+  .h-occ-meta { font-size: .75rem; color: var(--ink-muted); margin-top: .15rem; }
+  .h-occ-razao { font-size: .8rem; color: var(--ink-soft); margin-top: .25rem; font-style: italic; }
+  .btn-del-occ { background: none; border: none; cursor: pointer; color: #d1a99a; padding: .25rem; border-radius: .4rem; line-height: 0; flex-shrink: 0; transition: color .15s, background .15s; }
+  .btn-del-occ:hover { color: #b03636; background: #fdeaea; }
+  .h-empty { text-align: center; color: var(--ink-muted); font-size: .85rem; padding: 1.5rem 0; }
+
+  @keyframes saasIn { from { opacity: 0; transform: scale(.96) translateY(-6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+  @media (max-width: 560px) {
+    .saas-search { flex-basis: 100%; }
+    .saas-pagfoot { justify-content: center; }
+  }
 </style>
 
 <script>
@@ -343,14 +425,12 @@
     document.getElementById('fotoImg').alt = nome;
     document.getElementById('fotoNome').textContent = nome;
     const m = document.getElementById('fotoModal');
-    m.classList.remove('hidden');
-    m.classList.add('flex');
+    m.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
   function fecharFoto() {
     const m = document.getElementById('fotoModal');
-    m.classList.add('hidden');
-    m.classList.remove('flex');
+    m.classList.remove('open');
     document.body.style.overflow = '';
   }
   document.getElementById('fotoModal').addEventListener('click', e => { if (e.target === e.currentTarget) fecharFoto(); });
@@ -397,14 +477,12 @@
     document.getElementById('regrasList').innerHTML = '';
     addRegraRow();
     const m = document.getElementById('ocorrenciaModal');
-    m.classList.remove('hidden');
-    m.classList.add('flex');
+    m.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
   function fecharModal() {
     const m = document.getElementById('ocorrenciaModal');
-    m.classList.add('hidden');
-    m.classList.remove('flex');
+    m.classList.remove('open');
     document.body.style.overflow = '';
   }
   document.getElementById('ocorrenciaModal').addEventListener('click', e => { if (e.target === e.currentTarget) fecharModal(); });
@@ -414,8 +492,7 @@
     document.getElementById('histNome').textContent = nome;
     document.getElementById('histBody').innerHTML = '<p class="h-empty">Carregando…</p>';
     const m = document.getElementById('historicoModal');
-    m.classList.remove('hidden');
-    m.classList.add('flex');
+    m.classList.add('open');
     document.body.style.overflow = 'hidden';
     fetch(`/voluntario/saas/historico/${pk}/`)
       .then(r => r.json())
@@ -424,8 +501,7 @@
   }
   function fecharHistorico() {
     const m = document.getElementById('historicoModal');
-    m.classList.add('hidden');
-    m.classList.remove('flex');
+    m.classList.remove('open');
     document.body.style.overflow = '';
     histVoluntarioPk = null;
   }
@@ -435,10 +511,10 @@
   function ordenar(dir) {
     ordemAtual = dir;
     paginaAtual = 1;
-    document.getElementById('btnAZ').style.borderColor = dir === 'az' ? '#fe8210' : '';
-    document.getElementById('btnAZ').style.color = dir === 'az' ? '#c75f06' : '';
-    document.getElementById('btnZA').style.borderColor = dir === 'za' ? '#fe8210' : '';
-    document.getElementById('btnZA').style.color = dir === 'za' ? '#c75f06' : '';
+    document.getElementById('btnAZ').style.borderColor = dir === 'az' ? '#e8560f' : '';
+    document.getElementById('btnAZ').style.color = dir === 'az' ? '#c9490a' : '';
+    document.getElementById('btnZA').style.borderColor = dir === 'za' ? '#e8560f' : '';
+    document.getElementById('btnZA').style.color = dir === 'za' ? '#c9490a' : '';
     filtrar();
   }
 
@@ -490,7 +566,7 @@
       pagina.forEach(r => { r.style.display = ''; tbody.appendChild(r); });
     }
 
-    document.getElementById('emptyState').style.display = total === 0 ? 'block' : 'none';
+    document.getElementById('emptyState').style.display = total === 0 ? 'flex' : 'none';
     document.getElementById('pagFooter').style.display  = total === 0 ? 'none' : '';
     document.getElementById('pagInfo').textContent = total === 0 ? '' : `Exibindo ${inicio + 1}–${fim} de ${total}`;
 
@@ -538,10 +614,10 @@
 
       if (!o.ativa) {
         // Soft-deleted: mostra riscado + log de quem removeu (não pode remover de novo)
-        const deletadoInfo = `<div class="h-occ-razao" style="color:#dc2626;font-style:normal;">
+        const deletadoInfo = `<div class="h-occ-razao" style="color:#b03636;font-style:normal;">
           Removida em ${o.deleted_at} por ${o.deleted_by || '—'}
         </div>`;
-        return `<div class="h-occ-item" id="occ-${o.id}" style="opacity:.55;background:#fef2f2;border-color:#fecaca;">
+        return `<div class="h-occ-item" id="occ-${o.id}" style="opacity:.55;background:#fdeaea;border-color:#f6c9c9;">
           <div style="flex:1;text-decoration:line-through;">
             <span class="h-occ-badge ${cls}">${icon} ${o.tipo_display}${auto}</span>
             <div class="h-occ-meta">${o.criado_em} — por ${quem}</div>
@@ -554,7 +630,7 @@
       return `<div class="h-occ-item" id="occ-${o.id}">
         <div style="flex:1;">
           <span class="h-occ-badge ${cls}">${icon} ${o.tipo_display}${auto}</span>
-          <div class="h-occ-meta">${o.criado_em} — por ${o.aplicado_por}</div>
+          <div class="h-occ-meta">${o.criado_em} — por ${quem}</div>
           ${regra}${razao}
         </div>
         <button class="btn-del-occ" title="Remover" onclick="deletarOcorrencia('${o.id}')">
@@ -656,12 +732,12 @@
 
   /* ── Init ── */
   ordenar('az');
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { fecharModal(); fecharHistorico(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { fecharModal(); fecharHistorico(); fecharFoto(); } });
   document.getElementById('ocorrenciaForm').addEventListener('submit', function(e) {
     // Valida que todos os selects têm valor
     const selects = this.querySelectorAll('select[name="regra"]');
     for (const s of selects) {
-      if (!s.value) { e.preventDefault(); s.focus(); s.style.borderColor = '#dc2626'; return; }
+      if (!s.value) { e.preventDefault(); s.focus(); s.style.borderColor = '#b03636'; return; }
       s.style.borderColor = '';
     }
     const btn = document.getElementById('btnConfirmar');

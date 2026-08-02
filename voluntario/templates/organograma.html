@@ -35,7 +35,7 @@
     border-radius: .85rem; padding: .85rem .9rem; min-width: 128px; max-width: 160px;
     box-shadow: 0 1px 3px rgba(0,0,0,.06); position: relative;
   }
-  .org-node.raiz { border-color: #fe8210; box-shadow: 0 3px 12px rgba(254,130,16,.2); }
+  .org-node.raiz { border-color: #e8560f; box-shadow: 0 3px 12px rgba(232,86,15,.22); }
   .org-avatar {
     width: 52px; height: 52px; border-radius: 9999px; overflow: hidden;
     background: hsl(var(--muted)); color: hsl(var(--muted-foreground));
@@ -43,7 +43,7 @@
     font-weight: 700; font-size: .9rem;
     box-shadow: 0 0 0 3px hsl(var(--background)), 0 0 0 4px hsl(var(--border));
   }
-  .org-node.raiz .org-avatar { box-shadow: 0 0 0 3px hsl(var(--background)), 0 0 0 4px #fe8210; }
+  .org-node.raiz .org-avatar { box-shadow: 0 0 0 3px hsl(var(--background)), 0 0 0 4px #e8560f; }
   .org-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .org-nome { font-weight: 600; font-size: .82rem; color: hsl(var(--foreground)); line-height: 1.2; margin-top: .15rem; }
   .org-area { font-size: .68rem; color: hsl(var(--muted-foreground)); }
@@ -52,7 +52,7 @@
 </style>
 
 <div class="relative overflow-hidden text-white text-center"
-     style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.25rem 1rem 4rem">
+     style="background:linear-gradient(150deg,#ff8a3d 0%,#f26b21 42%,#e04e0c 100%);padding:2.25rem 1rem 4rem">
   <div class="max-w-5xl mx-auto">
     <h1 class="text-2xl md:text-3xl font-bold">Organograma</h1>
     <p class="opacity-75 text-sm mt-1">Hierarquia de liderança — {{ total }} voluntário{{ total|pluralize }} ativo{{ total|pluralize }}</p>
@@ -66,7 +66,7 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       Histórico de líderes
     </a>
-    <a href="{% url 'voluntario:organograma_fullscreen' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white" style="background:#fe8210">
+    <a href="{% url 'voluntario:organograma_fullscreen' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white" style="background:#e8560f">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
       Tela cheia (arrastar e zoom)
     </a>

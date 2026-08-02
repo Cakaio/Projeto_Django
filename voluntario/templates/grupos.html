@@ -1,57 +1,132 @@
 {% extends "base.html" %}
 {% block titulo %}Grupos dinâmicos{% endblock %}
-{% block head %}
-<style>
-  .groups-shell{--ink:#17231c;--leaf:#1f6f4a;--lime:#dff07c;--paper:#f4f2e9;background:var(--paper);min-height:calc(100vh - 72px);color:var(--ink)}
-  .groups-hero{background:var(--ink);color:#fff;padding:4rem 1.5rem 6rem;position:relative;overflow:hidden}
-  .groups-hero:after{content:"";position:absolute;width:24rem;height:24rem;border:1px solid rgba(223,240,124,.35);border-radius:50%;right:-5rem;top:-9rem;box-shadow:0 0 0 55px rgba(223,240,124,.04),0 0 0 110px rgba(223,240,124,.025)}
-  .groups-wrap{max-width:1080px;margin:-3rem auto 0;padding:0 1.25rem 5rem;position:relative;z-index:2}
-  .groups-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:1rem}
-  .group-card{background:#fff;border:1px solid #d8d8cd;border-radius:1.25rem;padding:1.3rem;box-shadow:0 16px 35px rgba(23,35,28,.07);animation:rise .45s both}
-  .member-stack{display:flex;margin-top:.8rem}
-  .member-dot{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#e8efe9;border:3px solid #fff;color:var(--leaf);font-size:.7rem;font-weight:800;margin-left:-8px;overflow:hidden}
-  .member-dot:first-child{margin-left:0}.member-dot img{width:100%;height:100%;object-fit:cover}
-  .rule-pill{display:inline-flex;padding:.3rem .55rem;border-radius:999px;background:#edf3e9;color:#345443;font-size:.72rem;margin:.18rem .1rem .18rem 0}
-  .primary-action{display:inline-flex;align-items:center;gap:.5rem;background:var(--lime);color:var(--ink);padding:.75rem 1rem;border-radius:.75rem;font-weight:800;text-decoration:none}
-  @keyframes rise{from{opacity:0;transform:translateY(12px)}}
-</style>
-{% endblock %}
 {% block content %}
-<section class="groups-shell">
-  <header class="groups-hero">
-    <div style="max-width:1080px;margin:auto;position:relative;z-index:1">
-      <p style="color:#dff07c;text-transform:uppercase;letter-spacing:.18em;font-size:.72rem;font-weight:800;margin:0 0 .8rem">Organização viva</p>
-      <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
-        <div><h1 style="font-size:clamp(2rem,5vw,4rem);line-height:.95;margin:0;font-weight:800">Grupos dinâmicos</h1>
-          <p style="color:#b8c3bc;max-width:560px;margin:1rem 0 0">Os integrantes acompanham automaticamente a área e o cargo atual de cada voluntário.</p></div>
-        {% if pode_gerenciar %}<a class="primary-action" href="{% url 'voluntario:criar_grupo' %}">＋ Criar grupo</a>{% endif %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .grp-). O visual base #}
+{# vem das classes .pcf-* do design system (tailwindcss/input.css).            #}
+<style>
+  .grp-page { background: hsl(var(--background)); }
+  .grp-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Cabeçalho leve */
+  .grp-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
+  .grp-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .grp-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .grp-sub { margin: 0; max-width: 56ch; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+
+  /* Grid de grupos */
+  .grp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 1.25rem; }
+  .grp-card { display: flex; flex-direction: column; gap: 1rem; }
+  .grp-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+  .grp-card-count { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-muted); margin: 0; }
+  .grp-card-nome { margin: .25rem 0 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+
+  /* Regras (alternativas) */
+  .grp-rules { display: flex; flex-direction: column; gap: .5rem; }
+  .grp-rule { border-left: 2px solid #f7c9a8; padding-left: .6rem; display: flex; flex-wrap: wrap; gap: .3rem; }
+
+  /* Pilha de integrantes */
+  .grp-stack { display: flex; align-items: center; flex-wrap: wrap; margin-top: auto; }
+  .grp-dot { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; background: var(--brand-grad); border: 3px solid hsl(var(--card)); color: #fff; font-size: .72rem; font-weight: 800; text-transform: uppercase; margin-left: -8px; overflow: hidden; }
+  .grp-dot:first-child { margin-left: 0; }
+  .grp-dot img { width: 100%; height: 100%; object-fit: cover; }
+  .grp-dot.more { background: #fff0e6; color: #c9490a; }
+  .grp-empty-members { font-size: .82rem; color: var(--ink-muted); display: inline-flex; align-items: center; gap: .375rem; }
+
+  /* Ações do card */
+  .grp-actions { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; }
+  .grp-del { border: 0; background: transparent; cursor: pointer; }
+
+  /* Estado vazio geral */
+  .grp-empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
+  .grp-empty-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; background: #fff0e6; color: #e8560f; }
+  .grp-empty-title { margin: .4rem 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .grp-empty-sub { margin: 0; max-width: 40ch; font-size: .88rem; color: var(--ink-muted); }
+
+  @media (max-width: 560px) {
+    .grp-head-actions { width: 100%; }
+    .grp-head-actions .pcf-btn { flex: 1; }
+  }
+</style>
+
+<div class="grp-page">
+  <div class="pcf-container grp-wrap">
+
+    <!-- Cabeçalho leve -->
+    <header class="grp-head">
+      <div class="grp-head-text">
+        <span class="pcf-eyebrow">Organização viva</span>
+        <h1 class="grp-title">Grupos dinâmicos</h1>
+        <p class="grp-sub">Os integrantes acompanham automaticamente a área e o cargo atual de cada voluntário.</p>
       </div>
-    </div>
-  </header>
-  <main class="groups-wrap">
-    <div class="groups-grid">
+      {% if pode_gerenciar %}
+      <div class="grp-head-actions">
+        <a class="pcf-btn pcf-btn-primary" href="{% url 'voluntario:criar_grupo' %}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Criar grupo
+        </a>
+      </div>
+      {% endif %}
+    </header>
+
+    <!-- Grid de grupos -->
+    <div class="grp-grid">
       {% for item in grupos %}
-      <article class="group-card" style="animation-delay:{{ forloop.counter0 }}00ms">
-        <div class="d-flex justify-content-between gap-2 align-items-start">
-          <div><p style="font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:#738078;margin:0">{{ item.total }} integrante{{ item.total|pluralize }}</p>
-            <h2 style="font-size:1.35rem;margin:.25rem 0 .7rem;font-weight:800">{{ item.grupo.nome }}</h2></div>
-          {% if pode_gerenciar %}<a href="{% url 'voluntario:editar_grupo' item.grupo.pk %}" style="color:#526159;font-size:.8rem">Editar</a>{% endif %}
-        </div>
-        {% for regra in item.grupo.regras %}
-          <div style="border-left:2px solid #dff07c;padding-left:.55rem;margin:.4rem 0">
-            {% for area in regra.areas %}<span class="rule-pill">Área: {{ area }}</span>{% endfor %}
-            {% for cargo in regra.cargos %}<span class="rule-pill">Cargo: {{ cargo }}</span>{% endfor %}
+      <article class="pcf-card pcf-hoverable grp-card">
+        <div class="grp-card-top">
+          <div>
+            <p class="grp-card-count">{{ item.total }} integrante{{ item.total|pluralize }}</p>
+            <h2 class="grp-card-nome">{{ item.grupo.nome }}</h2>
           </div>
-        {% endfor %}
-        <div class="member-stack" title="{% for membro in item.membros %}{{ membro }}, {% endfor %}">
-          {% for membro in item.membros|slice:":8" %}<span class="member-dot">{% if membro.foto %}<img src="{{ membro.foto.url }}" alt="">{% else %}{{ membro.first_name|first|upper }}{{ membro.last_name|first|upper }}{% endif %}</span>{% empty %}<span style="font-size:.8rem;color:#7b857f">Nenhum voluntário corresponde hoje</span>{% endfor %}
-          {% if item.total > 8 %}<span class="member-dot">+{{ item.total|add:"-8" }}</span>{% endif %}
+          {% if pode_gerenciar %}
+          <div class="grp-actions">
+            <a href="{% url 'voluntario:editar_grupo' item.grupo.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm" aria-label="Editar {{ item.grupo.nome }}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+              Editar
+            </a>
+            <form method="post" action="{% url 'voluntario:excluir_grupo' item.grupo.pk %}" onsubmit="return confirm('Excluir o grupo “{{ item.grupo.nome|escapejs }}”?')" style="display:inline">
+              {% csrf_token %}
+              <button type="submit" class="pcf-btn pcf-btn-ghost pcf-btn-sm grp-del" aria-label="Excluir {{ item.grupo.nome }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span>Excluir</span>
+              </button>
+            </form>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="grp-rules">
+          {% for regra in item.grupo.regras %}
+          <div class="grp-rule">
+            {% for area in regra.areas %}<span class="pcf-badge brand">Área: {{ area }}</span>{% endfor %}
+            {% for cargo in regra.cargos %}<span class="pcf-badge info">Cargo: {{ cargo }}</span>{% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="grp-stack" title="{% for membro in item.membros %}{{ membro }}, {% endfor %}">
+          {% for membro in item.membros|slice:":8" %}
+            <span class="grp-dot">{% if membro.foto %}<img src="{{ membro.foto.url }}" alt="">{% else %}{{ membro.first_name|first|upper }}{{ membro.last_name|first|upper }}{% endif %}</span>
+          {% empty %}
+            <span class="grp-empty-members">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Nenhum voluntário corresponde hoje
+            </span>
+          {% endfor %}
+          {% if item.total > 8 %}<span class="grp-dot more">+{{ item.total|add:"-8" }}</span>{% endif %}
         </div>
       </article>
       {% empty %}
-      <article class="group-card" style="grid-column:1/-1;text-align:center;padding:3rem"><h2>Nenhum grupo criado</h2><p style="color:#6f7973">Crie o primeiro conjunto de regras para organizar os voluntários.</p></article>
+      <div class="grp-empty">
+        <div class="grp-empty-icon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <p class="grp-empty-title">Nenhum grupo criado</p>
+        <p class="grp-empty-sub">Crie o primeiro conjunto de regras para organizar os voluntários.</p>
+        {% if pode_gerenciar %}<a href="{% url 'voluntario:criar_grupo' %}" class="pcf-btn pcf-btn-outline">Criar grupo</a>{% endif %}
+      </div>
       {% endfor %}
     </div>
-  </main>
-</section>
+
+  </div>
+</div>
 {% endblock %}

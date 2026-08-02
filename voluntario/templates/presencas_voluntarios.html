@@ -1,169 +1,313 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block titulo %}Registro de Presenças{% endblock %}
+{% block titulo %}Registro de Presenças — {{ sabado_data|date:"d/m/Y"|default:"Hoje" }}{% endblock %}
 
 {% block content %}
-<style>
-  details > summary { list-style: none; }
-  details > summary::-webkit-details-marker { display: none; }
-  .summary-arrow { transition: transform 0.25s; }
-  details[open] .summary-arrow { transform: rotate(180deg); }
-  details[open] > summary { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
-  details[open] > summary .area-nome,
-  details[open] > summary .summary-arrow { color: white; }
-  details[open] > summary .area-icon-wrap { background: rgba(255,255,255,0.2); }
-  details[open] > summary .area-count { background: rgba(255,255,255,0.2); color: white; }
-  .vol-card:hover { transform: translateY(-2px); }
-  select:focus { outline: 2px solid #4f46e5; outline-offset: 2px; }
-</style>
+<div class="pv-page">
+  <div class="pcf-container pv-wrap">
 
-<div class="container my-5" style="max-width:960px;">
-
-  <!-- Hero -->
-  <div class="rounded-2xl p-10 mb-8 relative overflow-hidden"
-       style="background: linear-gradient(135deg, #4f46e5, #7c3aed);">
-    <div class="absolute w-48 h-48 rounded-full bg-white/10 -top-12 -right-12"></div>
-    <div class="absolute w-36 h-36 rounded-full bg-white/10 -bottom-8 -left-8"></div>
-    <div class="relative z-10 flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center gap-4">
-        <div class="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-          <svg class="text-white" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
-            <rect x="9" y="3" width="6" height="4" rx="1"/>
-            <path d="m9 14 2 2 4-4"/>
-          </svg>
-        </div>
-        <div>
-          <h2 class="text-2xl font-bold text-white m-0">Registro de Presenças</h2>
-          <p class="text-white/80 mt-1 text-sm">
-            {% if total_pendentes %}
-              {{ total_pendentes }} voluntário{{ total_pendentes|pluralize }} aguardando registro
-            {% else %}
-              Todos os voluntários já foram registrados
-            {% endif %}
-          </p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2 bg-white/20 px-4 py-2.5 rounded-xl text-white font-semibold text-sm">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-        </svg>
-        {{ hoje|date:"d/m/Y" }}
-      </div>
-    </div>
-  </div>
-
-  {% if not areas_com_voluntarios %}
-    <!-- Sem sábado ou todos registrados -->
-    <div class="flex flex-col items-center justify-center gap-4 p-16 bg-white rounded-2xl border border-gray-200 shadow-md text-center">
-      <div class="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
-        <svg class="text-green-500" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-          <polyline points="22 4 12 14.01 9 11.01"/>
-        </svg>
-      </div>
-      <div>
-        <p class="text-gray-800 font-semibold text-lg">Nada pendente!</p>
-        <p class="text-gray-500 text-sm mt-1">
-          {% if sabado_data is None %}
-            Não existe sábado cadastrado para hoje.
+    <!-- ─────────────────────────── CABEÇALHO LEVE ─────────────────────────── -->
+    <header class="pv-head" data-reveal>
+      <div class="pv-head-text">
+        <span class="pcf-eyebrow">Chamada</span>
+        <h1 class="pv-title">Registro de Presenças</h1>
+        <p class="pv-sub">
+          {% if total_pendentes %}
+            {{ total_pendentes }} voluntário{{ total_pendentes|pluralize }} aguardando registro — marque presente, ausente ou falta justificada.
           {% else %}
-            Todos os voluntários já tiveram presença registrada hoje.
+            Marque cada voluntário como presente, ausente ou com falta justificada.
           {% endif %}
         </p>
       </div>
+      <span class="pcf-badge brand pv-datebadge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        {% if sabado_data %}{{ sabado_data|date:"d/m/Y" }}{% else %}{{ hoje|date:"d/m/Y" }}{% endif %}
+      </span>
+    </header>
+
+    {% if areas_com_voluntarios %}
+    <!-- Progresso geral -->
+    <div class="pcf-card pv-progress-card" data-reveal>
+      <div class="pv-progress-head">
+        <span class="pv-progress-label">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <span id="prog-label">0 de {{ total_pendentes }} marcados</span>
+        </span>
+        <span class="pv-progress-pct" id="prog-pct">0%</span>
+      </div>
+      <div class="pcf-progress">
+        <span id="prog-bar" style="width:0%"></span>
+      </div>
     </div>
+    {% endif %}
 
-  {% else %}
-    <form method="POST">
-      {% csrf_token %}
-      <div class="flex flex-col gap-4">
+    {% if not areas_com_voluntarios %}
+      {% if sabado_data is None %}
+        <!-- Sem sábado hoje -->
+        <div class="pv-empty pv-empty-warn" data-reveal>
+          <div class="pv-empty-icon pv-empty-icon-warn">
+            <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <p class="pv-empty-title">Nenhum sábado cadastrado para hoje</p>
+          <p class="pv-empty-sub">O registro de presenças só é permitido no dia do sábado cadastrado.</p>
+        </div>
+      {% else %}
+        <!-- Todos já registrados -->
+        <div class="pv-empty pv-empty-ok" data-reveal>
+          <div class="pv-empty-icon pv-empty-icon-ok">
+            <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <p class="pv-empty-title">Chamada encerrada!</p>
+          <p class="pv-empty-sub">Todos os voluntários já tiveram presença registrada neste sábado.</p>
+        </div>
+      {% endif %}
 
+    {% else %}
+      <form method="POST" id="chamadaForm">
+        {% csrf_token %}
+
+        <!-- Legenda rápida -->
+        <div class="pv-legend" data-reveal>
+          <span class="pv-legend-title">Legenda</span>
+          <span class="pcf-badge ok"><span class="pv-dot pv-dot-ok" aria-hidden="true"></span>P — Presente</span>
+          <span class="pcf-badge danger"><span class="pv-dot pv-dot-danger" aria-hidden="true"></span>A — Ausente</span>
+          <span class="pcf-badge warn"><span class="pv-dot pv-dot-warn" aria-hidden="true"></span>J — Justificada</span>
+        </div>
+
+        <!-- Áreas em accordion -->
         {% for area in areas_com_voluntarios %}
-          <details class="bg-white rounded-2xl border border-gray-200 shadow-md overflow-hidden hover:shadow-lg transition-shadow" open>
-
-            <summary class="flex items-center gap-4 px-6 py-5 cursor-pointer select-none bg-white transition-colors">
-              <div class="area-icon-wrap w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-white transition-all"
-                   style="background: linear-gradient(135deg, #818cf8, #4f46e5);">
-                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-              </div>
-              <div class="grow">
-                <span class="area-nome text-lg font-semibold text-gray-800">{{ area.nome }}</span>
-                <p class="text-gray-400 text-xs mt-0.5">{{ area.voluntarios|length }} voluntário{{ area.voluntarios|length|pluralize }} pendente{{ area.voluntarios|length|pluralize }}</p>
-              </div>
-              <span class="area-count text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 transition-all">
-                {{ area.voluntarios|length }}
+          <details class="pcf-card pv-area" id="area-{{ area.codigo }}" open>
+            <summary class="pv-area-head">
+              <span class="pv-area-chip" aria-hidden="true">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </span>
-              <svg class="summary-arrow text-gray-400 shrink-0" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
+              <span class="pv-area-info">
+                <span class="pv-area-nome">{{ area.nome }}</span>
+                <span class="pv-area-prog area-prog" id="prog-{{ area.codigo }}">Calculando…</span>
+              </span>
+              <span class="pcf-badge pv-area-count">{{ area.voluntarios|length }}</span>
+              <svg class="pv-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9l-7 7-7-7"/></svg>
             </summary>
 
-            <div class="p-6 bg-gray-50">
-              <div class="flex flex-col gap-3">
-                {% for vol in area.voluntarios %}
-                  <div class="vol-card flex items-center gap-4 flex-wrap p-4 bg-white rounded-xl border border-gray-200 shadow-sm transition-all">
-
-                    <!-- avatar -->
-                    <div class="w-14 h-14 rounded-full shrink-0 overflow-hidden border-2 border-gray-100">
-                      {% if vol.foto %}
-                        <img src="{{ vol.foto.url }}" alt="{{ vol.get_full_name }}" class="w-full h-full object-cover">
-                      {% else %}
-                        <div class="w-full h-full flex items-center justify-center text-white font-bold text-xl uppercase"
-                             style="background: linear-gradient(135deg, #4f46e5, #7c3aed);">
-                          {{ vol.get_full_name|default:vol.username|slice:":1" }}
-                        </div>
-                      {% endif %}
-                    </div>
-
-                    <!-- info -->
-                    <div class="grow min-w-0">
-                      <div class="font-semibold text-gray-800">{{ vol.get_full_name|default:vol.username }}</div>
-                      <div class="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
-                        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                        </svg>
-                        {{ vol.apelido|default:"—" }}
-                      </div>
-                    </div>
-
-                    <!-- select -->
-                    <select name="presenca_{{ vol.id }}"
-                            class="min-w-44 px-3 py-2.5 border-2 border-gray-200 rounded-lg text-sm font-medium text-gray-700 bg-gray-50 cursor-pointer appearance-none transition-colors hover:border-indigo-300"
-                            style="background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 10px center;padding-right:36px;">
-                      <option value="">-- Selecione --</option>
-                      <option value="PRESENTE">✅ Presente</option>
-                      <option value="AUSENTE">❌ Ausente</option>
-                      <option value="JUSTIFICADA">⚠️ Falta Justificada</option>
-                    </select>
-                  </div>
-                {% endfor %}
+            <div class="pv-list">
+              {% for vol in area.voluntarios %}
+              <div class="voluntario-row pv-row" data-area="{{ area.codigo }}">
+                <span class="pv-avatar" aria-hidden="true">
+                  {% if vol.foto %}
+                    <img src="{{ vol.foto.url }}" alt="{{ vol.get_full_name }}">
+                  {% else %}
+                    {{ vol.get_full_name|default:vol.username|slice:":1" }}
+                  {% endif %}
+                </span>
+                <div class="pv-row-info">
+                  <p class="pv-row-nome">{{ vol.get_full_name|default:vol.username }}</p>
+                  <p class="pv-row-apelido">{{ vol.apelido|default:"—" }}</p>
+                </div>
+                <!-- Botões P / A / J -->
+                <input type="hidden" name="presenca_{{ vol.id }}" id="val-{{ vol.id }}" value="">
+                <div class="pv-opts">
+                  <button type="button" onclick="marcar({{ vol.id }}, 'PRESENTE', this)"
+                    class="opc-btn pv-opt pv-opt-ok" aria-label="Presente"
+                    data-val="PRESENTE" data-id="{{ vol.id }}">P</button>
+                  <button type="button" onclick="marcar({{ vol.id }}, 'AUSENTE', this)"
+                    class="opc-btn pv-opt pv-opt-danger" aria-label="Ausente"
+                    data-val="AUSENTE" data-id="{{ vol.id }}">A</button>
+                  <button type="button" onclick="marcar({{ vol.id }}, 'JUSTIFICADA', this)"
+                    class="opc-btn pv-opt pv-opt-warn" aria-label="Falta justificada"
+                    data-val="JUSTIFICADA" data-id="{{ vol.id }}">J</button>
+                </div>
               </div>
+              {% endfor %}
             </div>
           </details>
         {% endfor %}
 
-      </div>
+        <!-- Barra de ação fixa -->
+        <div class="pv-bar">
+          <div class="pcf-container pv-bar-inner">
+            <p class="pv-bar-count">
+              <span id="count-marcados">0</span>
+              de <strong>{{ total_pendentes }}</strong> marcados
+            </p>
+            <button type="submit" id="btnSalvar" class="pcf-btn pcf-btn-primary pcf-btn-lg">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              Salvar Presenças
+            </button>
+          </div>
+        </div>
 
-      <!-- Submit -->
-      <div class="flex justify-end mt-8">
-        <button type="submit"
-                class="inline-flex items-center gap-3 px-8 py-3.5 text-white font-semibold rounded-xl border-none cursor-pointer text-base transition-all hover:-translate-y-0.5 hover:shadow-lg"
-                style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
-          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-            <path d="M5 13l4 4L19 7"/>
-          </svg>
-          Salvar Presenças
-        </button>
-      </div>
-    </form>
-  {% endif %}
+      </form>
+    {% endif %}
 
+  </div>
 </div>
+
+{# Bloco enxuto: só LAYOUT/estados específicos desta tela. Visual base vem das classes .pcf-*. #}
+<style>
+  .pv-page { background: hsl(var(--background)); min-height: 100vh; }
+  .pv-wrap { padding-top: clamp(1.5rem, 4vw, 2.5rem); padding-bottom: 7rem; max-width: 780px; }
+
+  /* ── Cabeçalho ── */
+  .pv-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .pv-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .pv-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.5rem, 4vw, 2.1rem); color: var(--ink); }
+  .pv-sub { margin: 0; font-size: .9rem; color: hsl(var(--muted-foreground)); max-width: 52ch; }
+  .pv-datebadge { flex-shrink: 0; font-size: .8rem; padding: .35rem .75rem; }
+
+  /* ── Progresso geral ── */
+  .pv-progress-card { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.25rem; padding: 1.1rem 1.25rem; }
+  .pv-progress-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .pv-progress-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .82rem; font-weight: 600; color: var(--ink-soft); }
+  .pv-progress-pct { font-size: .85rem; font-weight: 800; color: #e8560f; }
+
+  /* ── Legenda ── */
+  .pv-legend { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+  .pv-legend-title { font-size: .7rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-muted); }
+  .pv-dot { width: 7px; height: 7px; border-radius: 999px; }
+  .pv-dot-ok { background: #1f7a49; }
+  .pv-dot-danger { background: #b03636; }
+  .pv-dot-warn { background: #b8860b; }
+
+  /* ── Área (accordion) ── */
+  .pv-area { padding: 0; overflow: hidden; margin-bottom: 1rem; }
+  .pv-area-head { display: flex; align-items: center; gap: .85rem; padding: 1rem 1.1rem; cursor: pointer; list-style: none; user-select: none; }
+  .pv-area-head::-webkit-details-marker { display: none; }
+  .pv-area-chip { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; background: var(--brand-grad); }
+  .pv-area-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
+  .pv-area-nome { font-weight: 800; font-size: .95rem; color: var(--ink); }
+  .pv-area-prog { font-size: .76rem; color: var(--ink-muted); }
+  .pv-area-count { flex-shrink: 0; }
+  .pv-chevron { color: var(--ink-muted); flex-shrink: 0; transition: transform .2s ease; }
+  .pv-area[open] .pv-chevron { transform: rotate(180deg); }
+
+  /* ── Linhas de voluntários ── */
+  .pv-list { border-top: 1px solid #f4e7de; }
+  .pv-row { display: flex; align-items: center; gap: .8rem; padding: .75rem 1.1rem; border-bottom: 1px solid #f7e9df; }
+  .pv-row:last-child { border-bottom: 0; }
+  .pv-avatar { width: 44px; height: 44px; border-radius: 999px; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .95rem; background: #fff0e6; color: #c75f06; text-transform: uppercase; border: 2px solid #ffe3d0; }
+  .pv-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .pv-row-info { flex: 1; min-width: 0; }
+  .pv-row-nome { margin: 0; font-weight: 700; font-size: .9rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pv-row-apelido { margin: .1rem 0 0; font-size: .76rem; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Botões P / A / J (alvos de toque grandes) ── */
+  .pv-opts { display: flex; gap: .4rem; flex-shrink: 0; }
+  .pv-opt {
+    width: 44px; height: 44px; border-radius: 13px; border: 1.5px solid;
+    font-size: .9rem; font-weight: 800; cursor: pointer; background: #fff;
+    transition: transform .12s ease, background .12s, border-color .12s, color .12s, box-shadow .12s;
+  }
+  .pv-opt:active { transform: scale(.9); }
+  .pv-opt-ok     { border-color: #cfead9; background: #f2faf5; color: #1f7a49; }
+  .pv-opt-danger { border-color: #f2d0d0; background: #fdf3f3; color: #b03636; }
+  .pv-opt-warn   { border-color: #f0e2bd; background: #fdf9ef; color: #8a6a10; }
+
+  .opc-btn.ativo-PRESENTE    { background: #16a34a; border-color: #16a34a; color: #fff; box-shadow: 0 3px 10px rgba(22,163,74,.35); }
+  .opc-btn.ativo-AUSENTE     { background: #dc2626; border-color: #dc2626; color: #fff; box-shadow: 0 3px 10px rgba(220,38,38,.35); }
+  .opc-btn.ativo-JUSTIFICADA { background: #d99a1a; border-color: #d99a1a; color: #fff; box-shadow: 0 3px 10px rgba(217,154,26,.35); }
+
+  /* ── Barra de ação fixa ── */
+  .pv-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; background: hsl(var(--card)); border-top: 1px solid #f4e7de; box-shadow: 0 -8px 24px -18px rgba(120,50,10,.5); padding: .7rem 0; }
+  .pv-bar-inner { max-width: 780px; display: flex; align-items: center; gap: 1rem; }
+  .pv-bar-count { margin: 0; flex: 1; font-size: .88rem; color: var(--ink-muted); }
+  .pv-bar-count #count-marcados, .pv-bar-count strong { font-weight: 800; color: var(--ink); }
+
+  /* ── Estados vazios ── */
+  .pv-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem; padding: clamp(2.25rem, 6vw, 3.5rem) 1.5rem; border-radius: 24px; }
+  .pv-empty-warn { background: #fffaf6; border: 1.5px dashed #f2d3bd; }
+  .pv-empty-ok { background: #f4faf6; border: 1.5px dashed #cfead9; }
+  .pv-empty-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; margin-bottom: .3rem; }
+  .pv-empty-icon-warn { background: #fff0e6; color: #d97706; }
+  .pv-empty-icon-ok { background: #eaf7ef; color: #16a34a; }
+  .pv-empty-title { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .pv-empty-sub { margin: 0; max-width: 40ch; font-size: .88rem; color: var(--ink-muted); }
+
+  /* ── Telas estreitas (~360px) ── */
+  @media (max-width: 420px) {
+    .pv-datebadge { align-self: flex-start; }
+    .pv-opt { width: 42px; height: 42px; }
+    .pv-bar-count { font-size: .8rem; }
+    .pv-bar .pcf-btn { padding: .8rem 1.1rem; }
+  }
+</style>
+
+<script>
+  const totalVoluntarios = {{ total_pendentes }};
+  const marcados = {};   // id → valor
+
+  function marcar(id, valor, btn) {
+    // Toggle: clicar novamente desmarca
+    if (marcados[id] === valor) {
+      delete marcados[id];
+      document.getElementById('val-' + id).value = '';
+      btn.closest('.voluntario-row').querySelectorAll('.opc-btn').forEach(b => {
+        b.classList.remove('ativo-PRESENTE', 'ativo-AUSENTE', 'ativo-JUSTIFICADA');
+      });
+    } else {
+      marcados[id] = valor;
+      document.getElementById('val-' + id).value = valor;
+      btn.closest('.voluntario-row').querySelectorAll('.opc-btn').forEach(b => {
+        b.classList.remove('ativo-PRESENTE', 'ativo-AUSENTE', 'ativo-JUSTIFICADA');
+      });
+      btn.classList.add('ativo-' + valor);
+    }
+    atualizarProgresso();
+  }
+
+  function atualizarProgresso() {
+    const count = Object.keys(marcados).length;
+    const pct   = totalVoluntarios > 0 ? Math.round((count / totalVoluntarios) * 100) : 0;
+
+    const countEl = document.getElementById('count-marcados');
+    if (countEl) countEl.textContent = count;
+    const bar   = document.getElementById('prog-bar');
+    const label = document.getElementById('prog-label');
+    const pctEl = document.getElementById('prog-pct');
+    if (bar)   bar.style.width = pct + '%';
+    if (label) label.textContent = count + ' de ' + totalVoluntarios + ' marcados';
+    if (pctEl) pctEl.textContent = pct + '%';
+
+    // Por área
+    document.querySelectorAll('[data-area]').forEach(row => {
+      const area = row.dataset.area;
+      const rows = document.querySelectorAll(`.voluntario-row[data-area="${area}"]`);
+      const ids  = Array.from(rows).map(r => r.querySelector('.opc-btn').dataset.id);
+      const marc = ids.filter(i => marcados[i]).length;
+      const prog = document.getElementById('prog-' + area);
+      if (prog) prog.textContent = marc + ' de ' + ids.length + ' marcados';
+    });
+  }
+
+  // Marcar todos como Presente de uma área (duplo toque no cabeçalho)
+  document.querySelectorAll('details').forEach(det => {
+    let lastTap = 0;
+    det.querySelector('summary')?.addEventListener('click', e => {
+      const now = Date.now();
+      if (now - lastTap < 350) {
+        e.preventDefault();
+        det.querySelectorAll('.opc-btn[data-val="PRESENTE"]').forEach(btn => {
+          const id = btn.dataset.id;
+          if (!marcados[id]) btn.click();
+        });
+      }
+      lastTap = now;
+    });
+  });
+
+  // Salvar com feedback
+  document.getElementById('chamadaForm')?.addEventListener('submit', function() {
+    const btn = document.getElementById('btnSalvar');
+    btn.disabled = true;
+    btn.style.opacity = '.7';
+    btn.innerHTML = `<svg width="15" height="15" class="animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Salvando…`;
+  });
+
+  atualizarProgresso();
+</script>
 {% endblock %}
