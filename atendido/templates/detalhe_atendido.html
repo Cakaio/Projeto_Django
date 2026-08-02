@@ -1,31 +1,433 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block titulo %}
-Ficha dos Caios
-{% endblock %}
+{% block titulo %}{{ object.nome }} · Ficha do Atendido{% endblock %}
 
 {% block content %}
-<div class="container mt-5 pt-4 d-flex justify-content-center">
-  <div class="w-100" style="max-width: 600px;">
-    <h2 class="text-center mb-1">Detalhes do Atendido</h2>
+<div class="da-page">
+  <div class="pcf-container da-wrap">
 
-    {% if request.user.is_superuser or request.user.is_matricula %}
-    <div class="text-center mb-3">
-      <a href="{% url 'atendido:matricula_editar' object.pk %}" class="btn"
-         style="background:#fe8210;color:#fff;border:none">✎ Editar Matrícula</a>
-    </div>
-    {% endif %}
+    <!-- ─────────────────────────── VOLTAR ─────────────────────────── -->
+    <a href="{% url 'atendido:lista_atendidos' %}" class="da-back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+      Voltar para atendidos
+    </a>
 
-    <div class="card">
-      <div class="card-body">
-        <img src="{{ object.foto.url }}" class="card-img-top mb-3" alt="Foto do Atendido">
-        <h5 class="card-title">Nome: {{ object.nome }}</h5>
-        <h5 class="card-title">Idade: {{ object.idade }}</h5>
-        <h5 class="card-title">Sala: {{ object.sala }}</h5>
-        <h5 class="card-title">Data de Nascimento: {{ object.data_nascimento }}</h5>
-        <!-- outros campos -->
+    <!-- ─────────────────────────── CABEÇALHO ─────────────────────────── -->
+    <header class="da-header">
+      <div class="da-header-id">
+        <div class="da-avatar" aria-hidden="true">
+          {% if object.foto %}
+            <img src="{{ object.foto.url }}" alt="Foto de {{ object.nome }}">
+          {% else %}
+            <span class="da-avatar-initial">{{ object.nome|first|upper }}</span>
+          {% endif %}
+        </div>
+        <div class="da-header-text">
+          <span class="pcf-eyebrow">Ficha do Atendido</span>
+          <h1 class="da-title">{{ object.nome }}</h1>
+          <div class="da-header-meta">
+            {% if object.sala %}<span class="pcf-badge brand">{{ object.get_sala_display }}</span>{% endif %}
+            {% if object.matricula %}<span class="pcf-badge info">{{ object.get_matricula_display }}</span>{% endif %}
+            {% if object.ativo %}
+              <span class="pcf-badge ok">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                Ativo
+              </span>
+            {% else %}
+              <span class="pcf-badge">Inativo</span>
+            {% endif %}
+            {% if object.comissao_inclusiva %}<span class="pcf-badge warn">PCF Inclusivo</span>{% endif %}
+          </div>
+        </div>
       </div>
+
+      {% if request.user.is_superuser or request.user.is_matricula %}
+      <div class="da-header-actions">
+        <a href="{% url 'atendido:matricula_editar' object.pk %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          Editar matrícula
+        </a>
+      </div>
+      {% endif %}
+    </header>
+
+    <!-- ─────────────────────────── GRID DE SEÇÕES ─────────────────────────── -->
+    <div class="da-columns">
+
+      <!-- ============ DADOS PESSOAIS ============ -->
+      <section class="pcf-card da-card">
+        <div class="da-card-head">
+          <span class="pcf-icon-tile tint-green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <h2 class="da-card-title">Dados pessoais</h2>
+        </div>
+        <dl class="da-grid">
+          <div class="da-item"><dt class="da-k">Nome completo</dt><dd class="da-v">{{ object.nome }}</dd></div>
+          {% if object.data_nascimento %}
+          <div class="da-item">
+            <dt class="da-k">Data de nascimento</dt>
+            <dd class="da-v">{{ object.data_nascimento|date:"d/m/Y" }} <span class="da-hint">· {{ object.data_nascimento|timesince }}</span></dd>
+          </div>
+          {% endif %}
+          {% if object.identidade_etnica %}<div class="da-item"><dt class="da-k">Identidade étnica</dt><dd class="da-v">{{ object.get_identidade_etnica_display }}</dd></div>{% endif %}
+          {% if object.rg %}<div class="da-item"><dt class="da-k">RG</dt><dd class="da-v">{{ object.rg }}</dd></div>{% endif %}
+          {% if object.cpf %}<div class="da-item"><dt class="da-k">CPF</dt><dd class="da-v">{{ object.cpf }}</dd></div>{% endif %}
+          {% if object.contato %}<div class="da-item"><dt class="da-k">Contato</dt><dd class="da-v">{{ object.contato }}</dd></div>{% endif %}
+          {% if object.sala %}<div class="da-item"><dt class="da-k">Sala</dt><dd class="da-v">{{ object.get_sala_display }}</dd></div>{% endif %}
+        </dl>
+        <div class="da-flags">
+          <span class="da-bool {% if object.trabalho %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Trabalha <b>{% if object.trabalho %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if object.projeto_social %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Projeto social anterior <b>{% if object.projeto_social %}Sim{% else %}Não{% endif %}</b></span>
+        </div>
+        {% if object.documento %}
+        <a href="{{ object.documento.url }}" target="_blank" rel="noopener" class="da-doc-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Abrir documento anexado
+        </a>
+        {% endif %}
+      </section>
+
+      <!-- ============ EDUCAÇÃO ============ -->
+      {% if object.escolaridade or object.ano_escolar or object.escola or object.tipo_escola %}
+      <section class="pcf-card da-card">
+        <div class="da-card-head">
+          <span class="pcf-icon-tile tint-blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          </span>
+          <h2 class="da-card-title">Educação</h2>
+        </div>
+        <dl class="da-grid">
+          {% if object.escolaridade %}<div class="da-item"><dt class="da-k">Escolaridade</dt><dd class="da-v">{{ object.get_escolaridade_display }}</dd></div>{% endif %}
+          {% if object.ano_escolar %}<div class="da-item"><dt class="da-k">Ano escolar</dt><dd class="da-v">{{ object.get_ano_escolar_display }}</dd></div>{% endif %}
+          {% if object.escola %}<div class="da-item"><dt class="da-k">Escola</dt><dd class="da-v">{{ object.get_escola_display }}</dd></div>{% endif %}
+          {% if object.tipo_escola %}<div class="da-item"><dt class="da-k">Tipo de escola</dt><dd class="da-v">{{ object.get_tipo_escola_display }}</dd></div>{% endif %}
+        </dl>
+      </section>
+      {% endif %}
+
+      <!-- ============ FAMÍLIA ============ -->
+      <section class="pcf-card da-card">
+        <div class="da-card-head">
+          <span class="pcf-icon-tile tint-orange">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+          </span>
+          <h2 class="da-card-title">Família</h2>
+        </div>
+        {% with familia=object.familia %}
+        {% if familia %}
+        <dl class="da-grid">
+          {% if familia.nome %}<div class="da-item"><dt class="da-k">Família</dt><dd class="da-v">{{ familia.nome }}</dd></div>{% endif %}
+          {% if familia.endereco %}<div class="da-item"><dt class="da-k">Endereço</dt><dd class="da-v">{{ familia.endereco }}</dd></div>{% endif %}
+          {% if familia.cep %}<div class="da-item"><dt class="da-k">CEP</dt><dd class="da-v">{{ familia.cep }}</dd></div>{% endif %}
+          {% if familia.bairro %}<div class="da-item"><dt class="da-k">Bairro</dt><dd class="da-v">{{ familia.get_bairro_display }}</dd></div>{% endif %}
+          {% if familia.cidade %}<div class="da-item"><dt class="da-k">Cidade</dt><dd class="da-v">{{ familia.get_cidade_display }}</dd></div>{% endif %}
+          {% if familia.zona_residencial %}<div class="da-item"><dt class="da-k">Zona residencial</dt><dd class="da-v">{{ familia.get_zona_residencial_display }}</dd></div>{% endif %}
+          {% if familia.situacao_moradia %}<div class="da-item"><dt class="da-k">Situação da moradia</dt><dd class="da-v">{{ familia.get_situacao_moradia_display }}</dd></div>{% endif %}
+          {% if familia.renda_total_familia %}<div class="da-item"><dt class="da-k">Renda total</dt><dd class="da-v">{{ familia.get_renda_total_familia_display }}</dd></div>{% endif %}
+          <div class="da-item"><dt class="da-k">Pessoas na casa</dt><dd class="da-v">{{ familia.pessoas_moram_familia }}</dd></div>
+          <div class="da-item"><dt class="da-k">Pessoas que trabalham</dt><dd class="da-v">{{ familia.pessoas_trabalham_familia }}</dd></div>
+          {% if familia.impacto_social %}<div class="da-item"><dt class="da-k">Impacto positivo na rotina</dt><dd class="da-v">{{ familia.get_impacto_social_display }}</dd></div>{% endif %}
+          {% if familia.tipo_impacto_social %}<div class="da-item"><dt class="da-k">Forma do impacto</dt><dd class="da-v">{{ familia.get_tipo_impacto_social_display }}</dd></div>{% endif %}
+        </dl>
+        <div class="da-flags">
+          <span class="da-bool {% if familia.agua_encanada %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Água encanada <b>{% if familia.agua_encanada %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if familia.esgoto_encanado %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Esgoto encanado <b>{% if familia.esgoto_encanado %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if familia.energia_eletrica %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Energia elétrica <b>{% if familia.energia_eletrica %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if familia.internet_casa %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Internet em casa <b>{% if familia.internet_casa %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if familia.programa_transferencia_renda %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Programa de renda <b>{% if familia.programa_transferencia_renda %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if familia.cesta_natal %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Interesse em cesta de Natal <b>{% if familia.cesta_natal %}Sim{% else %}Não{% endif %}</b></span>
+        </div>
+        <details class="da-details">
+          <summary>Bens e infraestrutura</summary>
+          <dl class="da-grid da-grid-tight">
+            <div class="da-item"><dt class="da-k">Cômodos</dt><dd class="da-v">{{ familia.comodos_casa }}</dd></div>
+            <div class="da-item"><dt class="da-k">Banheiros</dt><dd class="da-v">{{ familia.banheiro_casa }}</dd></div>
+            <div class="da-item"><dt class="da-k">Televisores</dt><dd class="da-v">{{ familia.tv_casa }}</dd></div>
+            <div class="da-item"><dt class="da-k">Geladeiras</dt><dd class="da-v">{{ familia.geladeira_casa }}</dd></div>
+            <div class="da-item"><dt class="da-k">Freezers</dt><dd class="da-v">{{ familia.freezer_casa }}</dd></div>
+            <div class="da-item"><dt class="da-k">Celulares</dt><dd class="da-v">{{ familia.celular_casa }}</dd></div>
+            <div class="da-item"><dt class="da-k">Computadores</dt><dd class="da-v">{{ familia.computador_casa }}</dd></div>
+            <div class="da-item"><dt class="da-k">Motos</dt><dd class="da-v">{{ familia.motos_casa }}</dd></div>
+            <div class="da-item"><dt class="da-k">Carros</dt><dd class="da-v">{{ familia.carros_casa }}</dd></div>
+          </dl>
+        </details>
+        {% else %}
+        <p class="da-empty-inline">Nenhuma família vinculada a este atendido.</p>
+        {% endif %}
+        {% endwith %}
+      </section>
+
+      <!-- ============ RESPONSÁVEIS ============ -->
+      <section class="pcf-card da-card">
+        <div class="da-card-head">
+          <span class="pcf-icon-tile tint-orange">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
+          <h2 class="da-card-title">Responsáveis</h2>
+        </div>
+        {% with responsaveis=object.responsavel.all %}
+        {% if responsaveis %}
+        <div class="da-resp-list">
+          {% for r in responsaveis %}
+          <div class="da-resp">
+            <div class="da-resp-top">
+              <span class="da-resp-name">{{ r.nome|default:"(sem nome)" }}</span>
+              {% if r.parentesco %}<span class="pcf-badge info">{{ r.get_parentesco_display }}</span>{% endif %}
+            </div>
+            <dl class="da-grid da-grid-tight">
+              {% if r.cpf %}<div class="da-item"><dt class="da-k">CPF</dt><dd class="da-v">{{ r.cpf }}</dd></div>{% endif %}
+              {% if r.rg %}<div class="da-item"><dt class="da-k">RG</dt><dd class="da-v">{{ r.rg }}</dd></div>{% endif %}
+              {% if r.contato %}<div class="da-item"><dt class="da-k">Contato</dt><dd class="da-v">{{ r.contato }}</dd></div>{% endif %}
+              {% if r.outro_contato %}<div class="da-item"><dt class="da-k">Outro contato</dt><dd class="da-v">{{ r.outro_contato }}</dd></div>{% endif %}
+              {% if r.email %}<div class="da-item"><dt class="da-k">E-mail</dt><dd class="da-v">{{ r.email }}</dd></div>{% endif %}
+              {% if r.trabalho %}<div class="da-item"><dt class="da-k">Trabalho</dt><dd class="da-v">{{ r.trabalho }}</dd></div>{% endif %}
+              {% if r.escolaridade %}<div class="da-item"><dt class="da-k">Escolaridade</dt><dd class="da-v">{{ r.get_escolaridade_display }}</dd></div>{% endif %}
+            </dl>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="da-empty-inline">Nenhum responsável vinculado.</p>
+        {% endif %}
+        {% endwith %}
+      </section>
+
+      <!-- ============ SAÚDE E BEM-ESTAR ============ -->
+      <section class="pcf-card da-card">
+        <div class="da-card-head">
+          <span class="pcf-icon-tile tint-green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+          </span>
+          <h2 class="da-card-title">Saúde e bem-estar</h2>
+        </div>
+        <div class="da-flags">
+          <span class="da-bool {% if object.convenio_medico %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Convênio médico <b>{% if object.convenio_medico %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if object.vacina_covid %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Vacinas COVID-19 <b>{% if object.vacina_covid %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if object.campanha_vacinacao %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Apoia campanha de vacinação <b>{% if object.campanha_vacinacao %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if object.saude_bucal %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Atendimento odontológico prévio <b>{% if object.saude_bucal %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if object.concentracao %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Dificuldade de concentração <b>{% if object.concentracao %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if object.aprendizado %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Dificuldade de aprendizado <b>{% if object.aprendizado %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if object.sensibilidade %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Sensibilidade sensorial <b>{% if object.sensibilidade %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if object.dificuldade_motora %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Dificuldade motora <b>{% if object.dificuldade_motora %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if object.dificuldade_emocional %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Dificuldade emocional <b>{% if object.dificuldade_emocional %}Sim{% else %}Não{% endif %}</b></span>
+          <span class="da-bool {% if object.diagnostico %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Diagnóstico/laudo <b>{% if object.diagnostico %}Sim{% else %}Não{% endif %}</b></span>
+        </div>
+
+        <dl class="da-grid da-grid-1">
+          {% if object.comportamento_social %}<div class="da-item"><dt class="da-k">Comportamento social</dt><dd class="da-v">{{ object.get_comportamento_social_display }}</dd></div>{% endif %}
+          {% if object.comportamento_regras %}<div class="da-item"><dt class="da-k">Dificuldade em seguir regras</dt><dd class="da-v">{{ object.get_comportamento_regras_display }}</dd></div>{% endif %}
+          {% if object.acompanhamento %}<div class="da-item"><dt class="da-k">Acompanhamento profissional</dt><dd class="da-v">{{ object.get_acompanhamento_display }}</dd></div>{% endif %}
+          {% if object.diagnostico_descricao %}<div class="da-item"><dt class="da-k">Descrição do diagnóstico</dt><dd class="da-v da-text">{{ object.diagnostico_descricao|linebreaksbr }}</dd></div>{% endif %}
+          {% if object.sensibilidade_descricao %}<div class="da-item"><dt class="da-k">Descrição da sensibilidade</dt><dd class="da-v da-text">{{ object.sensibilidade_descricao|linebreaksbr }}</dd></div>{% endif %}
+          {% if object.dificuldade_motora_descricao %}<div class="da-item"><dt class="da-k">Descrição da dificuldade motora</dt><dd class="da-v da-text">{{ object.dificuldade_motora_descricao|linebreaksbr }}</dd></div>{% endif %}
+          {% if object.dificuldade_emocional_descricao %}<div class="da-item"><dt class="da-k">Descrição da dificuldade emocional</dt><dd class="da-v da-text">{{ object.dificuldade_emocional_descricao|linebreaksbr }}</dd></div>{% endif %}
+          {% if object.recomendacao_acompanhamento %}<div class="da-item"><dt class="da-k">Recomendação profissional</dt><dd class="da-v da-text">{{ object.recomendacao_acompanhamento|linebreaksbr }}</dd></div>{% endif %}
+          {% if object.restricao_alimentar %}<div class="da-item"><dt class="da-k">Restrições alimentares</dt><dd class="da-v da-text">{{ object.restricao_alimentar|linebreaksbr }}</dd></div>{% endif %}
+          {% if object.restricao_medica %}<div class="da-item"><dt class="da-k">Restrições médicas</dt><dd class="da-v da-text">{{ object.restricao_medica|linebreaksbr }}</dd></div>{% endif %}
+          {% if object.medicacao_continua %}<div class="da-item"><dt class="da-k">Medicação contínua</dt><dd class="da-v da-text">{{ object.medicacao_continua|linebreaksbr }}</dd></div>{% endif %}
+        </dl>
+      </section>
+
+      <!-- ============ PCF INCLUSIVO ============ -->
+      {% if object.comissao_inclusiva or object.inclusivo or object.expectativas_familia %}
+      <section class="pcf-card da-card da-card-inclusive">
+        <div class="da-card-head">
+          <span class="pcf-icon-tile tint-gold">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+          </span>
+          <h2 class="da-card-title">PCF Inclusivo</h2>
+        </div>
+        <div class="da-flags">
+          <span class="da-bool {% if object.comissao_inclusiva %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Apoio da Comissão Inclusiva <b>{% if object.comissao_inclusiva %}Sim{% else %}Não{% endif %}</b></span>
+        </div>
+        {% if object.expectativas_familia %}
+        <dl class="da-grid da-grid-1">
+          <div class="da-item"><dt class="da-k">Expectativas da família</dt><dd class="da-v da-text">{{ object.expectativas_familia|linebreaksbr }}</dd></div>
+        </dl>
+        {% endif %}
+
+        {% with inc=object.inclusivo %}
+        {% if inc %}
+        <div class="da-sub">
+          <h3 class="da-sub-title">Detalhamento da Comissão Inclusiva</h3>
+          <div class="da-flags">
+            <span class="da-bool {% if inc.diagnostico %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Diagnóstico formal (laudo) <b>{% if inc.diagnostico %}Sim{% else %}Não{% endif %}</b></span>
+            <span class="da-bool {% if inc.acompanhamento %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Requer acompanhamento <b>{% if inc.acompanhamento %}Sim{% else %}Não{% endif %}</b></span>
+            <span class="da-bool {% if inc.servicos_apoio %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Recebe serviço de apoio <b>{% if inc.servicos_apoio %}Sim{% else %}Não{% endif %}</b></span>
+          </div>
+          <dl class="da-grid da-grid-1">
+            {% if inc.diagnostico_descricao %}<div class="da-item"><dt class="da-k">Descrição do diagnóstico</dt><dd class="da-v da-text">{{ inc.diagnostico_descricao|linebreaksbr }}</dd></div>{% endif %}
+            {% if inc.recomendacoes %}<div class="da-item"><dt class="da-k">Recomendações</dt><dd class="da-v da-text">{{ inc.recomendacoes|linebreaksbr }}</dd></div>{% endif %}
+            {% if inc.comportamento_social %}<div class="da-item"><dt class="da-k">Comportamento social</dt><dd class="da-v da-text">{{ inc.comportamento_social|linebreaksbr }}</dd></div>{% endif %}
+            {% if inc.dificuldades_aprendizado %}<div class="da-item"><dt class="da-k">Dificuldades de aprendizado</dt><dd class="da-v da-text">{{ inc.dificuldades_aprendizado|linebreaksbr }}</dd></div>{% endif %}
+            {% if inc.dificuldades_motoras %}<div class="da-item"><dt class="da-k">Dificuldades motoras</dt><dd class="da-v da-text">{{ inc.dificuldades_motoras|linebreaksbr }}</dd></div>{% endif %}
+            {% if inc.dificuldade_atencao %}<div class="da-item"><dt class="da-k">Dificuldade de atenção</dt><dd class="da-v da-text">{{ inc.dificuldade_atencao|linebreaksbr }}</dd></div>{% endif %}
+            {% if inc.dificuldade_emocional %}<div class="da-item"><dt class="da-k">Dificuldade emocional</dt><dd class="da-v da-text">{{ inc.dificuldade_emocional|linebreaksbr }}</dd></div>{% endif %}
+            {% if inc.expectativas_familia %}<div class="da-item"><dt class="da-k">Expectativas da família</dt><dd class="da-v da-text">{{ inc.expectativas_familia|linebreaksbr }}</dd></div>{% endif %}
+            {% if inc.observacoes_adicionais %}<div class="da-item"><dt class="da-k">Observações adicionais</dt><dd class="da-v da-text">{{ inc.observacoes_adicionais|linebreaksbr }}</dd></div>{% endif %}
+          </dl>
+        </div>
+        {% endif %}
+        {% endwith %}
+      </section>
+      {% endif %}
+
+      <!-- ============ IMPACTO DO PROJETO ============ -->
+      <section class="pcf-card da-card">
+        <div class="da-card-head">
+          <span class="pcf-icon-tile tint-gold">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </span>
+          <h2 class="da-card-title">Impacto do projeto</h2>
+        </div>
+        <div class="da-flags">
+          <span class="da-bool {% if object.mudancas_positivas %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Mudanças positivas percebidas <b>{% if object.mudancas_positivas %}Sim{% else %}Não{% endif %}</b></span>
+        </div>
+        {% with aspectos=object.aspectos_mudancas.all %}
+        {% if aspectos %}
+        <div class="da-tag-row">
+          {% for a in aspectos %}<span class="pcf-badge ok">{{ a }}</span>{% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% if object.aspectos_outros %}
+        <dl class="da-grid da-grid-1">
+          <div class="da-item"><dt class="da-k">Outros aspectos</dt><dd class="da-v da-text">{{ object.aspectos_outros|linebreaksbr }}</dd></div>
+        </dl>
+        {% endif %}
+      </section>
+
+      <!-- ============ VESTUÁRIO ============ -->
+      {% if object.numeracao_camisa or object.numeracao_calca or object.numeracao_calcado %}
+      <section class="pcf-card da-card">
+        <div class="da-card-head">
+          <span class="pcf-icon-tile tint-blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+          </span>
+          <h2 class="da-card-title">Vestuário</h2>
+        </div>
+        <dl class="da-grid da-grid-tight">
+          {% if object.numeracao_camisa %}<div class="da-item"><dt class="da-k">Camisa</dt><dd class="da-v">{{ object.numeracao_camisa }}</dd></div>{% endif %}
+          {% if object.numeracao_calca %}<div class="da-item"><dt class="da-k">Calça</dt><dd class="da-v">{{ object.numeracao_calca }}</dd></div>{% endif %}
+          {% if object.numeracao_calcado %}<div class="da-item"><dt class="da-k">Calçado</dt><dd class="da-v">{{ object.numeracao_calcado }}</dd></div>{% endif %}
+        </dl>
+      </section>
+      {% endif %}
+
+      <!-- ============ OBSERVAÇÕES / TERMOS / REGISTRO ============ -->
+      <section class="pcf-card da-card">
+        <div class="da-card-head">
+          <span class="pcf-icon-tile tint-orange">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </span>
+          <h2 class="da-card-title">Observações e registro</h2>
+        </div>
+        <div class="da-flags">
+          <span class="da-bool {% if object.termos_assinado %}is-yes{% else %}is-no{% endif %}"><span class="da-dot" aria-hidden="true"></span>Termos assinados <b>{% if object.termos_assinado %}Sim{% else %}Não{% endif %}</b></span>
+        </div>
+        <dl class="da-grid da-grid-1">
+          {% if object.observacoes %}<div class="da-item"><dt class="da-k">Observações</dt><dd class="da-v da-text">{{ object.observacoes|linebreaksbr }}</dd></div>{% endif %}
+          {% if object.registrado_por %}<div class="da-item"><dt class="da-k">Registrado por</dt><dd class="da-v">{{ object.registrado_por }}</dd></div>{% endif %}
+          <div class="da-item"><dt class="da-k">Data de criação</dt><dd class="da-v">{{ object.data_criacao|date:"d/m/Y H:i" }}</dd></div>
+        </dl>
+      </section>
+
     </div>
   </div>
 </div>
+
+{# Layout específico desta tela (prefixo .da-). O visual vem das classes .pcf-* do design system. #}
+<style>
+  .da-page { background: hsl(var(--background)); min-height: 100%; }
+  .da-wrap { padding-top: clamp(1.5rem, 4vw, 2.5rem); padding-bottom: clamp(3rem, 7vw, 5rem); }
+
+  /* ── Voltar ── */
+  .da-back { display: inline-flex; align-items: center; gap: .4rem; font-size: .82rem; font-weight: 600;
+    color: var(--ink-muted); text-decoration: none; margin-bottom: 1.25rem; }
+  .da-back:hover { color: #c9490a; }
+
+  /* ── Cabeçalho ── */
+  .da-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.25rem;
+    flex-wrap: wrap; margin-bottom: clamp(1.5rem, 4vw, 2.25rem); }
+  .da-header-id { display: flex; align-items: center; gap: 1.1rem; min-width: 0; }
+  .da-avatar { width: 76px; height: 76px; border-radius: 22px; overflow: hidden; flex-shrink: 0;
+    background: #fff0e6; display: flex; align-items: center; justify-content: center;
+    border: 1px solid #f7c9a8; box-shadow: var(--shadow-warm-sm); }
+  .da-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .da-avatar-initial { font-size: 2rem; font-weight: 800; color: #e8560f; }
+  .da-header-text { min-width: 0; display: flex; flex-direction: column; gap: .5rem; }
+  .da-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.1;
+    font-size: clamp(1.55rem, 3.5vw, 2.35rem); color: var(--ink); }
+  .da-header-meta { display: flex; flex-wrap: wrap; gap: .45rem; }
+  .da-header-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* ── Colunas de cards ── */
+  .da-columns { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
+  .da-card { display: flex; flex-direction: column; gap: 1.1rem; }
+  .da-card-head { display: flex; align-items: center; gap: .75rem; }
+  .da-card-title { margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .da-card-inclusive { border-color: #f3d9b0; background: linear-gradient(180deg, #fffdf7, hsl(var(--card))); }
+
+  /* ── Grid de dados (key/value) ── */
+  .da-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: .9rem 1.5rem; margin: 0; }
+  .da-grid-tight { gap: .7rem 1.25rem; }
+  .da-grid-1 { grid-template-columns: 1fr; }
+  .da-item { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+  .da-k { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-muted); }
+  .da-v { margin: 0; font-size: .92rem; font-weight: 600; color: var(--ink); word-break: break-word; }
+  .da-v.da-text { font-weight: 500; color: var(--ink-soft); line-height: 1.55; white-space: normal; }
+  .da-hint { font-weight: 500; color: var(--ink-muted); font-size: .82rem; }
+
+  /* ── Flags booleanas (status por texto + cor, nunca só cor) ── */
+  .da-flags { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .da-bool { display: inline-flex; align-items: center; gap: .45rem; padding: .4rem .75rem;
+    border-radius: 999px; font-size: .8rem; font-weight: 600; border: 1px solid transparent; }
+  .da-bool b { font-weight: 800; }
+  .da-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .da-bool.is-yes { background: #eaf7ef; color: #1f7a49; border-color: #c9ebd6; }
+  .da-bool.is-yes .da-dot { background: #1f7a49; }
+  .da-bool.is-no  { background: #f4efeb; color: #8a7566; border-color: #ece1d8; }
+  .da-bool.is-no .da-dot { background: #b8a89c; }
+
+  /* ── Documento ── */
+  .da-doc-link { display: inline-flex; align-items: center; gap: .45rem; align-self: flex-start;
+    font-size: .85rem; font-weight: 600; color: #c9490a; text-decoration: none;
+    padding: .5rem .8rem; border-radius: 12px; background: #fff2e9; border: 1px solid #fbe3d3; }
+  .da-doc-link:hover { background: #fff; color: #c9490a; }
+
+  /* ── Responsáveis ── */
+  .da-resp-list { display: flex; flex-direction: column; gap: .9rem; }
+  .da-resp { border: 1px solid #f4e7de; border-radius: 16px; background: #fffaf6; padding: 1rem 1.1rem;
+    display: flex; flex-direction: column; gap: .75rem; }
+  .da-resp-top { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+  .da-resp-name { font-weight: 800; font-size: .98rem; color: var(--ink); }
+
+  /* ── Sub-bloco (inclusivo) ── */
+  .da-sub { border-top: 1px solid #f4e7de; padding-top: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+  .da-sub-title { margin: 0; font-size: .95rem; font-weight: 800; color: var(--ink); }
+
+  /* ── Detalhes recolhíveis ── */
+  .da-details { border-top: 1px solid #f4e7de; padding-top: .9rem; }
+  .da-details > summary { cursor: pointer; font-size: .85rem; font-weight: 700; color: #c9490a; list-style: none;
+    display: inline-flex; align-items: center; gap: .4rem; }
+  .da-details > summary::before { content: '+'; font-size: 1.1rem; line-height: 1; }
+  .da-details[open] > summary::before { content: '–'; }
+  .da-details > summary + * { margin-top: .9rem; }
+
+  /* ── Tags / diversos ── */
+  .da-tag-row { display: flex; flex-wrap: wrap; gap: .45rem; }
+  .da-empty-inline { margin: 0; font-size: .88rem; color: var(--ink-muted); font-style: italic; }
+
+  /* ── Duas colunas em telas largas ── */
+  @media (min-width: 880px) {
+    .da-columns { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .da-header-actions { width: 100%; }
+    .da-header-actions .pcf-btn { width: 100%; }
+  }
+</style>
 {% endblock %}

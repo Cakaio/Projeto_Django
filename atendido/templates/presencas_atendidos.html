@@ -4,72 +4,61 @@
 {% block titulo %}Chamada — {{ sabado_data|date:"d/m/Y"|default:"Hoje" }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 pb-24">
-  <div class="max-w-2xl mx-auto px-4 py-5">
+<div class="pa-page">
+  <div class="pcf-container pa-wrap">
 
-    <!-- Hero -->
-    <div class="rounded-2xl p-5 sm:p-7 mb-5 text-white relative overflow-hidden"
-         style="background:linear-gradient(135deg,#c75f06,#fe8210)">
-      <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10"></div>
-      <div class="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-white/10"></div>
-      <div class="relative z-10 flex items-start justify-between gap-4 flex-wrap">
-        <div class="flex items-center gap-3">
-          <div class="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-            <svg width="22" height="22" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-            </svg>
-          </div>
-          <div>
-            <p class="text-white/70 text-xs font-semibold uppercase tracking-wide">Chamada</p>
-            <h1 class="text-lg sm:text-xl font-bold leading-tight">Registro de Presenças</h1>
-          </div>
-        </div>
-        <div class="flex items-center gap-2 bg-white/20 px-3 py-2 rounded-xl text-sm font-semibold">
-          <svg width="15" height="15" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>
-          {% if sabado_data %}{{ sabado_data|date:"d/m/Y" }}{% else %}{{ hoje|date:"d/m/Y" }}{% endif %}
-        </div>
+    <!-- ─────────────────────────── CABEÇALHO LEVE ─────────────────────────── -->
+    <header class="pa-head" data-reveal>
+      <div class="pa-head-text">
+        <span class="pcf-eyebrow">Chamada</span>
+        <h1 class="pa-title">Registro de Presenças</h1>
+        <p class="pa-sub">Marque cada atendido como presente, ausente ou com falta justificada.</p>
       </div>
+      <span class="pcf-badge brand pa-datebadge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        {% if sabado_data %}{{ sabado_data|date:"d/m/Y" }}{% else %}{{ hoje|date:"d/m/Y" }}{% endif %}
+      </span>
+    </header>
 
-      <!-- Progresso geral -->
-      {% if atendidos %}
-      <div class="relative z-10 mt-4">
-        <div class="flex justify-between text-white/70 text-xs mb-1">
+    {% if atendidos %}
+    <!-- Progresso geral -->
+    <div class="pcf-card pa-progress-card" data-reveal>
+      <div class="pa-progress-head">
+        <span class="pa-progress-label">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
           <span id="prog-label">0 de {% with atendidos|length as total %}{{ total }}{% endwith %} marcados</span>
-          <span id="prog-pct">0%</span>
-        </div>
-        <div class="h-1.5 bg-white/20 rounded-full overflow-hidden">
-          <div id="prog-bar" class="h-full bg-white rounded-full transition-all duration-300" style="width:0%"></div>
-        </div>
+        </span>
+        <span class="pa-progress-pct" id="prog-pct">0%</span>
       </div>
-      {% endif %}
+      <div class="pcf-progress">
+        <span id="prog-bar" style="width:0%"></span>
+      </div>
     </div>
+    {% endif %}
 
     {% if not sabado_data %}
       <!-- Sem sábado hoje -->
-      <div class="bg-white border border-amber-200 rounded-2xl p-6 text-center shadow-sm">
-        <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
-          <svg width="22" height="22" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24">
+      <div class="pa-empty pa-empty-warn" data-reveal>
+        <div class="pa-empty-icon pa-empty-icon-warn">
+          <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
         </div>
-        <p class="font-semibold text-gray-800 mb-1">Nenhum sábado cadastrado para hoje</p>
-        <p class="text-sm text-gray-500">O registro de presenças só é permitido no dia do sábado cadastrado.</p>
+        <p class="pa-empty-title">Nenhum sábado cadastrado para hoje</p>
+        <p class="pa-empty-sub">O registro de presenças só é permitido no dia do sábado cadastrado.</p>
       </div>
 
     {% elif not atendidos %}
       <!-- Todos já registrados -->
-      <div class="bg-white border border-green-200 rounded-2xl p-6 text-center shadow-sm">
-        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-          <svg width="22" height="22" fill="none" stroke="#16a34a" stroke-width="2.5" viewBox="0 0 24 24">
+      <div class="pa-empty pa-empty-ok" data-reveal>
+        <div class="pa-empty-icon pa-empty-icon-ok">
+          <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </div>
-        <p class="font-semibold text-gray-800 mb-1">Chamada encerrada!</p>
-        <p class="text-sm text-gray-500">Todos os atendidos já foram registrados neste sábado.</p>
+        <p class="pa-empty-title">Chamada encerrada!</p>
+        <p class="pa-empty-sub">Todos os atendidos já foram registrados neste sábado.</p>
       </div>
 
     {% else %}
@@ -77,66 +66,45 @@
         {% csrf_token %}
 
         <!-- Legenda rápida -->
-        <div class="flex items-center gap-3 mb-4 flex-wrap">
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Legenda:</p>
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-700">
-            <span class="w-2 h-2 rounded-full bg-green-500"></span>P — Presente
-          </span>
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-100 text-red-700 text-xs font-700">
-            <span class="w-2 h-2 rounded-full bg-red-500"></span>A — Ausente
-          </span>
-          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-700 text-xs font-700">
-            <span class="w-2 h-2 rounded-full bg-amber-400"></span>J — Justificada
-          </span>
+        <div class="pa-legend" data-reveal>
+          <span class="pa-legend-title">Legenda</span>
+          <span class="pcf-badge ok"><span class="pa-dot pa-dot-ok" aria-hidden="true"></span>P — Presente</span>
+          <span class="pcf-badge danger"><span class="pa-dot pa-dot-danger" aria-hidden="true"></span>A — Ausente</span>
+          <span class="pcf-badge warn"><span class="pa-dot pa-dot-warn" aria-hidden="true"></span>J — Justificada</span>
         </div>
 
         <!-- Salas em accordion -->
         {% for sala in salas_com_atendidos %}
-          <details class="mb-3 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm" id="sala-{{ sala.codigo }}">
-            <summary class="flex items-center gap-3 px-4 py-4 cursor-pointer select-none list-none group">
-              <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-sm font-bold
-                {% if sala.codigo == 'VIOLETA' %}bg-violet-500
-                {% elif sala.codigo == 'ANIL' %}bg-blue-700
-                {% elif sala.codigo == 'AZUL' %}bg-sky-500
-                {% elif sala.codigo == 'VERDE' %}bg-green-600
-                {% elif sala.codigo == 'AMARELO' %}bg-yellow-500
-                {% elif sala.codigo == 'LARANJA' %}bg-orange-500
-                {% elif sala.codigo == 'VERMELHO' %}bg-red-600
-                {% else %}bg-pink-600{% endif %}">
-                {{ sala.nome|slice:":2" }}
-              </div>
-              <div class="flex-1">
-                <p class="font-700 text-gray-900 text-sm">{{ sala.nome }}</p>
-                <p class="text-xs text-gray-400 sala-prog" id="prog-{{ sala.codigo }}">Calculando…</p>
-              </div>
-              <span class="text-xs text-gray-400 font-semibold mr-1">{{ sala.atendidos|length }}</span>
-              <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
+          <details class="pcf-card pa-sala" id="sala-{{ sala.codigo }}" open>
+            <summary class="pa-sala-head">
+              <span class="pa-sala-chip pa-sala-{{ sala.codigo }}" aria-hidden="true">{{ sala.nome|slice:":2" }}</span>
+              <span class="pa-sala-info">
+                <span class="pa-sala-nome">{{ sala.nome }}</span>
+                <span class="pa-sala-prog sala-prog" id="prog-{{ sala.codigo }}">Calculando…</span>
+              </span>
+              <span class="pcf-badge pa-sala-count">{{ sala.atendidos|length }}</span>
+              <svg class="pa-chevron" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9l-7 7-7-7"/></svg>
             </summary>
 
-            <div class="border-t border-gray-100 divide-y divide-gray-50">
+            <div class="pa-list">
               {% for atendido in sala.atendidos %}
-              <div class="atendido-row px-4 py-3 flex items-center gap-3" data-sala="{{ sala.codigo }}">
-                <!-- Avatar -->
-                <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm"
-                     style="background:rgba(254,130,16,.12);color:#c75f06">
-                  {{ atendido.nome|slice:":1" }}
-                </div>
-                <!-- Nome -->
-                <div class="flex-1 min-w-0">
-                  <p class="font-600 text-gray-900 text-sm truncate">{{ atendido.nome }}</p>
-                  {% if atendido.familia %}<p class="text-xs text-gray-400 truncate">{{ atendido.familia }}</p>{% endif %}
+              <div class="atendido-row pa-row" data-sala="{{ sala.codigo }}">
+                <span class="pa-avatar" aria-hidden="true">{{ atendido.nome|slice:":1" }}</span>
+                <div class="pa-row-info">
+                  <p class="pa-row-nome">{{ atendido.nome }}</p>
+                  {% if atendido.familia %}<p class="pa-row-familia">{{ atendido.familia }}</p>{% endif %}
                 </div>
                 <!-- Botões P / A / J -->
                 <input type="hidden" name="presenca_{{ atendido.id }}" id="val-{{ atendido.id }}" value="">
-                <div class="flex gap-1.5 flex-shrink-0">
+                <div class="pa-opts">
                   <button type="button" onclick="marcar({{ atendido.id }}, 'PRESENTE', this)"
-                    class="opc-btn w-9 h-9 rounded-xl text-xs font-800 border-2 border-green-200 bg-green-50 text-green-600 transition-all active:scale-90"
+                    class="opc-btn pa-opt pa-opt-ok" aria-label="Presente"
                     data-val="PRESENTE" data-id="{{ atendido.id }}">P</button>
                   <button type="button" onclick="marcar({{ atendido.id }}, 'AUSENTE', this)"
-                    class="opc-btn w-9 h-9 rounded-xl text-xs font-800 border-2 border-red-200 bg-red-50 text-red-600 transition-all active:scale-90"
+                    class="opc-btn pa-opt pa-opt-danger" aria-label="Ausente"
                     data-val="AUSENTE" data-id="{{ atendido.id }}">A</button>
                   <button type="button" onclick="marcar({{ atendido.id }}, 'JUSTIFICADA', this)"
-                    class="opc-btn w-9 h-9 rounded-xl text-xs font-800 border-2 border-amber-200 bg-amber-50 text-amber-600 transition-all active:scale-90"
+                    class="opc-btn pa-opt pa-opt-warn" aria-label="Falta justificada"
                     data-val="JUSTIFICADA" data-id="{{ atendido.id }}">J</button>
                 </div>
               </div>
@@ -145,17 +113,15 @@
           </details>
         {% endfor %}
 
-        <!-- Botão fixo no fundo -->
-        <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 z-40 shadow-lg">
-          <div class="max-w-2xl mx-auto flex items-center gap-3">
-            <div class="flex-1 text-sm text-gray-500">
-              <span id="count-marcados" class="font-bold text-gray-900">0</span>
-              de <span class="font-bold text-gray-900">{{ atendidos|length }}</span> marcados
-            </div>
-            <button type="submit" id="btnSalvar"
-              class="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-white font-bold text-sm border-0 cursor-pointer transition-all active:scale-95"
-              style="background:linear-gradient(135deg,#c75f06,#fe8210);box-shadow:0 4px 14px rgba(254,130,16,.35)">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        <!-- Barra de ação fixa -->
+        <div class="pa-bar">
+          <div class="pcf-container pa-bar-inner">
+            <p class="pa-bar-count">
+              <span id="count-marcados">0</span>
+              de <strong>{{ atendidos|length }}</strong> marcados
+            </p>
+            <button type="submit" id="btnSalvar" class="pcf-btn pcf-btn-primary pcf-btn-lg">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
               Salvar Presenças
             </button>
           </div>
@@ -167,12 +133,102 @@
   </div>
 </div>
 
+{# Bloco enxuto: só LAYOUT/estados específicos desta tela. Visual base vem das classes .pcf-*. #}
 <style>
-  .opc-btn.ativo-PRESENTE { background:#16a34a!important;border-color:#16a34a!important;color:#fff!important;box-shadow:0 2px 8px rgba(22,163,74,.35); }
-  .opc-btn.ativo-AUSENTE  { background:#dc2626!important;border-color:#dc2626!important;color:#fff!important;box-shadow:0 2px 8px rgba(220,38,38,.35); }
-  .opc-btn.ativo-JUSTIFICADA { background:#d97706!important;border-color:#d97706!important;color:#fff!important;box-shadow:0 2px 8px rgba(217,119,6,.35); }
-  details[open] summary svg { transform: rotate(180deg); }
-  summary::-webkit-details-marker { display:none; }
+  .pa-page { background: hsl(var(--background)); min-height: 100vh; }
+  .pa-wrap { padding-top: clamp(1.5rem, 4vw, 2.5rem); padding-bottom: 7rem; max-width: 780px; }
+
+  /* ── Cabeçalho ── */
+  .pa-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .pa-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .pa-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.5rem, 4vw, 2.1rem); color: var(--ink); }
+  .pa-sub { margin: 0; font-size: .9rem; color: hsl(var(--muted-foreground)); max-width: 46ch; }
+  .pa-datebadge { flex-shrink: 0; font-size: .8rem; padding: .35rem .75rem; }
+
+  /* ── Progresso geral ── */
+  .pa-progress-card { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.25rem; padding: 1.1rem 1.25rem; }
+  .pa-progress-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .pa-progress-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .82rem; font-weight: 600; color: var(--ink-soft); }
+  .pa-progress-pct { font-size: .85rem; font-weight: 800; color: #e8560f; }
+
+  /* ── Legenda ── */
+  .pa-legend { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+  .pa-legend-title { font-size: .7rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-muted); }
+  .pa-dot { width: 7px; height: 7px; border-radius: 999px; }
+  .pa-dot-ok { background: #1f7a49; }
+  .pa-dot-danger { background: #b03636; }
+  .pa-dot-warn { background: #b8860b; }
+
+  /* ── Sala (accordion) ── */
+  .pa-sala { padding: 0; overflow: hidden; margin-bottom: 1rem; }
+  .pa-sala-head { display: flex; align-items: center; gap: .85rem; padding: 1rem 1.1rem; cursor: pointer; list-style: none; user-select: none; }
+  .pa-sala-head::-webkit-details-marker { display: none; }
+  .pa-sala-chip { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: .82rem; }
+  .pa-sala-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
+  .pa-sala-nome { font-weight: 800; font-size: .95rem; color: var(--ink); }
+  .pa-sala-prog { font-size: .76rem; color: var(--ink-muted); }
+  .pa-sala-count { flex-shrink: 0; }
+  .pa-chevron { color: var(--ink-muted); flex-shrink: 0; transition: transform .2s ease; }
+  .pa-sala[open] .pa-chevron { transform: rotate(180deg); }
+
+  /* Cores das salas (chip) */
+  .pa-sala-VIOLETA { background: #7c3aed; }
+  .pa-sala-ANIL    { background: #1d4ed8; }
+  .pa-sala-AZUL    { background: #0ea5e9; }
+  .pa-sala-VERDE   { background: #16a34a; }
+  .pa-sala-AMARELO { background: #eab308; }
+  .pa-sala-LARANJA { background: #f97316; }
+  .pa-sala-VERMELHO{ background: #dc2626; }
+  .pa-sala-FAMILIA_FELIZ { background: #db2777; }
+
+  /* ── Linhas de atendidos ── */
+  .pa-list { border-top: 1px solid #f4e7de; }
+  .pa-row { display: flex; align-items: center; gap: .8rem; padding: .75rem 1.1rem; border-bottom: 1px solid #f7e9df; }
+  .pa-row:last-child { border-bottom: 0; }
+  .pa-avatar { width: 40px; height: 40px; border-radius: 999px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .9rem; background: #fff0e6; color: #c75f06; text-transform: uppercase; }
+  .pa-row-info { flex: 1; min-width: 0; }
+  .pa-row-nome { margin: 0; font-weight: 700; font-size: .9rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pa-row-familia { margin: .1rem 0 0; font-size: .76rem; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Botões P / A / J (alvos de toque grandes) ── */
+  .pa-opts { display: flex; gap: .4rem; flex-shrink: 0; }
+  .pa-opt {
+    width: 44px; height: 44px; border-radius: 13px; border: 1.5px solid;
+    font-size: .9rem; font-weight: 800; cursor: pointer; background: #fff;
+    transition: transform .12s ease, background .12s, border-color .12s, color .12s, box-shadow .12s;
+  }
+  .pa-opt:active { transform: scale(.9); }
+  .pa-opt-ok     { border-color: #cfead9; background: #f2faf5; color: #1f7a49; }
+  .pa-opt-danger { border-color: #f2d0d0; background: #fdf3f3; color: #b03636; }
+  .pa-opt-warn   { border-color: #f0e2bd; background: #fdf9ef; color: #8a6a10; }
+
+  .opc-btn.ativo-PRESENTE    { background: #16a34a; border-color: #16a34a; color: #fff; box-shadow: 0 3px 10px rgba(22,163,74,.35); }
+  .opc-btn.ativo-AUSENTE     { background: #dc2626; border-color: #dc2626; color: #fff; box-shadow: 0 3px 10px rgba(220,38,38,.35); }
+  .opc-btn.ativo-JUSTIFICADA { background: #d99a1a; border-color: #d99a1a; color: #fff; box-shadow: 0 3px 10px rgba(217,154,26,.35); }
+
+  /* ── Barra de ação fixa ── */
+  .pa-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; background: hsl(var(--card)); border-top: 1px solid #f4e7de; box-shadow: 0 -8px 24px -18px rgba(120,50,10,.5); padding: .7rem 0; }
+  .pa-bar-inner { max-width: 780px; display: flex; align-items: center; gap: 1rem; }
+  .pa-bar-count { margin: 0; flex: 1; font-size: .88rem; color: var(--ink-muted); }
+  .pa-bar-count #count-marcados, .pa-bar-count strong { font-weight: 800; color: var(--ink); }
+
+  /* ── Estados vazios ── */
+  .pa-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem; padding: clamp(2.25rem, 6vw, 3.5rem) 1.5rem; border-radius: 24px; }
+  .pa-empty-warn { background: #fffaf6; border: 1.5px dashed #f2d3bd; }
+  .pa-empty-ok { background: #f4faf6; border: 1.5px dashed #cfead9; }
+  .pa-empty-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; margin-bottom: .3rem; }
+  .pa-empty-icon-warn { background: #fff0e6; color: #d97706; }
+  .pa-empty-icon-ok { background: #eaf7ef; color: #16a34a; }
+  .pa-empty-title { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .pa-empty-sub { margin: 0; max-width: 40ch; font-size: .88rem; color: var(--ink-muted); }
+
+  /* ── Telas estreitas (~360px) ── */
+  @media (max-width: 420px) {
+    .pa-datebadge { align-self: flex-start; }
+    .pa-opt { width: 42px; height: 42px; }
+    .pa-bar-count { font-size: .8rem; }
+    .pa-bar .pcf-btn { padding: .8rem 1.1rem; }
+  }
 </style>
 
 <script>
@@ -202,7 +258,8 @@
     const count = Object.keys(marcados).length;
     const pct   = totalAtendidos > 0 ? Math.round((count / totalAtendidos) * 100) : 0;
 
-    document.getElementById('count-marcados').textContent = count;
+    const countEl = document.getElementById('count-marcados');
+    if (countEl) countEl.textContent = count;
     const bar   = document.getElementById('prog-bar');
     const label = document.getElementById('prog-label');
     const pctEl = document.getElementById('prog-pct');
@@ -221,9 +278,8 @@
     });
   }
 
-  // Marcar todos como Presente de uma sala
+  // Marcar todos como Presente de uma sala (duplo toque no cabeçalho)
   document.querySelectorAll('details').forEach(det => {
-    // Duplo toque no header marca todos como presentes
     let lastTap = 0;
     det.querySelector('summary')?.addEventListener('click', e => {
       const now = Date.now();
@@ -243,7 +299,7 @@
     const btn = document.getElementById('btnSalvar');
     btn.disabled = true;
     btn.style.opacity = '.7';
-    btn.innerHTML = `<svg width="15" height="15" class="animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Salvando…`;
+    btn.innerHTML = `<svg width="15" height="15" class="animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Salvando…`;
   });
 
   atualizarProgresso();

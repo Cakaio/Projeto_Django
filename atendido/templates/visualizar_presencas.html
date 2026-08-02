@@ -4,40 +4,31 @@
 {% block titulo %}Histórico de Presenças{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 pb-10">
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+<div class="vp-page">
+  <div class="pcf-container vp-wrap">
 
-    <!-- Hero -->
-    <div class="rounded-2xl p-5 sm:p-7 mb-6 text-white relative overflow-hidden"
-         style="background:linear-gradient(135deg,#c75f06,#fe8210)">
-      <div class="absolute -top-10 -right-10 w-36 h-36 rounded-full bg-white/10"></div>
-      <div class="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <p class="text-white/70 text-xs font-semibold uppercase tracking-wider mb-1">Relatório</p>
-          <h1 class="text-xl sm:text-2xl font-bold">Presenças dos Atendidos</h1>
-          <p class="text-white/75 text-sm mt-1">Visualize frequência por sala e por sábados</p>
-        </div>
-        <a href="{% url 'atendido:registrar_presencas' %}"
-           class="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 transition-colors text-sm font-semibold text-white"
-           style="text-decoration:none;">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-          </svg>
-          Fazer chamada
-        </a>
+    <!-- ─────────────────────────── CABEÇALHO LEVE ─────────────────────────── -->
+    <header class="vp-head" data-reveal>
+      <div class="vp-head-text">
+        <span class="pcf-eyebrow">Relatório</span>
+        <h1 class="vp-title">Presenças dos Atendidos</h1>
+        <p class="vp-sub">Visualize a frequência por sala e por sábados do projeto.</p>
       </div>
-    </div>
+      <a href="{% url 'atendido:registrar_presencas' %}" class="pcf-btn pcf-btn-primary vp-head-cta">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        Fazer chamada
+      </a>
+    </header>
 
-    <!-- Filtros -->
-    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 mb-5">
+    <!-- ─────────────────────────────── FILTROS ─────────────────────────────── -->
+    <section class="pcf-card vp-card vp-filtros" data-reveal>
       <form method="get">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="vp-filtros-grid">
 
           <!-- Sala -->
-          <div>
-            <label class="block text-xs font-700 text-gray-500 uppercase tracking-wide mb-1.5">Sala</label>
-            <select name="sala"
-              class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 bg-white outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all cursor-pointer">
+          <div class="pcf-field">
+            <label class="pcf-label" for="vp-sala">Sala</label>
+            <select id="vp-sala" name="sala" class="pcf-input vp-select">
               <option value="TODAS" {% if sala_atual == "TODAS" %}selected{% endif %}>Todas as salas</option>
               {% for sala_item in salas_disponiveis %}
                 <option value="{{ sala_item }}" {% if sala_atual == sala_item %}selected{% endif %}>{{ sala_item }}</option>
@@ -46,130 +37,132 @@
           </div>
 
           <!-- Sábados -->
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="text-xs font-700 text-gray-500 uppercase tracking-wide">Sábados</label>
-              <div class="flex gap-1.5">
-                <button type="button" onclick="marcarTodos()"
-                  class="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer border-0 font-semibold">Todos</button>
-                <button type="button" onclick="limparTodos()"
-                  class="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer border-0 font-semibold">Limpar</button>
+          <div class="pcf-field">
+            <div class="vp-sabados-head">
+              <label class="pcf-label">Sábados</label>
+              <div class="vp-sabados-tools">
+                <button type="button" onclick="marcarTodos()" class="pcf-btn pcf-btn-ghost pcf-btn-sm vp-mini-btn">Todos</button>
+                <button type="button" onclick="limparTodos()" class="pcf-btn pcf-btn-ghost pcf-btn-sm vp-mini-btn">Limpar</button>
               </div>
             </div>
-            <div class="border border-gray-200 rounded-xl p-3 bg-gray-50 max-h-40 overflow-y-auto flex flex-wrap gap-2">
+            <div class="vp-sabados-box">
               {% for sabado in sabados_disponiveis %}
-                <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                <label class="vp-check">
                   <input type="checkbox" name="sabados" value="{{ sabado.id }}"
-                    {% if sabado.id in sabados_selecionados %}checked{% endif %}
-                    class="w-3.5 h-3.5 accent-orange-500 cursor-pointer">
-                  <span class="text-xs font-semibold text-gray-700 whitespace-nowrap">{{ sabado.data|date:"d/m/Y" }}</span>
+                         {% if sabado.id in sabados_selecionados %}checked{% endif %}>
+                  <span>{{ sabado.data|date:"d/m/Y" }}</span>
                 </label>
               {% empty %}
-                <p class="text-xs text-gray-400 italic">Nenhum sábado cadastrado.</p>
+                <p class="vp-empty-inline">Nenhum sábado cadastrado.</p>
               {% endfor %}
             </div>
           </div>
         </div>
 
-        <div class="flex justify-end mt-4">
-          <button type="submit"
-            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-bold border-0 cursor-pointer transition-all active:scale-95"
-            style="background:linear-gradient(135deg,#c75f06,#fe8210);box-shadow:0 4px 12px rgba(254,130,16,.3)">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <div class="vp-filtros-actions">
+          <button type="submit" class="pcf-btn pcf-btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             Aplicar filtros
           </button>
         </div>
       </form>
-    </div>
+    </section>
 
-    <!-- KPIs -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
-      <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
-        <p class="text-xs font-600 text-gray-400 mb-1">Atendidos</p>
-        <p class="text-2xl font-900 text-gray-900">{{ total_atendidos }}</p>
+    <!-- ─────────────────────────────── KPIs ─────────────────────────────── -->
+    <section class="vp-kpis" data-reveal>
+      <div class="pcf-card pcf-card-sm vp-kpi">
+        <span class="vp-kpi-label">Atendidos</span>
+        <span class="vp-kpi-num">{{ total_atendidos }}</span>
       </div>
-      <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
-        <p class="text-xs font-600 text-gray-400 mb-1">Sábados</p>
-        <p class="text-2xl font-900 text-gray-900">{{ total_sabados }}</p>
+      <div class="pcf-card pcf-card-sm vp-kpi">
+        <span class="vp-kpi-label">Sábados</span>
+        <span class="vp-kpi-num">{{ total_sabados }}</span>
       </div>
-      <div class="bg-white border border-green-200 rounded-2xl shadow-sm p-4">
-        <p class="text-xs font-600 text-green-600 mb-1">Presenças</p>
-        <p class="text-2xl font-900 text-green-700">{{ total_presentes }}</p>
+      <div class="pcf-card pcf-card-sm vp-kpi vp-kpi-ok">
+        <span class="vp-kpi-label">Presenças</span>
+        <span class="vp-kpi-num">{{ total_presentes }}</span>
       </div>
-      <div class="bg-white border border-red-200 rounded-2xl shadow-sm p-4">
-        <p class="text-xs font-600 text-red-500 mb-1">Ausências</p>
-        <p class="text-2xl font-900 text-red-600">{{ total_ausentes }}</p>
+      <div class="pcf-card pcf-card-sm vp-kpi vp-kpi-danger">
+        <span class="vp-kpi-label">Ausências</span>
+        <span class="vp-kpi-num">{{ total_ausentes }}</span>
       </div>
-      <div class="bg-white border border-amber-200 rounded-2xl shadow-sm p-4">
-        <p class="text-xs font-600 text-amber-600 mb-1">Justificadas</p>
-        <p class="text-2xl font-900 text-amber-700">{{ total_justificadas }}</p>
+      <div class="pcf-card pcf-card-sm vp-kpi vp-kpi-warn">
+        <span class="vp-kpi-label">Justificadas</span>
+        <span class="vp-kpi-num">{{ total_justificadas }}</span>
       </div>
-      <div class="rounded-2xl shadow-sm p-4 text-white" style="background:linear-gradient(135deg,#c75f06,#fe8210)">
-        <p class="text-xs font-600 text-white/70 mb-1">% Presença</p>
-        <p class="text-2xl font-900">{{ percentual_geral }}%</p>
+      <div class="pcf-card pcf-card-sm vp-kpi vp-kpi-brand">
+        <span class="vp-kpi-label">% Presença</span>
+        <span class="vp-kpi-num">{{ percentual_geral }}%</span>
       </div>
-    </div>
+    </section>
 
-    <!-- Gráfico -->
-    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 mb-5">
-      <h2 class="font-700 text-gray-900 mb-0.5">Presença por sábado</h2>
-      <p class="text-sm text-gray-500 mb-4">Quantidade de atendidos presentes em cada sábado.</p>
-      <div style="height:280px;">
+    <!-- ─────────────────────────────── GRÁFICO ─────────────────────────────── -->
+    <section class="pcf-card vp-card" data-reveal>
+      <div class="vp-card-head">
+        <h2 class="vp-card-title">Presença por sábado</h2>
+        <p class="vp-card-desc">Quantidade de atendidos presentes em cada sábado.</p>
+      </div>
+      <div class="vp-chart">
         <canvas id="graficoPresencas"></canvas>
       </div>
-    </div>
+    </section>
 
-    <!-- Tabela -->
-    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-      <div class="px-5 py-4 border-b border-gray-100">
-        <h2 class="font-700 text-gray-900">Tabela de frequência</h2>
-        <p class="text-sm text-gray-500 mt-0.5">Status de presença por atendido e percentual individual.</p>
+    <!-- ─────────────────────────────── TABELA ─────────────────────────────── -->
+    <section class="pcf-card vp-card vp-table-card" data-reveal>
+      <div class="vp-card-head">
+        <h2 class="vp-card-title">Tabela de frequência</h2>
+        <p class="vp-card-desc">Status de presença por atendido e percentual individual.</p>
       </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm border-collapse" style="min-width:{{ sabados|length|add:3 }}00px">
+
+      <div class="vp-legend" aria-hidden="false">
+        <span class="vp-leg"><span class="vp-chip vp-chip-p">P</span> Presente</span>
+        <span class="vp-leg"><span class="vp-chip vp-chip-a">A</span> Ausente</span>
+        <span class="vp-leg"><span class="vp-chip vp-chip-j">J</span> Justificada</span>
+        <span class="vp-leg"><span class="vp-chip vp-chip-n">—</span> Sem registro</span>
+      </div>
+
+      <div class="vp-table-scroll" style="overflow-x:auto">
+        <table class="vp-table" style="min-width:{{ sabados|length|add:3 }}00px">
           <thead>
-            <tr class="bg-gray-50 border-b border-gray-200">
-              <th class="text-left px-4 py-3 text-xs font-700 text-gray-500 uppercase tracking-wide sticky left-0 bg-gray-50 whitespace-nowrap">Atendido</th>
-              <th class="text-left px-4 py-3 text-xs font-700 text-gray-500 uppercase tracking-wide whitespace-nowrap">Sala</th>
+            <tr>
+              <th class="vp-sticky vp-col-nome">Atendido</th>
+              <th>Sala</th>
               {% for sabado in sabados %}
-                <th class="text-center px-3 py-3 text-xs font-700 text-gray-500 uppercase tracking-wide whitespace-nowrap">{{ sabado.data|date:"d/m" }}</th>
+                <th class="vp-th-center">{{ sabado.data|date:"d/m" }}</th>
               {% endfor %}
-              <th class="text-center px-4 py-3 text-xs font-700 text-gray-500 uppercase tracking-wide whitespace-nowrap">%</th>
+              <th class="vp-th-center">%</th>
             </tr>
           </thead>
           <tbody>
             {% for linha in dados_tabela %}
-            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <td class="px-4 py-3 font-600 text-gray-900 whitespace-nowrap sticky left-0 bg-white">{{ linha.atendido.nome }}</td>
-              <td class="px-4 py-3 whitespace-nowrap">
-                <span class="inline-block px-2 py-0.5 rounded-full text-xs font-700"
-                      style="background:rgba(254,130,16,.1);color:#c75f06">{{ linha.sala }}</span>
-              </td>
+            <tr>
+              <td class="vp-sticky vp-col-nome vp-nome">{{ linha.atendido.nome }}</td>
+              <td><span class="pcf-badge brand vp-sala-badge">{{ linha.sala }}</span></td>
               {% for item in linha.presencas %}
-              <td class="px-3 py-3 text-center">
+              <td class="vp-td-center">
                 {% if item.status == "PRESENTE" %}
-                  <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-green-100 text-green-700 text-xs font-800" title="Presente">P</span>
+                  <span class="vp-chip vp-chip-p" title="Presente">P</span>
                 {% elif item.status == "AUSENTE" %}
-                  <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-red-100 text-red-700 text-xs font-800" title="Ausente">A</span>
+                  <span class="vp-chip vp-chip-a" title="Ausente">A</span>
                 {% elif item.status == "JUSTIFICADA" %}
-                  <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-amber-100 text-amber-700 text-xs font-800" title="Justificada">J</span>
+                  <span class="vp-chip vp-chip-j" title="Justificada">J</span>
                 {% else %}
-                  <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 text-gray-400 text-xs font-600" title="Sem registro">—</span>
+                  <span class="vp-chip vp-chip-n" title="Sem registro">—</span>
                 {% endif %}
               </td>
               {% endfor %}
-              <td class="px-4 py-3 text-center">
-                <span class="inline-block px-2.5 py-1 rounded-full text-xs font-800
-                  {% if linha.percentual >= 75 %}bg-green-100 text-green-700
-                  {% elif linha.percentual >= 50 %}bg-amber-100 text-amber-700
-                  {% else %}bg-red-100 text-red-700{% endif %}">
+              <td class="vp-td-center">
+                <span class="vp-pct
+                  {% if linha.percentual >= 75 %}vp-pct-ok
+                  {% elif linha.percentual >= 50 %}vp-pct-warn
+                  {% else %}vp-pct-danger{% endif %}">
                   {{ linha.percentual }}%
                 </span>
               </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="{{ sabados|length|add:3 }}" class="px-4 py-10 text-center text-gray-400 text-sm">
+              <td colspan="{{ sabados|length|add:3 }}" class="vp-table-empty">
                 Nenhum atendido encontrado com os filtros selecionados.
               </td>
             </tr>
@@ -177,7 +170,7 @@
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
 
   </div>
 </div>
@@ -197,8 +190,8 @@
       datasets: [{
         label: 'Atendidos presentes',
         data: dados,
-        backgroundColor: 'rgba(254,130,16,.25)',
-        borderColor: '#fe8210',
+        backgroundColor: 'rgba(232,86,15,.22)',
+        borderColor: '#e8560f',
         borderWidth: 2,
         borderRadius: 6,
       }]
@@ -208,10 +201,114 @@
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f3f4f6' } },
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f4e7de' } },
         x: { grid: { display: false } }
       }
     }
   });
 </script>
+
+{# Bloco enxuto: só LAYOUT específico desta tela. O visual vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .vp-page { background: hsl(var(--background)); min-height: 100vh; }
+  .vp-wrap { padding-top: clamp(1.75rem, 4vw, 2.75rem); padding-bottom: clamp(2.5rem, 6vw, 4rem); }
+
+  /* ── Cabeçalho ── */
+  .vp-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .vp-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .vp-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.6rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .vp-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .vp-head-cta { flex-shrink: 0; }
+
+  /* ── Cards genéricos ── */
+  .vp-card { margin-bottom: 1.25rem; }
+  .vp-card-head { margin-bottom: 1rem; }
+  .vp-card-title { margin: 0 0 .2rem; font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .vp-card-desc { margin: 0; font-size: .85rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Filtros ── */
+  .vp-filtros-grid { display: grid; grid-template-columns: 1fr; gap: 1.1rem; }
+  .vp-select { cursor: pointer; }
+  .vp-sabados-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .vp-sabados-tools { display: flex; gap: .4rem; }
+  .vp-mini-btn { padding: .3rem .7rem; font-size: .74rem; }
+  .vp-sabados-box {
+    display: flex; flex-wrap: wrap; gap: .5rem; align-content: flex-start;
+    max-height: 10rem; overflow-y: auto;
+    padding: .75rem; border: 1px solid #f0dfd3; border-radius: 12px; background: var(--cream);
+  }
+  .vp-check { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; user-select: none;
+    font-size: .78rem; font-weight: 600; color: var(--ink-soft); white-space: nowrap; }
+  .vp-check input { width: 15px; height: 15px; accent-color: #e8560f; cursor: pointer; }
+  .vp-empty-inline { margin: 0; font-size: .78rem; font-style: italic; color: var(--ink-muted); }
+  .vp-filtros-actions { display: flex; justify-content: flex-end; margin-top: 1.1rem; }
+
+  /* ── KPIs ── */
+  .vp-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
+  .vp-kpi { display: flex; flex-direction: column; gap: .25rem; }
+  .vp-kpi-label { font-size: .72rem; font-weight: 700; letter-spacing: .04em; color: var(--ink-muted); }
+  .vp-kpi-num { font-size: clamp(1.4rem, 3vw, 1.9rem); font-weight: 800; letter-spacing: -.02em; color: var(--ink); line-height: 1; }
+  .vp-kpi-ok     .vp-kpi-label { color: #1f7a49; }
+  .vp-kpi-ok     .vp-kpi-num   { color: #1f7a49; }
+  .vp-kpi-danger .vp-kpi-label { color: #b03636; }
+  .vp-kpi-danger .vp-kpi-num   { color: #b03636; }
+  .vp-kpi-warn   .vp-kpi-label { color: #8a6a10; }
+  .vp-kpi-warn   .vp-kpi-num   { color: #8a6a10; }
+  .vp-kpi-brand { background: var(--brand-grad); border-color: transparent; }
+  .vp-kpi-brand .vp-kpi-label { color: rgba(255,255,255,.85); }
+  .vp-kpi-brand .vp-kpi-num   { color: #fff; }
+
+  /* ── Gráfico ── */
+  .vp-chart { height: 280px; }
+
+  /* ── Legenda da tabela ── */
+  .vp-legend { display: flex; flex-wrap: wrap; gap: .9rem; margin-bottom: 1rem; }
+  .vp-leg { display: inline-flex; align-items: center; gap: .4rem; font-size: .76rem; font-weight: 600; color: var(--ink-soft); }
+
+  /* ── Chips de status (usados na tabela e legenda) ── */
+  .vp-chip { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+    border-radius: 9px; font-size: .74rem; font-weight: 800; }
+  .vp-chip-p { background: #eaf7ef; color: #1f7a49; }
+  .vp-chip-a { background: #fdeaea; color: #b03636; }
+  .vp-chip-j { background: #fdf3dd; color: #8a6a10; }
+  .vp-chip-n { background: #f4efeb; color: #a8968b; font-weight: 600; }
+
+  /* ── Tabela ── */
+  .vp-table-card { padding-bottom: 1rem; }
+  .vp-table-scroll { border-top: 1px solid #f4e7de; margin: 0 -.35rem; }
+  .vp-table { width: 100%; border-collapse: collapse; }
+  .vp-table th { text-align: left; font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    color: #a8968b; padding: .7rem .8rem; border-bottom: 1px solid #f4e7de; background: var(--cream); white-space: nowrap; }
+  .vp-table td { padding: .65rem .8rem; border-bottom: 1px solid #f7e9df; font-size: .86rem; color: var(--ink-soft); white-space: nowrap; }
+  .vp-table tbody tr:last-child td { border-bottom: 0; }
+  .vp-table tbody tr { transition: background .12s ease; }
+  .vp-table tbody tr:hover td { background: #fffaf6; }
+  .vp-th-center, .vp-td-center { text-align: center; }
+  .vp-nome { font-weight: 700; color: var(--ink); }
+  .vp-sticky { position: sticky; left: 0; z-index: 1; }
+  th.vp-sticky { background: var(--cream); }
+  td.vp-sticky { background: #fff; }
+  .vp-table tbody tr:hover td.vp-sticky { background: #fffaf6; }
+  .vp-sala-badge { font-size: .68rem; }
+  .vp-table-empty { padding: 2.75rem 1rem !important; text-align: center; color: var(--ink-muted); font-size: .88rem; }
+
+  /* ── Percentual ── */
+  .vp-pct { display: inline-block; padding: .2rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 800; }
+  .vp-pct-ok     { background: #eaf7ef; color: #1f7a49; }
+  .vp-pct-warn   { background: #fdf3dd; color: #8a6a10; }
+  .vp-pct-danger { background: #fdeaea; color: #b03636; }
+
+  /* ── Breakpoints ── */
+  @media (min-width: 640px) {
+    .vp-filtros-grid { grid-template-columns: 1fr 1fr; }
+    .vp-kpis { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (min-width: 1024px) {
+    .vp-kpis { grid-template-columns: repeat(6, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .vp-head-cta { width: 100%; }
+    .vp-filtros-actions .pcf-btn { width: 100%; }
+  }
+</style>
 {% endblock %}

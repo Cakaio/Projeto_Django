@@ -4,358 +4,282 @@
 {% block titulo %}Salas e Atendidos{% endblock %}
 
 {% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .lst- para a listagem,   #}
+{# .dossier-/.field- para o modal da ficha). O visual base vem das classes .pcf-*. #}
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
-  :root {
-    --primary: #4f46e5;
-    --primary-dark: #4338ca;
-    --primary-light: #818cf8;
-    --secondary: #7c3aed;
-    --bg: #F9F9F8;
-    --bg-card: #FFFFFF;
-    --fg: #1C1C1A;
-    --fg-muted: #78776F;
-    --border: #E8E8E4;
-    --alert: #D95D39;
-    --alert-10: rgba(217,93,57,0.1);
-    --alert-15: rgba(217,93,57,0.15);
-    --alert-25: rgba(217,93,57,0.25);
-    --primary-10: rgba(79,70,229,0.1);
-    --primary-15: rgba(79,70,229,0.15);
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0/.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0/.1),0 2px 4px -2px rgb(0 0 0/.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1);
+  /* ===================== LISTAGEM ===================== */
+  .lst-page { background: hsl(var(--background)); }
+  .lst-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Cabeçalho leve */
+  .lst-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .lst-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .lst-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .lst-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .lst-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* Busca */
+  .lst-search { display: flex; align-items: center; gap: .75rem; background: hsl(var(--card)); border: 1px solid #f0dfd3; border-radius: 14px; padding: .7rem 1rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-warm-sm); }
+  .lst-search svg { color: var(--ink-muted); flex-shrink: 0; }
+  .lst-search input { border: none; outline: none; flex: 1; min-width: 0; font-size: .95rem; color: var(--ink); background: transparent; font-family: inherit; }
+  .lst-search input::placeholder { color: var(--ink-muted); }
+  #searchCount { font-size: .82rem; color: var(--ink-muted); white-space: nowrap; }
+
+  /* Acordeão de salas */
+  .lst-accordion { display: flex; flex-direction: column; gap: 1rem; }
+  .lst-sala { padding: 0; overflow: hidden; }
+  .lst-sala-summary { display: flex; align-items: center; gap: .9rem; padding: 1.1rem 1.25rem; cursor: pointer; list-style: none; user-select: none; }
+  .lst-sala-summary::-webkit-details-marker { display: none; }
+  .lst-sala-nome { font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); flex-grow: 1; min-width: 0; }
+  .lst-sala-count { flex-shrink: 0; }
+  .lst-sala-arrow { color: var(--ink-muted); flex-shrink: 0; transition: transform .25s ease; }
+  .lst-sala[open] > .lst-sala-summary .lst-sala-arrow { transform: rotate(180deg); }
+  .lst-sala-body { padding: 0 1.25rem 1.25rem; }
+
+  /* Cards de atendido */
+  .lst-list { display: flex; flex-direction: column; gap: .75rem; }
+  .lst-card { display: flex; align-items: center; gap: 1rem; padding: .9rem 1.1rem; background: hsl(var(--card)); border: 1px solid #f4e7de; border-radius: 16px; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .lst-card:hover { transform: translateY(-2px); border-color: #f7c9a8; box-shadow: var(--shadow-warm-sm); }
+  .lst-card.hidden-search { display: none !important; }
+
+  .lst-avatar { width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0; background: var(--brand-grad); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.2rem; text-transform: uppercase; }
+  .lst-info { flex-grow: 1; min-width: 0; }
+  .lst-nome { font-weight: 700; color: var(--ink); font-size: 1rem; margin-bottom: .2rem; }
+  .lst-familia { font-size: .85rem; color: var(--ink-muted); display: flex; align-items: flex-start; gap: .375rem; line-height: 1.4; }
+  .lst-familia svg { flex-shrink: 0; margin-top: .15rem; }
+  .lst-familia a { color: #c9490a; font-weight: 600; text-decoration: none; }
+  .lst-familia a:hover { text-decoration: underline; }
+  .lst-ver { flex-shrink: 0; }
+
+  /* Estado vazio da sala */
+  .lst-empty { display: flex; align-items: center; justify-content: center; gap: .625rem; padding: 1.5rem; color: var(--ink-muted); background: #fffaf6; border-radius: 14px; border: 1.5px dashed #f2d3bd; font-size: .9rem; }
+
+  @media (max-width: 560px) {
+    .lst-head-actions { width: 100%; }
+    .lst-head-actions .pcf-btn { flex: 1; }
+    .lst-card { flex-direction: column; text-align: center; }
+    .lst-familia { justify-content: center; }
+    .lst-ver { width: 100%; }
+    .lst-ver.pcf-btn { justify-content: center; }
   }
 
-  /* ===== HERO ===== */
-  .hero-section {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-    border-radius: 1.5rem;
-    padding: 3rem 2rem;
-    margin-bottom: 2rem;
-    position: relative;
-    overflow: hidden;
-  }
-  .hero-section::before, .hero-section::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255,255,255,.1);
-  }
-  .hero-section::before { width:200px;height:200px;top:-50px;right:-50px; }
-  .hero-section::after  { width:150px;height:150px;bottom:-30px;left:-30px; }
-  .hero-title    { color:#fff;font-size:2rem;font-weight:700;margin:0;position:relative;z-index:1; }
-  .hero-subtitle { color:rgba(255,255,255,.85);font-size:1rem;margin-top:.5rem;position:relative;z-index:1; }
-
-  /* ===== SEARCH ===== */
-  .search-wrap {
-    display:flex;align-items:center;gap:.75rem;
-    background:#fff;border:1px solid var(--border);border-radius:.75rem;
-    padding:.625rem 1rem;margin-bottom:1.5rem;
-    box-shadow:var(--shadow-sm);
-  }
-  .search-wrap input {
-    border:none;outline:none;flex:1;font-size:.9375rem;color:var(--fg);background:transparent;
-    font-family:'Inter',sans-serif;
-  }
-  .search-wrap input::placeholder { color:var(--fg-muted); }
-  #searchCount { font-size:.8125rem;color:var(--fg-muted);white-space:nowrap; }
-
-  /* ===== ACCORDION (details/summary) ===== */
-  .custom-accordion { display:flex;flex-direction:column;gap:1rem; }
-
-  .sala-card {
-    background:#fff;border-radius:1rem;border:1px solid var(--border);
-    box-shadow:var(--shadow-md);overflow:hidden;transition:box-shadow .2s;
-  }
-  .sala-card:hover { box-shadow:var(--shadow-lg); }
-
-  .sala-card summary {
-    display:flex;align-items:center;gap:1rem;padding:1.25rem 1.5rem;
-    cursor:pointer;list-style:none;user-select:none;
-    background:#fff;transition:background .2s;
-  }
-  .sala-card summary::-webkit-details-marker { display:none; }
-  .sala-card[open] > summary {
-    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
-  }
-  .sala-card[open] > summary .sala-nome   { color:#fff; }
-  .sala-card[open] > summary .sala-icon   { background:rgba(255,255,255,.2);color:#fff; }
-  .sala-card[open] > summary .sala-arrow  { color:#fff;transform:rotate(180deg); }
-  .sala-card[open] > summary .sala-count  { background:rgba(255,255,255,.2);color:#fff; }
-
-  .sala-icon {
-    width:48px;height:48px;border-radius:12px;flex-shrink:0;
-    background:linear-gradient(135deg,var(--primary-light) 0%,var(--primary) 100%);
-    display:flex;align-items:center;justify-content:center;color:#fff;transition:all .2s;
-  }
-  .sala-nome  { font-size:1.125rem;font-weight:600;color:var(--fg);flex-grow:1; }
-  .sala-count {
-    font-size:.75rem;font-weight:600;padding:.25rem .625rem;border-radius:9999px;
-    background:var(--primary-10);color:var(--primary);transition:all .2s;
-  }
-  .sala-arrow { color:var(--fg-muted);transition:transform .25s; }
-
-  .sala-body { padding:1.5rem;background:var(--bg); }
-
-  /* ===== ATENDIDO CARDS ===== */
-  .atendidos-list { display:flex;flex-direction:column;gap:.75rem; }
-
-  .atendido-card {
-    display:flex;align-items:center;gap:1rem;padding:1rem 1.25rem;
-    background:#fff;border-radius:.75rem;border:1px solid var(--border);
-    box-shadow:var(--shadow-sm);transition:all .2s;
-  }
-  .atendido-card:hover { box-shadow:var(--shadow-md);transform:translateY(-2px); }
-  .atendido-card.hidden-search { display:none !important; }
-
-  .atendido-avatar {
-    width:50px;height:50px;border-radius:50%;flex-shrink:0;
-    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
-    display:flex;align-items:center;justify-content:center;
-    color:#fff;font-weight:700;font-size:1.25rem;text-transform:uppercase;
-  }
-  .atendido-info { flex-grow:1;min-width:0; }
-  .atendido-nome   { font-weight:600;color:var(--fg);font-size:1rem;margin-bottom:.25rem; }
-  .atendido-familia {
-    font-size:.875rem;color:var(--fg-muted);
-    display:flex;align-items:center;gap:.375rem;
-  }
-
-  .btn-detalhes {
-    display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;
-    background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
-    color:#fff;border:none;border-radius:.5rem;font-size:.875rem;font-weight:500;
-    cursor:pointer;transition:all .2s;box-shadow:var(--shadow-sm);white-space:nowrap;
-    font-family:'Inter',sans-serif;
-  }
-  .btn-detalhes:hover { transform:translateY(-2px);box-shadow:var(--shadow-md);opacity:.95; }
-
-  .empty-message {
-    display:flex;align-items:center;justify-content:center;gap:.75rem;padding:2rem;
-    color:var(--fg-muted);background:#fff;border-radius:.75rem;border:2px dashed var(--border);
-  }
-
-  /* ===== DOSSIER MODAL ===== */
+  /* ===================== MODAL DA FICHA (dossier) ===================== */
+  /* Tokens escopados no overlay — paleta quente da marca; sem fontes externas. */
   .dossier-overlay {
-    position:fixed;inset:0;z-index:9999;display:flex;
-    align-items:center;justify-content:center;
-    background:rgba(28,28,26,.4);backdrop-filter:blur(4px);
-    font-family:'Inter',sans-serif;color:var(--fg);
+    --primary: #e8560f; --primary-dark: #c9490a; --primary-light: #ff9040;
+    --secondary: #f26b21;
+    --bg: #fffaf6; --bg-card: #ffffff; --fg: #1c130e; --fg-muted: #8a7566;
+    --border: #f4e7de;
+    --alert: #d95d39; --alert-15: rgba(217,93,57,.15); --alert-25: rgba(217,93,57,.25);
+    --primary-10: rgba(232,86,15,.1); --primary-15: rgba(232,86,15,.15);
+    position: fixed; inset: 0; z-index: 9999; display: flex;
+    align-items: center; justify-content: center;
+    background: rgba(28,19,14,.45); backdrop-filter: blur(4px); color: var(--fg);
   }
-  .dossier-overlay * { box-sizing:border-box;margin:0;padding:0; }
-  .dossier-container {
-    position:relative;display:flex;width:94vw;max-width:1400px;height:92vh;
-    border-radius:8px;border:1px solid var(--border);background:var(--bg);
-    box-shadow:0 25px 50px -12px rgba(0,0,0,.25);overflow:hidden;
-  }
-  .dossier-close {
-    position:absolute;right:16px;top:16px;z-index:10;width:32px;height:32px;
-    display:flex;align-items:center;justify-content:center;
-    border:none;border-radius:4px;background:transparent;color:var(--fg-muted);
-    cursor:pointer;transition:all .15s;
-  }
-  .dossier-close:hover { background:var(--border);color:var(--fg); }
+  .dossier-overlay * { box-sizing: border-box; margin: 0; padding: 0; }
+  .dossier-container { position: relative; display: flex; width: 94vw; max-width: 1400px; height: 92vh; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); box-shadow: var(--shadow-warm-lg); overflow: hidden; }
+  .dossier-close { position: absolute; right: 16px; top: 16px; z-index: 10; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: none; border-radius: 10px; background: transparent; color: var(--fg-muted); cursor: pointer; transition: all .15s; }
+  .dossier-close:hover { background: #fff0e6; color: var(--primary); }
 
-  .dossier-sidebar {
-    width:280px;flex-shrink:0;display:flex;flex-direction:column;
-    border-right:1px solid var(--border);background:var(--bg-card);
-  }
-  .dossier-profile { display:flex;flex-direction:column;align-items:center;padding:32px 24px 16px; }
-  .dossier-photo { width:128px;height:128px;border-radius:50%;border:2px solid var(--border);object-fit:cover;margin-bottom:16px; }
-  .dossier-name  { font-size:16px;font-weight:600;text-align:center;line-height:1.3;color:var(--fg); }
-  .dossier-age   { margin-top:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--fg-muted); }
-  .dossier-sala-badge {
-    margin-top:8px;display:inline-flex;align-items:center;padding:4px 10px;
-    border-radius:4px;background:var(--primary-10);font-size:12px;font-weight:500;color:var(--primary);
-  }
-  .dossier-matricula { margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--fg-muted); }
+  .dossier-sidebar { width: 280px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: var(--bg-card); }
+  .dossier-profile { display: flex; flex-direction: column; align-items: center; padding: 32px 24px 16px; }
+  .dossier-photo { width: 128px; height: 128px; border-radius: 50%; border: 2px solid var(--border); object-fit: cover; margin-bottom: 16px; }
+  .dossier-name { font-size: 16px; font-weight: 700; text-align: center; line-height: 1.3; color: var(--fg); }
+  .dossier-age { margin-top: 4px; font-size: 12px; color: var(--fg-muted); }
+  .dossier-sala-badge { margin-top: 8px; display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 999px; background: #fff0e6; font-size: 12px; font-weight: 700; color: var(--primary-dark); }
+  .dossier-matricula { margin-top: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--fg-muted); }
 
-  .dossier-care-section { border-top:1px solid var(--border);padding:16px; }
-  .dossier-care-title   { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.15em;color:var(--fg-muted);margin-bottom:8px; }
-  .dossier-care-tags    { display:flex;flex-wrap:wrap;gap:6px; }
-  .care-tag {
-    display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:4px;
-    background:var(--alert-15);border:1px solid var(--alert-25);font-size:12px;font-weight:500;color:var(--alert);
-  }
-  .care-tag svg { width:12px;height:12px;flex-shrink:0; }
+  .dossier-care-section { border-top: 1px solid var(--border); padding: 16px; }
+  .dossier-care-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .15em; color: var(--fg-muted); margin-bottom: 8px; }
+  .dossier-care-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .care-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--alert-15); border: 1px solid var(--alert-25); font-size: 12px; font-weight: 600; color: var(--alert); }
+  .care-tag svg { width: 12px; height: 12px; flex-shrink: 0; }
 
-  .dossier-nav { margin-top:auto;border-top:1px solid var(--border); }
-  .dossier-nav ul { list-style:none;padding:8px 0; }
-  .dossier-nav button {
-    display:flex;width:100%;align-items:center;gap:10px;padding:10px 20px;
-    border:none;border-left:2px solid transparent;background:transparent;
-    font-family:'Inter',sans-serif;font-size:14px;color:var(--fg-muted);
-    cursor:pointer;text-align:left;transition:all .15s;
-  }
-  .dossier-nav button:hover { background:var(--bg);color:var(--fg); }
-  .dossier-nav button.active { background:var(--primary-10);color:var(--primary);font-weight:500;border-left-color:var(--primary); }
-  .dossier-nav button svg { width:16px;height:16px;flex-shrink:0; }
+  .dossier-nav { margin-top: auto; border-top: 1px solid var(--border); }
+  .dossier-nav ul { list-style: none; padding: 8px 0; }
+  .dossier-nav button { display: flex; width: 100%; align-items: center; gap: 10px; padding: 10px 20px; border: none; border-left: 2px solid transparent; background: transparent; font-family: inherit; font-size: 14px; color: var(--fg-muted); cursor: pointer; text-align: left; transition: all .15s; }
+  .dossier-nav button:hover { background: var(--bg); color: var(--fg); }
+  .dossier-nav button.active { background: var(--primary-10); color: var(--primary-dark); font-weight: 600; border-left-color: var(--primary); }
+  .dossier-nav button svg { width: 16px; height: 16px; flex-shrink: 0; }
 
-  .dossier-content { flex:1;overflow-y:auto;padding:32px 48px; }
-  .dossier-tab { display:none; }
-  .dossier-tab.active { display:block; }
+  .dossier-content { flex: 1; overflow-y: auto; padding: 32px 48px; }
+  .dossier-tab { display: none; }
+  .dossier-tab.active { display: block; }
 
-  .section-title { font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--fg-muted);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:16px; }
-  .fields-grid   { display:grid;grid-template-columns:1fr 1fr;gap:16px 32px; }
-  .field.full    { grid-column:1/-1; }
-  .field-label   { font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-muted);margin-bottom:4px; }
-  .field-value   { font-size:14px;color:var(--fg); }
-  .field-value.mono  { font-family:'IBM Plex Mono',monospace; }
-  .field-value.empty { color:var(--fg-muted);font-style:italic; }
+  .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--fg-muted); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 16px; }
+  .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; }
+  .field.full { grid-column: 1/-1; }
+  .field-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); margin-bottom: 4px; }
+  .field-value { font-size: 14px; color: var(--fg); }
+  .field-value.mono { font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  .field-value.mono a { color: var(--primary-dark); text-decoration: none; }
+  .field-value.mono a:hover { text-decoration: underline; }
+  .field-value.empty { color: var(--fg-muted); font-style: italic; }
 
-  .bool-field { display:flex;align-items:flex-start;gap:8px;margin-bottom:8px; }
-  .bool-icon  { margin-top:2px;width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:4px; }
-  .bool-icon.true       { background:var(--primary-15);color:var(--primary); }
-  .bool-icon.false      { background:#f3f4f6;color:var(--fg-muted); }
-  .bool-icon.alert-true { background:var(--alert-15);color:var(--alert); }
-  .bool-icon svg  { width:14px;height:14px; }
-  .bool-label { font-size:14px;color:var(--fg);line-height:1.4; }
+  .bool-field { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .bool-icon { margin-top: 2px; width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+  .bool-icon.true { background: var(--primary-15); color: var(--primary); }
+  .bool-icon.false { background: #f4efeb; color: var(--fg-muted); }
+  .bool-icon.alert-true { background: var(--alert-15); color: var(--alert); }
+  .bool-icon svg { width: 14px; height: 14px; }
+  .bool-label { font-size: 14px; color: var(--fg); line-height: 1.4; }
 
-  .responsavel-card { border:1px solid var(--border);border-radius:6px;background:var(--bg-card);padding:16px;margin-bottom:12px; }
-  .responsavel-card .fields-grid { grid-template-columns:1fr 1fr 1fr; }
-  .space-y   > * + * { margin-top:16px; }
-  .space-y-sm > * + * { margin-top:12px; }
+  .responsavel-card { border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); padding: 16px; margin-bottom: 12px; }
+  .responsavel-card .fields-grid { grid-template-columns: 1fr 1fr 1fr; }
+  .space-y > * + * { margin-top: 16px; }
+  .space-y-sm > * + * { margin-top: 12px; }
 
-  @media (max-width:768px) {
-    .hero-section { padding:2rem 1.5rem; }
-    .hero-title   { font-size:1.5rem; }
-    .atendido-card { flex-direction:column;text-align:center; }
-    .btn-detalhes  { width:100%;justify-content:center; }
-    .dossier-container { flex-direction:column;height:96vh; }
-    .dossier-sidebar   { width:100%;flex-direction:row;flex-wrap:wrap;border-right:none;border-bottom:1px solid var(--border); }
-    .dossier-content   { padding:16px; }
+  @media (max-width: 768px) {
+    .dossier-container { flex-direction: column; height: 96vh; }
+    .dossier-sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--border); }
+    .dossier-content { padding: 16px; }
+    .fields-grid, .responsavel-card .fields-grid { grid-template-columns: 1fr; }
   }
 </style>
 
-<div class="container my-5">
-  <!-- Hero -->
-  <div class="hero-section text-center">
-    <h2 class="hero-title">Salas e Atendidos</h2>
-    <p class="hero-subtitle">{{ total_atendidos }} atendido{{ total_atendidos|pluralize }} cadastrado{{ total_atendidos|pluralize }}</p>
-  </div>
+<div class="lst-page">
+  <div class="pcf-container lst-wrap">
 
-  <!-- Search -->
-  <div class="search-wrap">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--fg-muted);flex-shrink:0">
-      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-    <input id="searchInput" type="text" placeholder="Buscar atendido por nome…" autocomplete="off">
-    <span id="searchCount"></span>
-  </div>
+    <!-- Cabeçalho leve -->
+    <header class="lst-head">
+      <div class="lst-head-text">
+        <span class="pcf-eyebrow">Atendidos</span>
+        <h1 class="lst-title">Atendidos Matriculados</h1>
+        <p class="lst-sub">{{ total_atendidos }} atendido{{ total_atendidos|pluralize }} cadastrado{{ total_atendidos|pluralize }} nas salas do projeto.</p>
+      </div>
+      <div class="lst-head-actions">
+        <a href="{% url 'atendido:matricula' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova Matrícula
+        </a>
+      </div>
+    </header>
 
-  <!-- Accordion -->
-  <div class="custom-accordion">
-    {% for sala in salas_com_atendidos %}
-      <details class="sala-card" {% if sala.atendidos %}open{% endif %}>
-        <summary>
-          <div class="sala-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    <!-- Busca -->
+    <div class="lst-search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <label for="searchInput" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Buscar atendido por nome</label>
+      <input id="searchInput" type="text" placeholder="Buscar atendido por nome…" autocomplete="off">
+      <span id="searchCount"></span>
+    </div>
+
+    <!-- Acordeão de salas -->
+    <div class="lst-accordion">
+      {% for sala in salas_com_atendidos %}
+        <details class="lst-sala pcf-card" {% if sala.atendidos %}open{% endif %}>
+          <summary class="lst-sala-summary">
+            <span class="pcf-icon-tile tint-orange" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </span>
+            <span class="lst-sala-nome">{{ sala.nome }}</span>
+            <span class="pcf-badge brand lst-sala-count">{{ sala.atendidos|length }}</span>
+            <svg class="lst-sala-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
             </svg>
-          </div>
-          <span class="sala-nome">{{ sala.nome }}</span>
-          <span class="sala-count">{{ sala.atendidos|length }}</span>
-          <svg class="sala-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </summary>
-        <div class="sala-body">
-          <div class="atendidos-list" data-sala="{{ sala.codigo }}">
-            {% for atendido in sala.atendidos %}
-              <div class="atendido-card" data-nome="{{ atendido.nome|lower }}">
-                <div class="atendido-avatar">{{ atendido.nome|slice:":1" }}</div>
-                <div class="atendido-info">
-                  <div class="atendido-nome">{{ atendido.nome }}</div>
-                  {% for resp in atendido.responsavel.all %}
-                    <div class="atendido-familia">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                      </svg>
-                      <span>{{ resp.nome }} &nbsp;·&nbsp; <a href="https://wa.me/55{{ resp.contato }}" target="_blank" rel="noopener noreferrer">{{ resp.contato|default:"sem contato" }}</a></span>
-                    </div>
-                  {% empty %}
-                    <div class="atendido-familia">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                      </svg>
-                      Sem responsável cadastrado
-                    </div>
-                  {% endfor %}
+          </summary>
+          <div class="lst-sala-body">
+            <div class="lst-list" data-sala="{{ sala.codigo }}">
+              {% for atendido in sala.atendidos %}
+                <div class="lst-card" data-nome="{{ atendido.nome|lower }}">
+                  <div class="lst-avatar" aria-hidden="true">{{ atendido.nome|slice:":1" }}</div>
+                  <div class="lst-info">
+                    <div class="lst-nome">{{ atendido.nome }}</div>
+                    {% for resp in atendido.responsavel.all %}
+                      <div class="lst-familia">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        <span>{{ resp.nome }} &nbsp;·&nbsp; <a href="https://wa.me/55{{ resp.contato }}" target="_blank" rel="noopener noreferrer">{{ resp.contato|default:"sem contato" }}</a></span>
+                      </div>
+                    {% empty %}
+                      <div class="lst-familia">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        Sem responsável cadastrado
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <button
+                    type="button"
+                    class="pcf-btn pcf-btn-outline pcf-btn-sm lst-ver"
+                    onclick="abrirFichaAtendido(this)"
+                    data-nome="{{ atendido.nome }}"
+                    data-sala="{{ atendido.get_sala_display }}"
+                    data-data="{{ atendido.data_nascimento|date:'Y-m-d' }}"
+                    data-foto="{% if atendido.foto %}{{ atendido.foto.url }}{% else %}{% static 'images/sem-foto.jpg' %}{% endif %}"
+                    data-matricula="{{ atendido.matricula }}"
+                    data-identidade-etnica="{{ atendido.identidade_etnica|default:'Não informado' }}"
+                    data-rg="{{ atendido.rg|default:'Não informado' }}"
+                    data-cpf="{{ atendido.cpf|default:'Não informado' }}"
+                    data-ativo="{% if atendido.ativo %}Ativo{% else %}Inativo{% endif %}"
+                    data-data-criacao="{{ atendido.data_criacao|date:'d/m/Y' }}"
+                    data-tipo-matricula="{{ atendido.matricula|default:'Não informado' }}"
+                    data-numeracao-camisa="{{ atendido.numeracao_camisa|default:'Não informado' }}"
+                    data-numeracao-calca="{{ atendido.numeracao_calca|default:'Não informado' }}"
+                    data-numeracao-calcado="{{ atendido.numeracao_calcado|default:'Não informado' }}"
+                    data-termos-assinado="{% if atendido.termos_assinado %}Sim{% else %}Não{% endif %}"
+                    data-projeto-social="{% if atendido.projeto_social %}Sim{% else %}Não{% endif %}"
+                    data-trabalho="{% if atendido.trabalho %}Sim{% else %}Não{% endif %}"
+                    data-familia="{{ atendido.familia|default:'Não informado' }}"
+                    data-responsaveis="{% for resp in atendido.responsavel.all %}{{ resp.nome }}|{{ resp.parentesco }}|{{ resp.contato|default:'' }}{% if not forloop.last %};;{% endif %}{% endfor %}"
+                    data-escolaridade="{{ atendido.escolaridade|default:'Não informado' }}"
+                    data-ano-escolar="{{ atendido.ano_escolar|default:'Não informado' }}"
+                    data-escola="{{ atendido.escola|default:'Não informado' }}"
+                    data-tipo-escola="{{ atendido.tipo_escola|default:'Não informado' }}"
+                    data-contato="{{ atendido.contato|default:'Não informado' }}"
+                    data-convenio-medico="{% if atendido.convenio_medico %}Sim{% else %}Não{% endif %}"
+                    data-vacina-covid="{% if atendido.vacina_covid %}Sim{% else %}Não{% endif %}"
+                    data-saude-bucal="{% if atendido.saude_bucal %}Sim{% else %}Não{% endif %}"
+                    data-campanha-vacinacao="{% if atendido.campanha_vacinacao %}Sim{% else %}Não{% endif %}"
+                    data-restricao-alimentar="{{ atendido.restricao_alimentar|default:'Não informado' }}"
+                    data-restricao-medica="{{ atendido.restricao_medica|default:'Não informado' }}"
+                    data-medicacao-continua="{{ atendido.medicacao_continua|default:'Não informado' }}"
+                    data-diagnostico="{% if atendido.diagnostico %}Sim{% else %}Não{% endif %}"
+                    data-diagnostico-descricao="{{ atendido.diagnostico_descricao|default:'Não informado' }}"
+                    data-acompanhamento="{{ atendido.get_acompanhamento_display|default:'Não informado' }}"
+                    data-recomendacao-acompanhamento="{{ atendido.recomendacao_acompanhamento|default:'Não informado' }}"
+                    data-observacoes="{{ atendido.observacoes|default:'Não informado' }}"
+                    data-comissao-inclusiva="{% if atendido.comissao_inclusiva %}Sim{% else %}Não{% endif %}"
+                    data-comportamento-social="{{ atendido.get_comportamento_social_display|default:'Não informado' }}"
+                    data-comportamento-regras="{{ atendido.get_comportamento_regras_display|default:'Não informado' }}"
+                    data-concentracao="{% if atendido.concentracao %}Sim{% else %}Não{% endif %}"
+                    data-aprendizado="{% if atendido.aprendizado %}Sim{% else %}Não{% endif %}"
+                    data-sensibilidade="{% if atendido.sensibilidade %}Sim{% else %}Não{% endif %}"
+                    data-sensibilidade-descricao="{{ atendido.sensibilidade_descricao|default:'Não informado' }}"
+                    data-dificuldade-motora="{% if atendido.dificuldade_motora %}Sim{% else %}Não{% endif %}"
+                    data-dificuldade-motora-descricao="{{ atendido.dificuldade_motora_descricao|default:'Não informado' }}"
+                    data-dificuldade-emocional="{% if atendido.dificuldade_emocional %}Sim{% else %}Não{% endif %}"
+                    data-dificuldade-emocional-descricao="{{ atendido.dificuldade_emocional_descricao|default:'Não informado' }}"
+                    data-expectativas-familia="{{ atendido.expectativas_familia|default:'Não informado' }}"
+                    data-mudancas-positivas="{% if atendido.mudancas_positivas %}Sim{% else %}Não{% endif %}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Ver detalhes
+                  </button>
                 </div>
-                <button
-                  class="btn-detalhes"
-                  onclick="abrirFichaAtendido(this)"
-                  data-nome="{{ atendido.nome }}"
-                  data-sala="{{ atendido.get_sala_display }}"
-                  data-data="{{ atendido.data_nascimento|date:'Y-m-d' }}"
-                  data-foto="{% if atendido.foto %}{{ atendido.foto.url }}{% else %}{% static 'images/sem-foto.jpg' %}{% endif %}"
-                  data-matricula="{{ atendido.matricula }}"
-                  data-identidade-etnica="{{ atendido.identidade_etnica|default:'Não informado' }}"
-                  data-rg="{{ atendido.rg|default:'Não informado' }}"
-                  data-cpf="{{ atendido.cpf|default:'Não informado' }}"
-                  data-ativo="{% if atendido.ativo %}Ativo{% else %}Inativo{% endif %}"
-                  data-data-criacao="{{ atendido.data_criacao|date:'d/m/Y' }}"
-                  data-tipo-matricula="{{ atendido.matricula|default:'Não informado' }}"
-                  data-numeracao-camisa="{{ atendido.numeracao_camisa|default:'Não informado' }}"
-                  data-numeracao-calca="{{ atendido.numeracao_calca|default:'Não informado' }}"
-                  data-numeracao-calcado="{{ atendido.numeracao_calcado|default:'Não informado' }}"
-                  data-termos-assinado="{% if atendido.termos_assinado %}Sim{% else %}Não{% endif %}"
-                  data-projeto-social="{% if atendido.projeto_social %}Sim{% else %}Não{% endif %}"
-                  data-trabalho="{% if atendido.trabalho %}Sim{% else %}Não{% endif %}"
-                  data-familia="{{ atendido.familia|default:'Não informado' }}"
-                  data-responsaveis="{% for resp in atendido.responsavel.all %}{{ resp.nome }}|{{ resp.parentesco }}|{{ resp.contato|default:'' }}{% if not forloop.last %};;{% endif %}{% endfor %}"
-                  data-escolaridade="{{ atendido.escolaridade|default:'Não informado' }}"
-                  data-ano-escolar="{{ atendido.ano_escolar|default:'Não informado' }}"
-                  data-escola="{{ atendido.escola|default:'Não informado' }}"
-                  data-tipo-escola="{{ atendido.tipo_escola|default:'Não informado' }}"
-                  data-contato="{{ atendido.contato|default:'Não informado' }}"
-                  data-convenio-medico="{% if atendido.convenio_medico %}Sim{% else %}Não{% endif %}"
-                  data-vacina-covid="{% if atendido.vacina_covid %}Sim{% else %}Não{% endif %}"
-                  data-saude-bucal="{% if atendido.saude_bucal %}Sim{% else %}Não{% endif %}"
-                  data-campanha-vacinacao="{% if atendido.campanha_vacinacao %}Sim{% else %}Não{% endif %}"
-                  data-restricao-alimentar="{{ atendido.restricao_alimentar|default:'Não informado' }}"
-                  data-restricao-medica="{{ atendido.restricao_medica|default:'Não informado' }}"
-                  data-medicacao-continua="{{ atendido.medicacao_continua|default:'Não informado' }}"
-                  data-diagnostico="{% if atendido.diagnostico %}Sim{% else %}Não{% endif %}"
-                  data-diagnostico-descricao="{{ atendido.diagnostico_descricao|default:'Não informado' }}"
-                  data-acompanhamento="{{ atendido.get_acompanhamento_display|default:'Não informado' }}"
-                  data-recomendacao-acompanhamento="{{ atendido.recomendacao_acompanhamento|default:'Não informado' }}"
-                  data-observacoes="{{ atendido.observacoes|default:'Não informado' }}"
-                  data-comissao-inclusiva="{% if atendido.comissao_inclusiva %}Sim{% else %}Não{% endif %}"
-                  data-comportamento-social="{{ atendido.get_comportamento_social_display|default:'Não informado' }}"
-                  data-comportamento-regras="{{ atendido.get_comportamento_regras_display|default:'Não informado' }}"
-                  data-concentracao="{% if atendido.concentracao %}Sim{% else %}Não{% endif %}"
-                  data-aprendizado="{% if atendido.aprendizado %}Sim{% else %}Não{% endif %}"
-                  data-sensibilidade="{% if atendido.sensibilidade %}Sim{% else %}Não{% endif %}"
-                  data-sensibilidade-descricao="{{ atendido.sensibilidade_descricao|default:'Não informado' }}"
-                  data-dificuldade-motora="{% if atendido.dificuldade_motora %}Sim{% else %}Não{% endif %}"
-                  data-dificuldade-motora-descricao="{{ atendido.dificuldade_motora_descricao|default:'Não informado' }}"
-                  data-dificuldade-emocional="{% if atendido.dificuldade_emocional %}Sim{% else %}Não{% endif %}"
-                  data-dificuldade-emocional-descricao="{{ atendido.dificuldade_emocional_descricao|default:'Não informado' }}"
-                  data-expectativas-familia="{{ atendido.expectativas_familia|default:'Não informado' }}"
-                  data-mudancas-positivas="{% if atendido.mudancas_positivas %}Sim{% else %}Não{% endif %}">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              {% empty %}
+                <div class="lst-empty">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                   </svg>
-                  Ver detalhes
-                </button>
-              </div>
-            {% empty %}
-              <div class="empty-message">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                Nenhum atendido nesta sala.
-              </div>
-            {% endfor %}
+                  Nenhum atendido nesta sala.
+                </div>
+              {% endfor %}
+            </div>
           </div>
-        </div>
-      </details>
-    {% endfor %}
+        </details>
+      {% endfor %}
+    </div>
+
   </div>
 </div>
 
@@ -705,15 +629,15 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharFichaA
   input.addEventListener('input', () => {
     const q = input.value.trim().toLowerCase();
     let visible = 0;
-    document.querySelectorAll('.atendido-card').forEach(card => {
+    document.querySelectorAll('.lst-card').forEach(card => {
       const match = !q || card.dataset.nome.includes(q);
       card.classList.toggle('hidden-search', !match);
       if (match) visible++;
     });
-    // Open sala that has results; keep others
-    document.querySelectorAll('.sala-card').forEach(sala => {
+    // Abre as salas que tenham resultados; mantém as demais
+    document.querySelectorAll('.lst-sala').forEach(sala => {
       if (!q) return;
-      const hasVisible = sala.querySelector('.atendido-card:not(.hidden-search)');
+      const hasVisible = sala.querySelector('.lst-card:not(.hidden-search)');
       if (hasVisible) sala.setAttribute('open','');
     });
     countEl.textContent = q ? `${visible} de ${total}` : '';

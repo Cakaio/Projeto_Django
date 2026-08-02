@@ -1,80 +1,116 @@
 {% extends 'base.html' %}
-{% block title %}Cadastro na Lista de Espera{% endblock %}
+{% block titulo %}Cadastro na Lista de Espera{% endblock %}
 {% block content %}
+{# Bloco enxuto: só layout/tokens específicos desta tela. Todo o visual base vem das classes .pcf-*. #}
 <style>
-  .espera-shell { max-width:1050px; margin:0 auto; }
-  .espera-hero { position:relative; overflow:hidden; border-radius:18px; padding:2rem; background:#172033; color:#fff; box-shadow:0 18px 50px rgba(23,32,51,.16); }
-  .espera-hero::after { content:""; position:absolute; width:260px; height:260px; right:-70px; top:-120px; border-radius:50%; background:#fe8210; opacity:.9; }
-  .espera-kicker { color:#ffb36c; font-size:.75rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
-  .espera-grid { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(260px,.8fr); gap:1.25rem; margin-top:1.25rem; }
-  .espera-card { background:hsl(var(--card)); border:1px solid hsl(var(--border)); border-radius:14px; padding:1.5rem; box-shadow:0 8px 25px rgba(15,23,42,.05); }
-  #esperaForm input, #esperaForm textarea { width:100%; padding:.65rem .75rem; border:1px solid hsl(var(--border)); border-radius:8px; background:hsl(var(--card)); color:hsl(var(--foreground)); }
-  #esperaForm input:focus, #esperaForm textarea:focus { outline:none; border-color:#fe8210; box-shadow:0 0 0 3px rgba(254,130,16,.14); }
-  .preview { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin:1rem 0 1.25rem; }
-  .preview-item { padding:1rem; border-radius:10px; background:#fff7ed; border:1px solid #fed7aa; }
-  .preview-label { display:block; font-size:.7rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:#9a3412; }
-  .preview-value { display:block; margin-top:.2rem; font-size:1.2rem; font-weight:800; color:#172033; }
-  .recente { padding:.8rem 0; border-bottom:1px solid hsl(var(--border)); }
-  .recente:last-child { border-bottom:0; }
-  @media (max-width:780px) { .espera-grid { grid-template-columns:1fr; } .espera-hero { padding:1.5rem; } }
+  .esp-page { background: hsl(var(--background)); }
+
+  /* Cabeçalho leve */
+  .esp-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
+  .esp-title { margin: .5rem 0 .4rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-size: clamp(1.6rem, 3.2vw, 2.2rem); color: var(--ink); }
+  .esp-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); max-width: 52ch; }
+
+  /* Layout form + aside */
+  .esp-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+  @media (min-width: 900px) { .esp-grid { grid-template-columns: minmax(0, 1.6fr) minmax(280px, .8fr); } }
+
+  /* Inputs do formulário no visual pcf-input */
+  #esperaForm input, #esperaForm textarea, #esperaForm select {
+    width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff;
+    border: 1px solid #f0dfd3; color: var(--ink); font-size: .92rem; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  #esperaForm input:focus, #esperaForm textarea:focus, #esperaForm select:focus {
+    outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15);
+  }
+
+  /* Sim/Não segmentado (radio nativo) — usado pelo include _campo_bool.html */
+  .seg-radio { position: absolute; opacity: 0; pointer-events: none; }
+  .seg-btn { padding: .45rem 1.5rem; font-size: .85rem; font-weight: 600; cursor: pointer; background: #fff; color: hsl(var(--muted-foreground)); user-select: none; }
+  .seg-btn-r { border-left: 1px solid hsl(var(--border)); }
+  .seg-radio[value="True"]:checked + .seg-btn { background: #16a34a; color: #fff; }
+  .seg-radio[value="False"]:checked + .seg-btn { background: #475569; color: #fff; }
+  .seg-radio:focus-visible + .seg-btn { box-shadow: 0 0 0 3px rgba(254, 130, 16, .35); }
+
+  /* Preview idade/sala */
+  .esp-preview { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin: 1rem 0 1.25rem; }
+  .esp-preview-item { padding: .9rem 1rem; border-radius: 14px; background: #fff0e6; border: 1px solid #fbe3d3; }
+  .esp-preview-label { display: block; font-size: .68rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #c9490a; }
+  .esp-preview-value { display: block; margin-top: .2rem; font-size: 1.2rem; font-weight: 800; color: var(--ink); }
+
+  /* Cadastros recentes */
+  .esp-recente { padding: .8rem 0; border-bottom: 1px solid hsl(var(--border)); }
+  .esp-recente:last-child { border-bottom: 0; }
+  .esp-recente-nome { margin: 0; font-weight: 700; color: var(--ink); font-size: .92rem; }
+  .esp-recente-meta { margin: .1rem 0 0; font-size: .78rem; color: hsl(var(--muted-foreground)); }
+
+  @media (max-width: 480px) { .esp-preview { grid-template-columns: 1fr; } }
 </style>
 
-<div class="espera-shell py-6 px-4">
-  <header class="espera-hero">
-    <div style="position:relative;z-index:1;max-width:650px">
-      <p class="espera-kicker">Acolhimento PCF</p>
-      <h1 class="text-3xl font-extrabold mt-2">Cadastro na Lista de Espera</h1>
-      <p class="mt-2 text-slate-300">Informe a data de nascimento. A idade e a sala serão definidas automaticamente.</p>
+<div class="esp-page">
+  <div class="pcf-container" style="padding-top: 2rem; padding-bottom: 3rem;">
+
+    <header class="esp-head">
+      <div>
+        <span class="pcf-eyebrow">Acolhimento PCF</span>
+        <h1 class="esp-title">Cadastro na Lista de Espera</h1>
+        <p class="esp-sub">Informe a data de nascimento. A idade e a sala são definidas automaticamente.</p>
+      </div>
+      <a href="{% url 'atendido:visualizar_lista_espera' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Ver lista de espera
+      </a>
+    </header>
+
+    <div class="esp-grid">
+      <section class="pcf-card">
+        <h2 class="text-xl font-bold mb-1" style="color: var(--ink);">Dados do cadastro</h2>
+        <p class="text-sm mb-5" style="color: hsl(var(--muted-foreground));">Campos marcados com <span class="text-red-500">*</span> são obrigatórios.</p>
+
+        {% if form.errors %}
+        <div class="rounded-xl p-4 mb-5 text-sm" style="background:#fdeaea;border:1px solid #f6cccc;color:#b03636;">
+          {% for field in form %}{% for error in field.errors %}<p><strong>{{ field.label }}:</strong> {{ error }}</p>{% endfor %}{% endfor %}
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" id="esperaForm" novalidate>
+          {% csrf_token %}
+          <div class="grid sm:grid-cols-2 gap-x-4">
+            {% include '_campo.html' with field=form.nome_atendido %}
+            {% include '_campo.html' with field=form.data_nascimento %}
+            {% include '_campo.html' with field=form.nome_responsavel %}
+            {% include '_campo.html' with field=form.contato_responsavel %}
+            {% include '_campo.html' with field=form.renda_familiar %}
+            {% include '_campo.html' with field=form.quantidade_pessoas_familia %}
+          </div>
+          {% include '_campo_bool.html' with field=form.parente_dentro_projeto %}
+          <div class="esp-preview" aria-live="polite">
+            <div class="esp-preview-item"><span class="esp-preview-label">Idade calculada</span><span id="idade-preview" class="esp-preview-value">—</span></div>
+            <div class="esp-preview-item"><span class="esp-preview-label">Sala indicada</span><span id="sala-preview" class="esp-preview-value">—</span></div>
+          </div>
+          {% include '_campo.html' with field=form.observacoes %}
+          <div class="flex justify-end gap-3 mt-5">
+            <a href="{% url 'atendido:atendido_view' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+            <button type="submit" class="pcf-btn pcf-btn-primary">Cadastrar</button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="pcf-card">
+        <h2 class="text-lg font-bold" style="color: var(--ink);">Cadastros recentes</h2>
+        <p class="text-xs mb-3" style="color: hsl(var(--muted-foreground));">Últimas inclusões na lista.</p>
+        {% for registro in registros_recentes %}
+        <div class="esp-recente">
+          <p class="esp-recente-nome">{{ registro.nome_atendido }}</p>
+          <p class="esp-recente-meta">{{ registro.idade }} anos · Sala {{ registro.get_sala_display }}</p>
+        </div>
+        {% empty %}
+        <p class="text-sm py-4" style="color: hsl(var(--muted-foreground));">Nenhum cadastro ainda.</p>
+        {% endfor %}
+      </aside>
     </div>
-  </header>
 
-  <div class="espera-grid">
-    <section class="espera-card">
-      <h2 class="text-xl font-bold text-slate-800 mb-1">Dados do cadastro</h2>
-      <p class="text-sm text-muted-foreground mb-5">Campos marcados com * são obrigatórios.</p>
-
-      {% if form.errors %}
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-5 text-sm text-red-700">
-        {% for field in form %}{% for error in field.errors %}<p><strong>{{ field.label }}:</strong> {{ error }}</p>{% endfor %}{% endfor %}
-        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
-      </div>
-      {% endif %}
-
-      <form method="post" id="esperaForm" novalidate>
-        {% csrf_token %}
-        <div class="grid sm:grid-cols-2 gap-x-4">
-          {% include '_campo.html' with field=form.nome_atendido %}
-          {% include '_campo.html' with field=form.data_nascimento %}
-          {% include '_campo.html' with field=form.nome_responsavel %}
-          {% include '_campo.html' with field=form.contato_responsavel %}
-          {% include '_campo.html' with field=form.renda_familiar %}
-          {% include '_campo.html' with field=form.quantidade_pessoas_familia %}
-        </div>
-        {% include '_campo_bool.html' with field=form.parente_dentro_projeto %}
-        <div class="preview" aria-live="polite">
-          <div class="preview-item"><span class="preview-label">Idade calculada</span><span id="idade-preview" class="preview-value">—</span></div>
-          <div class="preview-item"><span class="preview-label">Sala indicada</span><span id="sala-preview" class="preview-value">—</span></div>
-        </div>
-        {% include '_campo.html' with field=form.observacoes %}
-        <div class="flex justify-end gap-3 mt-5">
-          <a href="{% url 'atendido:atendido_view' %}" class="px-5 py-2.5 rounded-md text-sm font-medium border border-border text-slate-700 hover:bg-accent">Cancelar</a>
-          <button type="submit" class="px-6 py-2.5 rounded-md text-sm font-bold text-white bg-[#fe8210] hover:bg-[#e96f00]">Cadastrar</button>
-        </div>
-      </form>
-    </section>
-
-    <aside class="espera-card">
-      <h2 class="text-lg font-bold text-slate-800">Cadastros recentes</h2>
-      <p class="text-xs text-muted-foreground mb-3">Últimas inclusões na lista.</p>
-      {% for registro in registros_recentes %}
-      <div class="recente">
-        <p class="font-semibold text-slate-800">{{ registro.nome_atendido }}</p>
-        <p class="text-xs text-muted-foreground">{{ registro.idade }} anos · Sala {{ registro.get_sala_display }}</p>
-      </div>
-      {% empty %}
-      <p class="text-sm text-muted-foreground py-4">Nenhum cadastro ainda.</p>
-      {% endfor %}
-    </aside>
   </div>
 </div>
 
