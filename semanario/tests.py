@@ -24,7 +24,6 @@ class MaterialLinkTests(SimpleTestCase):
             "nome": "Cartolina",
             "link": "link-invalido",
             "quantidade": "1",
-            "unidade": "UN",
             "valor": "",
             "local": "",
             "pedido": "SUPPLY",

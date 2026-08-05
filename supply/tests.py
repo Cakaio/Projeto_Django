@@ -31,7 +31,6 @@ class PedidoLinkTests(SimpleTestCase):
             "nome": "Cola",
             "link": "link-invalido",
             "quantidade": "1",
-            "unidade": "UN",
             "sabado": "",
             "area": "",
         })

@@ -202,10 +202,9 @@
           <thead>
             <tr class="bg-gray-50 border-b border-gray-200">
               <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Material</th>
-              <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Especificar</th>
-              <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Link da imagem</th>
+              <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Detalhes</th>
               <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">Qtd</th>
-              <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Unidade</th>
+              <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-24">Unidade</th>
               <th class="text-center px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide w-28">Pedido</th>
               <th class="w-10"></th>
             </tr>
@@ -276,10 +275,23 @@
     border-color: #06b6d4;
     box-shadow: 0 0 0 2px rgba(6,182,212,.12);
   }
+  .material-details summary {
+    cursor: pointer; list-style: none; width: max-content; padding: .5rem .7rem;
+    border: 1px solid #bae6fd; border-radius: .6rem; background: #ecfeff;
+    color: #0e7490; font-size: .75rem; font-weight: 700;
+  }
+  .material-details summary::-webkit-details-marker { display: none; }
+  .material-details summary::after { content: " +"; }
+  .material-details[open] summary::after { content: " −"; }
+  .material-details[open]::before { content: ""; position: fixed; inset: 0; z-index: 1090; background: rgba(15, 23, 42, .62); backdrop-filter: blur(3px); }
+  .material-details-fields { position: fixed; z-index: 1100; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; gap: .8rem; width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; padding: 1.5rem; border-radius: 1.1rem; background: #fff; box-shadow: 0 28px 80px rgba(15, 23, 42, .28); }
+  .material-details-fields label { display: grid; gap: .25rem; color: #475569; font-size: .7rem; font-weight: 700; }
+  .details-modal-close { justify-self: end; border: 0; border-radius: .5rem; padding: .45rem .7rem; background: #e2e8f0; color: #334155; font-weight: 800; cursor: pointer; }
 </style>
 
 <script>
   const materialsByIndex = {};
+  const itemUnits = { {% for item in itens %}"{{ item.pk }}": "{{ item.get_unidade_display|escapejs }}",{% endfor %} };
   let currentIndex = null;
 
   function novaLinhaMaterial(m = {}) {
@@ -287,29 +299,26 @@
     const especificar = (m.especificar || '').replace(/"/g, '&quot;');
     const link = m.link || '';
     const qtd  = m.quantidade || '';
-    const un   = m.unidade || 'UN';
+    const unit = itemUnits[itemId] || '—';
     const pd   = m.pedido || 'SUPPLY';
     const sel  = (v, opt) => opt === v ? ' selected' : '';
     return `<tr>
-      <td class="px-3 py-2"><select class="mat-item">
+      <td class="px-3 py-2"><select class="mat-item" onchange="atualizarUnidadeMaterial(this)">
         <option value="">Selecione um item</option>
         {% for item in itens %}<option value="{{ item.id }}">{{ item.nome|escapejs }}</option>{% endfor %}
       </select></td>
-      <td class="px-3 py-2"><textarea class="mat-especificar" rows="2" placeholder="Cor, tamanho, marca...">${especificar}</textarea></td>
-      <td class="px-3 py-2"><input type="url" class="mat-link" value="${link}" placeholder="https://..."></td>
-      <td class="px-3 py-2"><input type="number" class="mat-qtd" step="0.1" min="0" value="${qtd}"></td>
       <td class="px-3 py-2">
-        <select class="mat-unidade">
-          <option value="UN"${sel(un,'UN')}>Unidade</option>
-          <option value="PAC"${sel(un,'PAC')}>Pacote</option>
-          <option value="CX"${sel(un,'CX')}>Caixa</option>
-          <option value="TUBO"${sel(un,'TUBO')}>Tubo</option>
-          <option value="METRO"${sel(un,'METRO')}>Metro</option>
-          <option value="L"${sel(un,'L')}>Litro</option>
-          <option value="KG"${sel(un,'KG')}>Quilo</option>
-          <option value="OUTROS"${sel(un,'OUTROS')}>Outros</option>
-        </select>
+        <details class="material-details">
+          <summary>Especificar / imagem</summary>
+          <div class="material-details-fields">
+            <button type="button" class="details-modal-close" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar modal">Fechar ×</button>
+            <label>Especificar<textarea class="mat-especificar" rows="2" placeholder="Cor, tamanho, marca...">${especificar}</textarea></label>
+            <label>Link da imagem<input type="url" class="mat-link" value="${link}" placeholder="https://..."></label>
+          </div>
+        </details>
       </td>
+      <td class="px-3 py-2"><input type="number" class="mat-qtd" step="0.1" min="0" value="${qtd}"></td>
+      <td class="px-3 py-2 text-center"><span class="mat-unit inline-flex rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">${unit}</span></td>
       <td class="px-3 py-2">
         <select class="mat-pedido">
           <option value="SUPPLY"${sel(pd,'SUPPLY')}>Supply</option>
@@ -339,6 +348,11 @@
     modal.classList.add('flex');
   }
 
+  function atualizarUnidadeMaterial(select) {
+    const unit = select.closest('tr')?.querySelector('.mat-unit');
+    if (unit) unit.textContent = itemUnits[select.value] || '—';
+  }
+
   function fecharMateriais() {
     const modal = document.getElementById('modalMateriais');
     modal.classList.add('hidden');
@@ -356,7 +370,6 @@
       especificar: r.querySelector('.mat-especificar')?.value.trim() || '',
       link:      r.querySelector('.mat-link')?.value.trim() || '',
       quantidade: r.querySelector('.mat-qtd')?.value.trim() || '',
-      unidade:   r.querySelector('.mat-unidade')?.value || 'UN',
       pedido:    r.querySelector('.mat-pedido')?.value || 'SUPPLY',
     })).filter(m => m.item_id !== '');
 

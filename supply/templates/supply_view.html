@@ -4,133 +4,72 @@
 {% block head %}<link rel="stylesheet" href="{% static 'supply/supply.css' %}">{% endblock %}
 
 {% block content %}
-<div class="supply-page min-h-screen bg-gray-50 pb-12">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-
-    <!-- Hero -->
-    <div class="supply-hero rounded-2xl p-7 sm:p-10 mb-8 text-white text-center relative overflow-hidden"
-         style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">
-      <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10"></div>
-      <div class="absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-white/5"></div>
-      <div class="relative z-10">
-        <div class="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-4">
-          <svg width="32" height="32" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-          </svg>
+<div class="supply-page supply-home">
+  <section class="supply-home-hero">
+    <div class="supply-home-pattern"></div>
+    <div class="supply-container supply-home-hero-inner">
+      <div>
+        <span class="supply-eyebrow">Projeto Criança Feliz</span>
+        <h1>Supply</h1>
+        <p>Pedidos, materiais e estoque reunidos em um fluxo simples para toda a equipe.</p>
+        <div class="supply-home-actions">
+          <a href="{% url 'supply:adicionar_pedidos' %}" class="supply-button supply-button-light">
+            <i class="bi bi-plus-lg"></i> Novo pedido
+          </a>
+          <a href="{% url 'supply:painel_materiais_visualizacao' %}" class="supply-button supply-button-ghost">
+            <i class="bi bi-eye"></i> Visualizar pedidos
+          </a>
         </div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold mb-2">Painel de Pedidos</h1>
-        <p class="text-white/80 text-sm sm:text-base max-w-md mx-auto">
-          Crie, edite e visualize os pedidos para supply do Projeto Criança Feliz.
-        </p>
+      </div>
+      <div class="supply-home-illustration" aria-hidden="true">
+        <div class="supply-box-icon"><i class="bi bi-box-seam"></i></div>
+        <span class="supply-orbit supply-orbit-one"></span>
+        <span class="supply-orbit supply-orbit-two"></span>
       </div>
     </div>
+  </section>
 
-    <!-- Cards de ação -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-
-      <!-- Novo pedido -->
-      <a href="{% url 'supply:adicionar_pedidos' %}" style="text-decoration:none;">
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center
-                    hover:-translate-y-1 hover:shadow-md hover:border-indigo-300 transition-all group cursor-pointer h-full">
-          <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"
-               style="background:linear-gradient(135deg,#4f46e5,#6366f1);box-shadow:0 8px 20px rgba(79,70,229,.3)">
-            <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          </div>
-          <h3 class="font-bold text-gray-900 text-base mb-1">Novo Pedido</h3>
-          <p class="text-gray-500 text-sm mb-4">Registre um novo pedido para a sua área.</p>
-          <span class="mt-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-                style="background:linear-gradient(135deg,#4f46e5,#6366f1)">
-            Pedir material
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-            </svg>
-          </span>
-        </div>
+  <main class="supply-container supply-home-content">
+    <section class="supply-shortcuts" aria-label="Acessos principais">
+      <a href="{% url 'supply:adicionar_pedidos' %}" class="supply-shortcut-card">
+        <span class="supply-shortcut-icon"><i class="bi bi-plus-circle"></i></span>
+        <span><strong>Novo pedido</strong><small>Solicite materiais para sua área.</small></span>
+        <i class="bi bi-arrow-right supply-card-arrow"></i>
       </a>
-
-      <!-- Meus pedidos -->
-      <a href="{% url 'supply:meus_pedidos' %}" style="text-decoration:none;">
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center
-                    hover:-translate-y-1 hover:shadow-md hover:border-indigo-300 transition-all group cursor-pointer h-full">
-          <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"
-               style="background:linear-gradient(135deg,#f59e0b,#fbbf24);box-shadow:0 8px 20px rgba(79,70,229,.3)">
-            <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          </div>
-          <h3 class="font-bold text-gray-900 text-base mb-1">Meus Pedidos</h3>
-          <p class="text-gray-500 text-sm mb-4">Visualize e gerencie seus pedidos.</p>
-          <span class="mt-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-                style="background:linear-gradient(135deg,#f59e0b,#fbbf24)">
-            Ver pedidos
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-            </svg>
-          </span>
-        </div>
+      <a href="{% url 'supply:meus_pedidos' %}" class="supply-shortcut-card">
+        <span class="supply-shortcut-icon"><i class="bi bi-card-checklist"></i></span>
+        <span><strong>Minhas requisições</strong><small>Edite e acompanhe suas solicitações.</small></span>
+        <i class="bi bi-arrow-right supply-card-arrow"></i>
       </a>
-
-      <!-- Visualizar  -->
-      <a href="{% url 'supply:painel_materiais_visualizacao' %}" style="text-decoration:none;">
-        <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col items-center text-center
-                    hover:-translate-y-1 hover:shadow-md hover:border-emerald-300 transition-all group cursor-pointer h-full">
-          <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"
-               style="background:linear-gradient(135deg,#10b981,#34d399);box-shadow:0 8px 20px rgba(16,185,129,.3)">
-            <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-            </svg>
-          </div>
-          <h3 class="font-bold text-gray-900 text-base mb-1">Visualizar</h3>
-          <p class="text-gray-500 text-sm mb-4">Veja os pedidos das áreas por sábado.</p>
-          <span class="mt-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-                style="background:linear-gradient(135deg,#10b981,#34d399)">
-            Acessar
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-            </svg>
-          </span>
-        </div>
+      <a href="{% url 'supply:painel_materiais_visualizacao' %}" class="supply-shortcut-card">
+        <span class="supply-shortcut-icon"><i class="bi bi-eye"></i></span>
+        <span><strong>Visualização</strong><small>Consulte pedidos por sábado e área.</small></span>
+        <i class="bi bi-arrow-right supply-card-arrow"></i>
       </a>
+    </section>
 
-    </div>
-
-    <!-- Administração de Pedidos -->
-    <div class="bg-white border border-indigo-100 rounded-2xl shadow-sm p-5 flex flex-col sm:flex-row items-center gap-4 
-    hover:-translate-y-1 hover:shadow-md hover:border-emerald-300 transition-all group cursor-pointer h-full">
-      <div class="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 transition-transform"
-               style="background:linear-gradient(135deg,#4f46e5,#6366f1);box-shadow:0 8px 20px rgba(245,158,11,.3)">
-            <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-          </div>
-      <div class="flex-1 text-center sm:text-left">
-        <p class="font-semibold text-gray-900 text-sm">Administração de Pedidos</p>
-        <p class="text-gray-500 text-xs mt-0.5">Gerencie e acompanhe os pedidos das áreas.</p>
+    <section class="supply-home-section">
+      <div class="supply-section-heading">
+        <div><h2>Gestão de materiais</h2><p>Ferramentas para organizar compras e acompanhar o estoque.</p></div>
       </div>
-      <a href="{% url 'supply:painel_materiais' %}"
-         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold flex-shrink-0 transition-all hover:opacity-90"
-         style="background:linear-gradient(135deg,#4f46e5,#7c3aed);text-decoration:none;">
-        Acessar painel
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-          <path d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-        </svg>
-      </a>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
-      <a href="{% url 'supply:lista_itens' %}" class="bg-white border border-amber-100 rounded-2xl p-5 flex items-center gap-4 hover:border-amber-300 hover:shadow-md transition-all" style="text-decoration:none;">
-        <span class="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0"><i class="bi bi-box-seam text-xl"></i></span>
-        <span><strong class="block text-gray-900">Estoque</strong><small class="text-gray-500">Consulte quantidades e alertas de reposição.</small></span>
-      </a>
-      <a href="{% url 'supply:lista_movimentacoes' %}" class="bg-white border border-blue-100 rounded-2xl p-5 flex items-center gap-4 hover:border-blue-300 hover:shadow-md transition-all" style="text-decoration:none;">
-        <span class="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0"><i class="bi bi-clock-history text-xl"></i></span>
-        <span><strong class="block text-gray-900">Movimentações</strong><small class="text-gray-500">Acompanhe o histórico de entradas e saídas.</small></span>
-      </a>
-    </div>
-
-  </div>
+      <div class="supply-management-grid">
+        <a href="{% url 'supply:painel_materiais' %}" class="supply-management-card supply-management-featured">
+          <span class="supply-management-icon"><i class="bi bi-kanban"></i></span>
+          <span><strong>Painel administrativo</strong><small>Organize valores, locais de compra e pedidos de todas as áreas.</small></span>
+          <span class="supply-link-label">Abrir painel <i class="bi bi-arrow-right"></i></span>
+        </a>
+        <a href="{% url 'supply:lista_itens' %}" class="supply-management-card">
+          <span class="supply-management-icon"><i class="bi bi-boxes"></i></span>
+          <span><strong>Estoque</strong><small>Consulte quantidades e alertas de reposição.</small></span>
+          <span class="supply-link-label">Ver estoque <i class="bi bi-arrow-right"></i></span>
+        </a>
+        <a href="{% url 'supply:lista_movimentacoes' %}" class="supply-management-card">
+          <span class="supply-management-icon"><i class="bi bi-clock-history"></i></span>
+          <span><strong>Movimentações</strong><small>Acompanhe entradas, saídas e ajustes.</small></span>
+          <span class="supply-link-label">Ver histórico <i class="bi bi-arrow-right"></i></span>
+        </a>
+      </div>
+    </section>
+  </main>
 </div>
 {% endblock %}

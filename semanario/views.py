@@ -70,7 +70,6 @@ def criar_semanario(request):
                         especificar = m.get('especificar', '').strip()
                         link = m.get('link', '').strip()
                         quantidade = m.get('quantidade', '').strip()
-                        unidade = m.get('unidade', '').strip()
                         # Sem destino explícito → Supply (padrão de compra do projeto)
                         pedido = m.get('pedido', '').strip() or 'SUPPLY'
                         if item:
@@ -88,7 +87,6 @@ def criar_semanario(request):
                                 especificar=especificar,
                                 link=link,
                                 quantidade=qtd,
-                                unidade=(unidade or 'UN'),
                                 pedido=pedido,
                                 requisitado_por=request.user if request.user.is_authenticated else None,
                             )
@@ -124,7 +122,6 @@ def adicionar_material(request, atividade_id):
         especificar = request.POST.get("especificar", "").strip()
         link = request.POST.get("link", "").strip()
         quantidade = request.POST.get("quantidade")
-        unidade = request.POST.get("unidade")
 
         if item:
             Material.objects.create(
@@ -133,7 +130,6 @@ def adicionar_material(request, atividade_id):
                 especificar=especificar,
                 link=link,
                 quantidade=quantidade,
-                unidade=unidade,
                 requisitado_por=request.user if request.user.is_authenticated else None,
             )
             return JsonResponse({"success": True})
@@ -194,7 +190,6 @@ def editar_semanario(request, semanario_id):
                             especificar = m.get('especificar', '').strip()
                             link = m.get('link', '').strip()
                             quantidade = m.get('quantidade', '').strip()
-                            unidade = m.get('unidade', '').strip()
                             # Sem destino explícito → Supply (padrão de compra do projeto)
                             pedido = m.get('pedido', '').strip() or 'SUPPLY'
                             if item:
@@ -207,7 +202,7 @@ def editar_semanario(request, semanario_id):
                                     qtd = Decimal('1')
                                 Material.objects.create(
                                     atividade=atividade_obj, item=item, especificar=especificar,
-                                    link=link, quantidade=qtd, unidade=(unidade or 'UN'),
+                                    link=link, quantidade=qtd,
                                     pedido=pedido,
                                     requisitado_por=request.user if request.user.is_authenticated else None,
                                 )
@@ -274,7 +269,6 @@ def listar_materiais(request, atividade_id):
             "especificar": m.especificar,
             "link": m.link,
             "quantidade": str(m.quantidade),
-            "unidade": m.unidade,
             "pedido": m.pedido if hasattr(m, 'pedido') else ''
         }
         for m in materiais
@@ -296,7 +290,6 @@ def salvar_materiais(request):
             especificar=(m.get("especificar") or "").strip(),
             link=(m.get("link") or "").strip(),
             quantidade=m["quantidade"],
-            unidade=m["unidade"],
             # Sem destino explícito → Supply (padrão de compra do projeto)
             pedido=(m.get("pedido") or "").strip() or "SUPPLY",
             requisitado_por=request.user if request.user.is_authenticated else None,

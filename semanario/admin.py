@@ -74,8 +74,8 @@ class MaterialAdmin(admin.ModelAdmin):
     """
     Exibe os Materiais individualmente (caso queira ver todos juntos).
     """
-    list_display = ("nome", "especificar", "link", "atividade", "quantidade", "unidade", "valor", "valor_total", "local", "requisitado_por")
-    list_filter = ("unidade", "local__tipo")
+    list_display = ("nome", "especificar", "link", "atividade", "quantidade", "valor", "valor_total", "local", "requisitado_por")
+    list_filter = ("local__tipo",)
     search_fields = ("nome", "especificar", "link", "local__nome", "requisitado_por__username")
     autocomplete_fields = ("item", "local")
 

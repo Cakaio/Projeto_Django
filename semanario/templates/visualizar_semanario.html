@@ -163,13 +163,21 @@
                   <span class="flex items-center gap-3 text-slate-700">
                     <span class="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0"></span>
                     {{ material.nome }}
-                    {% if material.especificar %}<span class="text-slate-500 text-sm">{{ material.especificar }}</span>{% endif %}
-                    {% if material.link %}
-                    <a href="{{ material.link }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:text-indigo-800 underline text-sm">Abrir imagem</a>
-                    {% endif %}
+                    <details>
+                      <summary class="cursor-pointer list-none text-cyan-700 bg-cyan-50 border border-cyan-200 rounded-lg px-3 py-1.5 text-xs font-bold hover:bg-cyan-100 transition-colors">Ver detalhes</summary>
+                      <div class="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm" onclick="this.closest('details').removeAttribute('open')"></div>
+                      <div class="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(30rem,calc(100vw-2rem))] max-h-[calc(100vh-3rem)] overflow-y-auto grid gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl text-sm">
+                        <button type="button" class="justify-self-end rounded-lg bg-slate-200 px-3 py-2 text-xs font-bold text-slate-700" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar modal">Fechar ×</button>
+                        <div><strong class="text-slate-700">Especificar:</strong> <span class="text-slate-500">{{ material.especificar|default:"—" }}</span></div>
+                        <div><strong class="text-slate-700">Imagem:</strong> {% if material.link %}<a href="{{ material.link }}" target="_blank" rel="noopener noreferrer" class="text-indigo-600 hover:text-indigo-800 underline">Abrir imagem</a>{% else %}<span class="text-slate-400">—</span>{% endif %}</div>
+                      </div>
+                    </details>
                   </span>
                   <span class="text-slate-500 text-sm bg-white px-3 py-1 rounded-full font-medium">
-                    {{ material.quantidade }} {{ material.get_unidade_display }}
+                    {{ material.quantidade }}
+                  </span>
+                  <span class="text-slate-500 text-sm bg-white px-3 py-1 rounded-full font-medium">
+                    {{ material.item.get_unidade_display }}
                   </span>
                   {% if material.local %}
                   <span class="text-slate-500 text-sm bg-white px-3 py-1 rounded-full font-medium">
