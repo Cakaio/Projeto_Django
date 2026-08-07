@@ -84,6 +84,7 @@
   }
   .mp-btn-remove:hover { background: #f9dede; border-color: #efb9b9; }
 
+<<<<<<< HEAD
   .mp-card-footer {
     padding: 1.2rem 1.4rem; border-top: 1px solid #f4e7de; background: #fffaf6;
     display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
@@ -105,6 +106,64 @@
     .mp-filter-group { min-width: 0; width: 100%; }
     .mp-card-footer .pcf-btn { width: 100%; justify-content: center; }
   }
+=======
+  .filter-form { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+  .filter-group { min-width: 260px; flex: 1; }
+  .filter-group label { display: block; font-weight: 700; color: #374151; margin-bottom: 0.4rem; }
+  .filter-group select { width: 100%; border: 1px solid #d1d5db; border-radius: 12px; padding: 0.75rem 0.85rem; }
+
+  .messages { margin-bottom: 1rem; }
+  .alert { padding: 1rem 1.2rem; border-radius: 14px; margin-bottom: 0.8rem; font-weight: 500; }
+  .alert-success { background: #dcfce7; color: #166534; }
+  .alert-error, .alert-danger { background: #fee2e2; color: #991b1b; }
+
+  .table-card { background: white; border-radius: 24px; border: 1px solid #eef2f7; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); overflow: hidden; }
+  .table-card-header { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.4rem; border-bottom: 1px solid #eef2f7; background: linear-gradient(180deg, #fafbff 0%, #ffffff 100%); gap: 1rem; flex-wrap: wrap; }
+  .table-card-title { margin: 0; font-size: 1.05rem; font-weight: 700; color: #1f2937; }
+  .table-card-subtitle { margin: 0.25rem 0 0 0; color: #6b7280; font-size: 0.92rem; }
+
+  .table-wrapper { width: 100%; overflow-x: auto; }
+  .pedido-table { width: 100%; border-collapse: collapse; min-width: 1050px; }
+  .pedido-table thead th { text-align: left; font-size: 0.82rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.03em; background: #f8fafc; padding: 1rem 0.9rem; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+  .pedido-table tbody td { padding: 0.85rem 0.9rem; border-bottom: 1px solid #eef2f7; vertical-align: middle; background: #fff; }
+  .pedido-table tbody tr:hover td { background: #fafbff; }
+
+  .col-index { width: 70px; text-align: center; }
+  .col-nome { min-width: 280px; }
+  .col-quantidade { width: 140px; }
+  .col-sabado { width: 220px; }
+  .col-area { width: 220px; }
+  .col-acoes { width: 120px; text-align: center; }
+
+  .form-control { width: 100%; border: 1px solid #d1d5db; border-radius: 12px; padding: 0.75rem 0.85rem; font-size: 0.95rem; outline: none; background: #fff; box-sizing: border-box; }
+  .form-control:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12); }
+
+  .row-number-badge { width: 34px; height: 34px; margin: 0 auto; border-radius: 10px; background: #eef2ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; }
+
+  .table-footer { padding: 1.2rem 1.4rem; border-top: 1px solid #eef2f7; background: #fcfcfd; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .table-footer-note { color: #6b7280; font-size: 0.93rem; }
+  .error-list { margin-top: 0.35rem; font-size: 0.82rem; color: #b91c1c; font-weight: 600; }
+  .delete-checkbox { display: none; }
+  .materials-card { margin-top: 1.5rem; }
+  .material-name { font-weight: 700; color: #1f2937; }
+  .material-badge { display: inline-flex; padding: 0.3rem 0.65rem; border-radius: 999px; background: #eef2ff; color: #4338ca; font-weight: 700; font-size: 0.86rem; }
+  .material-detail { color: #6b7280; font-size: 0.88rem; margin-top: 0.25rem; }
+  .empty-materials { padding: 2.5rem 1.5rem; text-align: center; color: #6b7280; }
+  .details-disclosure { min-width: 210px; }
+  .details-disclosure summary {
+    cursor: pointer; list-style: none; width: max-content; padding: 9px 12px;
+    border: 1px solid #cbd5e1; border-radius: 9px; background: #f8fafc;
+    color: #334155; font-weight: 700; font-size: .82rem;
+  }
+  .details-disclosure summary::-webkit-details-marker { display: none; }
+  .details-disclosure summary::after { content: " +"; color: #0891b2; }
+  .details-disclosure[open] summary::after { content: " −"; }
+  .details-disclosure[open]::before { content: ""; position: fixed; inset: 0; z-index: 1090; background: rgba(15, 23, 42, .62); backdrop-filter: blur(3px); }
+  .details-fields { position: fixed; z-index: 1100; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; gap: 14px; width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; padding: 24px; border-radius: 18px; background: #fff; box-shadow: 0 28px 80px rgba(15, 23, 42, .28); }
+  .details-fields label { display: grid; gap: 5px; color: #475569; font-size: .75rem; font-weight: 700; }
+  .details-modal-close { justify-self: end; border: 0; border-radius: 8px; padding: 7px 11px; background: #e2e8f0; color: #334155; font-weight: 800; cursor: pointer; }
+  .material-qty { display: inline-flex; min-width: 74px; justify-content: center; padding: 8px 10px; border-radius: 9px; background: #f1f5f9; color: #475569; font-size: .8rem; font-weight: 800; }
+>>>>>>> 9c638eebaae93cad3759d6118754fe37a2d96cc3
 </style>
 
 <div class="mp-page">
@@ -144,6 +203,182 @@
           </div>
         {% endfor %}
       </div>
+<<<<<<< HEAD
+=======
+
+      <button type="submit" class="btn-add">Filtrar</button>
+    </form>
+  </div>
+
+  <form method="post" id="pedido-formset">
+    {% csrf_token %}
+    <input type="hidden" name="tipo_form" value="pedidos">
+    {{ formset.management_form }}
+
+    <div class="table-card">
+      <div class="table-card-header">
+        <div>
+          <h2 class="table-card-title">Lista de pedidos</h2>
+          <p class="table-card-subtitle">As alterações são salvas todas juntas ao clicar em salvar.</p>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="pedido-table">
+          <thead>
+            <tr>
+              <th class="col-index">#</th>
+              <th class="col-nome">Nome</th>
+              <th>Detalhes</th>
+              <th class="col-quantidade">Quantidade</th>
+              <th>Unidade</th>
+              <th class="col-sabado">Sábado</th>
+              <th class="col-area">Área</th>
+              <th class="col-acoes">Ações</th>
+            </tr>
+          </thead>
+
+          <tbody id="forms-container">
+            {% for form in formset %}
+              <tr class="pedido-form-row">
+                <td class="col-index">
+                  <div class="row-number-badge row-number">{{ forloop.counter }}</div>
+                  {{ form.id }}
+                  <span class="delete-checkbox">{{ form.DELETE }}</span>
+                </td>
+
+                <td class="col-nome">
+                  {{ form.item }}
+                  {% if form.item.errors %}<div class="error-list">{{ form.item.errors }}</div>{% endif %}
+                </td>
+
+                <td>
+                  <details class="details-disclosure" {% if form.especificar.errors or form.link.errors %}open{% endif %}>
+                    <summary>Especificar / imagem</summary>
+                    <div class="details-fields">
+                      <button type="button" class="details-modal-close" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar modal">Fechar ×</button>
+                      <label>Especificar {{ form.especificar }}</label>
+                      {% if form.especificar.errors %}<div class="error-list">{{ form.especificar.errors }}</div>{% endif %}
+                      <label>Link da imagem {{ form.link }}</label>
+                      {% if form.link.errors %}<div class="error-list">{{ form.link.errors }}</div>{% endif %}
+                    </div>
+                  </details>
+                </td>
+
+                <td class="col-quantidade">
+                  {{ form.quantidade }}
+                  {% if form.quantidade.errors %}<div class="error-list">{{ form.quantidade.errors }}</div>{% endif %}
+                </td>
+
+                <td><span class="material-qty item-unit-value">{% if form.instance.item_id %}{{ form.instance.item.get_unidade_display }}{% else %}—{% endif %}</span></td>
+
+                <td class="col-sabado">
+                  {{ form.sabado }}
+                  {% if form.sabado.errors %}<div class="error-list">{{ form.sabado.errors }}</div>{% endif %}
+                </td>
+
+                <td class="col-area">
+                  {{ form.area }}
+                  {% if form.area.errors %}<div class="error-list">{{ form.area.errors }}</div>{% endif %}
+                </td>
+
+                <td class="col-acoes">
+                  <button type="button" class="btn-remove remove-btn">Remover</button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <div class="table-footer-note">
+          Só aparecem pedidos criados por você.
+        </div>
+
+        <button type="submit" class="btn-save">Salvar alterações</button>
+      </div>
+    </div>
+  </form>
+
+  <form method="post" id="material-formset" class="table-card materials-card">
+    {% csrf_token %}
+    <input type="hidden" name="tipo_form" value="materiais">
+    {{ material_formset.management_form }}
+
+    <div class="table-card-header">
+      <div>
+        <h2 class="table-card-title">Materiais requisitados</h2>
+        <p class="table-card-subtitle">Edite os materiais vinculados às suas atividades e salve as alterações separadamente.</p>
+      </div>
+    </div>
+
+    {% if material_formset.forms %}
+      <div class="table-wrapper">
+        <table class="pedido-table">
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Detalhes</th>
+              <th>Quantidade</th>
+              <th>Unidade</th>
+              <th>Sábado / atividade</th>
+              <th>Destino</th>
+              <th>Local de compra</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for form in material_formset %}
+              <tr class="material-form-row">
+                <td>
+                  {{ form.id }}
+                  <span class="delete-checkbox">{{ form.DELETE }}</span>
+                  {{ form.item }}
+                  {% if form.item.errors %}<div class="error-list">{{ form.item.errors }}</div>{% endif %}
+                </td>
+                <td>
+                  <details class="details-disclosure" {% if form.especificar.errors or form.link.errors %}open{% endif %}>
+                    <summary>Especificar / imagem</summary>
+                    <div class="details-fields">
+                      <button type="button" class="details-modal-close" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar modal">Fechar ×</button>
+                      <label>Especificar {{ form.especificar }}</label>
+                      {% if form.especificar.errors %}<div class="error-list">{{ form.especificar.errors }}</div>{% endif %}
+                      <label>Link da imagem {{ form.link }}</label>
+                      {% if form.link.errors %}<div class="error-list">{{ form.link.errors }}</div>{% endif %}
+                    </div>
+                  </details>
+                </td>
+                <td>
+                  {{ form.quantidade }}
+                  {% if form.quantidade.errors %}<div class="error-list">{{ form.quantidade.errors }}</div>{% endif %}
+                </td>
+                <td><span class="material-qty item-unit-value">{{ form.instance.item.get_unidade_display }}</span></td>
+                <td>
+                  <div class="material-name">{{ form.instance.atividade.semanario.data.data|date:"d/m/Y" }}</div>
+                  <div class="material-detail">{{ form.instance.atividade.semanario.get_sala_display }} — {{ form.instance.atividade.atividade }}</div>
+                </td>
+                <td>
+                  {{ form.pedido }}
+                  {% if form.pedido.errors %}<div class="error-list">{{ form.pedido.errors }}</div>{% endif %}
+                </td>
+                <td>
+                  {{ form.local }}
+                  {% if form.local.errors %}<div class="error-list">{{ form.local.errors }}</div>{% endif %}
+                </td>
+                <td><button type="button" class="btn-remove material-remove-btn">Remover</button></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <div class="table-footer-note">Só aparecem materiais requisitados por você.</div>
+        <button type="submit" class="btn-save">Salvar materiais</button>
+      </div>
+    {% else %}
+      <div class="empty-materials">Nenhum material requisitado encontrado para o filtro selecionado.</div>
+>>>>>>> 9c638eebaae93cad3759d6118754fe37a2d96cc3
     {% endif %}
 
     <div class="pcf-card mp-filter-card">
@@ -351,6 +586,17 @@
 </div>
 
 <script>
+  const itemUnits = { {% for item in itens %}"{{ item.pk }}": "{{ item.get_unidade_display|escapejs }}",{% endfor %} };
+
+  function updateItemUnit(select) {
+    const unit = select.closest('tr')?.querySelector('.item-unit-value');
+    if (unit) unit.textContent = itemUnits[select.value] || '—';
+  }
+
+  document.addEventListener('change', function(event) {
+    if (event.target.matches('select[name$="-item"]')) updateItemUnit(event.target);
+  });
+
   const addButton = document.getElementById("add-form-btn");
   const totalForms = document.getElementById("id_form-TOTAL_FORMS");
   const formsContainer = document.getElementById("forms-container");
@@ -377,6 +623,8 @@
     });
 
     row.querySelectorAll(".error-list").forEach((error) => error.remove());
+    const unit = row.querySelector('.item-unit-value');
+    if (unit) unit.textContent = '—';
   }
 
   function updateElementIndexes(row, newIndex) {

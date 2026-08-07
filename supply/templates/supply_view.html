@@ -4,97 +4,73 @@
 {% block head %}<link rel="stylesheet" href="{% static 'supply/supply.css' %}">{% endblock %}
 
 {% block content %}
-{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .sup-). O visual vem das classes .pcf-*. #}
-<div class="sup-page">
-  <div class="pcf-container sup-wrap">
-
-    <!-- Cabeçalho leve -->
-    <header class="sup-head">
-      <div class="sup-head-text">
-        <span class="pcf-eyebrow">Supply</span>
-        <h1 class="sup-title">Painel de Pedidos</h1>
-        <p class="sup-sub">Crie, edite e visualize os pedidos de material do Projeto Criança Feliz.</p>
+<div class="supply-page supply-home">
+  <section class="supply-home-hero">
+    <div class="supply-home-pattern"></div>
+    <div class="supply-container supply-home-hero-inner">
+      <div>
+        <span class="supply-eyebrow">Projeto Criança Feliz</span>
+        <h1>Supply</h1>
+        <p>Pedidos, materiais e estoque reunidos em um fluxo simples para toda a equipe.</p>
+        <div class="supply-home-actions">
+          <a href="{% url 'supply:adicionar_pedidos' %}" class="supply-button supply-button-light">
+            <i class="bi bi-plus-lg"></i> Novo pedido
+          </a>
+          <a href="{% url 'supply:painel_materiais_visualizacao' %}" class="supply-button supply-button-ghost">
+            <i class="bi bi-eye"></i> Visualizar pedidos
+          </a>
+        </div>
       </div>
-      <div class="sup-head-actions">
-        <a href="{% url 'supply:adicionar_pedidos' %}" class="pcf-btn pcf-btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Novo Pedido
+      <div class="supply-home-illustration" aria-hidden="true">
+        <div class="supply-box-icon"><i class="bi bi-box-seam"></i></div>
+        <span class="supply-orbit supply-orbit-one"></span>
+        <span class="supply-orbit supply-orbit-two"></span>
+      </div>
+    </div>
+  </section>
+
+  <main class="supply-container supply-home-content">
+    <section class="supply-shortcuts" aria-label="Acessos principais">
+      <a href="{% url 'supply:adicionar_pedidos' %}" class="supply-shortcut-card">
+        <span class="supply-shortcut-icon"><i class="bi bi-plus-circle"></i></span>
+        <span><strong>Novo pedido</strong><small>Solicite materiais para sua área.</small></span>
+        <i class="bi bi-arrow-right supply-card-arrow"></i>
+      </a>
+      <a href="{% url 'supply:meus_pedidos' %}" class="supply-shortcut-card">
+        <span class="supply-shortcut-icon"><i class="bi bi-card-checklist"></i></span>
+        <span><strong>Minhas requisições</strong><small>Edite e acompanhe suas solicitações.</small></span>
+        <i class="bi bi-arrow-right supply-card-arrow"></i>
+      </a>
+      <a href="{% url 'supply:painel_materiais_visualizacao' %}" class="supply-shortcut-card">
+        <span class="supply-shortcut-icon"><i class="bi bi-eye"></i></span>
+        <span><strong>Visualização</strong><small>Consulte pedidos por sábado e área.</small></span>
+        <i class="bi bi-arrow-right supply-card-arrow"></i>
+      </a>
+    </section>
+
+    <section class="supply-home-section">
+      <div class="supply-section-heading">
+        <div><h2>Gestão de materiais</h2><p>Ferramentas para organizar compras e acompanhar o estoque.</p></div>
+      </div>
+      <div class="supply-management-grid">
+        <a href="{% url 'supply:painel_materiais' %}" class="supply-management-card supply-management-featured">
+          <span class="supply-management-icon"><i class="bi bi-kanban"></i></span>
+          <span><strong>Painel administrativo</strong><small>Organize valores, locais de compra e pedidos de todas as áreas.</small></span>
+          <span class="supply-link-label">Abrir painel <i class="bi bi-arrow-right"></i></span>
+        </a>
+        <a href="{% url 'supply:lista_itens' %}" class="supply-management-card">
+          <span class="supply-management-icon"><i class="bi bi-boxes"></i></span>
+          <span><strong>Estoque</strong><small>Consulte quantidades e alertas de reposição.</small></span>
+          <span class="supply-link-label">Ver estoque <i class="bi bi-arrow-right"></i></span>
+        </a>
+        <a href="{% url 'supply:lista_movimentacoes' %}" class="supply-management-card">
+          <span class="supply-management-icon"><i class="bi bi-clock-history"></i></span>
+          <span><strong>Movimentações</strong><small>Acompanhe entradas, saídas e ajustes.</small></span>
+          <span class="supply-link-label">Ver histórico <i class="bi bi-arrow-right"></i></span>
         </a>
       </div>
-    </header>
-
-    <!-- Atalhos principais -->
-    <div class="sup-grid">
-
-      <a href="{% url 'supply:adicionar_pedidos' %}" class="pcf-card pcf-hoverable sup-shortcut">
-        <span class="pcf-icon-tile tint-orange" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </span>
-        <span class="sup-shortcut-body">
-          <span class="sup-shortcut-title">Novo Pedido</span>
-          <span class="sup-shortcut-desc">Registre um novo pedido para a sua área.</span>
-        </span>
-        <svg class="sup-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-
-      <a href="{% url 'supply:meus_pedidos' %}" class="pcf-card pcf-hoverable sup-shortcut">
-        <span class="pcf-icon-tile tint-gold" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>
-        </span>
-        <span class="sup-shortcut-body">
-          <span class="sup-shortcut-title">Meus Pedidos</span>
-          <span class="sup-shortcut-desc">Visualize e gerencie os seus pedidos.</span>
-        </span>
-        <svg class="sup-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-
-      <a href="{% url 'supply:painel_materiais_visualizacao' %}" class="pcf-card pcf-hoverable sup-shortcut">
-        <span class="pcf-icon-tile tint-green" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
-        </span>
-        <span class="sup-shortcut-body">
-          <span class="sup-shortcut-title">Visualizar</span>
-          <span class="sup-shortcut-desc">Veja os pedidos das áreas por sábado.</span>
-        </span>
-        <svg class="sup-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-
-      <a href="{% url 'supply:painel_materiais' %}" class="pcf-card pcf-hoverable sup-shortcut">
-        <span class="pcf-icon-tile tint-blue" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="12" y="8" width="3" height="10" rx="1"/><rect x="17" y="5" width="3" height="13" rx="1"/></svg>
-        </span>
-        <span class="sup-shortcut-body">
-          <span class="sup-shortcut-title">Administração de Pedidos</span>
-          <span class="sup-shortcut-desc">Gerencie e acompanhe os pedidos das áreas.</span>
-        </span>
-        <svg class="sup-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-
-      <a href="{% url 'supply:lista_itens' %}" class="pcf-card pcf-hoverable sup-shortcut">
-        <span class="pcf-icon-tile tint-orange" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-        </span>
-        <span class="sup-shortcut-body">
-          <span class="sup-shortcut-title">Estoque</span>
-          <span class="sup-shortcut-desc">Consulte quantidades e alertas de reposição.</span>
-        </span>
-        <svg class="sup-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-
-      <a href="{% url 'supply:lista_movimentacoes' %}" class="pcf-card pcf-hoverable sup-shortcut">
-        <span class="pcf-icon-tile tint-gold" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
-        </span>
-        <span class="sup-shortcut-body">
-          <span class="sup-shortcut-title">Movimentações</span>
-          <span class="sup-shortcut-desc">Acompanhe o histórico de entradas e saídas.</span>
-        </span>
-        <svg class="sup-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-
-    </div>
-
-  </div>
+    </section>
+  </main>
 </div>
 
 <style>

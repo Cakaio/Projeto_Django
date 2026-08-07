@@ -12,7 +12,6 @@ class PedidoForm(forms.ModelForm):
             "especificar",
             "link",
             "quantidade",
-            "unidade",
             "sabado",
             "area",
         ]
@@ -31,9 +30,6 @@ class PedidoForm(forms.ModelForm):
                 "class": "form-control",
                 "step": "0.01",
                 "min": "0"
-            }),
-            "unidade": forms.Select(attrs={
-                "class": "form-control"
             }),
             "sabado": forms.Select(attrs={
                 "class": "form-control"
@@ -58,13 +54,12 @@ PedidoFormSet = modelformset_factory(
 class MeuPedidoForm(forms.ModelForm):
     class Meta:
         model = Pedido
-        fields = ["item", "especificar", "link", "quantidade", "unidade", "sabado", "area"]
+        fields = ["item", "especificar", "link", "quantidade", "sabado", "area"]
         widgets = {
             "item": forms.Select(attrs={"class": "form-control"}),
             "especificar": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Cor, tamanho, marca ou observação"}),
             "link": forms.URLInput(attrs={"class": "form-control", "placeholder": "https://exemplo.com/imagem.jpg"}),
             "quantidade": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
-            "unidade": forms.Select(attrs={"class": "form-control"}),
             "sabado": forms.Select(attrs={"class": "form-control"}),
             "area": forms.Select(attrs={"class": "form-control"}),
         }
@@ -77,13 +72,12 @@ class MeuPedidoForm(forms.ModelForm):
 class MeuMaterialForm(forms.ModelForm):
     class Meta:
         model = Material
-        fields = ["item", "especificar", "link", "quantidade", "unidade", "pedido", "local"]
+        fields = ["item", "especificar", "link", "quantidade", "pedido", "local"]
         widgets = {
             "item": forms.Select(attrs={"class": "form-control"}),
             "especificar": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Cor, tamanho, marca ou observação"}),
             "link": forms.URLInput(attrs={"class": "form-control", "placeholder": "https://exemplo.com/imagem.jpg"}),
             "quantidade": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
-            "unidade": forms.Select(attrs={"class": "form-control"}),
             "pedido": forms.Select(attrs={"class": "form-control"}),
             "local": forms.Select(attrs={"class": "form-control"}),
         }

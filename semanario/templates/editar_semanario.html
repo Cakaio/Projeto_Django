@@ -293,6 +293,7 @@
 
 <script>
   const materialsByIndex = {};
+  const itemUnits = { {% for item in itens %}"{{ item.pk }}": "{{ item.get_unidade_display|escapejs }}",{% endfor %} };
   let currentAtividadeId   = null;
   let currentAtividadeIdx  = null;
 
@@ -307,29 +308,26 @@
     const especificar = (m.especificar || '').replace(/"/g, '&quot;');
     const link = (m.link || '').replace(/"/g, '&quot;');
     const qtd  = m.quantidade || '';
-    const un   = m.unidade || 'UN';
+    const unit = itemUnits[itemId] || '—';
     const pd   = m.pedido  || 'SUPPLY';
     const sel  = (v, opt) => opt === v ? ' selected' : '';
     return `<tr>
-      <td class="px-3 py-2"><select class="mat-item">
+      <td class="px-3 py-2"><select class="mat-item" onchange="atualizarUnidadeMaterial(this)">
         <option value="">Selecione um item</option>
         {% for item in itens %}<option value="{{ item.id }}">{{ item.nome|escapejs }}</option>{% endfor %}
       </select></td>
-      <td class="px-3 py-2"><textarea class="mat-especificar" rows="2" placeholder="Cor, tamanho, marca...">${especificar}</textarea></td>
-      <td class="px-3 py-2"><input type="url" class="mat-link" value="${link}" placeholder="https://..."></td>
-      <td class="px-3 py-2"><input type="number" class="mat-qtd" step="0.1" min="0" value="${qtd}"></td>
       <td class="px-3 py-2">
-        <select class="mat-unidade">
-          <option value="UN"${sel(un,'UN')}>Unidade</option>
-          <option value="PAC"${sel(un,'PAC')}>Pacote</option>
-          <option value="CX"${sel(un,'CX')}>Caixa</option>
-          <option value="TUBO"${sel(un,'TUBO')}>Tubo</option>
-          <option value="METRO"${sel(un,'METRO')}>Metro</option>
-          <option value="L"${sel(un,'L')}>Litro</option>
-          <option value="KG"${sel(un,'KG')}>Quilo</option>
-          <option value="OUTROS"${sel(un,'OUTROS')}>Outros</option>
-        </select>
+        <details class="material-details">
+          <summary>Especificar / imagem</summary>
+          <div class="material-details-fields">
+            <button type="button" class="details-modal-close" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar modal">Fechar ×</button>
+            <label>Especificar<textarea class="mat-especificar" rows="2" placeholder="Cor, tamanho, marca...">${especificar}</textarea></label>
+            <label>Link da imagem<input type="url" class="mat-link" value="${link}" placeholder="https://..."></label>
+          </div>
+        </details>
       </td>
+      <td class="px-3 py-2"><input type="number" class="mat-qtd" step="0.1" min="0" value="${qtd}"></td>
+      <td class="px-3 py-2 text-center"><span class="mat-unit inline-flex rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">${unit}</span></td>
       <td class="px-3 py-2">
         <select class="mat-pedido">
           <option value="SUPPLY"${sel(pd,'SUPPLY')}>Supply</option>
@@ -359,7 +357,7 @@
     currentAtividadeIdx = String(idx);
     document.getElementById('atividadeNome').textContent = nome;
     const tabela = document.getElementById('tabelaMateriais');
-    tabela.innerHTML = '<tr><td colspan="7" class="px-3 py-4 text-center text-xs text-gray-400">Carregando…</td></tr>';
+    tabela.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-xs text-gray-400">Carregando…</td></tr>';
 
     const modal = document.getElementById('modalMateriais');
     modal.classList.remove('hidden');
@@ -387,6 +385,11 @@
     modal.classList.remove('flex');
   }
 
+  function atualizarUnidadeMaterial(select) {
+    const unit = select.closest('tr')?.querySelector('.mat-unit');
+    if (unit) unit.textContent = itemUnits[select.value] || '—';
+  }
+
   function adicionarLinha() {
     document.getElementById('tabelaMateriais').insertAdjacentHTML('beforeend', novaLinha());
   }
@@ -397,7 +400,6 @@
       especificar: r.querySelector('.mat-especificar')?.value.trim() || '',
       link:       r.querySelector('.mat-link')?.value.trim() || '',
       quantidade: r.querySelector('.mat-qtd')?.value.trim() || '',
-      unidade:    r.querySelector('.mat-unidade')?.value || 'UN',
       pedido:     r.querySelector('.mat-pedido')?.value || 'SUPPLY',
     })).filter(m => m.item_id !== '');
   }

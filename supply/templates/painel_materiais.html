@@ -466,13 +466,48 @@
     }
 
     @media (max-width: 768px) {
-      .main-container { padding: 1rem; }
-      .filter-form, .panel-switch { flex-direction: column; }
-      .panel-btn, .btn-save { width: 100%; justify-content: center; }
-      .materials-table { display: block; overflow-x: auto; }
-      .sala-header { flex-direction: column; align-items: flex-start; }
-      .sala-header-right { width: 100%; justify-content: space-between; }
+      .main-container {
+        padding: 1rem;
+      }
+
+      .filter-form,
+      .panel-switch {
+        flex-direction: column;
+      }
+
+      .panel-btn,
+      .btn-save {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .materials-table {
+        display: block;
+        overflow-x: auto;
+      }
+
+      .sala-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .sala-header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
     }
+    .details-disclosure summary {
+      cursor: pointer; list-style: none; width: max-content; padding: 8px 11px;
+      border: 1px solid #cbd5e1; border-radius: 9px; background: #f8fafc;
+      color: #334155; font-weight: 700; font-size: .78rem;
+    }
+    .details-disclosure summary::-webkit-details-marker { display: none; }
+    .details-disclosure summary::after { content: " +"; color: #0891b2; }
+    .details-disclosure[open] summary::after { content: " −"; }
+    .details-disclosure[open]::before { content: ""; position: fixed; inset: 0; z-index: 1090; background: rgba(15, 23, 42, .62); backdrop-filter: blur(3px); }
+    .details-fields { position: fixed; z-index: 1100; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; gap: 14px; width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; padding: 24px; border-radius: 18px; background: #fff; box-shadow: 0 28px 80px rgba(15, 23, 42, .28); color: #475569; font-size: .82rem; }
+    .details-fields label { display: grid; gap: 5px; font-weight: 700; }
+    .details-modal-close { justify-self: end; border: 0; border-radius: 8px; padding: 7px 11px; background: #e2e8f0; color: #334155; font-weight: 800; cursor: pointer; }
   </style>
 {% endblock %}
 {% block content %}
@@ -484,18 +519,20 @@
   </div>
 
   <div class="main-container">
-    <header class="page-header">
-      <div class="page-header-icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-        </svg>
+    <div class="page-header">
+      <div class="page-header-content">
+        <div class="page-header-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+        </div>
+        <div>
+          <h1>Painel Supply</h1>
+          <p>Gerencie materiais e pedidos do sábado selecionado</p>
+        </div>
+        <a class="btn-back" href="{% url 'supply:supply_view' %}" style="margin-left:auto">Voltar ao Supply</a>
       </div>
-      <div>
-        <span class="pcf-eyebrow">Supply</span>
-        <h1>Painel Supply</h1>
-        <p>Gerencie materiais e pedidos do sábado selecionado</p>
-      </div>
-    </header>
+    </div>
 
     {% if not sabado %}
       <div class="empty-state">
@@ -559,15 +596,14 @@
           <summary aria-label="Escolher colunas visíveis">Colunas</summary>
           <div class="column-picker-menu">
             <label class="column-option"><input type="checkbox" data-column="1" checked> {% if tipo_painel == 'pedido' %}Pedido{% else %}Material{% endif %}</label>
-            <label class="column-option"><input type="checkbox" data-column="2" checked> Especificar</label>
-            <label class="column-option"><input type="checkbox" data-column="3" checked> Imagem</label>
-            <label class="column-option"><input type="checkbox" data-column="4" checked> Quantidade</label>
-            <label class="column-option"><input type="checkbox" data-column="5" checked> Unidade</label>
-            <label class="column-option"><input type="checkbox" data-column="6" checked> Valor</label>
-            <label class="column-option"><input type="checkbox" data-column="7" checked> Valor total</label>
-            <label class="column-option"><input type="checkbox" data-column="8" checked> Local de compra</label>
-            <label class="column-option"><input type="checkbox" data-column="9" checked> Requisitado por</label>
-            <label class="column-option"><input type="checkbox" data-column="10" checked> Ações</label>
+            <label class="column-option"><input type="checkbox" data-column="2" checked> Detalhes</label>
+            <label class="column-option"><input type="checkbox" data-column="3" checked> Quantidade</label>
+            <label class="column-option"><input type="checkbox" data-column="4" checked> Unidade</label>
+            <label class="column-option"><input type="checkbox" data-column="5" checked> Valor</label>
+            <label class="column-option"><input type="checkbox" data-column="6" checked> Valor total</label>
+            <label class="column-option"><input type="checkbox" data-column="7" checked> Local de compra</label>
+            <label class="column-option"><input type="checkbox" data-column="8" checked> Requisitado por</label>
+            <label class="column-option"><input type="checkbox" data-column="9" checked> Ações</label>
             <button type="button" class="btn-reset-columns" id="reset-columns">Exibir todas</button>
           </div>
         </details>
@@ -635,8 +671,7 @@
                     <thead>
                       <tr>
                         <th>Pedido</th>
-                        <th>Especificar</th>
-                        <th>Imagem</th>
+                        <th>Detalhes</th>
                         <th>Qtd</th>
                         <th>Unidade</th>
                         <th>Valor (R$)</th>
@@ -653,10 +688,14 @@
 
                           <td><span class="material-name">{{ pedido.nome }}</span></td>
                           <td>
-                            <textarea name="especificar_pedido_{{ pedido.id }}" rows="2" class="table-input" aria-label="Especificação do pedido" placeholder="Cor, tamanho, marca...">{{ pedido.especificar }}</textarea>
-                          </td>
-                          <td>
-                            {% if pedido.link %}<a href="{{ pedido.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}
+                            <details class="details-disclosure">
+                              <summary>Ver / editar detalhes</summary>
+                              <div class="details-fields">
+                                <button type="button" class="details-modal-close" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar modal">Fechar ×</button>
+                                <label>Especificar<textarea name="especificar_pedido_{{ pedido.id }}" rows="2" class="table-input" aria-label="Especificação do pedido" placeholder="Cor, tamanho, marca...">{{ pedido.especificar }}</textarea></label>
+                                <div><strong>Imagem:</strong> {% if pedido.link %}<a href="{{ pedido.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</div>
+                              </div>
+                            </details>
                           </td>
                           <td>
                             <input
@@ -670,8 +709,7 @@
                               required
                             >
                           </td>
-                          <td><span class="material-qty">{{ pedido.unidade }}</span></td>
-
+                          <td><span class="material-qty">{{ pedido.item.get_unidade_display }}</span></td>
                           <td>
                             <input
                               type="number"
@@ -746,8 +784,7 @@
                     <thead>
                       <tr>
                         <th>Material</th>
-                        <th>Especificar</th>
-                        <th>Imagem</th>
+                        <th>Detalhes</th>
                         <th>Qtd</th>
                         <th>Unidade</th>
                         <th>Valor (R$)</th>
@@ -764,10 +801,14 @@
 
                           <td><span class="material-name">{{ material.nome }}</span></td>
                           <td>
-                            <textarea name="especificar_material_{{ material.id }}" rows="2" class="table-input" aria-label="Especificação do material" placeholder="Cor, tamanho, marca...">{{ material.especificar }}</textarea>
-                          </td>
-                          <td>
-                            {% if material.link %}<a href="{{ material.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}
+                            <details class="details-disclosure">
+                              <summary>Ver / editar detalhes</summary>
+                              <div class="details-fields">
+                                <button type="button" class="details-modal-close" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar modal">Fechar ×</button>
+                                <label>Especificar<textarea name="especificar_material_{{ material.id }}" rows="2" class="table-input" aria-label="Especificação do material" placeholder="Cor, tamanho, marca...">{{ material.especificar }}</textarea></label>
+                                <div><strong>Imagem:</strong> {% if material.link %}<a href="{{ material.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</div>
+                              </div>
+                            </details>
                           </td>
                           <td>
                             <input
@@ -781,8 +822,7 @@
                               required
                             >
                           </td>
-                          <td><span class="material-qty">{{ material.unidade }}</span></td>
-
+                          <td><span class="material-qty">{{ material.item.get_unidade_display }}</span></td>
                           <td>
                             <input
                               type="number"

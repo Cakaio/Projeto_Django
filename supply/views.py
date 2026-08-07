@@ -5,7 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms import modelformset_factory
 from .forms import MeuMaterialForm, MeuPedidoForm
 from supply.forms import PedidoFormSet
-from .models import Item, Local, Movimentacao, Pedido, UNIDADES
+from .models import Item, Local, Movimentacao, Pedido
 from django.shortcuts import render, redirect
 from django.db.models import Prefetch
 from semanario.models import Material
@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.db.models import Sum, Count, Q, Value, DecimalField, F, ExpressionWrapper
 from django.db.models.functions import Coalesce
 from sabado.models import Sabado
-from semanario.models import Material, LISTA_SALAS, PEDIDO, UNIDADES as UNIDADES_MATERIAL
+from semanario.models import Material, LISTA_SALAS, PEDIDO
 from collections import OrderedDict
 from decimal import Decimal, InvalidOperation
 from django.contrib import messages
@@ -82,7 +82,6 @@ def painel_materiais(request):
             "sabado": None,
             "tipo_painel": tipo_painel,
             "locais": Local.objects.filter(ativo=True),
-            "unidades": UNIDADES,
             "total_itens": 0,
             "total_valor": Decimal("0.00"),
             "salas_map": [],
@@ -92,7 +91,7 @@ def painel_materiais(request):
     if tipo_painel == "pedido":
         qs = (
             Pedido.objects
-            .select_related("requisitado_por", "sabado", "local")
+            .select_related("item", "requisitado_por", "sabado", "local")
             .filter(sabado=sabado)
             .order_by("area", "nome")
         )
@@ -134,7 +133,6 @@ def painel_materiais(request):
             "local_id": local_id,
             "tipo_painel": tipo_painel,
             "locais": Local.objects.filter(ativo=True),
-            "unidades": UNIDADES,
             "total_itens": total_itens,
             "total_valor": total_valor,
             "salas_map": [],
@@ -143,7 +141,7 @@ def painel_materiais(request):
 
     qs = (
         Material.objects
-        .select_related("atividade__semanario", "atividade__semanario__data", "local", "requisitado_por")
+        .select_related("item", "atividade__semanario", "atividade__semanario__data", "local", "requisitado_por")
         .filter(atividade__semanario__data=sabado)
         # Supply = destino explícito "SUPPLY" OU sem destino definido (nulo/vazio)
         .filter(Q(pedido="SUPPLY") | Q(pedido__isnull=True) | Q(pedido=""))
@@ -187,7 +185,6 @@ def painel_materiais(request):
         "local_id": local_id,
         "tipo_painel": tipo_painel,
         "locais": Local.objects.filter(ativo=True),
-        "unidades_material": UNIDADES_MATERIAL,
         "total_itens": total_itens,
         "total_valor": total_valor,
         "salas_map": list(salas_map.values()),
@@ -222,7 +219,6 @@ def gerenciar_item_painel(request):
             especificar=pedido.especificar,
             link=pedido.link,
             quantidade=pedido.quantidade,
-            unidade=pedido.unidade,
             valor=pedido.valor,
             local=pedido.local,
             requisitado_por=pedido.requisitado_por,
@@ -245,7 +241,6 @@ def gerenciar_item_painel(request):
             especificar=material.especificar,
             link=material.link,
             quantidade=material.quantidade,
-            unidade=material.unidade,
             valor=material.valor,
             local=material.local,
             pedido=material.pedido,
@@ -297,7 +292,6 @@ def salvar_materiais_lote(request):
             nome = request.POST.get(f"nome_pedido_{pedido_id}", pedido.nome).strip()
             especificar = request.POST.get(f"especificar_pedido_{pedido_id}", "").strip()
             quantidade = request.POST.get(f"quantidade_pedido_{pedido_id}")
-            unidade = request.POST.get(f"unidade_pedido_{pedido_id}", pedido.unidade)
 
             try:
                 quantidade_decimal = Decimal(quantidade)
@@ -306,7 +300,6 @@ def salvar_materiais_lote(request):
                 pedido.nome = nome
                 pedido.especificar = especificar
                 pedido.quantidade = quantidade_decimal
-                pedido.unidade = unidade
                 pedido.valor = Decimal(valor) if valor not in ["", None] else None
                 pedido.local_id = pedido_local_id or None
                 pedido.full_clean()
@@ -317,7 +310,7 @@ def salvar_materiais_lote(request):
         if pedidos_com_erro:
             messages.error(
                 request,
-                "Alguns pedidos não foram salvos. Verifique nome, quantidade, unidade e valor: "
+                "Alguns pedidos não foram salvos. Verifique nome, quantidade e valor: "
                 + ", ".join(pedidos_com_erro),
             )
         else:
@@ -338,7 +331,6 @@ def salvar_materiais_lote(request):
         nome = request.POST.get(f"nome_material_{material_id}", material.nome).strip()
         especificar = request.POST.get(f"especificar_material_{material_id}", "").strip()
         quantidade = request.POST.get(f"quantidade_material_{material_id}")
-        unidade = request.POST.get(f"unidade_material_{material_id}", material.unidade)
 
         try:
             quantidade_decimal = Decimal(quantidade)
@@ -347,7 +339,6 @@ def salvar_materiais_lote(request):
             material.nome = nome
             material.especificar = especificar
             material.quantidade = quantidade_decimal
-            material.unidade = unidade
             material.valor = Decimal(valor) if valor not in ["", None] else None
             material.local_id = material_local_id or None
             material.full_clean()
@@ -358,7 +349,7 @@ def salvar_materiais_lote(request):
     if materiais_com_erro:
         messages.error(
             request,
-            "Alguns materiais não foram salvos. Verifique nome, quantidade, unidade e valor: "
+            "Alguns materiais não foram salvos. Verifique nome, quantidade e valor: "
             + ", ".join(materiais_com_erro),
         )
     else:
@@ -394,7 +385,7 @@ def painel_materiais_visualizacao(request):
     if tipo_painel == "pedido":
         qs = (
             Pedido.objects
-            .select_related("requisitado_por", "sabado", "local")
+            .select_related("item", "requisitado_por", "sabado", "local")
             .filter(sabado=sabado)
             .order_by("area", "nome")
         )
@@ -445,7 +436,7 @@ def painel_materiais_visualizacao(request):
 
     qs = (
     Material.objects
-    .select_related("atividade__semanario", "atividade__semanario__data", "local", "requisitado_por")
+    .select_related("item", "atividade__semanario", "atividade__semanario__data", "local", "requisitado_por")
     .filter(atividade__semanario__data=sabado)
     # Supply = destino explícito "SUPPLY" OU sem destino definido (nulo/vazio)
     .filter(Q(pedido="SUPPLY") | Q(pedido__isnull=True) | Q(pedido=""))
@@ -537,7 +528,7 @@ def adicionar_pedidos(request):
                 else:
                     if any(
                         form.cleaned_data.get(campo)
-                        for campo in ["especificar", "link", "quantidade", "unidade", "sabado", "area"]
+                        for campo in ["especificar", "link", "quantidade", "sabado", "area"]
                     ):
                         form.add_error("item", "Selecione o item do pedido.")
                         logger.info(f"Form {idx} erro: nome não preenchido, mas outros campos sim")
@@ -565,6 +556,7 @@ def adicionar_pedidos(request):
 
     return render(request, "adicionar_pedidos.html", {
         "formset": formset,
+        "itens": Item.objects.filter(ativo=True).order_by("nome"),
     })
 
     
@@ -583,7 +575,7 @@ def meus_pedidos(request):
 
     sabados = Sabado.objects.order_by("-data")[:40]
 
-    qs = Pedido.objects.filter(requisitado_por=request.user).order_by("-id")
+    qs = Pedido.objects.filter(requisitado_por=request.user).select_related("item").order_by("-id")
     materiais_qs = (
         Material.objects
         .filter(requisitado_por=request.user)
@@ -678,4 +670,5 @@ def meus_pedidos(request):
         "sabados": sabados,
         "sabado_id": sabado_id,
         "material_formset": material_formset,
+        "itens": Item.objects.filter(ativo=True).order_by("nome"),
     })

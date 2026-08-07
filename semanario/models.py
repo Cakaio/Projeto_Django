@@ -80,17 +80,6 @@ DIMENSOES_COMPETENCIAS = {
 }
 
 
-UNIDADES = (
-    ("UN", "Unidade"),
-    ("PAC", "Pacote"),
-    ("CX", "Caixa"),
-    ("TUBO", "Tubo"),
-    ("METRO", "Metro"),
-    ("L", "Litro"),
-    ("KG", "Quilo"),
-    ("OUTROS", "Outros"),
-)
-
 LOCAIS = (
     ("SALINHA", "Salinha"),
     ("FF", "FF"),
@@ -163,7 +152,6 @@ class Material(models.Model):
     especificar = models.TextField(blank=True)
     link = models.URLField("link da imagem", blank=True)
     quantidade = models.DecimalField(max_digits=6, decimal_places=2, default=1)
-    unidade = models.CharField(max_length=10, choices=UNIDADES, default="UN")
     valor = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     local = models.ForeignKey("supply.Local", on_delete=models.SET_NULL, null=True, blank=True, related_name="materiais")
     pedido = models.CharField(max_length=100, choices=PEDIDO, blank=True, null=True)
@@ -188,5 +176,4 @@ class Material(models.Model):
     def save(self, *args, **kwargs):
         if self.item_id:
             self.nome = self.item.nome
-            self.unidade = self.item.unidade
         super().save(*args, **kwargs)

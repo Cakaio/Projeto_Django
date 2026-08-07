@@ -7,10 +7,8 @@ CATEGORIAS = (
     ("PAPELARIA", "Papelaria"),
     ("LIMPEZA", "Limpeza"),
     ("ALIMENTACAO", "Alimentação"),
-    ("ESCRITORIO", "Escritório"),
     ("ESPORTES", "Esportes"),
     ("ARTESANATO", "Artesanato"),
-    ("HIGIENE", "Higiene"),
     ("OUTROS", "Outros"),
 )
 
@@ -68,7 +66,7 @@ class Local(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.nome} — {self.get_tipo_display()}"
+        return f"{self.nome}"
 
 
 class Item(models.Model):
@@ -146,7 +144,6 @@ class Pedido(models.Model):
     especificar = models.TextField(blank=True)
     link = models.URLField("link da imagem", blank=True)
     quantidade = models.DecimalField(max_digits=6, decimal_places=2, default=1)
-    unidade = models.CharField(max_length=10, choices=UNIDADES, default="UN")
     valor = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     local = models.ForeignKey(Local, on_delete=models.SET_NULL, null=True, blank=True, related_name="pedidos")
     requisitado_por = models.ForeignKey("voluntario.Voluntario",on_delete=models.SET_NULL,null=True, blank=True,related_name="pedidos_requisitados")
@@ -166,5 +163,4 @@ class Pedido(models.Model):
     def save(self, *args, **kwargs):
         if self.item_id:
             self.nome = self.item.nome
-            self.unidade = self.item.unidade
         super().save(*args, **kwargs)

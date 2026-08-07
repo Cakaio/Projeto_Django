@@ -72,7 +72,6 @@ class PedidoAdmin(admin.ModelAdmin):
         "link",
         "especificar",
         "quantidade",
-        "unidade",
         "valor",
         "valor_total",
         "local",
@@ -82,7 +81,6 @@ class PedidoAdmin(admin.ModelAdmin):
     )
 
     list_filter = (
-        "unidade",
         "local__tipo",
         "sabado",
         "area",
