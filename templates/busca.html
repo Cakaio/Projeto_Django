@@ -28,10 +28,17 @@
       <span class="pcf-icon-tile lg" style="margin-inline:auto" aria-hidden="true">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       </span>
-      <p style="font-weight:750;margin:.8rem 0 .25rem">Nada encontrado</p>
-      <p style="font-size:.88rem;color:hsl(var(--muted-foreground));margin:0">
-        Tente outro termo — buscamos por telas, nomes de atendidos e voluntários, e temas de semanário.
-      </p>
+      {% if q|length < 2 %}
+        <p style="font-weight:750;margin:.8rem 0 .25rem">Digite ao menos 2 letras</p>
+        <p style="font-size:.88rem;color:hsl(var(--muted-foreground));margin:0">
+          A busca começa a partir de dois caracteres.
+        </p>
+      {% else %}
+        <p style="font-weight:750;margin:.8rem 0 .25rem">Nada encontrado</p>
+        <p style="font-size:.88rem;color:hsl(var(--muted-foreground));margin:0">
+          Tente outro termo — buscamos por telas, nomes de atendidos e voluntários, e temas de semanário.
+        </p>
+      {% endif %}
     </div>
   {% endif %}
 

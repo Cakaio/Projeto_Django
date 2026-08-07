@@ -268,9 +268,15 @@
   .pcf-badge.danger { background: #fdeaea; color: #b03636; border-color: #f7d4d4; }
   /* pill com ponto de status (padrao do genero) */
   .pcf-badge .dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; flex-shrink: 0; }
-  /* variante CONTORNADA — borda NEUTRA e fina (a cor fica no texto/ponto),
-     para nao pesar visualmente como um contorno colorido grosso */
-  .pcf-badge.outline { background: hsl(var(--card)); border-color: hsl(var(--border)); }
+  /* variante CONTORNADA — o contorno e apenas um fio da propria cor bem diluido
+     (a cor viva fica no texto e no ponto), para nao parecer um traco grosso */
+  .pcf-badge.outline {
+    background: hsl(var(--card));
+    border-color: color-mix(in srgb, currentColor 18%, transparent);
+  }
+  @supports not (color: color-mix(in srgb, red 50%, transparent)) {
+    .pcf-badge.outline { border-color: hsl(var(--border)); }
+  }
   .pcf-dark-surface .pcf-badge.outline { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.32); color: #fff; }
   .pcf-badge.outline.ok     { color: #1f7a49; }
   .pcf-badge.outline.warn   { color: #8a6a10; }
@@ -396,11 +402,12 @@
   .pcf-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
   /* ================= TOPBAR DO APP ================= */
+  /* Sem borda inferior: a topbar e uma continuacao da sidebar e do conteudo
+     (shell contInuo, sem "barreiras"). */
   .pcf-topbar-app {
     position: sticky; top: 0; z-index: 40;
     display: flex; align-items: center; gap: .75rem;
-    padding: .7rem 1.25rem; background: rgba(251, 250, 248, .8);
-    backdrop-filter: blur(12px); border-bottom: 1px solid hsl(var(--border));
+    padding: .7rem 1.25rem; background: hsl(var(--background));
   }
   .pcf-iconbtn {
     position: relative; width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;

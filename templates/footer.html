@@ -1,7 +1,7 @@
 {% block footer %}
 {% if user.is_authenticated %}
 {% load static %}
-<div style="border-top:1px solid hsl(var(--border));background:hsl(var(--card));margin-top:2rem">
+<div style="background:hsl(var(--background));margin-top:1.5rem">
   <div class="pcf-container" style="padding-block:1.5rem">
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:1rem 1.5rem">
 
@@ -27,7 +27,7 @@
     <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;
                 margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid hsl(var(--border))">
       <p style="margin:0;font-size:.76rem;color:hsl(var(--muted-foreground))">
-        &copy; <span id="footer-year"></span> Projeto Criança Feliz — feito por voluntários.
+        &copy; <span id="footer-year"></span> Projeto Criança Feliz
       </p>
       <p style="margin:0;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-size:.74rem;color:hsl(var(--muted-foreground))">
         <span>Desenvolvido por</span>
