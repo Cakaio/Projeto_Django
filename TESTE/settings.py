@@ -24,7 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Vem do .env. O padrão é False: se a variável não existir no servidor, o site
+# roda SEGURO (sem expor stack trace, SQL e configurações em telas de erro).
+# Para desenvolver localmente, coloque DEBUG=True no seu .env.
+DEBUG = config("DEBUG", default=False, cast=bool)
 
 ALLOWED_HOSTS = ['pcf.pythonanywhere.com', '127.0.0.1', 'localhost']
 
@@ -148,9 +151,25 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 180  # 180 dias em segundos
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_SAVE_EVERY_REQUEST = True
-SESSION_COOKIE_SECURE = True    # obrigatório em HTTPS (PythonAnywhere)
+# Cookie "Secure" só viaja em HTTPS. Em produção é obrigatório; em
+# desenvolvimento (http://localhost) ele impediria o login de funcionar.
+SESSION_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
+
+# ─── Segurança (aplicada apenas fora do modo debug) ───
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SAMESITE = 'Lax'
+if not DEBUG:
+    # O PythonAnywhere encerra o HTTPS no proxy; sem isto o Django acha que a
+    # requisição é http e os cookies "Secure" não são enviados.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_CONTENT_TYPE_NOSNIFF = True      # impede o browser de "adivinhar" o tipo do arquivo
+    SECURE_REFERRER_POLICY = 'same-origin'  # não vaza a URL interna ao sair do site
+    X_FRAME_OPTIONS = 'DENY'                # bloqueia o site dentro de iframe (clickjacking)
+    # Obs.: o redirecionamento para HTTPS é feito pelo próprio PythonAnywhere
+    # ("Force HTTPS" na aba Web) — por isso não usamos SECURE_SSL_REDIRECT aqui,
+    # que poderia causar laço de redirecionamento atrás do proxy.
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
