@@ -32,12 +32,11 @@
   }
 
   /* ───────── sidebar ───────── */
-  /* Shell contínuo: a sidebar não tem borda nem fundo próprio — ela se liga
-     visualmente à topbar e ao footer (sem "barreiras"). No mobile ela vira
-     drawer e aí sim ganha fundo sólido + sombra para sobrepor o conteúdo. */
+  /* Chrome BRANCO (sidebar + topbar + footer) contra o poço de conteúdo cinza.
+     A separação vem do contraste de cor — por isso não há bordas entre eles. */
   .pcf-sidebar {
     position: fixed; top: 0; left: 0; bottom: 0; width: var(--pcf-sb-w); z-index: 60;
-    background: hsl(var(--background));
+    background: hsl(var(--card));
     display: flex; flex-direction: column; overflow: hidden;
     transition: width .2s ease, transform .22s cubic-bezier(.2,.7,.3,1);
   }
