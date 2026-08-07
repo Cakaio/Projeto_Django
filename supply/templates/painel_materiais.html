@@ -1,558 +1,48 @@
 {% extends "base.html" %}
-{% load l10n static %}
-{% block titulo %}Painel Supply{% endblock %}
-{% block head %}
-  {# supply.css JÁ re-tematizado (paleta quente) — escopo .supply-panel-page: inputs, .stat-card, .sala-card, tabelas #}
-  <link rel="stylesheet" href="{% static 'supply/supply.css' %}">
-  <style>
-    /* Escopo exclusivo desta tela (prefixo curto .pm-* + classes funcionais herdadas) */
-    .supply-panel-page {
-      --primary: #e8560f;
-      --primary-dark: #c93f05;
-      --primary-light: rgba(232, 86, 15, 0.10);
-      --secondary: #ff9040;
-      --success: #2e8b57;
-      --success-dark: #1f7a49;
-      --danger: #d64545;
-      --warning: #b8860b;
-      --info: #3b62b3;
-      --text-dark: #1c130e;
-      --text-muted: #8a7566;
-      --bg-light: #fffaf6;
-      --border-color: #f4e7de;
-      --card-shadow: 0 20px 40px -24px rgba(120, 50, 10, 0.5);
-    }
+{% load l10n %}
+{% block titulo %}Painel de materiais{% endblock %}
 
-    .supply-panel-page {
-      font-family: 'Archivo', system-ui, -apple-system, sans-serif;
-      color: var(--text-dark);
-      position: relative;
-    }
-
-    .bg-decoration {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .bg-circle {
-      position: absolute;
-      border-radius: 50%;
-      opacity: 0.12;
-      filter: blur(4px);
-    }
-
-    .bg-circle-1 { width: 400px; height: 400px; background: var(--primary); top: -150px; right: -100px; }
-    .bg-circle-2 { width: 300px; height: 300px; background: var(--secondary); bottom: -100px; left: -100px; }
-    .bg-circle-3 { width: 200px; height: 200px; background: var(--primary); top: 50%; left: 50%; transform: translate(-50%, -50%); }
-
-    .main-container {
-      position: relative;
-      z-index: 1;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem 1.25rem 3rem;
-    }
-
-    /* Cabeçalho leve sobre o fundo da página (sem hero laranja) */
-    .page-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-
-    .page-header-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #fff0e6;
-      color: #e8560f;
-      flex-shrink: 0;
-    }
-
-    .page-header-icon svg { width: 28px; height: 28px; }
-
-    .page-header h1 {
-      font-size: clamp(1.8rem, 3.5vw, 2.4rem);
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: var(--text-dark);
-      line-height: 1.1;
-    }
-
-    .page-header p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      margin-top: 0.35rem;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-      background: #fff;
-      border: 1px solid var(--border-color);
-      border-radius: 24px;
-      box-shadow: var(--card-shadow);
-    }
-
-    .empty-state-icon {
-      width: 80px;
-      height: 80px;
-      background: var(--primary-light);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1.5rem;
-    }
-
-    .empty-state-icon svg { width: 40px; height: 40px; color: var(--primary); }
-    .empty-state h3 { color: var(--text-dark); margin-bottom: 0.5rem; font-weight: 800; }
-    .empty-state p { color: var(--text-muted); }
-
-    .filter-card {
-      background: #fff;
-      border-radius: 24px;
-      padding: 1.5rem;
-      margin-bottom: 1rem;
-      box-shadow: var(--card-shadow);
-      border: 1px solid var(--border-color);
-    }
-
-    .filter-form { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
-    .filter-group { flex: 1; min-width: 250px; }
-
-    .filter-group label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 600;
-      color: var(--text-dark);
-      margin-bottom: 0.5rem;
-      font-size: 0.85rem;
-    }
-
-    .filter-group select {
-      width: 100%;
-      padding: 0.65rem 2.5rem 0.65rem 0.85rem;
-      border: 1px solid #f0dfd3;
-      border-radius: 12px;
-      font-size: 0.92rem;
-      color: var(--text-dark);
-      background-color: #fff;
-      cursor: pointer;
-      transition: border-color 0.15s, box-shadow 0.15s;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%238a7566'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.85rem center;
-      background-size: 18px;
-    }
-
-    .filter-group select:focus {
-      outline: none;
-      border-color: #f7c9a8;
-      box-shadow: 0 0 0 3px rgba(242, 107, 33, 0.15);
-    }
-
-    .btn-filter {
-      padding: 0.7rem 1.4rem;
-      background: linear-gradient(135deg, #ff9040, #ea5411);
-      color: #fff;
-      border: none;
-      border-radius: 999px;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: transform 0.15s ease, filter 0.15s ease;
-      box-shadow: 0 20px 36px -18px rgba(234, 84, 17, 0.9);
-    }
-
-    .btn-filter:hover { transform: translateY(-1px); filter: brightness(1.06); }
-    .btn-filter svg { width: 18px; height: 18px; }
-
-    .panel-switch-card {
-      background: #fff;
-      border-radius: 24px;
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-      box-shadow: var(--card-shadow);
-      border: 1px solid var(--border-color);
-    }
-
-    .panel-switch { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-
-    .panel-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.4rem;
-      border-radius: 999px;
-      border: 1px solid #f2d3bd;
-      background: #fff;
-      color: var(--text-muted);
-      text-decoration: none;
-      font-weight: 700;
-      transition: all 0.2s ease;
-    }
-
-    .panel-btn:hover {
-      border-color: #f7c9a8;
-      color: var(--primary-dark);
-      background: #fff8f3;
-      transform: translateY(-1px);
-    }
-
-    .panel-btn.active {
-      background: linear-gradient(135deg, #ff9040, #ea5411);
-      color: #fff;
-      border-color: transparent;
-      box-shadow: 0 20px 36px -18px rgba(234, 84, 17, 0.9);
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .stat-card {
-      background: #fff;
-      border-radius: 24px;
-      padding: 1.5rem;
-      box-shadow: var(--card-shadow);
-      border: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .stat-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .stat-icon.orange { background: linear-gradient(135deg, #ff9040, #ea5411); }
-    .stat-icon.green { background: linear-gradient(135deg, #34b978, #1f7a49); }
-    .stat-icon svg { width: 28px; height: 28px; color: #fff; }
-
-    .stat-content { flex: 1; }
-    .stat-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.25rem; }
-    .stat-value { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-dark); }
-
-    .salas-container { display: flex; flex-direction: column; gap: 1rem; }
-
-    .sala-card {
-      background: #fff;
-      border-radius: 24px;
-      box-shadow: var(--card-shadow);
-      border: 1px solid var(--border-color);
-      overflow: hidden;
-    }
-
-    .sala-card[open] .sala-header { background: linear-gradient(135deg, #ff9040, #ea5411); color: #fff; }
-    .sala-card[open] .sala-header .sala-stats { color: rgba(255, 255, 255, 0.9); }
-    .sala-card[open] .sala-header .chevron { transform: rotate(180deg); color: #fff; }
-
-    .sala-header {
-      padding: 1.25rem 1.5rem;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      list-style: none;
-      transition: all 0.2s ease;
-      background: var(--bg-light);
-    }
-
-    .sala-header::-webkit-details-marker { display: none; }
-    .sala-header-left { display: flex; align-items: center; gap: 0.75rem; }
-
-    .sala-icon {
-      width: 42px;
-      height: 42px;
-      background: linear-gradient(135deg, #ff9040, #ea5411);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .sala-card[open] .sala-icon { background: rgba(255, 255, 255, 0.2); }
-    .sala-icon svg { width: 22px; height: 22px; color: #fff; }
-    .sala-name { font-weight: 800; font-size: 1.1rem; color: var(--text-dark); letter-spacing: -0.01em; }
-    .sala-card[open] .sala-name { color: #fff; }
-    .sala-header-right { display: flex; align-items: center; gap: 1.5rem; }
-    .sala-stats { display: flex; gap: 1.5rem; font-size: 0.875rem; color: var(--text-muted); }
-    .sala-stat strong { color: var(--text-dark); }
-    .sala-card[open] .sala-stat strong { color: #fff; }
-    .chevron { width: 24px; height: 24px; color: var(--text-muted); transition: transform 0.3s ease; }
-
-    .sala-content { padding: 1.5rem; border-top: 1px solid var(--border-color); }
-    .table-scroll { overflow-x: auto; }
-
-    .materials-table { width: 100%; border-collapse: collapse; }
-
-    .materials-table thead th {
-      text-align: left;
-      padding: 0.7rem 0.9rem;
-      background: var(--bg-light);
-      color: #a8968b;
-      font-weight: 700;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .materials-table tbody td {
-      padding: 0.9rem;
-      border-bottom: 1px solid #f7e9df;
-      vertical-align: middle;
-      color: var(--text-dark);
-    }
-
-    .material-name { font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 0.5rem; }
-    .material-name::before { content: ''; width: 8px; height: 8px; background: var(--primary); border-radius: 50%; flex-shrink: 0; }
-
-    .material-qty {
-      background: var(--primary-light);
-      color: var(--primary-dark);
-      padding: 0.25rem 0.75rem;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: 0.82rem;
-      display: inline-block;
-    }
-
-    .material-unit { color: var(--text-muted); font-size: 0.9rem; }
-
-    .btn-back {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.7rem 1.25rem;
-      background: #fff;
-      color: #d1500f;
-      border: 1px solid #f2d3bd;
-      border-radius: 999px;
-      font-size: 0.9rem;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .btn-back:hover { border-color: #f7c9a8; background: #fff8f3; color: #d1500f; transform: translateY(-1px); }
-
-    .table-input {
-      padding: 0.55rem 0.7rem;
-      border: 1px solid #f0dfd3;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      color: var(--text-dark);
-      background: #fff;
-      width: 100%;
-      font-family: inherit;
-    }
-
-    .table-input:focus,
-    .table-select:focus {
-      outline: none;
-      border-color: #f7c9a8;
-      box-shadow: 0 0 0 3px rgba(242, 107, 33, 0.15);
-    }
-
-    .table-select {
-      padding: 0.55rem 0.7rem;
-      border: 1px solid #f0dfd3;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      color: var(--text-dark);
-      background: #fff;
-      width: 100%;
-      font-family: inherit;
-    }
-
-    .empty-materials {
-      text-align: center;
-      padding: 2rem;
-      color: var(--text-muted);
-      background: #fff;
-      border: 1px dashed var(--border-color);
-      border-radius: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-    }
-
-    .submit-section {
-      margin-top: 2rem;
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .btn-save {
-      padding: 0.9rem 1.75rem;
-      background: linear-gradient(135deg, #34b978, #1f7a49);
-      color: #fff;
-      border: none;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: 0.98rem;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.6rem;
-      transition: transform 0.15s ease, filter 0.15s ease;
-      box-shadow: 0 20px 36px -20px rgba(31, 122, 73, 0.8);
-    }
-
-    .btn-save:hover { transform: translateY(-1px); filter: brightness(1.05); }
-    .btn-save svg { width: 20px; height: 20px; }
-
-    .action-buttons { display: flex; align-items: center; gap: 0.5rem; }
-    .btn-duplicate, .btn-delete { border: 0; border-radius: 999px; cursor: pointer; font-weight: 700; font-size: 0.82rem; transition: filter 0.15s ease; }
-    .btn-duplicate { padding: 0.5rem 0.85rem; background: var(--primary-light); color: var(--primary-dark); }
-    .btn-delete { padding: 0.5rem 0.85rem; background: #fdeaea; color: #b03636; }
-    .btn-duplicate:hover, .btn-delete:hover { filter: brightness(0.97); }
-
-    .column-controls { display: flex; justify-content: flex-end; margin: -0.5rem 0 1.5rem; }
-
-    .column-picker { position: relative; }
-    .column-picker > summary {
-      display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1rem;
-      background: #fff; color: var(--text-dark); border: 1px solid var(--border-color);
-      border-radius: 999px; box-shadow: var(--card-shadow); cursor: pointer;
-      font-size: 0.9rem; font-weight: 700; list-style: none;
-    }
-    .column-picker > summary::-webkit-details-marker { display: none; }
-    .column-picker[open] > summary { border-color: #f7c9a8; }
-    .column-picker-menu {
-      position: absolute; z-index: 20; top: calc(100% + 0.5rem); right: 0;
-      width: 240px; padding: 0.75rem; background: #fff;
-      border: 1px solid var(--border-color); border-radius: 18px;
-      box-shadow: 0 30px 60px -44px rgba(120, 50, 10, 0.6);
-    }
-    .column-option {
-      display: flex; align-items: center; gap: 0.65rem; padding: 0.55rem;
-      border-radius: 10px; cursor: pointer; color: var(--text-dark); font-size: 0.9rem;
-    }
-    .column-option:hover { background: var(--bg-light); }
-    .column-option input { accent-color: var(--primary-dark); width: 16px; height: 16px; }
-    .btn-reset-columns {
-      width: 100%; margin-top: 0.5rem; padding: 0.6rem; border: 0;
-      border-radius: 10px; background: var(--bg-light); color: var(--text-muted);
-      cursor: pointer; font-weight: 700;
-    }
-
-    @media (max-width: 768px) {
-      .main-container {
-        padding: 1rem;
-      }
-
-      .filter-form,
-      .panel-switch {
-        flex-direction: column;
-      }
-
-      .panel-btn,
-      .btn-save {
-        width: 100%;
-        justify-content: center;
-      }
-
-      .materials-table {
-        display: block;
-        overflow-x: auto;
-      }
-
-      .sala-header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .sala-header-right {
-        width: 100%;
-        justify-content: space-between;
-      }
-    }
-    .details-disclosure summary {
-      cursor: pointer; list-style: none; width: max-content; padding: 8px 11px;
-      border: 1px solid #cbd5e1; border-radius: 9px; background: #f8fafc;
-      color: #334155; font-weight: 700; font-size: .78rem;
-    }
-    .details-disclosure summary::-webkit-details-marker { display: none; }
-    .details-disclosure summary::after { content: " +"; color: #0891b2; }
-    .details-disclosure[open] summary::after { content: " −"; }
-    .details-disclosure[open]::before { content: ""; position: fixed; inset: 0; z-index: 1090; background: rgba(15, 23, 42, .62); backdrop-filter: blur(3px); }
-    .details-fields { position: fixed; z-index: 1100; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; gap: 14px; width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; padding: 24px; border-radius: 18px; background: #fff; box-shadow: 0 28px 80px rgba(15, 23, 42, .28); color: #475569; font-size: .82rem; }
-    .details-fields label { display: grid; gap: 5px; font-weight: 700; }
-    .details-modal-close { justify-self: end; border: 0; border-radius: 8px; padding: 7px 11px; background: #e2e8f0; color: #334155; font-weight: 800; cursor: pointer; }
-  </style>
-{% endblock %}
 {% block content %}
-<div class="supply-panel-page">
-  <div class="bg-decoration" aria-hidden="true">
-    <div class="bg-circle bg-circle-1"></div>
-    <div class="bg-circle bg-circle-2"></div>
-    <div class="bg-circle bg-circle-3"></div>
-  </div>
+{# Bloco enxuto: só o LAYOUT específico desta tela (prefixo .pm-). O visual base vem das classes .pcf-*. #}
+{# ATENÇÃO: nomes de classe funcionais preservados — .materials-table, .column-picker, #}
+{# .column-picker-menu, .btn-reset-columns, .details-disclosure, .details-fields — são    #}
+{# usados pelo JS de colunas e pelo modal de detalhes. Não renomear.                      #}
+<div class="pm-page">
+  <div class="pcf-container pm-wrap">
 
-  <div class="main-container">
-    <div class="page-header">
-      <div class="page-header-content">
-        <div class="page-header-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-        </div>
-        <div>
-          <h1>Painel Supply</h1>
-          <p>Gerencie materiais e pedidos do sábado selecionado</p>
-        </div>
-        <a class="btn-back" href="{% url 'supply:supply_view' %}" style="margin-left:auto">Voltar ao Supply</a>
+    <!-- Cabeçalho leve -->
+    <header class="pcf-page-head">
+      <div class="pm-head-text">
+        <span class="pcf-eyebrow">Supply</span>
+        <h1 class="pcf-page-title">Painel de materiais</h1>
+        <p class="pcf-page-sub">Edite quantidades, valores e locais de compra do sábado selecionado.</p>
       </div>
-    </div>
+      <div class="pm-head-actions">
+        <a class="pcf-btn pcf-btn-outline" href="{% url 'supply:supply_view' %}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+          Voltar ao Supply
+        </a>
+      </div>
+    </header>
 
     {% if not sabado %}
-      <div class="empty-state">
-        <div class="empty-state-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        </div>
-        <h3>Nenhum sábado cadastrado</h3>
-        <p>Cadastre um sábado para começar a gerenciar os dados.</p>
+      <div class="pcf-card pm-empty-card">
+        <span class="pcf-icon-tile tint-orange lg" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        <h2 class="pm-empty-title">Nenhum sábado cadastrado</h2>
+        <p class="pm-empty-sub">Cadastre um sábado para começar a gerenciar os dados.</p>
       </div>
     {% else %}
 
-      <div class="filter-card">
-        <form method="get" class="filter-form">
+      <!-- Filtros -->
+      <div class="pcf-card pm-filters">
+        <form method="get" class="pm-filter-form">
           <input type="hidden" name="painel" value="{{ tipo_painel|default:'material' }}">
 
-          <div class="filter-group">
-            <label for="filtro-sabado">Selecione o sábado</label>
-            <select id="filtro-sabado" name="sabado" onchange="this.form.submit()">
+          <div class="pcf-field pm-filter-field">
+            <label class="pcf-label" for="filtro-sabado">Selecione o sábado</label>
+            <select id="filtro-sabado" name="sabado" class="pcf-input pm-select" onchange="this.form.submit()">
               {% for s in sabados %}
                 <option value="{{ s.id }}" {% if sabado and s.id == sabado.id %}selected{% endif %}>
                   {{ s.data|date:"d/m/Y" }} — {{ s.tema }}
@@ -561,9 +51,9 @@
             </select>
           </div>
 
-          <div class="filter-group">
-            <label for="filtro-local">Selecione o local de compra</label>
-            <select id="filtro-local" name="local" onchange="this.form.submit()">
+          <div class="pcf-field pm-filter-field">
+            <label class="pcf-label" for="filtro-local">Selecione o local de compra</label>
+            <select id="filtro-local" name="local" class="pcf-input pm-select" onchange="this.form.submit()">
               <option value="">Todos os locais</option>
               {% for local in locais %}
                 <option value="{{ local.id }}" {% if local_id == local.id|stringformat:'s' %}selected{% endif %}>
@@ -573,27 +63,32 @@
             </select>
           </div>
 
-          <button type="submit" class="btn-filter">Filtrar</button>
+          <button type="submit" class="pcf-btn pcf-btn-primary pm-filter-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Filtrar
+          </button>
         </form>
       </div>
 
-      <div class="panel-switch-card">
-        <div class="panel-switch">
+      <!-- Alternador de painel + seletor de colunas -->
+      <div class="pm-toolbar">
+        <nav class="pcf-segmented pm-switch" aria-label="Tipo de painel">
           <a href="?sabado={{ sabado.id }}&local={{ local_id|default:'' }}&painel=material"
-             class="panel-btn {% if tipo_painel == 'material' or not tipo_painel %}active{% endif %}">
+             class="{% if tipo_painel == 'material' or not tipo_painel %}is-active{% endif %}">
             Materiais
           </a>
 
           <a href="?sabado={{ sabado.id }}&local={{ local_id|default:'' }}&painel=pedido"
-             class="panel-btn {% if tipo_painel == 'pedido' %}active{% endif %}">
+             class="{% if tipo_painel == 'pedido' %}is-active{% endif %}">
             Pedidos
           </a>
-        </div>
-      </div>
+        </nav>
 
-      <div class="column-controls">
         <details class="column-picker" id="column-picker">
-          <summary aria-label="Escolher colunas visíveis">Colunas</summary>
+          <summary class="pcf-btn pcf-btn-outline pcf-btn-sm" aria-label="Escolher colunas visíveis">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+            Colunas
+          </summary>
           <div class="column-picker-menu">
             <label class="column-option"><input type="checkbox" data-column="1" checked> {% if tipo_painel == 'pedido' %}Pedido{% else %}Material{% endif %}</label>
             <label class="column-option"><input type="checkbox" data-column="2" checked> Detalhes</label>
@@ -609,28 +104,33 @@
         </details>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon orange" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">{% if tipo_painel == 'pedido' %}Total de pedidos{% else %}Total de itens{% endif %}</div>
-            <div class="stat-value">{{ total_itens }}</div>
+      <!-- KPIs -->
+      <div class="pm-kpis">
+        <div class="pcf-tile">
+          <div class="pcf-kpi">
+            <div class="pcf-kpi-top">
+              <div>
+                <div class="pcf-kpi-label">{% if tipo_painel == 'pedido' %}Total de pedidos{% else %}Total de itens{% endif %}</div>
+                <div class="pcf-kpi-value pcf-num">{{ total_itens }}</div>
+              </div>
+              <span class="pcf-icon-tile tint-orange" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+              </span>
+            </div>
           </div>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon green" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div class="stat-content">
-            <div class="stat-label">Valor total</div>
-            <div class="stat-value">R$ {{ total_valor|floatformat:2 }}</div>
+        <div class="pcf-tile">
+          <div class="pcf-kpi">
+            <div class="pcf-kpi-top">
+              <div>
+                <div class="pcf-kpi-label">Valor total</div>
+                <div class="pcf-kpi-value pcf-num">R$ {{ total_valor|floatformat:2 }}</div>
+              </div>
+              <span class="pcf-icon-tile tint-green" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -641,33 +141,25 @@
         <input type="hidden" name="local" value="{{ local_id }}">
         <input type="hidden" name="painel" value="{{ tipo_painel }}">
 
-        <div class="salas-container">
+        <div class="pm-groups">
           {% if tipo_painel == 'pedido' %}
             {% for grupo in pedidos_map %}
-              <details class="sala-card" {% if forloop.first %}open{% endif %}>
-                <summary class="sala-header">
-                  <div class="sala-header-left">
-                    <div class="sala-icon" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"/>
-                      </svg>
-                    </div>
-                    <span class="sala-name">{{ grupo.nome }}</span>
-                  </div>
-                  <div class="sala-header-right">
-                    <div class="sala-stats">
-                      <span class="sala-stat">Pedidos: <strong>{{ grupo.total_itens }}</strong></span>
-                      <span class="sala-stat">Valor: <strong>R$ {{ grupo.total_valor|floatformat:2 }}</strong></span>
-                    </div>
-                    <svg class="chevron" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
+              <details class="pcf-card pm-group" {% if forloop.first %}open{% endif %}>
+                <summary class="pm-group-head">
+                  <span class="pcf-icon-tile tint-orange" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  </span>
+                  <span class="pm-group-name">{{ grupo.nome }}</span>
+                  <span class="pm-group-stats">
+                    <span class="pcf-badge brand">Pedidos: {{ grupo.total_itens }}</span>
+                    <span class="pcf-badge outline">R$ {{ grupo.total_valor|floatformat:2 }}</span>
+                  </span>
+                  <svg class="pm-chevron" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
 
-                <div class="sala-content">
-                  <div class="table-scroll">
-                  <table class="materials-table">
+                <div class="pm-group-body">
+                  <div class="pcf-scroll-x">
+                  <table class="pcf-table materials-table pm-table">
                     <thead>
                       <tr>
                         <th>Pedido</th>
@@ -686,13 +178,13 @@
                         <tr>
                           <input type="hidden" name="pedido_ids" value="{{ pedido.id }}">
 
-                          <td><span class="material-name">{{ pedido.nome }}</span></td>
+                          <td><span class="pm-name">{{ pedido.nome }}</span></td>
                           <td>
                             <details class="details-disclosure">
                               <summary>Ver / editar detalhes</summary>
                               <div class="details-fields">
                                 <button type="button" class="details-modal-close" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar modal">Fechar ×</button>
-                                <label>Especificar<textarea name="especificar_pedido_{{ pedido.id }}" rows="2" class="table-input" aria-label="Especificação do pedido" placeholder="Cor, tamanho, marca...">{{ pedido.especificar }}</textarea></label>
+                                <label>Especificar<textarea name="especificar_pedido_{{ pedido.id }}" rows="2" class="pcf-input" aria-label="Especificação do pedido" placeholder="Cor, tamanho, marca...">{{ pedido.especificar }}</textarea></label>
                                 <div><strong>Imagem:</strong> {% if pedido.link %}<a href="{{ pedido.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</div>
                               </div>
                             </details>
@@ -704,27 +196,28 @@
                               step="0.01"
                               min="0"
                               value="{{ pedido.quantidade|unlocalize }}"
-                              class="table-input"
+                              class="pcf-input pm-cell-input"
                               aria-label="Quantidade do pedido"
                               required
                             >
                           </td>
-                          <td><span class="material-qty">{{ pedido.item.get_unidade_display }}</span></td>
+                          <td><span class="pcf-badge outline">{{ pedido.item.get_unidade_display }}</span></td>
                           <td>
                             <input
                               type="number"
                               name="valor_pedido_{{ pedido.id }}"
                               step="0.01"
                               value="{{ pedido.valor|unlocalize|default_if_none:'' }}"
-                              class="table-input"
+                              class="pcf-input pm-cell-input"
+                              aria-label="Valor unitário do pedido"
                               placeholder="0,00"
                             >
                           </td>
 
-                          <td>{% if pedido.valor_total is not None %}R$ {{ pedido.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
+                          <td class="pm-total">{% if pedido.valor_total is not None %}R$ {{ pedido.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
 
                           <td>
-                            <select name="local_pedido_{{ pedido.id }}" class="table-select">
+                            <select name="local_pedido_{{ pedido.id }}" class="pcf-input pm-select pm-cell-select" aria-label="Local de compra do pedido">
                               <option value="">Não definido</option>
                               {% for local in locais %}
                                 <option value="{{ local.id }}" {% if pedido.local_id == local.id %}selected{% endif %}>
@@ -735,12 +228,12 @@
                           </td>
 
                           <td>{{ pedido.requisitado_por|default_if_none:"-" }}</td>
-                          <td><div class="action-buttons">
-                            <button type="submit" class="btn-duplicate"
+                          <td><div class="pm-actions">
+                            <button type="submit" class="pcf-btn pcf-btn-sm pm-btn-dup"
                               formaction="{% url 'supply:gerenciar_item_painel' %}"
                               name="duplicar_pedido" value="{{ pedido.id }}" formnovalidate
                               onclick="return confirm('Tem certeza que deseja duplicar o pedido “{{ pedido.nome|escapejs }}”?');">Duplicar</button>
-                            <button type="submit" class="btn-delete"
+                            <button type="submit" class="pcf-btn pcf-btn-sm pm-btn-del"
                               formaction="{% url 'supply:gerenciar_item_painel' %}"
                               name="excluir_pedido" value="{{ pedido.id }}" formnovalidate
                               onclick="return confirm('Tem certeza que deseja excluir o pedido “{{ pedido.nome|escapejs }}”?');">Excluir</button>
@@ -753,34 +246,29 @@
                 </div>
               </details>
             {% empty %}
-              <div class="empty-materials">Sem pedidos para o filtro selecionado.</div>
+              <div class="pm-empty-inline">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>Sem pedidos para o filtro selecionado.</span>
+              </div>
             {% endfor %}
           {% else %}
             {% for sala in salas_map %}
-              <details class="sala-card" {% if forloop.first %}open{% endif %}>
-                <summary class="sala-header">
-                  <div class="sala-header-left">
-                    <div class="sala-icon" aria-hidden="true">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    </div>
-                    <span class="sala-name">{{ sala.nome }}</span>
-                  </div>
-                  <div class="sala-header-right">
-                    <div class="sala-stats">
-                      <span class="sala-stat">Itens: <strong>{{ sala.total_itens }}</strong></span>
-                      <span class="sala-stat">Valor: <strong>R$ {{ sala.total_valor|floatformat:2 }}</strong></span>
-                    </div>
-                    <svg class="chevron" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
+              <details class="pcf-card pm-group" {% if forloop.first %}open{% endif %}>
+                <summary class="pm-group-head">
+                  <span class="pcf-icon-tile tint-orange" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1"/><path d="M10 21v-4h4v4"/></svg>
+                  </span>
+                  <span class="pm-group-name">{{ sala.nome }}</span>
+                  <span class="pm-group-stats">
+                    <span class="pcf-badge brand">Itens: {{ sala.total_itens }}</span>
+                    <span class="pcf-badge outline">R$ {{ sala.total_valor|floatformat:2 }}</span>
+                  </span>
+                  <svg class="pm-chevron" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                 </summary>
 
-                <div class="sala-content">
-                  <div class="table-scroll">
-                  <table class="materials-table">
+                <div class="pm-group-body">
+                  <div class="pcf-scroll-x">
+                  <table class="pcf-table materials-table pm-table">
                     <thead>
                       <tr>
                         <th>Material</th>
@@ -799,13 +287,13 @@
                         <tr>
                           <input type="hidden" name="material_ids" value="{{ material.id }}">
 
-                          <td><span class="material-name">{{ material.nome }}</span></td>
+                          <td><span class="pm-name">{{ material.nome }}</span></td>
                           <td>
                             <details class="details-disclosure">
                               <summary>Ver / editar detalhes</summary>
                               <div class="details-fields">
                                 <button type="button" class="details-modal-close" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar modal">Fechar ×</button>
-                                <label>Especificar<textarea name="especificar_material_{{ material.id }}" rows="2" class="table-input" aria-label="Especificação do material" placeholder="Cor, tamanho, marca...">{{ material.especificar }}</textarea></label>
+                                <label>Especificar<textarea name="especificar_material_{{ material.id }}" rows="2" class="pcf-input" aria-label="Especificação do material" placeholder="Cor, tamanho, marca...">{{ material.especificar }}</textarea></label>
                                 <div><strong>Imagem:</strong> {% if material.link %}<a href="{{ material.link }}" target="_blank" rel="noopener noreferrer">Abrir imagem</a>{% else %}—{% endif %}</div>
                               </div>
                             </details>
@@ -817,27 +305,28 @@
                               step="0.01"
                               min="0"
                               value="{{ material.quantidade|unlocalize }}"
-                              class="table-input"
+                              class="pcf-input pm-cell-input"
                               aria-label="Quantidade do material"
                               required
                             >
                           </td>
-                          <td><span class="material-qty">{{ material.item.get_unidade_display }}</span></td>
+                          <td><span class="pcf-badge outline">{{ material.item.get_unidade_display }}</span></td>
                           <td>
                             <input
                               type="number"
                               name="valor_{{ material.id }}"
                               step="0.01"
                               value="{{ material.valor|unlocalize|default_if_none:'' }}"
-                              class="table-input"
+                              class="pcf-input pm-cell-input"
+                              aria-label="Valor unitário do material"
                               placeholder="0,00"
                             >
                           </td>
 
-                          <td>{% if material.valor_total is not None %}R$ {{ material.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
+                          <td class="pm-total">{% if material.valor_total is not None %}R$ {{ material.valor_total|floatformat:2 }}{% else %}—{% endif %}</td>
 
                           <td>
-                            <select name="local_{{ material.id }}" class="table-select">
+                            <select name="local_{{ material.id }}" class="pcf-input pm-select pm-cell-select" aria-label="Local de compra do material">
                               <option value="">Não definido</option>
                               {% for local in locais %}
                                 <option value="{{ local.id }}" {% if material.local_id == local.id %}selected{% endif %}>
@@ -847,12 +336,12 @@
                             </select>
                           </td>
                           <td>{{ material.requisitado_por|default_if_none:"-" }}</td>
-                          <td><div class="action-buttons">
-                            <button type="submit" class="btn-duplicate"
+                          <td><div class="pm-actions">
+                            <button type="submit" class="pcf-btn pcf-btn-sm pm-btn-dup"
                               formaction="{% url 'supply:gerenciar_item_painel' %}"
                               name="duplicar_material" value="{{ material.id }}" formnovalidate
                               onclick="return confirm('Tem certeza que deseja duplicar o material “{{ material.nome|escapejs }}”?');">Duplicar</button>
-                            <button type="submit" class="btn-delete"
+                            <button type="submit" class="pcf-btn pcf-btn-sm pm-btn-del"
                               formaction="{% url 'supply:gerenciar_item_painel' %}"
                               name="excluir_material" value="{{ material.id }}" formnovalidate
                               onclick="return confirm('Tem certeza que deseja excluir o material “{{ material.nome|escapejs }}”?');">Excluir</button>
@@ -865,23 +354,22 @@
                 </div>
               </details>
             {% empty %}
-              <div class="empty-materials">Sem materiais para o filtro selecionado.</div>
+              <div class="pm-empty-inline">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>Sem materiais para o filtro selecionado.</span>
+              </div>
             {% endfor %}
           {% endif %}
         </div>
 
-        <div class="submit-section">
-          <a class="btn-back" href="/supply/">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+        <div class="pm-submit">
+          <a class="pcf-btn pcf-btn-outline" href="/supply/">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
             Voltar
           </a>
 
-          <button type="submit" class="btn-save">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
+          <button type="submit" class="pcf-btn pcf-btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Salvar alterações
           </button>
         </div>
@@ -937,4 +425,148 @@
     {% endif %}
   </div>
 </div>
+
+<style>
+  /* ============ Painel de materiais (escopo .pm-) ============ */
+  .pm-page { background: hsl(var(--background)); min-height: 100vh; }
+  .pm-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Cabeçalho */
+  .pm-head-text { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+  .pm-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* Estado vazio (sem sábado) */
+  .pm-empty-card { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .75rem; padding: clamp(2rem, 6vw, 3.5rem) 1.5rem; }
+  .pm-empty-title { margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .pm-empty-sub { margin: 0; font-size: .9rem; color: hsl(var(--muted-foreground)); }
+
+  /* Filtros */
+  .pm-filters { margin-bottom: 1rem; }
+  .pm-filter-form { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+  .pm-filter-field { flex: 1 1 240px; min-width: 0; }
+  .pm-filter-btn { flex-shrink: 0; }
+
+  /* Select com seta própria (tokens quentes) */
+  .pm-select {
+    appearance: none; -webkit-appearance: none; cursor: pointer;
+    padding-right: 2.4rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23857f78'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right .8rem center; background-size: 16px;
+  }
+
+  /* Barra de ferramentas: alternador + colunas */
+  .pm-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .pm-switch { flex-wrap: wrap; }
+
+  /* Seletor de colunas (classes funcionais: .column-picker / .column-picker-menu / .btn-reset-columns) */
+  .column-picker { position: relative; }
+  .column-picker > summary { list-style: none; cursor: pointer; }
+  .column-picker > summary::-webkit-details-marker { display: none; }
+  .column-picker[open] > summary { border-color: #f7c9a8; background: hsl(var(--accent)); color: #c9490a; }
+  .column-picker-menu {
+    position: absolute; z-index: 30; top: calc(100% + .5rem); right: 0; width: 244px; padding: .6rem;
+    background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 14px; box-shadow: var(--shadow-xl);
+  }
+  .column-option { display: flex; align-items: center; gap: .6rem; padding: .45rem .5rem; border-radius: 10px; cursor: pointer; font-size: .86rem; color: var(--ink-soft); }
+  .column-option:hover { background: hsl(var(--muted)); color: var(--ink); }
+  .btn-reset-columns {
+    width: 100%; margin-top: .4rem; padding: .55rem; border: 1px solid hsl(var(--border)); border-radius: 10px;
+    background: hsl(var(--muted)); color: var(--ink-soft); font-family: inherit; font-weight: 700; font-size: .82rem; cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .btn-reset-columns:hover { background: hsl(var(--accent)); border-color: #f7c9a8; color: #c9490a; }
+
+  /* KPIs */
+  .pm-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+
+  /* Grupos (sala / área) */
+  .pm-groups { display: flex; flex-direction: column; gap: 1rem; }
+  .pm-group { padding: 0; overflow: visible; }
+  .pm-group-head {
+    display: flex; align-items: center; gap: .85rem; padding: 1rem 1.15rem;
+    cursor: pointer; list-style: none; user-select: none;
+  }
+  .pm-group-head::-webkit-details-marker { display: none; }
+  .pm-group-name { font-size: 1.02rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); flex: 1; min-width: 0; }
+  .pm-group-stats { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; flex-shrink: 0; }
+  .pm-chevron { color: var(--ink-muted); flex-shrink: 0; transition: transform .25s ease; }
+  .pm-group[open] > .pm-group-head { border-bottom: 1px solid hsl(var(--border)); }
+  .pm-group[open] > .pm-group-head .pm-chevron { transform: rotate(180deg); }
+  .pm-group-body { padding: 1rem 1.15rem 1.15rem; }
+
+  /* Tabela */
+  .pm-table { min-width: 1020px; }
+  .pm-table td { vertical-align: middle; }
+  .pm-name { display: inline-flex; align-items: center; gap: .5rem; font-weight: 700; color: var(--ink); }
+  .pm-name::before { content: ''; width: 7px; height: 7px; border-radius: 999px; background: var(--brand); flex-shrink: 0; }
+  .pm-total { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); white-space: nowrap; }
+  .pm-cell-input { min-width: 96px; padding: .45rem .6rem; border-radius: 10px; font-size: .86rem; }
+  .pm-cell-select { min-width: 150px; padding: .45rem 2.2rem .45rem .6rem; border-radius: 10px; font-size: .86rem; background-position: right .6rem center; }
+
+  /* Ações por linha */
+  .pm-actions { display: flex; align-items: center; gap: .4rem; }
+  .pm-btn-dup { background: hsl(var(--accent)); color: #c9490a; border-color: #fbe3d3; }
+  .pm-btn-dup:hover { background: #fdeadd; color: #c9490a; }
+  .pm-btn-del { background: #fdeaea; color: #b03636; border-color: #f7d4d4; }
+  .pm-btn-del:hover { background: #fbdcdc; color: #b03636; }
+
+  /* Estado vazio da lista */
+  .pm-empty-inline {
+    display: flex; align-items: center; justify-content: center; gap: .55rem;
+    padding: 2rem 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 16px;
+    background: #fffaf6; color: var(--ink-muted); font-size: .9rem; text-align: center;
+  }
+  .pm-empty-inline svg { flex-shrink: 0; color: var(--brand); }
+
+  /* Rodapé de ações */
+  .pm-submit { display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+
+  /* ===== Modal de detalhes (classes funcionais .details-*) ===== */
+  .details-disclosure summary {
+    display: inline-flex; align-items: center; gap: .3rem; width: max-content;
+    cursor: pointer; list-style: none; padding: .42rem .7rem;
+    border: 1px solid hsl(var(--border)); border-radius: 10px; background: hsl(var(--muted));
+    color: var(--ink-soft); font-weight: 700; font-size: .78rem; white-space: nowrap;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .details-disclosure summary:hover { border-color: #f7c9a8; background: hsl(var(--accent)); color: #c9490a; }
+  .details-disclosure summary::-webkit-details-marker { display: none; }
+  .details-disclosure summary::after { content: " +"; color: var(--brand); font-weight: 800; }
+  .details-disclosure[open] summary::after { content: " −"; }
+  .details-disclosure[open]::before {
+    content: ""; position: fixed; inset: 0; z-index: 1090;
+    background: rgba(28, 19, 14, .5); backdrop-filter: blur(3px);
+  }
+  .details-fields {
+    position: fixed; z-index: 1100; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    display: grid; gap: 14px; width: min(520px, calc(100vw - 32px));
+    max-height: calc(100vh - 48px); overflow-y: auto; padding: 22px;
+    border: 1px solid hsl(var(--border)); border-radius: 18px; background: hsl(var(--card));
+    box-shadow: var(--shadow-xl); color: var(--ink-soft); font-size: .84rem; text-align: left;
+  }
+  .details-fields label { display: grid; gap: 5px; font-weight: 700; color: var(--ink-soft); }
+  .details-fields a { color: #c9490a; font-weight: 600; }
+  .details-modal-close {
+    justify-self: end; padding: .4rem .7rem; border: 1px solid hsl(var(--border)); border-radius: 10px;
+    background: hsl(var(--muted)); color: var(--ink); font-family: inherit; font-weight: 700; font-size: .8rem; cursor: pointer;
+  }
+  .details-modal-close:hover { background: hsl(var(--accent)); border-color: #f7c9a8; color: #c9490a; }
+
+  @media (max-width: 640px) {
+    .pm-head-actions { width: 100%; }
+    .pm-head-actions .pcf-btn { flex: 1; justify-content: center; }
+    .pm-filter-btn { width: 100%; justify-content: center; }
+    .pm-toolbar { align-items: stretch; }
+    .pm-switch { width: 100%; }
+    .pm-switch a { flex: 1; text-align: center; }
+    .column-picker { width: 100%; }
+    .column-picker > summary { width: 100%; justify-content: center; }
+    .column-picker-menu { left: 0; right: 0; width: auto; }
+    .pm-group-head { flex-wrap: wrap; }
+    .pm-group-name { flex: 1 1 100%; order: 2; }
+    .pm-group-stats { order: 3; }
+    .pm-group-body { padding: .85rem; }
+    .pm-submit .pcf-btn { flex: 1; justify-content: center; }
+  }
+</style>
 {% endblock %}

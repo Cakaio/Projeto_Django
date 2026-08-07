@@ -1,156 +1,48 @@
 {% extends "base.html" %}
-{% load static %}
 {% block titulo %}Meus pedidos{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'supply/supply.css' %}">{% endblock %}
 
 {% block content %}
 {# Bloco enxuto: só LAYOUT específico desta tela (prefixo .mp-). O visual base vem das classes .pcf-*. #}
-<style>
-  .mp-page { background: hsl(var(--background)); }
-  .mp-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
-
-  /* Cabeçalho leve */
-  .mp-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
-  .mp-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
-  .mp-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
-  .mp-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
-  .mp-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
-
-  /* Alertas / mensagens */
-  .mp-messages { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.25rem; }
-  .mp-alert { display: flex; align-items: center; gap: .6rem; padding: .85rem 1.1rem; border-radius: 14px; font-size: .9rem; font-weight: 600; border: 1px solid transparent; }
-  .mp-alert svg { flex-shrink: 0; }
-  .mp-alert-success { background: #eaf7ef; color: #1f7a49; border-color: #c9ecd6; }
-  .mp-alert-error, .mp-alert-danger { background: #fdeaea; color: #b03636; border-color: #f5cccc; }
-  .mp-alert-warning { background: #fdf3dd; color: #8a6a10; border-color: #f0e2bc; }
-  .mp-alert-info { background: #eaf0fb; color: #2f5296; border-color: #cfe0f4; }
-
-  /* Card de filtro */
-  .mp-filter-card { margin-bottom: 1.25rem; }
-  .mp-filter-form { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
-  .mp-filter-group { min-width: 260px; flex: 1; }
-  .mp-filter-group .pcf-label { display: block; margin-bottom: .4rem; }
-  .mp-filter-group select {
-    width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff;
-    border: 1px solid #f0dfd3; color: var(--ink); font-size: .92rem; font-family: inherit;
-    box-sizing: border-box; transition: border-color .15s, box-shadow .15s;
-  }
-  .mp-filter-group select:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
-
-  /* Card das tabelas */
-  .mp-card { padding: 0; overflow: hidden; }
-  .mp-card + .mp-card { margin-top: 1.5rem; }
-  .mp-card-header { padding: 1.2rem 1.4rem; border-bottom: 1px solid #f4e7de; background: #fffaf6; }
-  .mp-card-title { margin: 0; font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
-  .mp-card-sub { margin: .25rem 0 0; color: hsl(var(--muted-foreground)); font-size: .9rem; }
-
-  /* Tabelas (rolam horizontalmente em telas estreitas) */
-  .mp-table-wrapper { width: 100%; overflow-x: auto; }
-  .mp-table { width: 100%; border-collapse: collapse; min-width: 1050px; }
-  .mp-table thead th {
-    text-align: left; font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-    color: #a8968b; background: #fffaf6; padding: .85rem .9rem; border-bottom: 1px solid #f4e7de; white-space: nowrap;
-  }
-  .mp-table tbody td { padding: .85rem .9rem; border-bottom: 1px solid #f7e9df; vertical-align: middle; }
-  .mp-table tbody tr:hover td { background: #fffaf6; }
-  .mp-table tbody tr:last-child td { border-bottom: none; }
-
-  .mp-col-index { width: 64px; text-align: center; }
-  .mp-col-nome { min-width: 260px; }
-  .mp-col-qtd { width: 130px; }
-  .mp-col-unidade { width: 140px; }
-  .mp-col-sabado { width: 210px; }
-  .mp-col-area { width: 210px; }
-  .mp-col-acoes { width: 120px; text-align: center; }
-
-  /* Inputs do formset (widgets vêm com a classe .form-control do forms.py) */
-  .mp-card .form-control {
-    width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff;
-    border: 1px solid #f0dfd3; color: var(--ink); font-size: .92rem; font-family: inherit;
-    box-sizing: border-box; transition: border-color .15s, box-shadow .15s;
-  }
-  .mp-card .form-control:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
-
-  .mp-row-badge {
-    width: 34px; height: 34px; margin: 0 auto; border-radius: 10px;
-    background: #fff0e6; color: #c9490a; display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: .9rem;
-  }
-
-  .mp-btn-remove {
-    display: inline-flex; align-items: center; gap: .35rem; border: 1px solid #f5cccc;
-    background: #fdeaea; color: #b03636; padding: .5rem .85rem; border-radius: 10px;
-    font-weight: 700; font-size: .82rem; cursor: pointer; transition: background .15s, border-color .15s;
-  }
-  .mp-btn-remove:hover { background: #f9dede; border-color: #efb9b9; }
-
-  .mp-card-footer {
-    padding: 1.2rem 1.4rem; border-top: 1px solid #f4e7de; background: #fffaf6;
-    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-  }
-  .mp-footer-note { color: hsl(var(--muted-foreground)); font-size: .9rem; }
-  .mp-error-list { margin-top: .35rem; font-size: .78rem; color: #b03636; font-weight: 700; }
-  .delete-checkbox { display: none; }
-
-  /* Célula descritiva (sábado / atividade) */
-  .mp-material-name { font-weight: 700; color: var(--ink); }
-  .mp-material-detail { color: hsl(var(--muted-foreground)); font-size: .85rem; margin-top: .25rem; }
-
-  /* Estado vazio */
-  .mp-empty { display: flex; align-items: center; justify-content: center; gap: .625rem; padding: 2.5rem 1.5rem; color: var(--ink-muted); background: #fffaf6; border-top: 1px solid #f4e7de; font-size: .92rem; }
-
-  @media (max-width: 560px) {
-    .mp-head-actions { width: 100%; }
-    .mp-head-actions .pcf-btn { flex: 1; justify-content: center; }
-    .mp-filter-group { min-width: 0; width: 100%; }
-    .mp-card-footer .pcf-btn { width: 100%; justify-content: center; }
-  }
-</style>
-
 <div class="mp-page">
   <div class="pcf-container mp-wrap">
 
-    <div class="mp-head">
+    <!-- Cabeçalho leve -->
+    <header class="pcf-page-head">
       <div class="mp-head-text">
         <span class="pcf-eyebrow">Supply</span>
-        <h1 class="mp-title">Minhas requisições</h1>
-        <p class="mp-sub">Consulte seus materiais e gerencie os pedidos criados por você.</p>
+        <h1 class="pcf-page-title">Minhas requisições</h1>
+        <p class="pcf-page-sub">Consulte seus materiais e gerencie os pedidos criados por você.</p>
       </div>
 
       <div class="mp-head-actions">
         <a class="pcf-btn pcf-btn-outline" href="/supply/">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
           Voltar
         </a>
         <button type="button" class="pcf-btn pcf-btn-primary" id="add-form-btn">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
           Adicionar novo
         </button>
       </div>
-    </div>
+    </header>
 
     {% if messages %}
       <div class="mp-messages">
         {% for message in messages %}
           <div class="mp-alert mp-alert-{{ message.tags }}" role="alert">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span>{{ message }}</span>
           </div>
         {% endfor %}
       </div>
     {% endif %}
 
+    <!-- Filtro -->
     <div class="pcf-card mp-filter-card">
       <form method="get" class="mp-filter-form">
-        <div class="mp-filter-group">
+        <div class="pcf-field mp-filter-group">
           <label class="pcf-label" for="filtro-sabado">Filtrar por sábado</label>
-          <select name="sabado" id="filtro-sabado" onchange="this.form.submit()">
+          <select class="pcf-input" name="sabado" id="filtro-sabado" onchange="this.form.submit()">
             <option value="">Todos os sábados</option>
             {% for s in sabados %}
               <option value="{{ s.id }}" {% if sabado_id|stringformat:"s" == s.id|stringformat:"s" %}selected{% endif %}>
@@ -161,14 +53,13 @@
         </div>
 
         <button type="submit" class="pcf-btn pcf-btn-primary">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
-          </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           Filtrar
         </button>
       </form>
     </div>
 
+    <!-- Formset de pedidos -->
     <form method="post" id="pedido-formset">
       {% csrf_token %}
       <input type="hidden" name="tipo_form" value="pedidos">
@@ -180,19 +71,19 @@
           <p class="mp-card-sub">As alterações são salvas todas juntas ao clicar em salvar.</p>
         </div>
 
-        <div class="mp-table-wrapper">
-          <table class="mp-table">
+        <div class="pcf-scroll-x">
+          <table class="pcf-table mp-table">
             <thead>
               <tr>
-                <th class="mp-col-index">#</th>
-                <th class="mp-col-nome">Nome</th>
-                <th>Especificar</th>
-                <th>Link da imagem</th>
-                <th class="mp-col-qtd">Quantidade</th>
-                <th class="mp-col-unidade">Unidade</th>
-                <th class="mp-col-sabado">Sábado</th>
-                <th class="mp-col-area">Área</th>
-                <th class="mp-col-acoes">Ações</th>
+                <th scope="col" class="mp-col-index">#</th>
+                <th scope="col" class="mp-col-nome">Nome</th>
+                <th scope="col">Especificar</th>
+                <th scope="col">Link da imagem</th>
+                <th scope="col" class="mp-col-qtd">Quantidade</th>
+                <th scope="col" class="mp-col-unidade">Unidade</th>
+                <th scope="col" class="mp-col-sabado">Sábado</th>
+                <th scope="col" class="mp-col-area">Área</th>
+                <th scope="col" class="mp-col-acoes">Ações</th>
               </tr>
             </thead>
 
@@ -200,47 +91,50 @@
               {% for form in formset %}
                 <tr class="pedido-form-row">
                   <td class="mp-col-index">
-                    <div class="mp-row-badge row-number">{{ forloop.counter }}</div>
+                    <span class="mp-row-badge row-number">{{ forloop.counter }}</span>
                     {{ form.id }}
                     <span class="delete-checkbox">{{ form.DELETE }}</span>
                   </td>
 
                   <td class="mp-col-nome">
                     {{ form.item }}
-                    {% if form.item.errors %}<div class="mp-error-list error-list">{{ form.item.errors }}</div>{% endif %}
+                    {% if form.item.errors %}<div class="mp-err error-list">{{ form.item.errors }}</div>{% endif %}
                   </td>
 
                   <td>
                     {{ form.especificar }}
-                    {% if form.especificar.errors %}<div class="mp-error-list error-list">{{ form.especificar.errors }}</div>{% endif %}
+                    {% if form.especificar.errors %}<div class="mp-err error-list">{{ form.especificar.errors }}</div>{% endif %}
                   </td>
 
                   <td>
                     {{ form.link }}
-                    {% if form.link.errors %}<div class="mp-error-list error-list">{{ form.link.errors }}</div>{% endif %}
+                    {% if form.link.errors %}<div class="mp-err error-list">{{ form.link.errors }}</div>{% endif %}
                   </td>
 
                   <td class="mp-col-qtd">
                     {{ form.quantidade }}
-                    {% if form.quantidade.errors %}<div class="mp-error-list error-list">{{ form.quantidade.errors }}</div>{% endif %}
+                    {% if form.quantidade.errors %}<div class="mp-err error-list">{{ form.quantidade.errors }}</div>{% endif %}
                   </td>
 
-                  <td>
-                    <span class="item-unit-value">{% if form.instance.item_id %}{{ form.instance.item.get_unidade_display }}{% else %}—{% endif %}</span>
+                  <td class="mp-col-unidade">
+                    <span class="mp-unit item-unit-value">{% if form.instance.item_id %}{{ form.instance.item.get_unidade_display }}{% else %}—{% endif %}</span>
                   </td>
 
                   <td class="mp-col-sabado">
                     {{ form.sabado }}
-                    {% if form.sabado.errors %}<div class="mp-error-list error-list">{{ form.sabado.errors }}</div>{% endif %}
+                    {% if form.sabado.errors %}<div class="mp-err error-list">{{ form.sabado.errors }}</div>{% endif %}
                   </td>
 
                   <td class="mp-col-area">
                     {{ form.area }}
-                    {% if form.area.errors %}<div class="mp-error-list error-list">{{ form.area.errors }}</div>{% endif %}
+                    {% if form.area.errors %}<div class="mp-err error-list">{{ form.area.errors }}</div>{% endif %}
                   </td>
 
                   <td class="mp-col-acoes">
-                    <button type="button" class="mp-btn-remove remove-btn">Remover</button>
+                    <button type="button" class="pcf-btn pcf-btn-sm pcf-btn-outline mp-btn-remove remove-btn">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                      Remover
+                    </button>
                   </td>
                 </tr>
               {% endfor %}
@@ -249,20 +143,17 @@
         </div>
 
         <div class="mp-card-footer">
-          <div class="mp-footer-note">
-            Só aparecem pedidos criados por você.
-          </div>
+          <p class="mp-footer-note">Só aparecem pedidos criados por você.</p>
 
           <button type="submit" class="pcf-btn pcf-btn-primary">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Salvar alterações
           </button>
         </div>
       </div>
     </form>
 
+    <!-- Formset de materiais -->
     <form method="post" id="material-formset" class="pcf-card mp-card">
       {% csrf_token %}
       <input type="hidden" name="tipo_form" value="materiais">
@@ -274,79 +165,195 @@
       </div>
 
       {% if material_formset.forms %}
-        <div class="mp-table-wrapper">
-          <table class="mp-table">
+        <div class="pcf-scroll-x">
+          <table class="pcf-table mp-table">
             <thead>
               <tr>
-                <th>Material</th>
-                <th>Especificar</th>
-                <th>Link da imagem</th>
-                <th>Quantidade</th>
-                <th>Unidade</th>
-                <th>Sábado / atividade</th>
-                <th>Destino</th>
-                <th>Local de compra</th>
-                <th>Ações</th>
+                <th scope="col" class="mp-col-nome">Material</th>
+                <th scope="col">Especificar</th>
+                <th scope="col">Link da imagem</th>
+                <th scope="col" class="mp-col-qtd">Quantidade</th>
+                <th scope="col" class="mp-col-unidade">Unidade</th>
+                <th scope="col" class="mp-col-sabado">Sábado / atividade</th>
+                <th scope="col" class="mp-col-area">Destino</th>
+                <th scope="col" class="mp-col-area">Local de compra</th>
+                <th scope="col" class="mp-col-acoes">Ações</th>
               </tr>
             </thead>
             <tbody>
               {% for form in material_formset %}
                 <tr class="material-form-row">
-                  <td>
+                  <td class="mp-col-nome">
                     {{ form.id }}
                     <span class="delete-checkbox">{{ form.DELETE }}</span>
                     {{ form.item }}
-                    {% if form.item.errors %}<div class="mp-error-list error-list">{{ form.item.errors }}</div>{% endif %}
+                    {% if form.item.errors %}<div class="mp-err error-list">{{ form.item.errors }}</div>{% endif %}
                   </td>
                   <td>
                     {{ form.especificar }}
-                    {% if form.especificar.errors %}<div class="mp-error-list error-list">{{ form.especificar.errors }}</div>{% endif %}
+                    {% if form.especificar.errors %}<div class="mp-err error-list">{{ form.especificar.errors }}</div>{% endif %}
                   </td>
                   <td>
                     {{ form.link }}
-                    {% if form.link.errors %}<div class="mp-error-list error-list">{{ form.link.errors }}</div>{% endif %}
+                    {% if form.link.errors %}<div class="mp-err error-list">{{ form.link.errors }}</div>{% endif %}
                   </td>
-                  <td>
+                  <td class="mp-col-qtd">
                     {{ form.quantidade }}
-                    {% if form.quantidade.errors %}<div class="mp-error-list error-list">{{ form.quantidade.errors }}</div>{% endif %}
+                    {% if form.quantidade.errors %}<div class="mp-err error-list">{{ form.quantidade.errors }}</div>{% endif %}
                   </td>
-                  <td>
-                    <span class="item-unit-value">{% if form.instance.item_id %}{{ form.instance.item.get_unidade_display }}{% else %}—{% endif %}</span>
+                  <td class="mp-col-unidade">
+                    <span class="mp-unit item-unit-value">{% if form.instance.item_id %}{{ form.instance.item.get_unidade_display }}{% else %}—{% endif %}</span>
                   </td>
-                  <td>
+                  <td class="mp-col-sabado">
                     <div class="mp-material-name">{{ form.instance.atividade.semanario.data.data|date:"d/m/Y" }}</div>
                     <div class="mp-material-detail">{{ form.instance.atividade.semanario.get_sala_display }} — {{ form.instance.atividade.atividade }}</div>
                   </td>
-                  <td>
+                  <td class="mp-col-area">
                     {{ form.pedido }}
-                    {% if form.pedido.errors %}<div class="mp-error-list error-list">{{ form.pedido.errors }}</div>{% endif %}
+                    {% if form.pedido.errors %}<div class="mp-err error-list">{{ form.pedido.errors }}</div>{% endif %}
                   </td>
-                  <td>
+                  <td class="mp-col-area">
                     {{ form.local }}
-                    {% if form.local.errors %}<div class="mp-error-list error-list">{{ form.local.errors }}</div>{% endif %}
+                    {% if form.local.errors %}<div class="mp-err error-list">{{ form.local.errors }}</div>{% endif %}
                   </td>
-                  <td><button type="button" class="mp-btn-remove material-remove-btn">Remover</button></td>
+                  <td class="mp-col-acoes">
+                    <button type="button" class="pcf-btn pcf-btn-sm pcf-btn-outline mp-btn-remove material-remove-btn">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                      Remover
+                    </button>
+                  </td>
                 </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
+
         <div class="mp-card-footer">
-          <div class="mp-footer-note">Só aparecem materiais requisitados por você.</div>
+          <p class="mp-footer-note">Só aparecem materiais requisitados por você.</p>
           <button type="submit" class="pcf-btn pcf-btn-primary">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Salvar materiais
           </button>
         </div>
       {% else %}
-        <div class="mp-empty">Nenhum material requisitado encontrado para o filtro selecionado.</div>
+        <div class="mp-empty">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          <span>Nenhum material requisitado encontrado para o filtro selecionado.</span>
+        </div>
       {% endif %}
     </form>
 
   </div>
 </div>
+
+<style>
+  .mp-page { background: hsl(var(--background)); }
+  .mp-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Cabeçalho leve */
+  .mp-head-text { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+  .mp-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* Mensagens */
+  .mp-messages { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.25rem; }
+  .mp-alert {
+    display: flex; align-items: center; gap: .65rem; padding: .85rem 1.1rem; border-radius: 14px;
+    font-size: .9rem; font-weight: 600; background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground)); border: 1px solid hsl(var(--border));
+  }
+  .mp-alert svg { flex-shrink: 0; }
+  .mp-alert-success { background: #e9f6ef; color: #1f7a49; border-color: #cfeadd; }
+  .mp-alert-error, .mp-alert-danger { background: #fdeaea; color: #b03636; border-color: #f7d4d4; }
+  .mp-alert-warning { background: #fdf3dd; color: #8a6a10; border-color: #f2e2bc; }
+  .mp-alert-info { background: #eaf0fb; color: #2f5296; border-color: #d6e1f6; }
+
+  /* Filtro */
+  .mp-filter-card { margin-bottom: 1.25rem; }
+  .mp-filter-form { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+  .mp-filter-group { min-width: 260px; flex: 1; }
+
+  /* Cards das tabelas */
+  .mp-card { padding: 0; overflow: hidden; }
+  #material-formset.mp-card { margin-top: 1.5rem; }
+  .mp-card-header { padding: 1.15rem 1.25rem; border-bottom: 1px solid hsl(var(--border)); }
+  .mp-card-title { margin: 0; font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .mp-card-sub { margin: .2rem 0 0; font-size: .85rem; color: hsl(var(--muted-foreground)); }
+
+  /* Tabelas — rolam horizontalmente em telas estreitas */
+  .mp-table { min-width: 1080px; }
+  .mp-table th:first-child, .mp-table th:last-child { border-radius: 0; }
+  .mp-table td { vertical-align: middle; }
+  .mp-col-index { width: 62px; text-align: center; }
+  .mp-col-nome { min-width: 220px; }
+  .mp-col-qtd { width: 125px; }
+  .mp-col-unidade { width: 120px; }
+  .mp-col-sabado { width: 200px; }
+  .mp-col-area { width: 185px; }
+  .mp-col-acoes { width: 130px; text-align: center; }
+
+  /* Número da linha */
+  .mp-row-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 10px;
+    background: hsl(var(--accent)); color: #c9490a; font-weight: 800; font-size: .85rem;
+  }
+
+  /* Unidade (leitura — vem do item) */
+  .mp-unit {
+    display: inline-flex; align-items: center; justify-content: center; min-width: 68px;
+    padding: .35rem .6rem; border-radius: 999px; background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border)); color: var(--ink-soft); font-size: .78rem; font-weight: 650;
+  }
+
+  /* Widgets do formset chegam com .form-control (forms.py) — vestir como .pcf-input */
+  .mp-card .form-control {
+    -webkit-appearance: none; appearance: none; width: 100%;
+    padding: .58rem .8rem; border-radius: 12px; background: hsl(var(--card));
+    border: 1px solid hsl(var(--border)); color: var(--ink); font-size: .9rem; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .mp-card .form-control::placeholder { color: #b6ada4; }
+  .mp-card .form-control:hover { border-color: #e8d5c6; }
+  .mp-card .form-control:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 4px rgba(242, 107, 33, .13); }
+  .mp-card textarea.form-control { min-height: 66px; resize: vertical; }
+
+  /* Botão remover (variação de perigo sobre .pcf-btn-outline) */
+  .mp-btn-remove { color: #b03636; }
+  .mp-btn-remove:hover { color: #b03636; background: #fdeaea; border-color: #f7d4d4; }
+
+  /* Checkbox DELETE do formset: controlado por JS, nunca visível */
+  .delete-checkbox { display: none; }
+
+  /* Célula descritiva (sábado / atividade) */
+  .mp-material-name { font-weight: 700; color: var(--ink); }
+  .mp-material-detail { margin-top: .2rem; font-size: .8rem; color: hsl(var(--muted-foreground)); }
+
+  /* Erros de validação */
+  .mp-err { margin-top: .35rem; font-size: .78rem; font-weight: 650; color: #b03636; }
+  .mp-err ul { margin: 0; padding-left: 1rem; }
+
+  /* Rodapé dos cards */
+  .mp-card-footer {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    padding: 1.15rem 1.25rem; border-top: 1px solid hsl(var(--border)); background: hsl(var(--muted));
+  }
+  .mp-footer-note { margin: 0; font-size: .85rem; color: hsl(var(--muted-foreground)); }
+
+  /* Estado vazio */
+  .mp-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
+    padding: clamp(2rem, 5vw, 3rem) 1.5rem; text-align: center; color: var(--ink-muted); font-size: .92rem;
+  }
+  .mp-empty svg { color: var(--brand); }
+
+  @media (max-width: 560px) {
+    .mp-head-actions { width: 100%; }
+    .mp-head-actions .pcf-btn { flex: 1; }
+    .mp-filter-group { min-width: 0; width: 100%; }
+    .mp-filter-form .pcf-btn { width: 100%; }
+    .mp-card-footer .pcf-btn { width: 100%; }
+  }
+</style>
 
 <script>
   const itemUnits = { {% for item in itens %}"{{ item.pk }}": "{{ item.get_unidade_display|escapejs }}",{% endfor %} };

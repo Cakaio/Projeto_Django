@@ -1,105 +1,189 @@
 {% extends 'base.html' %}
-{% load static %}
+
 {% block titulo %}Supply{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'supply/supply.css' %}">{% endblock %}
 
 {% block content %}
-<div class="supply-page supply-home">
-  <section class="supply-home-hero">
-    <div class="supply-home-pattern"></div>
-    <div class="supply-container supply-home-hero-inner">
-      <div>
-        <span class="supply-eyebrow">Projeto Criança Feliz</span>
-        <h1>Supply</h1>
-        <p>Pedidos, materiais e estoque reunidos em um fluxo simples para toda a equipe.</p>
-        <div class="supply-home-actions">
-          <a href="{% url 'supply:adicionar_pedidos' %}" class="supply-button supply-button-light">
-            <i class="bi bi-plus-lg"></i> Novo pedido
-          </a>
-          <a href="{% url 'supply:painel_materiais_visualizacao' %}" class="supply-button supply-button-ghost">
-            <i class="bi bi-eye"></i> Visualizar pedidos
-          </a>
-        </div>
-      </div>
-      <div class="supply-home-illustration" aria-hidden="true">
-        <div class="supply-box-icon"><i class="bi bi-box-seam"></i></div>
-        <span class="supply-orbit supply-orbit-one"></span>
-        <span class="supply-orbit supply-orbit-two"></span>
-      </div>
-    </div>
-  </section>
+<div class="sv-page">
+  <div class="pcf-container sv-wrap">
 
-  <main class="supply-container supply-home-content">
-    <section class="supply-shortcuts" aria-label="Acessos principais">
-      <a href="{% url 'supply:adicionar_pedidos' %}" class="supply-shortcut-card">
-        <span class="supply-shortcut-icon"><i class="bi bi-plus-circle"></i></span>
-        <span><strong>Novo pedido</strong><small>Solicite materiais para sua área.</small></span>
-        <i class="bi bi-arrow-right supply-card-arrow"></i>
-      </a>
-      <a href="{% url 'supply:meus_pedidos' %}" class="supply-shortcut-card">
-        <span class="supply-shortcut-icon"><i class="bi bi-card-checklist"></i></span>
-        <span><strong>Minhas requisições</strong><small>Edite e acompanhe suas solicitações.</small></span>
-        <i class="bi bi-arrow-right supply-card-arrow"></i>
-      </a>
-      <a href="{% url 'supply:painel_materiais_visualizacao' %}" class="supply-shortcut-card">
-        <span class="supply-shortcut-icon"><i class="bi bi-eye"></i></span>
-        <span><strong>Visualização</strong><small>Consulte pedidos por sábado e área.</small></span>
-        <i class="bi bi-arrow-right supply-card-arrow"></i>
-      </a>
+    <!-- ─────────────────────────── CABEÇALHO LEVE ─────────────────────────── -->
+    <header class="pcf-page-head" data-reveal>
+      <div class="sv-head-text">
+        <span class="pcf-eyebrow">Projeto Criança Feliz</span>
+        <h1 class="pcf-page-title">Supply</h1>
+        <p class="pcf-page-sub">Pedidos, materiais e estoque reunidos em um fluxo simples para toda a equipe.</p>
+      </div>
+
+      <div class="sv-head-actions">
+        <a href="{% url 'supply:adicionar_pedidos' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo pedido
+        </a>
+        <a href="{% url 'supply:painel_materiais_visualizacao' %}" class="pcf-btn pcf-btn-outline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Visualizar pedidos
+        </a>
+      </div>
+    </header>
+
+    <!-- ─────────────────────────── ACESSOS PRINCIPAIS ─────────────────────────── -->
+    <section class="sv-section" aria-label="Acessos principais" data-reveal>
+      <div class="sv-section-head">
+        <span class="pcf-eyebrow">Navegação</span>
+        <h2 class="sv-h2">Acessos principais</h2>
+        <p class="sv-h2-sub">Os caminhos mais usados no dia a dia da equipe.</p>
+      </div>
+
+      <div class="sv-grid">
+        <a href="{% url 'supply:adicionar_pedidos' %}" class="pcf-card pcf-hoverable sv-card">
+          <div class="sv-card-top">
+            <span class="pcf-icon-tile tint-orange">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </span>
+          </div>
+          <div class="sv-card-body">
+            <h3 class="sv-card-title">Novo pedido</h3>
+            <p class="sv-card-text">Solicite materiais para sua área.</p>
+          </div>
+          <span class="sv-card-cta">
+            Solicitar
+            <svg class="sv-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </span>
+        </a>
+
+        <a href="{% url 'supply:meus_pedidos' %}" class="pcf-card pcf-hoverable sv-card">
+          <div class="sv-card-top">
+            <span class="pcf-icon-tile tint-green">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+            </span>
+          </div>
+          <div class="sv-card-body">
+            <h3 class="sv-card-title">Minhas requisições</h3>
+            <p class="sv-card-text">Edite e acompanhe suas solicitações.</p>
+          </div>
+          <span class="sv-card-cta">
+            Acompanhar
+            <svg class="sv-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </span>
+        </a>
+
+        <a href="{% url 'supply:painel_materiais_visualizacao' %}" class="pcf-card pcf-hoverable sv-card">
+          <div class="sv-card-top">
+            <span class="pcf-icon-tile tint-blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </span>
+          </div>
+          <div class="sv-card-body">
+            <h3 class="sv-card-title">Visualização</h3>
+            <p class="sv-card-text">Consulte pedidos por sábado e área.</p>
+          </div>
+          <span class="sv-card-cta">
+            Consultar
+            <svg class="sv-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </span>
+        </a>
+      </div>
     </section>
 
-    <section class="supply-home-section">
-      <div class="supply-section-heading">
-        <div><h2>Gestão de materiais</h2><p>Ferramentas para organizar compras e acompanhar o estoque.</p></div>
+    <!-- ─────────────────────────── GESTÃO DE MATERIAIS ─────────────────────────── -->
+    <section class="sv-section" aria-label="Gestão de materiais" data-reveal>
+      <div class="sv-section-head">
+        <span class="pcf-eyebrow">Gestão</span>
+        <h2 class="sv-h2">Gestão de materiais</h2>
+        <p class="sv-h2-sub">Ferramentas para organizar compras e acompanhar o estoque.</p>
       </div>
-      <div class="supply-management-grid">
-        <a href="{% url 'supply:painel_materiais' %}" class="supply-management-card supply-management-featured">
-          <span class="supply-management-icon"><i class="bi bi-kanban"></i></span>
-          <span><strong>Painel administrativo</strong><small>Organize valores, locais de compra e pedidos de todas as áreas.</small></span>
-          <span class="supply-link-label">Abrir painel <i class="bi bi-arrow-right"></i></span>
+
+      <div class="sv-grid">
+        <a href="{% url 'supply:painel_materiais' %}" class="pcf-card pcf-hoverable sv-card">
+          <div class="sv-card-top">
+            <span class="pcf-icon-tile tint-orange">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="11" rx="1"/></svg>
+            </span>
+            <span class="pcf-badge brand">Administrativo</span>
+          </div>
+          <div class="sv-card-body">
+            <h3 class="sv-card-title">Painel administrativo</h3>
+            <p class="sv-card-text">Organize valores, locais de compra e pedidos de todas as áreas.</p>
+          </div>
+          <span class="sv-card-cta">
+            Abrir painel
+            <svg class="sv-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </span>
         </a>
-        <a href="{% url 'supply:lista_itens' %}" class="supply-management-card">
-          <span class="supply-management-icon"><i class="bi bi-boxes"></i></span>
-          <span><strong>Estoque</strong><small>Consulte quantidades e alertas de reposição.</small></span>
-          <span class="supply-link-label">Ver estoque <i class="bi bi-arrow-right"></i></span>
+
+        <a href="{% url 'supply:lista_itens' %}" class="pcf-card pcf-hoverable sv-card">
+          <div class="sv-card-top">
+            <span class="pcf-icon-tile tint-gold">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </span>
+          </div>
+          <div class="sv-card-body">
+            <h3 class="sv-card-title">Estoque</h3>
+            <p class="sv-card-text">Consulte quantidades e alertas de reposição.</p>
+          </div>
+          <span class="sv-card-cta">
+            Ver estoque
+            <svg class="sv-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </span>
         </a>
-        <a href="{% url 'supply:lista_movimentacoes' %}" class="supply-management-card">
-          <span class="supply-management-icon"><i class="bi bi-clock-history"></i></span>
-          <span><strong>Movimentações</strong><small>Acompanhe entradas, saídas e ajustes.</small></span>
-          <span class="supply-link-label">Ver histórico <i class="bi bi-arrow-right"></i></span>
+
+        <a href="{% url 'supply:lista_movimentacoes' %}" class="pcf-card pcf-hoverable sv-card">
+          <div class="sv-card-top">
+            <span class="pcf-icon-tile tint-blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+            </span>
+          </div>
+          <div class="sv-card-body">
+            <h3 class="sv-card-title">Movimentações</h3>
+            <p class="sv-card-text">Acompanhe entradas, saídas e ajustes.</p>
+          </div>
+          <span class="sv-card-cta">
+            Ver histórico
+            <svg class="sv-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </span>
         </a>
       </div>
     </section>
-  </main>
+
+  </div>
 </div>
 
+{# Bloco enxuto: apenas LAYOUT específico desta tela. Todo o visual vem das classes .pcf-* (tailwindcss/input.css). #}
 <style>
-  .sup-page { background: hsl(var(--background)); }
-  .sup-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+  .sv-page { background: hsl(var(--background)); }
+  .sv-wrap { padding-top: clamp(2rem, 5vw, 3.25rem); padding-bottom: clamp(3rem, 7vw, 5rem); }
 
-  /* Cabeçalho leve */
-  .sup-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
-  .sup-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
-  .sup-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
-  .sup-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
-  .sup-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+  /* ── Cabeçalho leve ── */
+  .sv-head-text { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+  .sv-head-text .pcf-page-sub { max-width: 56ch; }
+  .sv-head-actions { display: flex; flex-wrap: wrap; gap: .625rem; }
 
-  /* Grid de atalhos */
-  .sup-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-  .sup-shortcut { display: flex; align-items: center; gap: 1rem; text-decoration: none; color: var(--ink); }
-  .sup-shortcut:hover { color: var(--ink); }
-  .sup-shortcut-body { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
-  .sup-shortcut-title { font-weight: 800; font-size: 1rem; letter-spacing: -.01em; color: var(--ink); }
-  .sup-shortcut-desc { font-size: .82rem; line-height: 1.5; color: var(--ink-muted); }
-  .sup-arrow { color: var(--ink-muted); margin-left: auto; flex-shrink: 0; transition: transform .18s ease, color .18s ease; }
-  .sup-shortcut:hover .sup-arrow { transform: translateX(3px); color: #e8560f; }
+  /* ── Seções ── */
+  .sv-section { padding-top: clamp(2rem, 4.5vw, 3rem); }
+  .sv-section-head { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1.25rem; }
+  .sv-h2 { margin: 0; font-weight: 800; letter-spacing: -.025em; line-height: 1.1; font-size: clamp(1.3rem, 2.6vw, 1.7rem); color: var(--ink); }
+  .sv-h2-sub { margin: 0; font-size: .88rem; color: var(--ink-muted); }
 
-  @media (min-width: 640px) { .sup-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (min-width: 960px) { .sup-grid { grid-template-columns: repeat(3, 1fr); } }
+  /* ── Grid de cards ── */
+  .sv-grid { display: grid; grid-template-columns: 1fr; gap: 1.15rem; }
+  .sv-card { display: flex; flex-direction: column; gap: .9rem; text-decoration: none; color: var(--ink); min-height: 100%; }
+  .sv-card:hover { color: var(--ink); }
+  .sv-card-top { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+  .sv-card-body { display: flex; flex-direction: column; gap: .35rem; flex: 1; }
+  .sv-card-title { margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .sv-card-text { margin: 0; font-size: .87rem; line-height: 1.55; color: var(--ink-muted); }
+  .sv-card-cta { display: inline-flex; align-items: center; gap: .4rem; margin-top: auto; font-size: .88rem; font-weight: 800; color: var(--brand); }
+  .sv-arrow { flex-shrink: 0; transition: transform .18s ease; }
+  .sv-card:hover .sv-arrow { transform: translateX(3px); }
 
-  @media (max-width: 560px) {
-    .sup-head-actions { width: 100%; }
-    .sup-head-actions .pcf-btn { flex: 1; }
+  /* ── Breakpoints ── */
+  @media (min-width: 640px) { .sv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 960px) { .sv-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+  /* ── Telas estreitas (~360px) ── */
+  @media (max-width: 480px) {
+    .sv-head-actions { width: 100%; flex-direction: column; }
+    .sv-head-actions .pcf-btn { width: 100%; }
   }
 </style>
 {% endblock %}

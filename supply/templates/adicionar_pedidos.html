@@ -1,219 +1,37 @@
 {% extends "base.html" %}
-{% load static %}
 {% block titulo %}Adicionar pedidos{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'supply/supply.css' %}">{% endblock %}
 
 {% block content %}
 {# Bloco enxuto: só LAYOUT específico desta tela (prefixo .ap-). O visual base vem das classes .pcf-*. #}
-<style>
-  .ap-page { background: hsl(var(--background)); }
-  .ap-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
-
-  /* Cabeçalho leve */
-  .ap-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
-  .ap-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
-  .ap-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
-  .ap-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
-  .ap-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
-
-  /* Alertas / mensagens */
-  .ap-messages { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.25rem; }
-  .ap-alert { display: flex; align-items: center; gap: .6rem; padding: .85rem 1.1rem; border-radius: 14px; font-size: .9rem; font-weight: 600; border: 1px solid transparent; }
-  .ap-alert svg { flex-shrink: 0; }
-  .ap-alert-success { background: #eaf7ef; color: #1f7a49; border-color: #c9ecd6; }
-  .ap-alert-error, .ap-alert-danger { background: #fdeaea; color: #b03636; border-color: #f5cccc; }
-  .ap-alert-warning { background: #fdf3dd; color: #8a6a10; border-color: #f0e2bc; }
-  .ap-alert-info { background: #eaf0fb; color: #2f5296; border-color: #cfe0f4; }
-
-  /* Card do formulário */
-  .ap-card { padding: 0; overflow: hidden; }
-  .ap-card-header { padding: 1.2rem 1.4rem; border-bottom: 1px solid #f4e7de; background: #fffaf6; }
-  .ap-card-title { margin: 0; font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
-  .ap-card-sub { margin: .25rem 0 0; color: hsl(var(--muted-foreground)); font-size: .9rem; }
-
-  /* Tabela de pedidos (rola horizontalmente em telas estreitas) */
-  .ap-table-wrapper { width: 100%; overflow-x: auto; }
-  .ap-table { width: 100%; border-collapse: collapse; min-width: 980px; }
-  .ap-table thead th {
-    text-align: left; font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-    color: #a8968b; background: #fffaf6; padding: .85rem .9rem; border-bottom: 1px solid #f4e7de; white-space: nowrap;
-  }
-  .ap-table tbody td { padding: .85rem .9rem; border-bottom: 1px solid #f7e9df; vertical-align: middle; }
-  .ap-table tbody tr:hover td { background: #fffaf6; }
-  .ap-table tbody tr:last-child td { border-bottom: none; }
-
-  .col-index {
-    width: 70px;
-    text-align: center;
-    font-weight: 700;
-    color: #6b7280;
-  }
-
-  .col-nome {
-    min-width: 280px;
-  }
-
-  .col-quantidade {
-    width: 140px;
-  }
-
-  .col-sabado {
-    width: 220px;
-  }
-
-  .col-area {
-    width: 220px;
-  }
-
-  .col-acoes {
-    width: 120px;
-    text-align: center;
-  }
-
-  /* Inputs do formset (os widgets vêm com a classe .form-control do forms.py) */
-  .ap-card .form-control {
-    width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff;
-    border: 1px solid #f0dfd3; color: var(--ink); font-size: .92rem; font-family: inherit;
-    box-sizing: border-box; transition: border-color .15s, box-shadow .15s;
-  }
-  .ap-card .form-control:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
-
-  .row-number-badge {
-    width: 34px;
-    height: 34px;
-    margin: 0 auto;
-    border-radius: 10px;
-    background: #eef2ff;
-    color: #4338ca;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.9rem;
-  }
-
-  .table-footer {
-    padding: 1.2rem 1.4rem;
-    border-top: 1px solid #eef2f7;
-    background: #fcfcfd;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .table-footer-note {
-    color: #6b7280;
-    font-size: 0.93rem;
-  }
-
-  .error-list {
-    margin-top: 0.35rem;
-    font-size: 0.82rem;
-    color: #b91c1c;
-    font-weight: 600;
-  }
-
-  .mobile-card-list {
-    display: none;
-  }
-
-  @media (max-width: 900px) {
-    .table-wrapper {
-      display: none;
-    }
-
-    .mobile-card-list {
-      display: block;
-      padding: 1rem;
-    }
-
-    .mobile-row-card {
-      border: 1px solid #e5e7eb;
-      border-radius: 18px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      background: #fff;
-    }
-
-    .mobile-row-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.9rem;
-      gap: 1rem;
-    }
-
-    .mobile-row-title {
-      font-weight: 700;
-      color: #1f2937;
-    }
-
-    .mobile-fields {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 0.85rem;
-    }
-
-    .mobile-field label {
-      display: block;
-      font-size: 0.86rem;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 0.35rem;
-    }
-  }
-  .details-disclosure { min-width: 210px; }
-  .details-disclosure summary {
-    cursor: pointer; list-style: none; width: max-content; padding: 9px 12px;
-    border: 1px solid #cbd5e1; border-radius: 9px; background: #f8fafc;
-    color: #334155; font-weight: 700; font-size: .82rem;
-  }
-  .details-disclosure summary::-webkit-details-marker { display: none; }
-  .details-disclosure summary::after { content: " +"; color: #0891b2; }
-  .details-disclosure[open] summary::after { content: " −"; }
-  .details-disclosure[open]::before { content: ""; position: fixed; inset: 0; z-index: 1090; background: rgba(15, 23, 42, .62); backdrop-filter: blur(3px); }
-  .details-fields { position: fixed; z-index: 1100; top: 50%; left: 50%; transform: translate(-50%, -50%); display: grid; gap: 14px; width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow-y: auto; padding: 24px; border-radius: 18px; background: #fff; box-shadow: 0 28px 80px rgba(15, 23, 42, .28); }
-  .details-fields label { display: grid; gap: 5px; color: #475569; font-size: .75rem; font-weight: 700; }
-  .details-modal-close { justify-self: end; border: 0; border-radius: 8px; padding: 7px 11px; background: #e2e8f0; color: #334155; font-weight: 800; cursor: pointer; }
-  .material-qty { display: inline-flex; min-width: 74px; justify-content: center; padding: 8px 10px; border-radius: 9px; background: #f1f5f9; color: #475569; font-size: .8rem; font-weight: 800; }
-</style>
-
 <div class="ap-page">
   <div class="pcf-container ap-wrap">
 
-    <div class="ap-head">
+    <!-- Cabeçalho leve -->
+    <header class="pcf-page-head">
       <div class="ap-head-text">
         <span class="pcf-eyebrow">Supply</span>
-        <h1 class="ap-title">Adicionar pedidos</h1>
-        <p class="ap-sub">Preencha vários pedidos em formato de tabela e salve tudo de uma vez.</p>
+        <h1 class="pcf-page-title">Adicionar pedidos</h1>
+        <p class="pcf-page-sub">Preencha vários pedidos em formato de tabela e salve tudo de uma vez.</p>
       </div>
 
       <div class="ap-head-actions">
         <a class="pcf-btn pcf-btn-outline" href="/supply/">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
           Voltar
         </a>
 
         <button type="button" class="pcf-btn pcf-btn-primary" id="add-form-btn">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
           Adicionar pedido
         </button>
       </div>
-    </div>
+    </header>
 
     {% if messages %}
       <div class="ap-messages">
         {% for message in messages %}
           <div class="ap-alert ap-alert-{{ message.tags }}" role="alert">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span>{{ message }}</span>
           </div>
         {% endfor %}
@@ -230,72 +48,87 @@
           <p class="ap-card-sub">Você pode adicionar, remover e salvar todos os pedidos juntos.</p>
         </div>
 
-      <div class="table-wrapper">
-        <table class="pedido-table">
-          <thead>
-            <tr>
-              <th class="col-index">#</th>
-              <th class="col-nome">Nome do pedido</th>
-              <th>Detalhes</th>
-              <th class="col-quantidade">Quantidade</th>
-              <th>Unidade</th>
-              <th class="col-sabado">Sábado</th>
-              <th class="col-area">Área</th>
-              <th class="col-acoes">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="forms-container">
-            {% for form in formset %}
-              <tr class="pedido-form-row">
-                <td class="col-index">
-                  <div class="row-number-badge row-number">{{ forloop.counter }}</div>
-                </td>
+        <div class="pcf-scroll-x ap-scroll">
+          <table class="pcf-table ap-table">
+            <thead>
+              <tr>
+                <th scope="col" class="ap-col-index">#</th>
+                <th scope="col" class="ap-col-nome">Nome do pedido</th>
+                <th scope="col">Detalhes</th>
+                <th scope="col" class="ap-col-qtd">Quantidade</th>
+                <th scope="col" class="ap-col-unidade">Unidade</th>
+                <th scope="col" class="ap-col-sabado">Sábado</th>
+                <th scope="col" class="ap-col-area">Área</th>
+                <th scope="col" class="ap-col-acoes">Ações</th>
+              </tr>
+            </thead>
+
+            <tbody id="forms-container">
+              {% for form in formset %}
+                <tr class="pedido-form-row">
+                  <td class="ap-col-index">
+                    <span class="ap-row-badge row-number">{{ forloop.counter }}</span>
+                  </td>
 
                   <td class="ap-col-nome">
                     {{ form.item }}
                     {% if form.item.errors %}
-                      <div class="ap-error-list error-list">{{ form.item.errors }}</div>
+                      <div class="ap-err error-list">{{ form.item.errors }}</div>
                     {% endif %}
                   </td>
 
-                <td>
-                  <details class="details-disclosure" {% if form.especificar.errors or form.link.errors %}open{% endif %}>
-                    <summary>Especificar / imagem</summary>
-                    <div class="details-fields">
-                      <button type="button" class="details-modal-close" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar modal">Fechar ×</button>
-                      <label>Especificar {{ form.especificar }}</label>
-                      {% if form.especificar.errors %}<div class="error-list">{{ form.especificar.errors }}</div>{% endif %}
-                      <label>Link da imagem {{ form.link }}</label>
-                      {% if form.link.errors %}<div class="error-list">{{ form.link.errors }}</div>{% endif %}
-                    </div>
-                  </details>
-                </td>
+                  <td>
+                    <details class="ap-disc" {% if form.especificar.errors or form.link.errors %}open{% endif %}>
+                      <summary class="ap-disc-summary">Especificar / imagem</summary>
+                      <div class="ap-disc-panel">
+                        <button type="button" class="ap-disc-close" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar">
+                          Fechar
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+
+                        <label class="ap-disc-field">
+                          <span class="pcf-label">Especificar</span>
+                          {{ form.especificar }}
+                        </label>
+                        {% if form.especificar.errors %}<div class="ap-err error-list">{{ form.especificar.errors }}</div>{% endif %}
+
+                        <label class="ap-disc-field">
+                          <span class="pcf-label">Link da imagem</span>
+                          {{ form.link }}
+                        </label>
+                        {% if form.link.errors %}<div class="ap-err error-list">{{ form.link.errors }}</div>{% endif %}
+                      </div>
+                    </details>
+                  </td>
 
                   <td class="ap-col-qtd">
                     {{ form.quantidade }}
                     {% if form.quantidade.errors %}
-                      <div class="ap-error-list error-list">{{ form.quantidade.errors }}</div>
+                      <div class="ap-err error-list">{{ form.quantidade.errors }}</div>
                     {% endif %}
                   </td>
 
-                <td><span class="material-qty item-unit-value">{% if form.instance.item_id %}{{ form.instance.item.get_unidade_display }}{% else %}—{% endif %}</span></td>
+                  <td class="ap-col-unidade">
+                    <span class="ap-unit item-unit-value">{% if form.instance.item_id %}{{ form.instance.item.get_unidade_display }}{% else %}—{% endif %}</span>
+                  </td>
 
                   <td class="ap-col-sabado">
                     {{ form.sabado }}
                     {% if form.sabado.errors %}
-                      <div class="ap-error-list error-list">{{ form.sabado.errors }}</div>
+                      <div class="ap-err error-list">{{ form.sabado.errors }}</div>
                     {% endif %}
                   </td>
 
                   <td class="ap-col-area">
                     {{ form.area }}
                     {% if form.area.errors %}
-                      <div class="ap-error-list error-list">{{ form.area.errors }}</div>
+                      <div class="ap-err error-list">{{ form.area.errors }}</div>
                     {% endif %}
                   </td>
 
                   <td class="ap-col-acoes">
-                    <button type="button" class="ap-btn-remove remove-btn">
+                    <button type="button" class="pcf-btn pcf-btn-sm pcf-btn-outline ap-btn-remove remove-btn">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
                       Remover
                     </button>
                   </td>
@@ -306,14 +139,12 @@
         </div>
 
         <div class="ap-card-footer">
-          <div class="ap-footer-note">
+          <p class="ap-footer-note">
             O campo <strong>requisitado por</strong> será preenchido automaticamente ao salvar.
-          </div>
+          </p>
 
           <button type="submit" class="pcf-btn pcf-btn-primary">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
             Salvar pedidos
           </button>
         </div>
@@ -322,6 +153,123 @@
 
   </div>
 </div>
+
+<style>
+  .ap-page { background: hsl(var(--background)); }
+  .ap-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+
+  /* Cabeçalho leve */
+  .ap-head-text { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+  .ap-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
+
+  /* Mensagens */
+  .ap-messages { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.25rem; }
+  .ap-alert {
+    display: flex; align-items: center; gap: .65rem; padding: .85rem 1.1rem; border-radius: 14px;
+    font-size: .9rem; font-weight: 600; background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground)); border: 1px solid hsl(var(--border));
+  }
+  .ap-alert svg { flex-shrink: 0; }
+  .ap-alert-success { background: #e9f6ef; color: #1f7a49; border-color: #cfeadd; }
+  .ap-alert-error, .ap-alert-danger { background: #fdeaea; color: #b03636; border-color: #f7d4d4; }
+  .ap-alert-warning { background: #fdf3dd; color: #8a6a10; border-color: #f2e2bc; }
+  .ap-alert-info { background: #eaf0fb; color: #2f5296; border-color: #d6e1f6; }
+
+  /* Card do formulário */
+  .ap-card { padding: 0; overflow: hidden; }
+  .ap-card-header { padding: 1.15rem 1.25rem; border-bottom: 1px solid hsl(var(--border)); }
+  .ap-card-title { margin: 0; font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .ap-card-sub { margin: .2rem 0 0; font-size: .85rem; color: hsl(var(--muted-foreground)); }
+
+  /* Tabela — rola horizontalmente em telas estreitas */
+  .ap-table { min-width: 1000px; }
+  .ap-table th:first-child, .ap-table th:last-child { border-radius: 0; }
+  .ap-table td { vertical-align: middle; }
+  .ap-col-index { width: 62px; text-align: center; }
+  .ap-col-nome { min-width: 240px; }
+  .ap-col-qtd { width: 130px; }
+  .ap-col-unidade { width: 120px; }
+  .ap-col-sabado { width: 200px; }
+  .ap-col-area { width: 190px; }
+  .ap-col-acoes { width: 130px; text-align: center; }
+
+  /* Número da linha */
+  .ap-row-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 10px;
+    background: hsl(var(--accent)); color: #c9490a; font-weight: 800; font-size: .85rem;
+  }
+
+  /* Unidade (leitura) */
+  .ap-unit {
+    display: inline-flex; align-items: center; justify-content: center; min-width: 68px;
+    padding: .35rem .6rem; border-radius: 999px; background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border)); color: var(--ink-soft); font-size: .78rem; font-weight: 650;
+  }
+
+  /* Widgets do formset chegam com .form-control (forms.py) — vestir como .pcf-input */
+  .ap-card .form-control {
+    -webkit-appearance: none; appearance: none; width: 100%;
+    padding: .58rem .8rem; border-radius: 12px; background: hsl(var(--card));
+    border: 1px solid hsl(var(--border)); color: var(--ink); font-size: .9rem; font-family: inherit;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .ap-card .form-control::placeholder { color: #b6ada4; }
+  .ap-card .form-control:hover { border-color: #e8d5c6; }
+  .ap-card .form-control:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 4px rgba(242, 107, 33, .13); }
+  .ap-card textarea.form-control { min-height: 72px; resize: vertical; }
+
+  /* Botão remover (variação de perigo sobre .pcf-btn-outline) */
+  .ap-btn-remove { color: #b03636; }
+  .ap-btn-remove:hover { color: #b03636; background: #fdeaea; border-color: #f7d4d4; }
+
+  /* Disclosure "Especificar / imagem" */
+  .ap-disc { min-width: 190px; }
+  .ap-disc-summary {
+    display: inline-flex; align-items: center; gap: .4rem; width: max-content; cursor: pointer; list-style: none;
+    padding: .48rem .85rem; border-radius: 10px; background: hsl(var(--card));
+    border: 1px solid hsl(var(--border)); color: var(--ink); font-size: .82rem; font-weight: 650;
+  }
+  .ap-disc-summary:hover { border-color: #e8d5c6; background: #fffaf6; }
+  .ap-disc-summary::-webkit-details-marker { display: none; }
+  .ap-disc-summary::after { content: "+"; color: var(--brand); font-weight: 800; }
+  .ap-disc[open] .ap-disc-summary::after { content: "−"; }
+  .ap-disc[open]::before {
+    content: ""; position: fixed; inset: 0; z-index: 1090;
+    background: rgba(28, 19, 14, .55); backdrop-filter: blur(3px);
+  }
+  .ap-disc-panel {
+    position: fixed; z-index: 1100; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    display: grid; gap: .9rem; width: min(520px, calc(100vw - 2rem)); max-height: calc(100vh - 3rem);
+    overflow-y: auto; padding: 1.25rem; border-radius: 16px; background: hsl(var(--card));
+    border: 1px solid hsl(var(--border)); box-shadow: var(--shadow-xl); text-align: left;
+  }
+  .ap-disc-field { display: grid; gap: .4rem; }
+  .ap-disc-close {
+    justify-self: end; display: inline-flex; align-items: center; gap: .35rem; cursor: pointer;
+    padding: .4rem .7rem; border-radius: 10px; background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border)); color: var(--ink-soft); font-size: .78rem; font-weight: 700; font-family: inherit;
+  }
+  .ap-disc-close:hover { background: hsl(var(--accent)); color: #c9490a; }
+
+  /* Erros de validação */
+  .ap-err { margin-top: .35rem; font-size: .78rem; font-weight: 650; color: #b03636; }
+  .ap-err ul { margin: 0; padding-left: 1rem; }
+
+  /* Rodapé do card */
+  .ap-card-footer {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    padding: 1.15rem 1.25rem; border-top: 1px solid hsl(var(--border)); background: hsl(var(--muted));
+  }
+  .ap-footer-note { margin: 0; font-size: .85rem; color: hsl(var(--muted-foreground)); }
+  .ap-footer-note strong { color: var(--ink); }
+
+  @media (max-width: 560px) {
+    .ap-head-actions { width: 100%; }
+    .ap-head-actions .pcf-btn { flex: 1; }
+    .ap-card-footer .pcf-btn { width: 100%; }
+  }
+</style>
 
 <script>
   const itemUnits = { {% for item in itens %}"{{ item.pk }}": "{{ item.get_unidade_display|escapejs }}",{% endfor %} };
