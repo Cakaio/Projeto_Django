@@ -66,18 +66,18 @@
       <div class="pcf-orb" style="width:230px;height:230px;top:-110px;right:-70px" aria-hidden="true"></div>
       <div class="pcf-kpi">
         <div class="pcf-kpi-top">
-          <span class="pcf-kpi-label" style="color:#8f8880">Próxima ronda</span>
-          <span class="pcf-icon-tile" style="width:32px;height:32px;border-radius:9px;background:rgba(242,107,33,.18);color:#ffb47a"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          <span class="pcf-kpi-label" style="color:rgba(255,255,255,.8)">Próxima ronda</span>
+          <span class="pcf-icon-tile" style="width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.22);color:#fff"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
         </div>
         {% if proxima_ronda %}
           <div class="pcf-kpi-value" style="color:#fff;font-size:1.55rem">{{ proxima_ronda.sabado.data|date:"d/m" }}</div>
-          <p style="font-size:.82rem;color:#a89f98;margin:.15rem 0 0">{{ proxima_ronda.sabado.tema|default:"Sábado do Projeto" }}</p>
+          <p style="font-size:.82rem;color:rgba(255,255,255,.88);margin:.15rem 0 0">{{ proxima_ronda.sabado.tema|default:"Sábado do Projeto" }}</p>
           <div class="pcf-kpi-foot" style="margin-top:.75rem">
             <a href="{% url 'ronda:ronda_publica' %}" class="pcf-btn pcf-btn-white pcf-btn-sm">Ver escala</a>
           </div>
         {% else %}
           <div class="pcf-kpi-value" style="color:#fff;font-size:1.55rem">—</div>
-          <p style="font-size:.82rem;color:#a89f98;margin:.15rem 0 0">Nenhuma escala aprovada ainda.</p>
+          <p style="font-size:.82rem;color:rgba(255,255,255,.88);margin:.15rem 0 0">Nenhuma escala aprovada ainda.</p>
         {% endif %}
       </div>
     </div>

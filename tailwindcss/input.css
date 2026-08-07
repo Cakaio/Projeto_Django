@@ -66,17 +66,51 @@
     --shadow-warm-lg: var(--shadow-lg);
   }
 
+  /* O preflight do Tailwind esta desligado (convivencia com o Bootstrap legado).
+     Sem isto, o box-sizing dependeria do Bootstrap vir do CDN — e quando ele
+     falha/sai, todo container estoura a largura pelo valor do padding. */
+  *, *::before, *::after { box-sizing: border-box; }
+
   body {
     font-family: 'Archivo', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     background: hsl(var(--background));
     color: var(--ink);
+    overflow-x: clip;              /* trava qualquer estouro horizontal residual */
   }
   h1, h2, h3, h4, h5, h6 { font-family: 'Archivo', system-ui, sans-serif; text-wrap: balance; }
   ::selection { background: #ffd9bf; color: #1c130e; }
   *:focus-visible { outline: 2px solid #f26b21; outline-offset: 2px; }
   summary::-webkit-details-marker { display: none; }
+
+  /* ---- Checkbox / radio da marca (em @layer base: telas podem sobrescrever) ---- */
+  input[type="checkbox"]:not(.seg-radio),
+  input[type="radio"]:not(.seg-radio) {
+    -webkit-appearance: none; appearance: none; margin: 0; flex-shrink: 0;
+    width: 1.1rem; height: 1.1rem; cursor: pointer; display: inline-grid; place-content: center;
+    border: 1.5px solid hsl(var(--border)); background: #fff; color: #fff;
+    transition: background .15s, border-color .15s, box-shadow .15s;
+  }
+  input[type="checkbox"]:not(.seg-radio) { border-radius: 6px; }
+  input[type="radio"]:not(.seg-radio) { border-radius: 999px; }
+  input[type="checkbox"]:not(.seg-radio):hover,
+  input[type="radio"]:not(.seg-radio):hover { border-color: #f7c9a8; }
+  input[type="checkbox"]:not(.seg-radio)::before {
+    content: ''; width: .62rem; height: .62rem; transform: scale(0); transition: transform .12s ease-out;
+    background: currentColor;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  }
+  input[type="radio"]:not(.seg-radio)::before {
+    content: ''; width: .5rem; height: .5rem; border-radius: 999px; background: currentColor;
+    transform: scale(0); transition: transform .12s ease-out;
+  }
+  input[type="checkbox"]:not(.seg-radio):checked,
+  input[type="radio"]:not(.seg-radio):checked { background: var(--brand); border-color: var(--brand); }
+  input[type="checkbox"]:not(.seg-radio):checked::before,
+  input[type="radio"]:not(.seg-radio):checked::before { transform: scale(1); }
+  input[type="checkbox"]:not(.seg-radio):disabled,
+  input[type="radio"]:not(.seg-radio):disabled { opacity: .5; cursor: not-allowed; }
 }
 
 /* ============================ KEYFRAMES ============================ */
@@ -156,17 +190,20 @@
   .pcf-num { font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
 
   /* ================= EYEBROW / CHIPS ================= */
+  /* Kicker de título: texto com traço — NUNCA uma "tab" laranja de largura total.
+     `align-self`/`width:max-content` impedem que ele estique dentro de flex/grid. */
   .pcf-eyebrow {
-    display: inline-flex; align-items: center; gap: .45rem;
-    padding: .32rem .75rem; border-radius: 999px;
-    font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-    background: hsl(var(--accent)); color: hsl(var(--accent-foreground));
-    border: 1px solid #fbe3d3;
+    display: inline-flex; align-self: flex-start; width: max-content; max-width: 100%;
+    align-items: center; gap: .5rem; padding: 0; background: none; border: 0;
+    font-size: .69rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--brand); line-height: 1.4;
   }
-  .pcf-eyebrow.on-dark {
-    background: rgba(255, 255, 255, .06); color: #ffb47a;
-    border-color: rgba(255, 160, 90, .28); backdrop-filter: blur(6px);
+  .pcf-eyebrow::before {
+    content: ''; width: 16px; height: 2px; border-radius: 2px; background: var(--brand); flex-shrink: 0;
   }
+  .pcf-eyebrow:has(.pcf-live-dot)::before { display: none; }
+  .pcf-eyebrow.on-dark { color: #fff; }
+  .pcf-eyebrow.on-dark::before { background: rgba(255, 255, 255, .75); }
 
   /* ================= BOTOES ================= */
   .pcf-btn {
@@ -231,8 +268,10 @@
   .pcf-badge.danger { background: #fdeaea; color: #b03636; border-color: #f7d4d4; }
   /* pill com ponto de status (padrao do genero) */
   .pcf-badge .dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; flex-shrink: 0; }
-  /* variante CONTORNADA (fundo transparente + borda) — como na referencia */
-  .pcf-badge.outline { background: transparent; border-color: currentColor; opacity: .95; }
+  /* variante CONTORNADA — borda NEUTRA e fina (a cor fica no texto/ponto),
+     para nao pesar visualmente como um contorno colorido grosso */
+  .pcf-badge.outline { background: hsl(var(--card)); border-color: hsl(var(--border)); }
+  .pcf-dark-surface .pcf-badge.outline { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.32); color: #fff; }
   .pcf-badge.outline.ok     { color: #1f7a49; }
   .pcf-badge.outline.warn   { color: #8a6a10; }
   .pcf-badge.outline.info   { color: #2f5296; }
@@ -378,21 +417,23 @@
      EFEITOS (estilo Aceternity) — CSS/JS puro
      ============================================================ */
 
-  /* Superficie escura com grid "blueprint" + mascara radial */
+  /* Superficie de DESTAQUE da marca (laranja) — o nome "dark" e legado: dezenas
+     de telas ja usam esta classe com texto branco, entao mantemos o contraste
+     branco-sobre-laranja em vez de escuro. */
   .pcf-dark-surface {
     position: relative; overflow: hidden; color: #fff;
-    background: var(--dark-grad);
+    background: linear-gradient(135deg, #ff8a3d 0%, #f26b21 45%, #e04e0c 100%);
   }
   .pcf-dark-surface::before {
     content: ''; position: absolute; inset: 0; pointer-events: none;
-    background-image:
-      linear-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, .045) 1px, transparent 1px);
-    background-size: 56px 56px;
-    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, .34) 1px, transparent 0);
+    background-size: 22px 22px; opacity: .45;
   }
   .pcf-dark-surface > * { position: relative; z-index: 1; }
+  /* legendas/valores dentro da superficie laranja */
+  .pcf-dark-surface .pcf-kpi-label,
+  .pcf-dark-surface .pcf-kpi-foot { color: rgba(255, 255, 255, .82); }
+  .pcf-dark-surface .pcf-kpi-value { color: #fff; }
 
   /* Hero laranja (compat v1) */
   .pcf-hero-surface {
@@ -431,12 +472,13 @@
   .pcf-dots-bg > * { position: relative; z-index: 1; }
 
   /* Orbs de luz */
+  /* Sobre fundo CLARO o glow precisa ser discreto (senao vira nevoa) */
   .pcf-orb {
-    position: absolute; border-radius: 50%; pointer-events: none; filter: blur(20px);
-    background: radial-gradient(circle, rgba(242, 107, 33, .4), transparent 68%);
+    position: absolute; border-radius: 50%; pointer-events: none; filter: blur(22px);
+    background: radial-gradient(circle, rgba(242, 107, 33, .2), transparent 68%);
     animation: pcf-glow 8s ease-in-out infinite;
   }
-  .pcf-orb.warm  { background: radial-gradient(circle, rgba(255, 214, 170, .5), transparent 68%); }
+  .pcf-orb.warm  { background: radial-gradient(circle, rgba(255, 214, 170, .28), transparent 68%); }
   .pcf-orb.white { background: radial-gradient(circle, rgba(255, 255, 255, .22), transparent 70%); }
 
   /* Spotlight que segue o mouse (JS define --mx/--my) */
@@ -469,11 +511,13 @@
     border-radius: inherit; background: hsl(var(--card));
   }
 
-  /* Glassmorphism sobre escuro */
+  /* Glass sobre a superficie laranja */
   .pcf-glass {
-    background: rgba(255, 255, 255, .055); border: 1px solid rgba(255, 255, 255, .1);
-    backdrop-filter: blur(10px); border-radius: 20px;
+    background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .3);
+    backdrop-filter: blur(10px); border-radius: 16px;
   }
+  /* orbs dentro do laranja viram luz branca (laranja sobre laranja some) */
+  .pcf-dark-surface .pcf-orb { background: radial-gradient(circle, rgba(255, 255, 255, .34), transparent 68%); }
 
   /* Live dot */
   .pcf-live-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); display: inline-block; flex-shrink: 0; }

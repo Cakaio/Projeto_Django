@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#14100e">
+  <meta name="theme-color" content="#e8560f">
   <title>Entrar — Projeto Criança Feliz</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,9 +25,9 @@
 
     /* ---- Painel escuro (desktop) ---- */
     .lg-aside { display: none; position: relative; overflow: hidden; padding: 3rem;
-                background: linear-gradient(180deg, #14100e, #1f1713 65%, #271c16); color: #fff; }
+                background: linear-gradient(150deg, #ff8a3d 0%, #f26b21 45%, #e04e0c 100%); color: #fff; }
     .lg-aside::before { content: ''; position: absolute; inset: 0; pointer-events: none;
-      background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+      background-image: linear-gradient(rgba(255,255,255,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.16) 1px, transparent 1px);
       background-size: 52px 52px;
       -webkit-mask-image: radial-gradient(ellipse 80% 70% at 30% 20%, #000 30%, transparent 100%);
       mask-image: radial-gradient(ellipse 80% 70% at 30% 20%, #000 30%, transparent 100%); }
@@ -72,15 +72,15 @@
     <div class="lg-aside-inner">
       <a href="{% url 'landing' %}" style="display:flex;align-items:center;gap:.65rem;color:#fff;width:max-content">
         <img src="{% static 'images/Logo_PCF.png' %}" alt="" style="width:38px;height:38px;border-radius:10px">
-        <span style="font-weight:800;letter-spacing:-.02em">Criança Feliz</span>
+        <span style="font-weight:800;letter-spacing:-.02em">Projeto Criança Feliz</span>
       </a>
 
       <div style="max-width:26rem">
         <span class="pcf-eyebrow on-dark"><span class="pcf-live-dot" aria-hidden="true"></span> Área do voluntário</span>
         <h1 class="pcf-display" style="color:#fff;font-size:clamp(2rem,3vw,2.7rem);margin-top:1.1rem">
-          Tudo do sábado,<br><span class="pcf-grad-text">num lugar só.</span>
+          Tudo do sábado,<br><span style="color:#ffe8d6">num lugar só.</span>
         </h1>
-        <p style="color:#a89f98;line-height:1.7;margin-top:1rem;font-size:.95rem">
+        <p style="color:rgba(255,255,255,.9);line-height:1.7;margin-top:1rem;font-size:.95rem">
           Presença, escala de rondas, semanário, materiais e prestação de contas —
           organizados para você chegar no sábado sabendo exatamente o que fazer.
         </p>
@@ -88,20 +88,20 @@
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-top:2rem">
           <div class="pcf-glass" style="padding:.85rem;border-radius:14px">
             <div style="font-size:1.35rem;font-weight:800;letter-spacing:-.03em;color:#fff" class="pcf-num">940</div>
-            <div style="font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:#8f8880;margin-top:.15rem">Crianças</div>
+            <div style="font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.8);margin-top:.15rem">Crianças</div>
           </div>
           <div class="pcf-glass" style="padding:.85rem;border-radius:14px">
             <div style="font-size:1.35rem;font-weight:800;letter-spacing:-.03em;color:#fff" class="pcf-num">312</div>
-            <div style="font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:#8f8880;margin-top:.15rem">Voluntários</div>
+            <div style="font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.8);margin-top:.15rem">Voluntários</div>
           </div>
           <div class="pcf-glass" style="padding:.85rem;border-radius:14px">
             <div style="font-size:1.35rem;font-weight:800;letter-spacing:-.03em;color:#fff" class="pcf-num">27</div>
-            <div style="font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:#8f8880;margin-top:.15rem">Anos</div>
+            <div style="font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.8);margin-top:.15rem">Anos</div>
           </div>
         </div>
       </div>
 
-      <p style="color:#6f6862;font-size:.78rem">© <span class="lg-year"></span> Projeto Criança Feliz · acesso restrito a voluntários</p>
+      <p style="color:rgba(255,255,255,.72);font-size:.78rem">© <span class="lg-year"></span> Projeto Criança Feliz · acesso restrito a voluntários</p>
     </div>
   </aside>
 
