@@ -1,87 +1,45 @@
 {% block footer %}
 {% if user.is_authenticated %}
-<footer style="border-top: 1px solid hsl(var(--border)); background: hsl(var(--background));">
+{% load static %}
+<div style="border-top:1px solid hsl(var(--border));background:hsl(var(--card));margin-top:2rem">
+  <div class="pcf-container" style="padding-block:1.5rem">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:1rem 1.5rem">
 
-  <!-- Main footer row -->
-  <div style="max-width:1280px; margin:0 auto; padding:2rem 1.25rem 1.5rem; display:flex; flex-wrap:wrap; align-items:flex-start; gap:2rem; justify-content:space-between;">
+      <a href="{% url 'inicio' %}" style="display:flex;align-items:center;gap:.55rem;text-decoration:none;color:var(--ink)">
+        <img src="{% static 'images/Logo_PCF.png' %}" alt="" style="width:26px;height:26px;border-radius:8px">
+        <span style="font-weight:750;font-size:.88rem;letter-spacing:-.01em">Criança Feliz</span>
+      </a>
 
-    <!-- Brand + tagline -->
-    <div style="display:flex; flex-direction:column; gap:0.5rem; min-width:180px;">
-      <div style="display:flex; align-items:center; gap:0.5rem;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--foreground))" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        <span style="font-size:0.875rem; font-weight:700; color:hsl(var(--foreground));">Projeto Criança Feliz</span>
-      </div>
-      <p style="font-size:0.75rem; color:hsl(var(--muted-foreground)); margin:0; max-width:200px; line-height:1.5;">
-        Transformando vidas através do amor e dedicação.
+      <nav style="display:flex;flex-wrap:wrap;gap:.15rem">
+        <a href="{% url 'inicio' %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Início</a>
+        <a href="{% url 'atendido:atendido_view' %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Atendidos</a>
+        <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Voluntários</a>
+        <a href="{% url 'semanario:semanario_view' %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Semanários</a>
+        <a href="{% url 'supply:painel_materiais' %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Supply</a>
+      </nav>
+
+      <a href="https://www.instagram.com/criancafelizprojeto/" target="_blank" rel="noopener"
+         class="pcf-iconbtn" style="margin-left:auto" title="Instagram" aria-label="Instagram">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect width="20" height="20" x="2" y="2" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+      </a>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;
+                margin-top:1.1rem;padding-top:1.1rem;border-top:1px solid hsl(var(--border))">
+      <p style="margin:0;font-size:.76rem;color:hsl(var(--muted-foreground))">
+        &copy; <span id="footer-year"></span> Projeto Criança Feliz — feito por voluntários.
+      </p>
+      <p style="margin:0;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-size:.74rem;color:hsl(var(--muted-foreground))">
+        <span>Desenvolvido por</span>
+        <a href="https://www.linkedin.com/in/caio-marciano/" target="_blank" rel="noopener" style="color:var(--ink-soft);font-weight:600">Caio Marciano</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://www.linkedin.com/in/frois/" target="_blank" rel="noopener" style="color:var(--ink-soft);font-weight:600">Matheus Frois</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://www.linkedin.com/in/vin%C3%ADcius-bas%C3%ADlio/" target="_blank" rel="noopener" style="color:var(--ink-soft);font-weight:600">Vinícius Basílio</a>
       </p>
     </div>
-
-    <!-- Nav links -->
-    <div style="display:flex; flex-wrap:wrap; gap:0.25rem;">
-      <a href="/inicio/"                                          style="padding:0.3rem 0.6rem; font-size:0.8rem; font-weight:500; color:hsl(var(--muted-foreground)); text-decoration:none; border-radius:calc(var(--radius) - 2px); transition:color 0.15s, background 0.15s;" onmouseover="this.style.background='hsl(var(--accent))';this.style.color='hsl(var(--foreground))'" onmouseout="this.style.background='';this.style.color='hsl(var(--muted-foreground))'">Início</a>
-      <a href="{% url 'atendido:atendido_view' %}"               style="padding:0.3rem 0.6rem; font-size:0.8rem; font-weight:500; color:hsl(var(--muted-foreground)); text-decoration:none; border-radius:calc(var(--radius) - 2px);" onmouseover="this.style.background='hsl(var(--accent))';this.style.color='hsl(var(--foreground))'" onmouseout="this.style.background='';this.style.color='hsl(var(--muted-foreground))'">Atendidos</a>
-      <a href="{% url 'voluntario:voluntario_view' %}"           style="padding:0.3rem 0.6rem; font-size:0.8rem; font-weight:500; color:hsl(var(--muted-foreground)); text-decoration:none; border-radius:calc(var(--radius) - 2px);" onmouseover="this.style.background='hsl(var(--accent))';this.style.color='hsl(var(--foreground))'" onmouseout="this.style.background='';this.style.color='hsl(var(--muted-foreground))'">Voluntários</a>
-      <a href="{% url 'semanario:semanario_view' %}"             style="padding:0.3rem 0.6rem; font-size:0.8rem; font-weight:500; color:hsl(var(--muted-foreground)); text-decoration:none; border-radius:calc(var(--radius) - 2px);" onmouseover="this.style.background='hsl(var(--accent))';this.style.color='hsl(var(--foreground))'" onmouseout="this.style.background='';this.style.color='hsl(var(--muted-foreground))'">Semanários</a>
-      <a href="{% url 'supply:painel_materiais' %}"              style="padding:0.3rem 0.6rem; font-size:0.8rem; font-weight:500; color:hsl(var(--muted-foreground)); text-decoration:none; border-radius:calc(var(--radius) - 2px);" onmouseover="this.style.background='hsl(var(--accent))';this.style.color='hsl(var(--foreground))'" onmouseout="this.style.background='';this.style.color='hsl(var(--muted-foreground))'">Supply</a>
-      <a href="{% url 'voluntario:meu_perfil' %}"                style="padding:0.3rem 0.6rem; font-size:0.8rem; font-weight:500; color:hsl(var(--muted-foreground)); text-decoration:none; border-radius:calc(var(--radius) - 2px);" onmouseover="this.style.background='hsl(var(--accent))';this.style.color='hsl(var(--foreground))'" onmouseout="this.style.background='';this.style.color='hsl(var(--muted-foreground))'">Meu Perfil</a>
-    </div>
-
-    <!-- Social icons -->
-    <div style="display:flex; align-items:center; gap:0.4rem;">
-      <!-- Instagram -->
-      <a href="https://www.instagram.com/criancafelizprojeto/" target="_blank" title="Instagram"
-         style="width:32px;height:32px;border-radius:calc(var(--radius)-2px);border:1px solid hsl(var(--border));display:flex;align-items:center;justify-content:center;color:hsl(var(--muted-foreground));text-decoration:none;transition:border-color 0.15s,color 0.15s;"
-         onmouseover="this.style.borderColor='hsl(var(--foreground))';this.style.color='hsl(var(--foreground))'"
-         onmouseout="this.style.borderColor='hsl(var(--border))';this.style.color='hsl(var(--muted-foreground))'">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="20" x="2" y="2" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-      </a>
-    </div>
-
   </div>
-
-  <!-- Bottom bar -->
-  <div style="border-top:1px solid hsl(var(--border)); padding:0.85rem 1.25rem; max-width:1280px; margin:0 auto;">
-    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.75rem;">
-      <p style="font-size:0.75rem; color:hsl(var(--muted-foreground)); margin:0;">
-        &copy; <span id="footer-year"></span> Projeto Criança Feliz — Todos os direitos reservados.
-      </p>
-      <div style="display:flex; align-items:center; gap:1rem;">
-        <a href="#" style="font-size:0.75rem; color:hsl(var(--muted-foreground)); text-decoration:none;" onmouseover="this.style.color='hsl(var(--foreground))'" onmouseout="this.style.color='hsl(var(--muted-foreground))'">Política de Privacidade</a>
-        <a href="#" style="font-size:0.75rem; color:hsl(var(--muted-foreground)); text-decoration:none;" onmouseover="this.style.color='hsl(var(--foreground))'" onmouseout="this.style.color='hsl(var(--muted-foreground))'">Termos de Uso</a>
-      </div>
-    </div>
-
-    <!-- Desenvolvido por -->
-    <div style="margin-top:0.6rem; display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
-      <span style="font-size:0.72rem; color:hsl(var(--muted-foreground));">Desenvolvido por</span>
-      <a href="https://www.linkedin.com/in/caio-marciano/" target="_blank" rel="noopener"
-         style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.72rem;font-weight:500;color:hsl(var(--muted-foreground));text-decoration:none;padding:0.15rem 0.45rem;border:1px solid hsl(var(--border));border-radius:calc(var(--radius) - 2px);transition:border-color 0.15s,color 0.15s;"
-         onmouseover="this.style.borderColor='hsl(var(--foreground))';this.style.color='hsl(var(--foreground))'"
-         onmouseout="this.style.borderColor='hsl(var(--border))';this.style.color='hsl(var(--muted-foreground))'">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-        Caio Marciano
-      </a>
-      <span style="font-size:0.72rem; color:hsl(var(--muted-foreground));">·</span>
-      <a href="https://www.linkedin.com/in/frois/" target="_blank" rel="noopener"
-         style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.72rem;font-weight:500;color:hsl(var(--muted-foreground));text-decoration:none;padding:0.15rem 0.45rem;border:1px solid hsl(var(--border));border-radius:calc(var(--radius) - 2px);transition:border-color 0.15s,color 0.15s;"
-         onmouseover="this.style.borderColor='hsl(var(--foreground))';this.style.color='hsl(var(--foreground))'"
-         onmouseout="this.style.borderColor='hsl(var(--border))';this.style.color='hsl(var(--muted-foreground))'">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-        Matheus Frois
-      </a>
-      <span style="font-size:0.72rem; color:hsl(var(--muted-foreground));">·</span>
-      <a href="https://www.linkedin.com/in/vin%C3%ADcius-bas%C3%ADlio/" target="_blank" rel="noopener"
-         style="display:inline-flex;align-items:center;gap:0.25rem;font-size:0.72rem;font-weight:500;color:hsl(var(--muted-foreground));text-decoration:none;padding:0.15rem 0.45rem;border:1px solid hsl(var(--border));border-radius:calc(var(--radius) - 2px);transition:border-color 0.15s,color 0.15s;"
-         onmouseover="this.style.borderColor='hsl(var(--foreground))';this.style.color='hsl(var(--foreground))'"
-         onmouseout="this.style.borderColor='hsl(var(--border))';this.style.color='hsl(var(--muted-foreground))'">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-        Vinícius Basílio
-      </a>
-    </div>
-  </div>
-
   <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
-
-</footer>
+</div>
 {% endif %}
 {% endblock %}

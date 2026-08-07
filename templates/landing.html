@@ -4,9 +4,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#e8560f">
-  <title>Projeto Criança Feliz — Transformando vidas com amor e dedicação</title>
-  <meta name="description" content="Há 27 anos acompanhando crianças, jovens e famílias todo sábado. Seja voluntário, conheça o projeto e ajude a fazer companhia.">
+  <meta name="theme-color" content="#14100e">
+  <title>Projeto Criança Feliz — 27 anos fazendo companhia</title>
+  <meta name="description" content="Há 27 anos acompanhando crianças, jovens e famílias todo sábado. Seja voluntário, conheça o projeto e acompanhe tudo pela plataforma.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,424 +14,628 @@
   <link rel="stylesheet" href="{% static 'css/pcf.css' %}">
 
   <style>
-    /* Reset local (a landing é standalone; o preflight do Tailwind fica off no projeto) */
     *, *::before, *::after { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body { margin: 0; background: #fffdfb; color: #1c130e; font-family: 'Archivo', system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    body { margin: 0; background: hsl(var(--background)); color: var(--ink);
+           font-family: 'Archivo', system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
     img { max-width: 100%; display: block; }
     a { text-decoration: none; color: inherit; }
     h1, h2, h3, h4, p, ul, figure, blockquote { margin: 0; }
     ul { list-style: none; padding: 0; }
 
-    /* Placeholder de foto (trocar por imagens reais depois) */
-    .ph { position: relative; background: linear-gradient(135deg, #ffd9bf, #ffb47a); display: flex; align-items: center; justify-content: center; color: #b45309; overflow: hidden; }
-    .ph > svg { opacity: .45; }
-    .ph small { position: absolute; left: 12px; bottom: 12px; font-size: 11px; font-weight: 600; color: #9a3412; background: rgba(255,255,255,.65); padding: 3px 9px; border-radius: 999px; }
+    /* Placeholder de foto — trocar por imagens reais */
+    .ph { position: relative; background: linear-gradient(135deg, #ffd9bf, #ff9040); display: grid; place-items: center; color: #9a3412; overflow: hidden; }
+    .ph svg { opacity: .4; }
+    .ph small { position: absolute; left: 10px; bottom: 10px; font-size: 10px; font-weight: 700; letter-spacing: .04em;
+                text-transform: uppercase; color: #7c2d12; background: rgba(255,255,255,.72); padding: 3px 8px; border-radius: 999px; }
 
-    /* Menu mobile */
+    /* ---- Hero escuro ---- */
+    .lp-hero { position: relative; background: linear-gradient(180deg, #14100e 0%, #1c1512 60%, #241a15 100%); color: #fff; overflow: hidden; }
+    .lp-hero::before { content: ''; position: absolute; inset: 0; pointer-events: none;
+      background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 56px 56px;
+      -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 35%, transparent 100%);
+      mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 35%, transparent 100%); }
+    /* NÃO usar `> *`: isso sobrescreveria o position:absolute dos .pcf-orb
+       (regras sem @layer vencem as de @layer components) e os orbs virariam
+       blocos de 600px empurrando o conteúdo. */
+    .lp-hero > *:not(.pcf-orb) { position: relative; z-index: 1; }
+    .lp-hero-grid { display: grid; grid-template-columns: 1fr; gap: 3rem; align-items: center; }
+
+    .lp-mock { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 40px 80px -30px rgba(0,0,0,.7); border: 1px solid rgba(255,255,255,.1); }
+    .lp-mock-bar { display: flex; align-items: center; gap: 6px; padding: 10px 12px; background: #f5f4f2; border-bottom: 1px solid #eae9e6; }
+    .lp-mock-bar i { width: 9px; height: 9px; border-radius: 999px; background: #dcd9d4; display: block; }
+    .lp-mock-body { display: grid; grid-template-columns: 108px 1fr; min-height: 236px; }
+    .lp-mock-side { background: #fbfaf8; border-right: 1px solid #eae9e6; padding: 10px 8px; }
+    .lp-mock-side b { display: block; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: #a9a49d; padding: 6px 8px 4px; }
+    .lp-mock-side span { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 7px; font-size: 10.5px; color: #6b6660; }
+    .lp-mock-side span.on { background: #fff0e6; color: #c9490a; font-weight: 700; }
+    .lp-mock-side span i { width: 5px; height: 5px; border-radius: 999px; background: currentColor; }
+    .lp-mock-main { padding: 12px; display: flex; flex-direction: column; gap: 9px; }
+    .lp-mock-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .lp-mock-kpi { border: 1px solid #eae9e6; border-radius: 9px; padding: 8px 9px; }
+    .lp-mock-kpi u { display: block; font-size: 8px; text-decoration: none; letter-spacing: .06em; text-transform: uppercase; color: #a9a49d; }
+    .lp-mock-kpi strong { font-size: 15px; letter-spacing: -.03em; color: #1c130e; }
+    .lp-mock-chart { border: 1px solid #eae9e6; border-radius: 9px; padding: 10px; flex: 1; display: flex; align-items: flex-end; gap: 4px; min-height: 74px; }
+    .lp-mock-chart span { flex: 1; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, #ffb47a, #ea5411); }
+
+    /* ---- Bento ---- */
+    .lp-bento { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1rem; }
+    .lp-frentes { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    .lp-2col { display: grid; grid-template-columns: 1fr; gap: 2.5rem; align-items: center; }
+    .lp-steps { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    .lp-3col { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    .lp-foot { display: grid; grid-template-columns: 1fr; gap: 2rem; }
     .lp-mobile-menu { display: none; }
     .lp-mobile-menu.open { display: flex; }
 
-    /* FAQ accordion (details/summary nativo) */
-    .faq details { border-bottom: 1px solid #f4e7de; }
-    .faq summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.1rem 0; cursor: pointer; font-weight: 700; color: #1c130e; list-style: none; }
+    .faq details { border-bottom: 1px solid hsl(var(--border)); }
+    .faq summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.05rem 0;
+                   cursor: pointer; font-weight: 650; color: var(--ink); list-style: none; }
     .faq summary::-webkit-details-marker { display: none; }
-    .faq .faq-plus { transition: transform .25s ease; color: #e8560f; flex-shrink: 0; }
-    .faq details[open] .faq-plus { transform: rotate(45deg); }
-    .faq p { padding: 0 0 1.1rem; color: #5a4a41; line-height: 1.6; }
+    .faq .plus { transition: transform .25s; color: var(--brand); flex-shrink: 0; }
+    .faq details[open] .plus { transform: rotate(45deg); }
+    .faq p { padding: 0 0 1.05rem; color: var(--ink-soft); line-height: 1.65; max-width: 60ch; }
+
+    @media (min-width: 700px) {
+      .lp-frentes, .lp-3col { grid-template-columns: repeat(3, 1fr); }
+      .lp-steps { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 1000px) {
+      [data-nav] { display: inline-flex !important; }
+      #lpBurger, #lpMenu { display: none !important; }
+      .lp-hero-grid { grid-template-columns: 1.02fr .98fr; gap: 3.5rem; }
+      .lp-2col { grid-template-columns: 1fr 1fr; }
+      .lp-bento { grid-template-columns: repeat(4, minmax(0,1fr)); }
+      .lp-steps { grid-template-columns: repeat(4, 1fr); }
+      .lp-foot { grid-template-columns: 1.5fr 1fr 1fr 1fr; }
+    }
   </style>
 </head>
 <body id="topo">
 
-  <!-- ============ HEADER ============ -->
-  <header class="pcf-glass-header">
-    <div class="pcf-container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;padding-block:.8rem">
-      <a href="#topo" style="display:flex;align-items:center;gap:.6rem">
-        <img src="{% static 'images/Logo_PCF.png' %}" alt="Projeto Criança Feliz" style="width:40px;height:40px;border-radius:12px;box-shadow:0 8px 20px -10px rgba(242,107,33,.7)">
-        <span style="font-weight:800;letter-spacing:-.02em">Projeto Criança Feliz</span>
-      </a>
+<!-- ══════════ HEADER ══════════ -->
+<header class="pcf-glass-header on-dark">
+  <div class="pcf-container" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;padding-block:.75rem">
+    <a href="#topo" style="display:flex;align-items:center;gap:.6rem;color:#fff">
+      <img src="{% static 'images/Logo_PCF.png' %}" alt="" style="width:34px;height:34px;border-radius:9px">
+      <span style="font-weight:800;letter-spacing:-.02em;font-size:.98rem">Criança Feliz</span>
+    </a>
 
-      <nav class="pcf-navpill" style="display:none" data-nav>
-        <a href="#manifesto">Quem somos</a>
-        <a href="#frentes">Frentes</a>
-        <a href="#voluntariado">Voluntariado</a>
-        <a href="#transparencia">Transparência</a>
-        <a href="#doar">Doar</a>
-      </nav>
+    <nav class="pcf-navpill on-dark" style="display:none" data-nav>
+      <a href="#manifesto">Quem somos</a>
+      <a href="#frentes">Frentes</a>
+      <a href="#voluntariado">Voluntariado</a>
+      <a href="#plataforma">Plataforma</a>
+      <a href="#transparencia">Transparência</a>
+    </nav>
 
-      <div style="display:flex;align-items:center;gap:.5rem">
-        {% if user.is_authenticated %}
-          <a href="{% url 'inicio' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">Ir para a plataforma</a>
-        {% else %}
-          <a href="{% url 'login' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm" style="display:none" data-nav>Entrar</a>
-          <a href="#voluntariado" class="pcf-btn pcf-btn-primary pcf-btn-sm">Ser voluntário</a>
-        {% endif %}
-        <button id="lpBurger" aria-label="Abrir menu" style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid #f4e7de;border-radius:12px;background:#fff;cursor:pointer;color:#1c130e">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-      </div>
-    </div>
-
-    <!-- Menu mobile -->
-    <div id="lpMenu" class="lp-mobile-menu" style="flex-direction:column;gap:.2rem;padding:.5rem 1.25rem 1rem;background:rgba(255,255,255,.96);border-top:1px solid #f4e7de">
-      <a href="#manifesto" style="padding:.7rem .4rem;font-weight:600;color:#5a4a41;border-bottom:1px solid #f7ece4">Quem somos</a>
-      <a href="#frentes" style="padding:.7rem .4rem;font-weight:600;color:#5a4a41;border-bottom:1px solid #f7ece4">Frentes</a>
-      <a href="#voluntariado" style="padding:.7rem .4rem;font-weight:600;color:#5a4a41;border-bottom:1px solid #f7ece4">Voluntariado</a>
-      <a href="#transparencia" style="padding:.7rem .4rem;font-weight:600;color:#5a4a41;border-bottom:1px solid #f7ece4">Transparência</a>
-      <a href="#doar" style="padding:.7rem .4rem;font-weight:600;color:#5a4a41">Doar</a>
-      {% if not user.is_authenticated %}<a href="{% url 'login' %}" class="pcf-btn pcf-btn-outline" style="margin-top:.6rem">Entrar na plataforma</a>{% endif %}
-    </div>
-  </header>
-
-  <!-- ============ HERO ============ -->
-  <section class="pcf-hero-surface">
-    <div class="pcf-orb warm" style="width:520px;height:520px;top:-180px;left:-120px" aria-hidden="true"></div>
-    <div class="pcf-orb white" style="width:460px;height:460px;bottom:-220px;right:-120px" aria-hidden="true"></div>
-
-    <div class="pcf-container" style="padding-top:clamp(2.5rem,6vw,4.5rem);padding-bottom:clamp(4rem,9vw,6.5rem)">
-      <div class="lp-hero-grid" style="display:grid;grid-template-columns:1fr;gap:2.5rem;align-items:center">
-        <!-- Texto -->
-        <div class="pcf-anim-rise" style="color:#fff">
-          <span class="pcf-eyebrow" style="background:rgba(255,255,255,.16);color:#fff;border-color:rgba(255,255,255,.28)">Projeto Criança Feliz</span>
-          <h1 class="pcf-display" style="color:#fff;font-size:clamp(2.4rem,6.4vw,4.4rem);margin-top:1rem">Transformando vidas com amor e dedicação</h1>
-          <p style="color:#fff2e7;font-size:clamp(1rem,1.6vw,1.2rem);line-height:1.6;margin-top:1.1rem;max-width:34rem">Há 27 anos acompanhando crianças, jovens e famílias — todo sábado, com gente de verdade. Você não precisa ter dom. Precisa aparecer.</p>
-
-          <div style="display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.75rem">
-            <a href="#voluntariado" class="pcf-btn pcf-btn-white pcf-btn-lg">Quero ser voluntário</a>
-            <a href="#manifesto" class="pcf-btn pcf-btn-lg" style="background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.35)">Conhecer o projeto</a>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:.75rem;margin-top:1.75rem">
-            <div style="display:flex" aria-hidden="true">
-              <span style="width:34px;height:34px;border-radius:999px;background:#ffd9bf;border:2px solid #fff;display:inline-block"></span>
-              <span style="width:34px;height:34px;border-radius:999px;background:#ffb47a;border:2px solid #fff;display:inline-block;margin-left:-12px"></span>
-              <span style="width:34px;height:34px;border-radius:999px;background:#ff9040;border:2px solid #fff;display:inline-block;margin-left:-12px"></span>
-            </div>
-            <p style="color:#ffeade;font-size:.85rem;line-height:1.3"><strong style="color:#fff">312 voluntários</strong> já estão dentro <span style="opacity:.6">· número provisório</span></p>
-          </div>
-        </div>
-
-        <!-- Imagem -->
-        <div class="pcf-anim-rise" style="position:relative;min-height:340px">
-          <div class="ph" style="height:clamp(300px,42vw,440px);border-radius:34px;transform:rotate(-2deg);box-shadow:0 40px 80px -30px rgba(70,20,0,.6)">
-            <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
-            <small>Foto do sábado — trocar</small>
-          </div>
-          <div class="pcf-card pcf-anim-float" style="position:absolute;bottom:-18px;left:-6px;display:flex;align-items:center;gap:.7rem;padding:.85rem 1rem;border-radius:18px">
-            <span class="pcf-icon-tile" style="width:40px;height:40px;border-radius:12px">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-            </span>
-            <div>
-              <div style="font-weight:800;font-size:.95rem;line-height:1">Sábado, 9h</div>
-              <div style="font-size:.78rem;color:#8a7566">940 crianças esperando</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ STATS ============ -->
-  <div class="pcf-container" style="margin-top:-3.5rem;position:relative;z-index:5">
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem" class="lp-stats" data-reveal>
-      <div class="pcf-card" style="border-radius:22px"><div class="pcf-stat"><span class="num pcf-grad-text">940</span><span class="lbl">crianças / ano</span></div></div>
-      <div class="pcf-card" style="border-radius:22px"><div class="pcf-stat"><span class="num pcf-grad-text">312</span><span class="lbl">voluntários ativos</span></div></div>
-      <div class="pcf-card" style="border-radius:22px"><div class="pcf-stat"><span class="num pcf-grad-text">27</span><span class="lbl">anos de projeto</span></div></div>
-      <div class="pcf-card" style="border-radius:22px"><div class="pcf-stat"><span class="num pcf-grad-text">44</span><span class="lbl">sábados por ano</span></div></div>
+    <div style="display:flex;align-items:center;gap:.5rem">
+      {% if user.is_authenticated %}
+        <a href="{% url 'inicio' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">Ir para a plataforma</a>
+      {% else %}
+        <a href="{% url 'login' %}" class="pcf-btn pcf-btn-outline-dark pcf-btn-sm" style="display:none" data-nav>Entrar</a>
+        <a href="#voluntariado" class="pcf-btn pcf-btn-primary pcf-btn-sm">Ser voluntário</a>
+      {% endif %}
+      <button id="lpBurger" aria-label="Abrir menu" class="pcf-iconbtn" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:#fff">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
     </div>
   </div>
 
-  <!-- ============ MANIFESTO ============ -->
-  <section id="manifesto" class="pcf-section">
-    <div class="pcf-container">
-      <div class="lp-2col" style="display:grid;grid-template-columns:1fr;gap:2.5rem;align-items:center">
-        <div style="position:relative" data-reveal>
-          <div class="ph" style="height:clamp(280px,40vw,420px);border-radius:32px;box-shadow:0 40px 70px -40px rgba(120,50,10,.6)">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
-            <small>Foto histórica — trocar</small>
-          </div>
-          <div class="pcf-card" style="position:absolute;top:-14px;right:-6px;padding:.8rem 1rem;border-radius:18px">
-            <div style="font-weight:800;font-size:1.4rem" class="pcf-grad-text">1998</div>
-            <div style="font-size:.74rem;color:#8a7566">o primeiro sábado</div>
-          </div>
+  <div id="lpMenu" class="lp-mobile-menu" style="flex-direction:column;gap:.15rem;padding:.4rem 1.25rem 1rem;background:rgba(20,16,14,.96);border-top:1px solid rgba(255,255,255,.08)">
+    <a href="#manifesto" style="padding:.7rem .3rem;font-weight:600;color:#cfc6bf">Quem somos</a>
+    <a href="#frentes" style="padding:.7rem .3rem;font-weight:600;color:#cfc6bf">Frentes</a>
+    <a href="#voluntariado" style="padding:.7rem .3rem;font-weight:600;color:#cfc6bf">Voluntariado</a>
+    <a href="#plataforma" style="padding:.7rem .3rem;font-weight:600;color:#cfc6bf">Plataforma</a>
+    <a href="#transparencia" style="padding:.7rem .3rem;font-weight:600;color:#cfc6bf">Transparência</a>
+    {% if not user.is_authenticated %}<a href="{% url 'login' %}" class="pcf-btn pcf-btn-outline-dark" style="margin-top:.5rem">Entrar na plataforma</a>{% endif %}
+  </div>
+</header>
+
+<!-- ══════════ HERO ══════════ -->
+<section class="lp-hero">
+  <div class="pcf-orb" style="width:360px;height:360px;top:-190px;left:-110px" aria-hidden="true"></div>
+  <div class="pcf-orb" style="width:300px;height:300px;bottom:-170px;right:-90px" aria-hidden="true"></div>
+
+  <div class="pcf-container" style="padding-top:clamp(2.75rem,6vw,4.5rem);padding-bottom:clamp(3rem,6vw,4.5rem)">
+    <div class="lp-hero-grid">
+      <!-- Texto -->
+      <div class="pcf-anim-rise">
+        <span class="pcf-eyebrow on-dark"><span class="pcf-live-dot" aria-hidden="true"></span> Desde 1998 · todo sábado</span>
+
+        <h1 class="pcf-display" style="color:#fff;font-size:clamp(2.1rem,4.6vw,3.5rem);margin-top:1rem">
+          A gente não salva ninguém.<br><span class="pcf-grad-text">A gente faz companhia.</span>
+        </h1>
+
+        <p style="color:#b9b1aa;font-size:clamp(1rem,1.5vw,1.15rem);line-height:1.7;margin-top:1.2rem;max-width:36rem">
+          São 27 anos recebendo crianças, jovens e famílias no mesmo lugar, toda semana.
+          Voluntários comuns, organizados — e agora com uma plataforma que cuida do resto.
+        </p>
+
+        <div style="display:flex;flex-wrap:wrap;gap:.7rem;margin-top:2rem">
+          <a href="#voluntariado" class="pcf-btn pcf-btn-gradient pcf-btn-lg">
+            Quero ser voluntário
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+          <a href="#manifesto" class="pcf-btn pcf-btn-outline-dark pcf-btn-lg">Conhecer o projeto</a>
         </div>
-        <div data-reveal data-reveal-delay="80">
-          <span class="pcf-eyebrow">Quem somos</span>
-          <h2 class="pcf-h2" style="margin-top:.9rem">A gente não salva ninguém. <span class="pcf-grad-text">A gente faz companhia.</span></h2>
-          <p class="pcf-lead" style="margin-top:1rem">Começou em 1998 com um grupo pequeno querendo estar presente. Virou um projeto que hoje recebe centenas de crianças, jovens e famílias todo sábado.</p>
-          <p class="pcf-lead" style="margin-top:.8rem">Não é assistencialismo de longe: é gente comum, organizada, colocando o corpo no mesmo lugar toda semana.</p>
-          <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.25rem">
-            <span class="pcf-badge brand">Sem fins lucrativos</span>
-            <span class="pcf-badge brand">100% voluntário</span>
-            <span class="pcf-badge brand">Contas abertas</span>
+
+        <div style="display:flex;align-items:center;gap:.8rem;margin-top:2rem">
+          <div class="pcf-avatar-stack" aria-hidden="true">
+            <span class="pcf-avatar sm" style="background:#ffd9bf;color:#9a3412">M</span>
+            <span class="pcf-avatar sm" style="background:#ffb47a;color:#7c2d12">J</span>
+            <span class="pcf-avatar sm" style="background:#ff9040;color:#fff">A</span>
+            <span class="pcf-avatar sm" style="background:rgba(255,255,255,.12);color:#fff">+</span>
           </div>
+          <p style="color:#9e968f;font-size:.85rem;line-height:1.35">
+            <strong style="color:#fff"><span data-count="312">0</span> voluntários</strong> ativos · números provisórios
+          </p>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- ============ FRENTES ============ -->
-  <section id="frentes" class="pcf-section" style="padding-block:0">
-    <div class="pcf-container">
-      <div class="pcf-island" style="background:#fffaf6;border:1px solid #f5e6dc;padding:clamp(2rem,5vw,3.5rem)">
-        <div style="max-width:38rem" data-reveal>
-          <span class="pcf-eyebrow">Frentes de atuação</span>
-          <h2 class="pcf-h2" style="margin-top:.9rem">Três públicos, uma manhã inteira.</h2>
+      <!-- Composição visual: foto + mock do produto -->
+      <div class="pcf-anim-rise" style="position:relative">
+        <div class="ph" style="height:clamp(230px,26vw,290px);border-radius:16px;box-shadow:0 30px 60px -24px rgba(0,0,0,.6)">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+          <small>Foto do sábado — trocar</small>
         </div>
-        <div class="lp-3col" style="display:grid;grid-template-columns:1fr;gap:1.25rem;margin-top:2rem">
-          <article class="pcf-card pcf-hoverable" style="padding:0;overflow:hidden" data-reveal>
-            <div class="ph" style="height:170px;border-radius:0"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
-            <div style="padding:1.25rem">
-              <div style="font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#c9490a">Crianças · 4 a 12 anos</div>
-              <h3 style="font-size:1.15rem;font-weight:800;margin-top:.35rem">Sábado no campus</h3>
-              <p style="color:#5a4a41;line-height:1.55;margin-top:.5rem;font-size:.92rem">Salas por faixa etária, atividades pedagógicas e muito afeto numa manhã inteira de cuidado.</p>
+
+        <!-- Mock do painel -->
+        <div class="lp-mock pcf-anim-float" style="margin-top:-2.2rem;margin-left:auto;width:min(100%,420px)">
+          <div class="lp-mock-bar"><i></i><i></i><i></i>
+            <span style="margin-left:auto;font-size:9.5px;color:#a9a49d">pcf.pythonanywhere.com</span>
+          </div>
+          <div class="lp-mock-body">
+            <div class="lp-mock-side">
+              <b>Menu</b>
+              <span class="on"><i></i>Início</span>
+              <span><i style="background:#d4cfc8"></i>Atendidos</span>
+              <span><i style="background:#d4cfc8"></i>Voluntários</span>
+              <span><i style="background:#d4cfc8"></i>Sábado</span>
+              <span><i style="background:#d4cfc8"></i>Supply</span>
             </div>
-          </article>
-          <article class="pcf-card pcf-hoverable" style="padding:0;overflow:hidden" data-reveal data-reveal-delay="80">
-            <div class="ph" style="height:170px;border-radius:0"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5"/></svg></div>
-            <div style="padding:1.25rem">
-              <div style="font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#c9490a">Jovens · 13 a 17 anos</div>
-              <h3 style="font-size:1.15rem;font-weight:800;margin-top:.35rem">Oficinas e futuro</h3>
-              <p style="color:#5a4a41;line-height:1.55;margin-top:.5rem;font-size:.92rem">Oficinas, orientação e uma rede de apoio para pensar caminhos e possibilidades.</p>
+            <div class="lp-mock-main">
+              <div class="lp-mock-kpis">
+                <div class="lp-mock-kpi"><u>Atendidos</u><strong>940</strong></div>
+                <div class="lp-mock-kpi"><u>Presença</u><strong>86%</strong></div>
+                <div class="lp-mock-kpi"><u>Rondas</u><strong>12</strong></div>
+              </div>
+              <div class="lp-mock-chart">
+                <span style="height:38%"></span><span style="height:56%"></span><span style="height:44%"></span>
+                <span style="height:72%"></span><span style="height:60%"></span><span style="height:88%"></span>
+                <span style="height:70%"></span><span style="height:96%"></span>
+              </div>
             </div>
-          </article>
-          <article class="pcf-card pcf-hoverable" style="padding:0;overflow:hidden" data-reveal data-reveal-delay="160">
-            <div class="ph" style="height:170px;border-radius:0"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
-            <div style="padding:1.25rem">
-              <div style="font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#c9490a">Adultos e famílias</div>
-              <h3 style="font-size:1.15rem;font-weight:800;margin-top:.35rem">Ações na comunidade</h3>
-              <p style="color:#5a4a41;line-height:1.55;margin-top:.5rem;font-size:.92rem">Campanhas e ações que alcançam as famílias e o bairro ao redor do projeto.</p>
-            </div>
-          </article>
+          </div>
         </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- ============ VOLUNTARIADO ============ -->
-  <section id="voluntariado" class="pcf-section">
-    <div class="pcf-container">
-      <div style="max-width:38rem" data-reveal>
-        <span class="pcf-eyebrow">Como funciona</span>
-        <h2 class="pcf-h2" style="margin-top:.9rem">Quatro passos e um sábado — é isso.</h2>
-      </div>
-      <div class="lp-4col" style="display:grid;grid-template-columns:1fr;gap:1rem;margin-top:2rem">
-        <div class="pcf-card" style="background:linear-gradient(160deg,#fff6f0,#fff)" data-reveal><div class="pcf-grad-text" style="font-size:1.6rem;font-weight:800">01</div><h3 style="font-weight:800;margin-top:.4rem">Você se inscreve</h3><p style="color:#5a4a41;font-size:.9rem;line-height:1.5;margin-top:.35rem">Preenche um formulário rápido contando quem você é.</p></div>
-        <div class="pcf-card" style="background:linear-gradient(160deg,#fff6f0,#fff)" data-reveal data-reveal-delay="70"><div class="pcf-grad-text" style="font-size:1.6rem;font-weight:800">02</div><h3 style="font-weight:800;margin-top:.4rem">Vem no acolhimento</h3><p style="color:#5a4a41;font-size:.9rem;line-height:1.5;margin-top:.35rem">Um encontro pra você conhecer o projeto por dentro.</p></div>
-        <div class="pcf-card" style="background:linear-gradient(160deg,#fff6f0,#fff)" data-reveal data-reveal-delay="140"><div class="pcf-grad-text" style="font-size:1.6rem;font-weight:800">03</div><h3 style="font-weight:800;margin-top:.4rem">Escolhe sua frente</h3><p style="color:#5a4a41;font-size:.9rem;line-height:1.5;margin-top:.35rem">Crianças, jovens, comunidade, apoio — onde seu talento cabe.</p></div>
-        <div class="pcf-dark-surface pcf-card" style="border:none;color:#fff;position:relative;overflow:hidden" data-reveal data-reveal-delay="210">
-          <div class="pcf-orb" style="width:200px;height:200px;top:-70px;right:-50px" aria-hidden="true"></div>
-          <div style="color:#ffb47a;font-size:1.6rem;font-weight:800">04</div><h3 style="font-weight:800;margin-top:.4rem;color:#fff">Recebe seu acesso</h3><p style="color:#d9c8bd;font-size:.9rem;line-height:1.5;margin-top:.35rem">Entra na plataforma e já começa a participar dos sábados.</p>
-        </div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:1rem;margin-top:2rem">
-        <a href="{% url 'login' %}" class="pcf-btn pcf-btn-primary pcf-btn-lg">Quero me inscrever</a>
-        <p style="color:#8a7566;font-size:.9rem">Próximo acolhimento: <strong style="color:#1c130e">16 de agosto, 9h</strong> <span style="opacity:.6">· provisório</span></p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ DEPOIMENTOS ============ -->
-  <section class="pcf-section" style="padding-top:0">
-    <div class="pcf-container">
-      <div style="max-width:38rem" data-reveal>
-        <span class="pcf-eyebrow">Depoimentos</span>
-        <h2 class="pcf-h2" style="margin-top:.9rem">Quem passa por aqui não sai igual.</h2>
-      </div>
-      <div class="lp-3col" style="display:grid;grid-template-columns:1fr;gap:1.25rem;margin-top:2rem">
-        <figure class="pcf-card" data-reveal>
-          <p style="font-size:1.05rem;line-height:1.6;color:#1c130e">“Achei que ia ensinar. Foi o contrário — os sábados aqui me ensinaram a estar presente.”</p>
-          <figcaption style="display:flex;align-items:center;gap:.7rem;margin-top:1.25rem">
-            <span style="width:42px;height:42px;border-radius:999px;background:#ffd9bf" aria-hidden="true"></span>
-            <span><span style="display:block;font-weight:700;font-size:.9rem">Marina R.</span><span style="font-size:.78rem;color:#8a7566">voluntária há 3 anos</span></span>
-          </figcaption>
-        </figure>
-        <figure class="pcf-card" data-reveal data-reveal-delay="80">
-          <p style="font-size:1.05rem;line-height:1.6;color:#1c130e">“Meu filho conta os dias pro sábado. Aqui ele é cuidado de um jeito que eu não conseguiria sozinha.”</p>
-          <figcaption style="display:flex;align-items:center;gap:.7rem;margin-top:1.25rem">
-            <span style="width:42px;height:42px;border-radius:999px;background:#ffb47a" aria-hidden="true"></span>
-            <span><span style="display:block;font-weight:700;font-size:.9rem">Dona Cleusa</span><span style="font-size:.78rem;color:#8a7566">mãe do Kauã, 8 anos</span></span>
-          </figcaption>
-        </figure>
-        <figure class="pcf-card" style="background:linear-gradient(150deg,#ff8a3d,#e04e0c);border:none;color:#fff;box-shadow:0 30px 56px -30px rgba(234,84,17,.8)" data-reveal data-reveal-delay="160">
-          <p style="font-size:1.05rem;line-height:1.6;color:#fff">“Fui atendido aqui em 2011. Hoje estou na faculdade e volto todo sábado — agora do outro lado.”</p>
-          <figcaption style="display:flex;align-items:center;gap:.7rem;margin-top:1.25rem">
-            <span style="width:42px;height:42px;border-radius:999px;background:rgba(255,255,255,.35)" aria-hidden="true"></span>
-            <span><span style="display:block;font-weight:700;font-size:.9rem;color:#fff">Everton S.</span><span style="font-size:.78rem;color:#ffe0cb">atendido em 2011, hoje universitário</span></span>
-          </figcaption>
-        </figure>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ TRANSPARÊNCIA ============ -->
-  <section id="transparencia" class="pcf-section" style="padding-block:0">
-    <div class="pcf-container">
-      <div class="pcf-dark-surface pcf-island" style="padding:clamp(2rem,5vw,3.5rem);position:relative" data-reveal>
-        <div class="pcf-orb" style="width:360px;height:360px;top:-120px;right:-100px" aria-hidden="true"></div>
-        <div style="max-width:38rem">
-          <span class="pcf-eyebrow on-dark">Transparência</span>
-          <h2 class="pcf-h2" style="color:#fff;margin-top:.9rem">Cada real que entra está aqui.</h2>
-          <p style="color:#c5b3a8;margin-top:.8rem;line-height:1.6">Prestação de contas aberta. Os números abaixo são de exemplo e serão substituídos pelos dados reais do balanço.</p>
-        </div>
-        <div class="lp-3col" style="display:grid;grid-template-columns:1fr;gap:1rem;margin-top:1.75rem">
-          <div class="pcf-glass" style="padding:1.25rem"><div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#a8968b">Arrecadado 2026</div><div style="font-size:1.7rem;font-weight:800;color:#fff;margin-top:.3rem">R$ 84.320</div></div>
-          <div class="pcf-glass" style="padding:1.25rem"><div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#a8968b">Aplicado nas ações</div><div style="font-size:1.7rem;font-weight:800;color:#ffb47a;margin-top:.3rem">R$ 79.115</div></div>
-          <div class="pcf-glass" style="padding:1.25rem"><div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#a8968b">Custo administrativo</div><div style="font-size:1.7rem;font-weight:800;color:#fff;margin-top:.3rem">1,4%</div></div>
-        </div>
-        <div style="margin-top:1.75rem;display:flex;flex-direction:column;gap:1rem">
+        <!-- Card flutuante -->
+        <div class="pcf-card" style="position:absolute;left:0;bottom:-1.5rem;display:flex;align-items:center;gap:.7rem;padding:.7rem .9rem;box-shadow:var(--shadow-xl)">
+          <span class="pcf-icon-tile" style="width:36px;height:36px;border-radius:10px">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+          </span>
           <div>
-            <div style="display:flex;justify-content:space-between;color:#e8dbd2;font-size:.88rem;margin-bottom:.4rem"><span>Alimentação</span><span>48%</span></div>
-            <div class="pcf-progress" style="background:rgba(255,255,255,.12)"><span style="width:48%"></span></div>
-          </div>
-          <div>
-            <div style="display:flex;justify-content:space-between;color:#e8dbd2;font-size:.88rem;margin-bottom:.4rem"><span>Material</span><span>25%</span></div>
-            <div class="pcf-progress" style="background:rgba(255,255,255,.12)"><span style="width:25%"></span></div>
-          </div>
-          <div>
-            <div style="display:flex;justify-content:space-between;color:#e8dbd2;font-size:.88rem;margin-bottom:.4rem"><span>Transporte</span><span>17%</span></div>
-            <div class="pcf-progress" style="background:rgba(255,255,255,.12)"><span style="width:17%"></span></div>
-          </div>
-          <div>
-            <div style="display:flex;justify-content:space-between;color:#e8dbd2;font-size:.88rem;margin-bottom:.4rem"><span>Campanha de inverno</span><span>10%</span></div>
-            <div class="pcf-progress" style="background:rgba(255,255,255,.12)"><span style="width:10%"></span></div>
+            <div style="font-weight:800;font-size:.9rem;line-height:1.1">Sábado, 9h</div>
+            <div style="font-size:.74rem;color:hsl(var(--muted-foreground))">940 crianças esperando</div>
           </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- ============ DOAR ============ -->
-  <section id="doar" class="pcf-section">
-    <div class="pcf-container">
-      <div class="lp-2col" style="display:grid;grid-template-columns:1fr;gap:2.5rem;align-items:center">
-        <div data-reveal>
-          <span class="pcf-eyebrow">Doar</span>
-          <h2 class="pcf-h2" style="margin-top:.9rem">R$ 40 é o lanche de um sábado inteiro.</h2>
-          <p class="pcf-lead" style="margin-top:1rem">Toda doação vira presença. Faça um Pix e ajude a manter os sábados acontecendo.</p>
-          <div class="pcf-dark-surface" style="border-radius:24px;padding:1.25rem;margin-top:1.25rem;position:relative;overflow:hidden">
-            <div class="pcf-orb" style="width:180px;height:180px;bottom:-80px;left:-40px" aria-hidden="true"></div>
-            <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#a8968b">Chave Pix (CNPJ)</div>
-            <div style="font-family:monospace;font-size:1.1rem;color:#fff;margin-top:.35rem">12.345.678/0001-90</div>
-            <div style="font-size:.75rem;color:#8a7566;margin-top:.35rem">Dado provisório — substituir pela chave real</div>
-          </div>
-          <a href="#doar" class="pcf-btn pcf-btn-primary pcf-btn-lg" style="margin-top:1.25rem">Doar agora</a>
+  <!-- Marquee de áreas -->
+  <div class="pcf-marquee" style="border-top:1px solid rgba(255,255,255,.07);padding:.9rem 0">
+    <div class="pcf-marquee-track" style="gap:2.5rem">
+      {% for i in "12" %}
+      <div style="display:flex;gap:2.5rem;padding-right:2.5rem;white-space:nowrap;color:#6f6862;font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase">
+        <span>Educacional</span><span>·</span><span>Recreação</span><span>·</span><span>Supply</span><span>·</span>
+        <span>Gestão de Talentos</span><span>·</span><span>ADM / Financeiro</span><span>·</span>
+        <span>Projetos</span><span>·</span><span>Eventos</span><span>·</span><span>Marketing</span><span>·</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ BENTO DE NÚMEROS ══════════ -->
+<section class="pcf-container" style="margin-top:clamp(2rem,4vw,3rem);position:relative;z-index:5">
+  <div class="lp-bento" data-reveal>
+    <div class="pcf-tile pcf-hoverable pcf-spotlight">
+      <div class="pcf-kpi">
+        <div class="pcf-kpi-top"><span class="pcf-kpi-label">Crianças / ano</span>
+          <span class="pcf-icon-tile" style="width:32px;height:32px;border-radius:9px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
         </div>
-        <div class="lp-2col" style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem" data-reveal data-reveal-delay="80">
-          <div class="pcf-card"><div style="font-weight:800;font-size:1.3rem" class="pcf-grad-text">R$ 20</div><p style="font-size:.85rem;color:#5a4a41;margin-top:.3rem">material de oficina</p></div>
-          <div class="pcf-card"><div style="font-weight:800;font-size:1.3rem" class="pcf-grad-text">R$ 40</div><p style="font-size:.85rem;color:#5a4a41;margin-top:.3rem">lanche de um sábado</p></div>
-          <div class="pcf-card"><div style="font-weight:800;font-size:1.3rem" class="pcf-grad-text">R$ 120</div><p style="font-size:.85rem;color:#5a4a41;margin-top:.3rem">kit de inverno</p></div>
-          <div class="pcf-card"><div style="font-weight:800;font-size:1.3rem" class="pcf-grad-text">R$ 300</div><p style="font-size:.85rem;color:#5a4a41;margin-top:.3rem">um sábado inteiro</p></div>
+        <div class="pcf-kpi-value" data-count="940">0</div>
+        <div class="pcf-kpi-foot"><span class="pcf-delta up">▲ 12%</span> vs. ano anterior</div>
+      </div>
+    </div>
+    <div class="pcf-tile pcf-hoverable pcf-spotlight">
+      <div class="pcf-kpi">
+        <div class="pcf-kpi-top"><span class="pcf-kpi-label">Voluntários ativos</span>
+          <span class="pcf-icon-tile tint-green" style="width:32px;height:32px;border-radius:9px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></span>
+        </div>
+        <div class="pcf-kpi-value" data-count="312">0</div>
+        <div class="pcf-kpi-foot"><span class="pcf-delta up">▲ 8</span> neste semestre</div>
+      </div>
+    </div>
+    <div class="pcf-tile pcf-hoverable pcf-spotlight">
+      <div class="pcf-kpi">
+        <div class="pcf-kpi-top"><span class="pcf-kpi-label">Anos de projeto</span>
+          <span class="pcf-icon-tile tint-blue" style="width:32px;height:32px;border-radius:9px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        </div>
+        <div class="pcf-kpi-value" data-count="27">0</div>
+        <div class="pcf-kpi-foot">desde 1998, sem parar</div>
+      </div>
+    </div>
+    <div class="pcf-tile pcf-hoverable pcf-spotlight">
+      <div class="pcf-kpi">
+        <div class="pcf-kpi-top"><span class="pcf-kpi-label">Sábados por ano</span>
+          <span class="pcf-icon-tile tint-gold" style="width:32px;height:32px;border-radius:9px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+        </div>
+        <div class="pcf-kpi-value" data-count="44">0</div>
+        <div class="pcf-kpi-foot">manhãs inteiras de projeto</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ MANIFESTO ══════════ -->
+<section id="manifesto" class="pcf-section">
+  <div class="pcf-container">
+    <div class="lp-2col">
+      <div data-reveal style="position:relative">
+        <div class="ph" style="height:clamp(280px,38vw,400px);border-radius:16px">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+          <small>Foto histórica — trocar</small>
+        </div>
+        <div class="pcf-card" style="position:absolute;right:-.5rem;top:-1rem;padding:.8rem 1rem;box-shadow:var(--shadow-lg)">
+          <div class="pcf-grad-text" style="font-weight:800;font-size:1.5rem;letter-spacing:-.03em">1998</div>
+          <div style="font-size:.72rem;color:hsl(var(--muted-foreground))">o primeiro sábado</div>
+        </div>
+      </div>
+      <div data-reveal data-reveal-delay="80">
+        <span class="pcf-eyebrow">Quem somos</span>
+        <h2 class="pcf-h2" style="margin-top:1rem">Gente comum, organizada, toda semana.</h2>
+        <p class="pcf-lead" style="margin-top:1.1rem">
+          Começou com um grupo pequeno querendo estar presente. Virou um projeto que recebe centenas
+          de crianças, jovens e famílias todo sábado — sem assistencialismo de longe.
+        </p>
+        <p class="pcf-lead" style="margin-top:.9rem">
+          Hoje somos dezenas de voluntários divididos em frentes, com escala, semanário, estoque e
+          prestação de contas. Tudo o que antes era papel, hoje vive na plataforma.
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.4rem">
+          <span class="pcf-badge outline brand">Sem fins lucrativos</span>
+          <span class="pcf-badge outline brand">100% voluntário</span>
+          <span class="pcf-badge outline brand">Contas abertas</span>
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ============ FAQ ============ -->
-  <section class="pcf-section" style="padding-block:0">
-    <div class="pcf-container">
-      <div class="pcf-island" style="background:#fffaf6;border:1px solid #f5e6dc;padding:clamp(2rem,5vw,3.5rem)">
-        <div class="lp-2col" style="display:grid;grid-template-columns:1fr;gap:2rem">
-          <div data-reveal>
-            <span class="pcf-eyebrow">Dúvidas</span>
-            <h2 class="pcf-h2" style="margin-top:.9rem">Perguntas que a gente mais ouve.</h2>
-          </div>
-          <div class="faq" data-reveal data-reveal-delay="80">
-            <details open>
-              <summary>Preciso ser estudante de alguma faculdade? <span class="faq-plus"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
-              <p>Não. Qualquer pessoa disposta a estar presente e cuidar pode ser voluntária.</p>
-            </details>
-            <details>
-              <summary>Qual o compromisso de tempo? <span class="faq-plus"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
-              <p>Os sábados de manhã. A frequência combinamos juntos, respeitando sua rotina.</p>
-            </details>
-            <details>
-              <summary>Preciso saber lidar com criança? <span class="faq-plus"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
-              <p>Não precisa chegar pronto. Tem acolhimento, equipe e frentes pra todo tipo de talento.</p>
-            </details>
-            <details>
-              <summary>Posso ajudar sem ir presencialmente? <span class="faq-plus"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
-              <p>Pode. Há frentes de apoio, comunicação e doação que acontecem à distância.</p>
-            </details>
-          </div>
+<!-- ══════════ FRENTES ══════════ -->
+<section id="frentes" class="pcf-section" style="padding-top:0">
+  <div class="pcf-container">
+    <div style="max-width:40rem;margin-bottom:2rem" data-reveal>
+      <span class="pcf-eyebrow">Frentes de atuação</span>
+      <h2 class="pcf-h2" style="margin-top:1rem">Três públicos, uma manhã inteira.</h2>
+    </div>
+    <div class="lp-frentes">
+      <article class="pcf-tile pcf-tile-pad-0 pcf-hoverable" data-reveal>
+        <div class="ph" style="height:160px;border-radius:0"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+        <div style="padding:1.15rem">
+          <span class="pcf-badge outline brand">4 a 12 anos</span>
+          <h3 style="font-size:1.1rem;font-weight:800;margin-top:.6rem;letter-spacing:-.02em">Crianças no campus</h3>
+          <p style="color:var(--ink-soft);line-height:1.6;margin-top:.45rem;font-size:.9rem">Salas por faixa etária, semanário pedagógico e muito afeto numa manhã inteira de cuidado.</p>
+        </div>
+      </article>
+      <article class="pcf-tile pcf-tile-pad-0 pcf-hoverable" data-reveal data-reveal-delay="80">
+        <div class="ph" style="height:160px;border-radius:0"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5"/></svg></div>
+        <div style="padding:1.15rem">
+          <span class="pcf-badge outline info">13 a 17 anos</span>
+          <h3 style="font-size:1.1rem;font-weight:800;margin-top:.6rem;letter-spacing:-.02em">Jovens e futuro</h3>
+          <p style="color:var(--ink-soft);line-height:1.6;margin-top:.45rem;font-size:.9rem">Oficinas, orientação e uma rede de apoio para pensar caminhos e possibilidades.</p>
+        </div>
+      </article>
+      <article class="pcf-tile pcf-tile-pad-0 pcf-hoverable" data-reveal data-reveal-delay="160">
+        <div class="ph" style="height:160px;border-radius:0"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+        <div style="padding:1.15rem">
+          <span class="pcf-badge outline ok">Comunidade</span>
+          <h3 style="font-size:1.1rem;font-weight:800;margin-top:.6rem;letter-spacing:-.02em">Adultos e famílias</h3>
+          <p style="color:var(--ink-soft);line-height:1.6;margin-top:.45rem;font-size:.9rem">Campanhas e ações que alcançam as famílias e o bairro ao redor do projeto.</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ PLATAFORMA (dark) ══════════ -->
+<section id="plataforma" class="pcf-section" style="padding-block:0">
+  <div class="pcf-container">
+    <div class="pcf-dark-surface pcf-island" style="padding:clamp(2rem,5vw,3.5rem);position:relative" data-reveal>
+      <div class="pcf-orb" style="width:420px;height:420px;top:-180px;right:-120px" aria-hidden="true"></div>
+
+      <div style="max-width:42rem">
+        <span class="pcf-eyebrow on-dark">A plataforma</span>
+        <h2 class="pcf-h2" style="color:#fff;margin-top:1rem">Todo sábado tem muita coisa acontecendo ao mesmo tempo.</h2>
+        <p style="color:#b9b1aa;line-height:1.7;margin-top:1rem">
+          Presença de 940 crianças, escala de rondas, semanário de cada sala, estoque de materiais,
+          reembolsos e prestação de contas. A plataforma junta tudo isso num lugar só — e cada voluntário
+          vê exatamente o que precisa.
+        </p>
+      </div>
+
+      <div class="lp-3col" style="margin-top:2.25rem">
+        <div class="pcf-glass" style="padding:1.15rem">
+          <span class="pcf-icon-tile" style="background:rgba(242,107,33,.16);color:#ffb47a"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+          <h3 style="color:#fff;font-weight:750;margin-top:.85rem;font-size:1rem">Presença e escala</h3>
+          <p style="color:#9e968f;font-size:.87rem;line-height:1.6;margin-top:.35rem">Chamada de crianças e voluntários pelo celular, sorteio de rondas e alertas automáticos.</p>
+        </div>
+        <div class="pcf-glass" style="padding:1.15rem">
+          <span class="pcf-icon-tile" style="background:rgba(46,139,87,.18);color:#7fd0a3"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+          <h3 style="color:#fff;font-weight:750;margin-top:.85rem;font-size:1rem">Semanário e materiais</h3>
+          <p style="color:#9e968f;font-size:.87rem;line-height:1.6;margin-top:.35rem">Planejamento por sala com competências, e a lista de materiais indo direto para o Supply.</p>
+        </div>
+        <div class="pcf-glass" style="padding:1.15rem">
+          <span class="pcf-icon-tile" style="background:rgba(59,98,179,.2);color:#9db8ec"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+          <h3 style="color:#fff;font-weight:750;margin-top:.85rem;font-size:1rem">Contas abertas</h3>
+          <p style="color:#9e968f;font-size:.87rem;line-height:1.6;margin-top:.35rem">Lançamentos, fluxo de caixa, DRE e reembolsos — com quem pode ver, vendo.</p>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- ============ CTA FINAL ============ -->
-  <section class="pcf-section">
-    <div class="pcf-container">
-      <div class="pcf-hero-surface pcf-island" style="border-radius:42px;padding:clamp(2.5rem,6vw,4.5rem);position:relative" data-reveal>
-        <div class="pcf-orb white" style="width:320px;height:320px;top:-120px;right:-80px" aria-hidden="true"></div>
-        <h2 class="pcf-display" style="color:#fff;font-size:clamp(2rem,5.4vw,3.6rem);max-width:22ch">Sábado que vem tem criança te esperando.</h2>
-        <p style="color:#fff2e7;font-size:1.05rem;margin-top:1rem;max-width:40rem;line-height:1.6">Você não precisa ter dom, nem tempo sobrando, nem discurso pronto. Precisa aparecer.</p>
-        <a href="{% url 'login' %}" class="pcf-btn pcf-btn-white pcf-btn-lg" style="margin-top:1.75rem">Quero ser voluntário</a>
+      <div style="display:flex;flex-wrap:wrap;gap:.7rem;margin-top:2rem">
+        <a href="{% url 'login' %}" class="pcf-btn pcf-btn-white">Entrar na plataforma</a>
+        <a href="#voluntariado" class="pcf-btn pcf-btn-outline-dark">Como consigo acesso?</a>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ============ FOOTER ============ -->
-  <footer style="border-top:1px solid #f4e7de;padding-block:3rem;background:#fffdfb">
-    <div class="pcf-container">
-      <div class="lp-foot" style="display:grid;grid-template-columns:1fr;gap:2rem">
+<!-- ══════════ VOLUNTARIADO ══════════ -->
+<section id="voluntariado" class="pcf-section">
+  <div class="pcf-container">
+    <div style="max-width:40rem;margin-bottom:2rem" data-reveal>
+      <span class="pcf-eyebrow">Como funciona</span>
+      <h2 class="pcf-h2" style="margin-top:1rem">Quatro passos e um sábado — é isso.</h2>
+    </div>
+    <div class="lp-steps">
+      <div class="pcf-tile pcf-hoverable" data-reveal>
+        <div class="pcf-grad-text" style="font-size:1.5rem;font-weight:800;letter-spacing:-.03em">01</div>
+        <h3 style="font-weight:750;margin-top:.5rem;font-size:1rem">Você se inscreve</h3>
+        <p style="color:var(--ink-soft);font-size:.88rem;line-height:1.6;margin-top:.35rem">Um formulário rápido contando quem você é e o que gosta de fazer.</p>
+      </div>
+      <div class="pcf-tile pcf-hoverable" data-reveal data-reveal-delay="70">
+        <div class="pcf-grad-text" style="font-size:1.5rem;font-weight:800;letter-spacing:-.03em">02</div>
+        <h3 style="font-weight:750;margin-top:.5rem;font-size:1rem">Vem no acolhimento</h3>
+        <p style="color:var(--ink-soft);font-size:.88rem;line-height:1.6;margin-top:.35rem">Um encontro para conhecer o projeto por dentro, sem compromisso.</p>
+      </div>
+      <div class="pcf-tile pcf-hoverable" data-reveal data-reveal-delay="140">
+        <div class="pcf-grad-text" style="font-size:1.5rem;font-weight:800;letter-spacing:-.03em">03</div>
+        <h3 style="font-weight:750;margin-top:.5rem;font-size:1rem">Escolhe sua frente</h3>
+        <p style="color:var(--ink-soft);font-size:.88rem;line-height:1.6;margin-top:.35rem">Crianças, jovens, comunidade ou apoio — onde seu talento cabe melhor.</p>
+      </div>
+      <div class="pcf-tile pcf-hoverable pcf-dark-surface" style="border:none" data-reveal data-reveal-delay="210">
+        <div class="pcf-orb" style="width:180px;height:180px;top:-70px;right:-50px" aria-hidden="true"></div>
+        <div style="color:#ffb47a;font-size:1.5rem;font-weight:800;letter-spacing:-.03em">04</div>
+        <h3 style="font-weight:750;margin-top:.5rem;font-size:1rem;color:#fff">Recebe seu acesso</h3>
+        <p style="color:#a89f98;font-size:.88rem;line-height:1.6;margin-top:.35rem">Entra na plataforma e já começa a participar dos sábados.</p>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:1rem;margin-top:2rem">
+      <a href="{% url 'login' %}" class="pcf-btn pcf-btn-primary pcf-btn-lg">Quero me inscrever</a>
+      <p style="color:hsl(var(--muted-foreground));font-size:.9rem">Próximo acolhimento: <strong style="color:var(--ink)">16 de agosto, 9h</strong> <span style="opacity:.7">· provisório</span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ DEPOIMENTOS ══════════ -->
+<section class="pcf-section" style="padding-top:0">
+  <div class="pcf-container">
+    <div style="max-width:40rem;margin-bottom:2rem" data-reveal>
+      <span class="pcf-eyebrow">Depoimentos</span>
+      <h2 class="pcf-h2" style="margin-top:1rem">Quem passa por aqui não sai igual.</h2>
+    </div>
+    <div class="lp-3col">
+      <figure class="pcf-tile" data-reveal>
+        <p style="font-size:1rem;line-height:1.65;color:var(--ink)">“Achei que ia ensinar. Foi o contrário — os sábados aqui me ensinaram a estar presente.”</p>
+        <figcaption style="display:flex;align-items:center;gap:.65rem;margin-top:1.2rem">
+          <span class="pcf-avatar" style="background:#ffd9bf;color:#9a3412">MR</span>
+          <span><span style="display:block;font-weight:700;font-size:.88rem">Marina R.</span><span style="font-size:.76rem;color:hsl(var(--muted-foreground))">voluntária há 3 anos</span></span>
+        </figcaption>
+      </figure>
+      <figure class="pcf-tile" data-reveal data-reveal-delay="80">
+        <p style="font-size:1rem;line-height:1.65;color:var(--ink)">“Meu filho conta os dias pro sábado. Aqui ele é cuidado de um jeito que eu não conseguiria sozinha.”</p>
+        <figcaption style="display:flex;align-items:center;gap:.65rem;margin-top:1.2rem">
+          <span class="pcf-avatar" style="background:#ffb47a;color:#7c2d12">DC</span>
+          <span><span style="display:block;font-weight:700;font-size:.88rem">Dona Cleusa</span><span style="font-size:.76rem;color:hsl(var(--muted-foreground))">mãe do Kauã, 8 anos</span></span>
+        </figcaption>
+      </figure>
+      <figure class="pcf-tile pcf-dark-surface" style="border:none" data-reveal data-reveal-delay="160">
+        <div class="pcf-orb" style="width:220px;height:220px;bottom:-110px;right:-70px" aria-hidden="true"></div>
+        <p style="font-size:1rem;line-height:1.65;color:#fff">“Fui atendido aqui em 2011. Hoje estou na faculdade e volto todo sábado — agora do outro lado.”</p>
+        <figcaption style="display:flex;align-items:center;gap:.65rem;margin-top:1.2rem">
+          <span class="pcf-avatar" style="background:rgba(255,255,255,.16);color:#fff">ES</span>
+          <span><span style="display:block;font-weight:700;font-size:.88rem;color:#fff">Everton S.</span><span style="font-size:.76rem;color:#a89f98">atendido em 2011, hoje universitário</span></span>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ TRANSPARÊNCIA ══════════ -->
+<section id="transparencia" class="pcf-section pcf-grid-bg" style="background:hsl(var(--muted))">
+  <div class="pcf-container">
+    <div style="max-width:40rem;margin-bottom:2rem" data-reveal>
+      <span class="pcf-eyebrow">Transparência</span>
+      <h2 class="pcf-h2" style="margin-top:1rem">Cada real que entra está aqui.</h2>
+      <p class="pcf-lead" style="margin-top:.9rem">Os números abaixo são de exemplo e serão substituídos pelo balanço real.</p>
+    </div>
+
+    <div class="lp-bento" data-reveal data-reveal-delay="60">
+      <div class="pcf-tile" style="grid-column:span 2">
+        <span class="pcf-kpi-label">Arrecadado 2026</span>
+        <div class="pcf-kpi-value" style="margin-top:.4rem"><span data-count="84320" data-count-prefix="R$ ">R$ 0</span></div>
+        <div class="pcf-bars" style="margin-top:1rem" aria-hidden="true">
+          <span style="height:42%"></span><span style="height:58%"></span><span style="height:50%"></span>
+          <span style="height:74%"></span><span style="height:62%"></span><span style="height:90%"></span>
+          <span style="height:78%"></span><span class="is-now" style="height:100%"></span>
+        </div>
+      </div>
+      <div class="pcf-tile">
+        <span class="pcf-kpi-label">Aplicado nas ações</span>
+        <div class="pcf-kpi-value" style="margin-top:.4rem;font-size:1.6rem"><span data-count="79115" data-count-prefix="R$ ">R$ 0</span></div>
+        <div class="pcf-kpi-foot" style="margin-top:.6rem"><span class="pcf-badge outline ok">93,8% do total</span></div>
+      </div>
+      <div class="pcf-tile" style="display:flex;align-items:center;gap:1rem">
+        <div class="pcf-ring" style="--p:1.4" aria-hidden="true"><span>1,4%</span></div>
         <div>
-          <div style="display:flex;align-items:center;gap:.6rem">
-            <img src="{% static 'images/Logo_PCF.png' %}" alt="" style="width:36px;height:36px;border-radius:10px">
-            <span style="font-weight:800">Projeto Criança Feliz</span>
-          </div>
-          <p style="color:#8a7566;font-size:.85rem;margin-top:.75rem;max-width:15rem;line-height:1.5">Lorena, São Paulo · Conteúdo provisório, a ser substituído por dados reais.</p>
-        </div>
-        <div>
-          <div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#b3a094;margin-bottom:.75rem">Projeto</div>
-          <ul style="display:flex;flex-direction:column;gap:.5rem">
-            <li><a href="#manifesto" style="color:#3c2e26;font-size:.9rem">Quem somos</a></li>
-            <li><a href="#frentes" style="color:#3c2e26;font-size:.9rem">Frentes</a></li>
-            <li><a href="#transparencia" style="color:#3c2e26;font-size:.9rem">Transparência</a></li>
-          </ul>
-        </div>
-        <div>
-          <div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#b3a094;margin-bottom:.75rem">Participar</div>
-          <ul style="display:flex;flex-direction:column;gap:.5rem">
-            <li><a href="#voluntariado" style="color:#3c2e26;font-size:.9rem">Ser voluntário</a></li>
-            <li><a href="#doar" style="color:#3c2e26;font-size:.9rem">Doar</a></li>
-            <li><a href="{% url 'login' %}" style="color:#3c2e26;font-size:.9rem">Entrar na plataforma</a></li>
-          </ul>
-        </div>
-        <div>
-          <div style="font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#b3a094;margin-bottom:.75rem">Contato</div>
-          <ul style="display:flex;flex-direction:column;gap:.5rem">
-            <li><a href="https://www.instagram.com/criancafelizprojeto/" target="_blank" rel="noopener" style="color:#3c2e26;font-size:.9rem">@criancafelizprojeto</a></li>
-            <li><a href="mailto:contato@criancafeliz.org" style="color:#3c2e26;font-size:.9rem">contato@criancafeliz.org</a></li>
-          </ul>
+          <span class="pcf-kpi-label">Custo administrativo</span>
+          <p style="font-size:.82rem;color:hsl(var(--muted-foreground));margin-top:.3rem;line-height:1.5">Quase tudo vai direto para as ações.</p>
         </div>
       </div>
-      <p style="color:#a08d80;font-size:.78rem;margin-top:2.5rem;border-top:1px solid #f4e7de;padding-top:1.25rem">© <span id="lpYear"></span> Projeto Criança Feliz — feito por voluntários.</p>
+
+      <div class="pcf-tile" style="grid-column:1 / -1">
+        <span class="pcf-kpi-label">Destino dos recursos</span>
+        <div style="display:flex;flex-direction:column;gap:.9rem;margin-top:1rem">
+          <div><div style="display:flex;justify-content:space-between;font-size:.86rem;margin-bottom:.35rem"><span>Alimentação</span><strong class="pcf-num">48%</strong></div><div class="pcf-progress"><span style="width:48%"></span></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:.86rem;margin-bottom:.35rem"><span>Material pedagógico</span><strong class="pcf-num">25%</strong></div><div class="pcf-progress"><span style="width:25%"></span></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:.86rem;margin-bottom:.35rem"><span>Transporte</span><strong class="pcf-num">17%</strong></div><div class="pcf-progress"><span style="width:17%"></span></div></div>
+          <div><div style="display:flex;justify-content:space-between;font-size:.86rem;margin-bottom:.35rem"><span>Campanha de inverno</span><strong class="pcf-num">10%</strong></div><div class="pcf-progress"><span style="width:10%"></span></div></div>
+        </div>
+      </div>
     </div>
-  </footer>
+  </div>
+</section>
 
-  <script>
-    document.getElementById('lpBurger').addEventListener('click', function () {
-      document.getElementById('lpMenu').classList.toggle('open');
-    });
-    var y = document.getElementById('lpYear'); if (y) y.textContent = new Date().getFullYear();
-  </script>
+<!-- ══════════ DOAR ══════════ -->
+<section id="doar" class="pcf-section">
+  <div class="pcf-container">
+    <div class="lp-2col">
+      <div data-reveal>
+        <span class="pcf-eyebrow">Doar</span>
+        <h2 class="pcf-h2" style="margin-top:1rem">R$ 40 é o lanche de um sábado inteiro.</h2>
+        <p class="pcf-lead" style="margin-top:1rem">Toda doação vira presença. Faça um Pix e ajude a manter os sábados acontecendo.</p>
+        <div class="pcf-dark-surface" style="border-radius:16px;padding:1.15rem;margin-top:1.3rem;position:relative;overflow:hidden">
+          <div class="pcf-orb" style="width:200px;height:200px;bottom:-100px;left:-50px" aria-hidden="true"></div>
+          <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#8f8880">Chave Pix (CNPJ)</div>
+          <div style="font-family:ui-monospace,monospace;font-size:1.1rem;color:#fff;margin-top:.35rem;letter-spacing:.02em">12.345.678/0001-90</div>
+          <div style="font-size:.74rem;color:#8f8880;margin-top:.35rem">Dado provisório — substituir pela chave real</div>
+        </div>
+      </div>
+      <div class="lp-bento" style="grid-template-columns:repeat(2,1fr)" data-reveal data-reveal-delay="80">
+        <div class="pcf-tile pcf-hoverable"><div class="pcf-grad-text" style="font-weight:800;font-size:1.3rem;letter-spacing:-.03em">R$ 20</div><p style="font-size:.84rem;color:var(--ink-soft);margin-top:.3rem">material de oficina</p></div>
+        <div class="pcf-tile pcf-hoverable"><div class="pcf-grad-text" style="font-weight:800;font-size:1.3rem;letter-spacing:-.03em">R$ 40</div><p style="font-size:.84rem;color:var(--ink-soft);margin-top:.3rem">lanche de um sábado</p></div>
+        <div class="pcf-tile pcf-hoverable"><div class="pcf-grad-text" style="font-weight:800;font-size:1.3rem;letter-spacing:-.03em">R$ 120</div><p style="font-size:.84rem;color:var(--ink-soft);margin-top:.3rem">kit de inverno</p></div>
+        <div class="pcf-tile pcf-hoverable"><div class="pcf-grad-text" style="font-weight:800;font-size:1.3rem;letter-spacing:-.03em">R$ 300</div><p style="font-size:.84rem;color:var(--ink-soft);margin-top:.3rem">um sábado inteiro</p></div>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <!-- Responsivo: eleva para multi-coluna a partir de breakpoints (sem depender de utilitárias) -->
-  <style>
-    @media (min-width: 700px) {
-      .lp-stats { grid-template-columns: repeat(4, 1fr) !important; }
-      .lp-3col { grid-template-columns: repeat(3, 1fr) !important; }
-      .lp-4col { grid-template-columns: repeat(4, 1fr) !important; }
-    }
-    @media (min-width: 900px) {
-      [data-nav] { display: inline-flex !important; }
-      #lpBurger, #lpMenu { display: none !important; }
-      .lp-hero-grid { grid-template-columns: 1.05fr .95fr !important; }
-      .lp-2col { grid-template-columns: 1fr 1fr !important; }
-      .lp-foot { grid-template-columns: 1.4fr 1fr 1fr 1fr !important; }
-    }
-  </style>
-  <script src="{% static 'js/pcf-fx.js' %}" defer></script>
+<!-- ══════════ FAQ ══════════ -->
+<section class="pcf-section" style="padding-top:0">
+  <div class="pcf-container">
+    <div class="lp-2col" style="align-items:start">
+      <div data-reveal>
+        <span class="pcf-eyebrow">Dúvidas</span>
+        <h2 class="pcf-h2" style="margin-top:1rem">Perguntas que a gente mais ouve.</h2>
+      </div>
+      <div class="faq" data-reveal data-reveal-delay="80">
+        <details open>
+          <summary>Preciso ser estudante de alguma faculdade?
+            <span class="plus"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
+          <p>Não. Qualquer pessoa disposta a estar presente e cuidar pode ser voluntária.</p>
+        </details>
+        <details>
+          <summary>Qual o compromisso de tempo?
+            <span class="plus"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
+          <p>Os sábados de manhã. A frequência combinamos juntos, respeitando sua rotina.</p>
+        </details>
+        <details>
+          <summary>Preciso saber lidar com criança?
+            <span class="plus"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
+          <p>Não precisa chegar pronto. Tem acolhimento, equipe e frentes para todo tipo de talento.</p>
+        </details>
+        <details>
+          <summary>Posso ajudar sem ir presencialmente?
+            <span class="plus"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></summary>
+          <p>Pode. Há frentes de apoio, comunicação e doação que acontecem à distância.</p>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ CTA FINAL ══════════ -->
+<section class="pcf-section" style="padding-top:0">
+  <div class="pcf-container">
+    <div class="pcf-dark-surface pcf-island" style="padding:clamp(2.5rem,6vw,4.5rem);position:relative;text-align:center" data-reveal>
+      <div class="pcf-orb" style="width:520px;height:520px;top:-240px;left:50%;transform:translateX(-50%)" aria-hidden="true"></div>
+      <h2 class="pcf-display" style="color:#fff;font-size:clamp(2rem,5vw,3.4rem);max-width:20ch;margin-inline:auto">
+        Sábado que vem tem criança te esperando.
+      </h2>
+      <p style="color:#b9b1aa;font-size:1.02rem;margin-top:1.1rem;max-width:42rem;margin-inline:auto;line-height:1.7">
+        Você não precisa ter dom, nem tempo sobrando, nem discurso pronto. Precisa aparecer.
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:.7rem;justify-content:center;margin-top:2rem">
+        <a href="{% url 'login' %}" class="pcf-btn pcf-btn-gradient pcf-btn-lg">Quero ser voluntário</a>
+        <a href="#doar" class="pcf-btn pcf-btn-outline-dark pcf-btn-lg">Prefiro doar</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FOOTER ══════════ -->
+<footer style="border-top:1px solid hsl(var(--border));padding-block:3rem;background:hsl(var(--card))">
+  <div class="pcf-container">
+    <div class="lp-foot">
+      <div>
+        <div style="display:flex;align-items:center;gap:.6rem">
+          <img src="{% static 'images/Logo_PCF.png' %}" alt="" style="width:32px;height:32px;border-radius:9px">
+          <span style="font-weight:800;letter-spacing:-.02em">Criança Feliz</span>
+        </div>
+        <p style="color:hsl(var(--muted-foreground));font-size:.85rem;margin-top:.8rem;max-width:16rem;line-height:1.6">
+          Lorena, São Paulo · Conteúdo provisório, a ser substituído por dados reais.
+        </p>
+      </div>
+      <div>
+        <div class="pcf-kpi-label" style="margin-bottom:.75rem">Projeto</div>
+        <ul style="display:flex;flex-direction:column;gap:.55rem">
+          <li><a href="#manifesto" style="color:var(--ink-soft);font-size:.88rem">Quem somos</a></li>
+          <li><a href="#frentes" style="color:var(--ink-soft);font-size:.88rem">Frentes</a></li>
+          <li><a href="#transparencia" style="color:var(--ink-soft);font-size:.88rem">Transparência</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="pcf-kpi-label" style="margin-bottom:.75rem">Participar</div>
+        <ul style="display:flex;flex-direction:column;gap:.55rem">
+          <li><a href="#voluntariado" style="color:var(--ink-soft);font-size:.88rem">Ser voluntário</a></li>
+          <li><a href="#doar" style="color:var(--ink-soft);font-size:.88rem">Doar</a></li>
+          <li><a href="{% url 'login' %}" style="color:var(--ink-soft);font-size:.88rem">Entrar na plataforma</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="pcf-kpi-label" style="margin-bottom:.75rem">Contato</div>
+        <ul style="display:flex;flex-direction:column;gap:.55rem">
+          <li><a href="https://www.instagram.com/criancafelizprojeto/" target="_blank" rel="noopener" style="color:var(--ink-soft);font-size:.88rem">@criancafelizprojeto</a></li>
+          <li><a href="mailto:contato@criancafeliz.org" style="color:var(--ink-soft);font-size:.88rem">contato@criancafeliz.org</a></li>
+        </ul>
+      </div>
+    </div>
+    <p style="color:hsl(var(--muted-foreground));font-size:.78rem;margin-top:2.5rem;border-top:1px solid hsl(var(--border));padding-top:1.25rem">
+      © <span id="lpYear"></span> Projeto Criança Feliz — feito por voluntários.
+    </p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('lpBurger').addEventListener('click', function () {
+    document.getElementById('lpMenu').classList.toggle('open');
+  });
+  var y = document.getElementById('lpYear'); if (y) y.textContent = new Date().getFullYear();
+</script>
+<script src="{% static 'js/pcf-fx.js' %}" defer></script>
 </body>
 </html>

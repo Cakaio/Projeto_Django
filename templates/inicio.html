@@ -1,378 +1,186 @@
 {% extends 'base.html' %}
 {% load static %}
-
 {% block titulo %}Início{% endblock %}
 
 {% block content %}
-<div class="ini-page">
+<div class="pcf-container" style="padding-block:1.5rem 2rem">
 
-  <!-- ─────────────────────────── HERO INTERNO ─────────────────────────── -->
-  <section class="pcf-hero-surface ini-hero" data-reveal>
-    <span class="pcf-orb warm ini-orb ini-orb-1" aria-hidden="true"></span>
-    <span class="pcf-orb white ini-orb ini-orb-2" aria-hidden="true"></span>
-
-    <div class="pcf-container ini-hero-inner">
-      <span class="ini-hero-eyebrow">Projeto Criança Feliz</span>
-      <h1 class="ini-hero-title">Olá, {{ user.first_name|default:user.username }}</h1>
-      <p class="ini-hero-sub">Acompanhe as atividades, voluntários e sábados do projeto em um só lugar.</p>
-
-      <div class="ini-hero-actions">
-        <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-white">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Painel do Sábado
-        </a>
-        <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-btn ini-hero-outline">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Ver Voluntários
-        </a>
-      </div>
+  <!-- ══════ Cabeçalho ══════ -->
+  <header class="pcf-page-head" data-reveal>
+    <div>
+      <span class="pcf-eyebrow"><span class="pcf-live-dot" aria-hidden="true"></span> Painel do voluntário</span>
+      <h1 class="pcf-page-title" style="margin-top:.7rem">Olá, {{ user.first_name|default:user.username }} 👋</h1>
+      <p class="pcf-page-sub">Acompanhe atividades, voluntários e sábados do projeto em um só lugar.</p>
     </div>
-  </section>
-
-  <!-- ─────────────────────── 4 ATALHOS (sobre o hero) ─────────────────────── -->
-  <div class="pcf-container">
-    <div class="ini-shortcuts" data-reveal>
-
-      <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-card pcf-hoverable ini-shortcut">
-        <span class="pcf-icon-tile tint-orange">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </span>
-        <span class="ini-shortcut-body">
-          <span class="ini-shortcut-title">Voluntários</span>
-          <span class="ini-shortcut-hint">Ver equipe</span>
-        </span>
-        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-outline">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Painel do Sábado
       </a>
-
-      <a href="{% url 'atendido:atendido_view' %}" class="pcf-card pcf-hoverable ini-shortcut">
-        <span class="pcf-icon-tile tint-green">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        </span>
-        <span class="ini-shortcut-body">
-          <span class="ini-shortcut-title">Atendidos</span>
-          <span class="ini-shortcut-hint">Ver atendidos</span>
-        </span>
-        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      <a href="{% url 'ronda:ronda_publica' %}" class="pcf-btn pcf-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Minhas rondas
       </a>
-
-      <a href="{% url 'semanario:semanario_view' %}" class="pcf-card pcf-hoverable ini-shortcut">
-        <span class="pcf-icon-tile tint-blue">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        </span>
-        <span class="ini-shortcut-body">
-          <span class="ini-shortcut-title">Semanários</span>
-          <span class="ini-shortcut-hint">Ver atividades</span>
-        </span>
-        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-
-      <a href="{% url 'supply:painel_materiais' %}" class="pcf-card pcf-hoverable ini-shortcut">
-        <span class="pcf-icon-tile tint-gold">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-        </span>
-        <span class="ini-shortcut-body">
-          <span class="ini-shortcut-title">Supply</span>
-          <span class="ini-shortcut-hint">Ver estoque</span>
-        </span>
-        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-
     </div>
-  </div>
+  </header>
 
-  <!-- ─────────────────────── FORMULÁRIOS ABERTOS ─────────────────────── -->
-  <section class="pcf-container ini-section" data-reveal>
-    <div class="ini-head">
-      <div class="ini-head-text">
-        <span class="pcf-eyebrow">Disponibilidade</span>
-        <h2 class="ini-h2">Formulários Abertos</h2>
-        <p class="pcf-lead ini-sub">Responda sua disponibilidade para os próximos sábados.</p>
-      </div>
-      <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver todos</a>
-    </div>
+  <!-- ══════ Bento ══════ -->
+  <div class="pcf-bento" data-reveal data-reveal-delay="60">
 
-    {% if sabados_abertos %}
-      <div class="ini-grid">
-        {% for sabado in sabados_abertos %}
-        <article class="pcf-card pcf-hoverable ini-sabado">
-          <!-- Cabeçalho -->
-          <div class="ini-sabado-top">
-            <div class="ini-date">
-              <span class="ini-date-day">{{ sabado.data|date:"d" }}</span>
-              <span class="ini-date-month">{{ sabado.data|date:"M" }}</span>
-            </div>
-            <div class="ini-sabado-info">
-              <h3 class="ini-sabado-tema">{{ sabado.tema|default:"Sábado do Projeto" }}</h3>
-              <p class="ini-sabado-date">{{ sabado.data|date:"l, d \d\e F \d\e Y" }}</p>
-            </div>
-            <span class="pcf-badge ok ini-badge-open">Aberto</span>
-          </div>
-
-          <!-- Progresso de respostas -->
-          <div class="ini-progress-block">
-            <div class="ini-progress-head">
-              <span class="ini-progress-label">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                Respostas dos voluntários
-              </span>
-              <span class="ini-progress-count">{{ sabado.total_respostas_view }}/{{ sabado.total_voluntarios_ativos }}</span>
-            </div>
-            <div class="pcf-progress">
-              <span style="width: {{ sabado.percentual_respostas_int }}%"></span>
-            </div>
-            <div class="ini-progress-foot">
-              {% if sabado.percentual_respostas_int == 100 %}
-                <span class="ini-ok">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-                  Todos responderam!
-                </span>
-              {% else %}
-                <span class="ini-muted">{{ sabado.total_nao_responderam }} ainda não responderam</span>
-                <span class="ini-pct">{{ sabado.percentual_respostas_int }}%</span>
-              {% endif %}
-            </div>
-          </div>
-
-          <!-- Ações -->
-          <div class="ini-sabado-actions">
-            <a href="{% url 'sabado:responder_disponibilidade' sabado.pk %}" class="pcf-btn pcf-btn-primary pcf-btn-sm ini-flex1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              Responder
-            </a>
-            <a href="{% url 'sabado:resumo_sabado' %}?sabado={{ sabado.pk }}" class="pcf-btn pcf-btn-outline pcf-btn-sm ini-flex1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
-              Ver resumo
-            </a>
-          </div>
-        </article>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="ini-empty">
-        <div class="ini-empty-icon">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <!-- KPI: enquetes abertas -->
+    <div class="pcf-tile pcf-col-2 pcf-hoverable pcf-spotlight">
+      <div class="pcf-kpi">
+        <div class="pcf-kpi-top">
+          <span class="pcf-kpi-label">Formulários abertos</span>
+          <span class="pcf-icon-tile" style="width:32px;height:32px;border-radius:9px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
         </div>
-        <p class="ini-empty-title">Nenhum formulário aberto</p>
-        <p class="ini-empty-sub">Quando houver um sábado com enquete aberta, ele aparecerá aqui.</p>
-        <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-outline">Ver painel do sábado</a>
+        <div class="pcf-kpi-value">{{ sabados_abertos|length }}</div>
+        <div class="pcf-kpi-foot">
+          {% if sabados_abertos %}
+            <span class="pcf-badge outline brand"><span class="dot"></span> aguardando resposta</span>
+          {% else %}
+            nenhuma enquete no momento
+          {% endif %}
+        </div>
       </div>
-    {% endif %}
-  </section>
+    </div>
 
-  <!-- ─────────────────────── PRÓXIMA RONDA (escuro) ─────────────────────── -->
-  {% if proxima_ronda %}
-  <section class="pcf-container ini-section" data-reveal>
-    <div class="pcf-dark-surface ini-ronda">
-      <span class="pcf-orb ini-ronda-orb" aria-hidden="true"></span>
+    <!-- KPI: voluntários ativos -->
+    <div class="pcf-tile pcf-col-2 pcf-hoverable pcf-spotlight">
+      <div class="pcf-kpi">
+        <div class="pcf-kpi-top">
+          <span class="pcf-kpi-label">Voluntários ativos</span>
+          <span class="pcf-icon-tile tint-green" style="width:32px;height:32px;border-radius:9px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></span>
+        </div>
+        <div class="pcf-kpi-value">
+          {% if sabados_abertos %}{{ sabados_abertos.0.total_voluntarios_ativos }}{% else %}—{% endif %}
+        </div>
+        <div class="pcf-kpi-foot">
+          <a href="{% url 'voluntario:voluntario_view' %}" style="color:var(--brand);font-weight:650;text-decoration:none">Ver equipe →</a>
+        </div>
+      </div>
+    </div>
 
-      <div class="ini-ronda-inner">
-        <div class="ini-ronda-text">
-          <span class="pcf-eyebrow on-dark">
-            <span class="pcf-live-dot" aria-hidden="true"></span>
-            Rondas do Sábado
+    <!-- Próxima ronda (escuro) -->
+    <div class="pcf-tile pcf-col-2 pcf-dark-surface" style="border:none;overflow:hidden">
+      <div class="pcf-orb" style="width:230px;height:230px;top:-110px;right:-70px" aria-hidden="true"></div>
+      <div class="pcf-kpi">
+        <div class="pcf-kpi-top">
+          <span class="pcf-kpi-label" style="color:#8f8880">Próxima ronda</span>
+          <span class="pcf-icon-tile" style="width:32px;height:32px;border-radius:9px;background:rgba(242,107,33,.18);color:#ffb47a"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        </div>
+        {% if proxima_ronda %}
+          <div class="pcf-kpi-value" style="color:#fff;font-size:1.55rem">{{ proxima_ronda.sabado.data|date:"d/m" }}</div>
+          <p style="font-size:.82rem;color:#a89f98;margin:.15rem 0 0">{{ proxima_ronda.sabado.tema|default:"Sábado do Projeto" }}</p>
+          <div class="pcf-kpi-foot" style="margin-top:.75rem">
+            <a href="{% url 'ronda:ronda_publica' %}" class="pcf-btn pcf-btn-white pcf-btn-sm">Ver escala</a>
+          </div>
+        {% else %}
+          <div class="pcf-kpi-value" style="color:#fff;font-size:1.55rem">—</div>
+          <p style="font-size:.82rem;color:#a89f98;margin:.15rem 0 0">Nenhuma escala aprovada ainda.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Formulários abertos (lista) -->
+    <section class="pcf-tile pcf-col-4">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem">
+        <div>
+          <h2 style="font-size:1.02rem;font-weight:750;letter-spacing:-.02em;margin:0">Disponibilidade dos sábados</h2>
+          <p style="font-size:.82rem;color:hsl(var(--muted-foreground));margin:.2rem 0 0">Responda para a equipe montar a escala.</p>
+        </div>
+        <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver todos</a>
+      </div>
+
+      {% if sabados_abertos %}
+        <div style="display:flex;flex-direction:column;gap:.7rem">
+          {% for sabado in sabados_abertos %}
+          <article class="pcf-subcard" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+            <div class="pcf-ring" style="--p:{{ sabado.percentual_respostas_int }}" aria-hidden="true">
+              <span>{{ sabado.percentual_respostas_int }}%</span>
+            </div>
+
+            <div style="flex:1;min-width:11rem">
+              <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+                <h3 style="font-size:.95rem;font-weight:700;margin:0">{{ sabado.tema|default:"Sábado do Projeto" }}</h3>
+                <span class="pcf-badge outline ok"><span class="dot"></span> Aberto</span>
+              </div>
+              <p style="font-size:.8rem;color:hsl(var(--muted-foreground));margin:.2rem 0 .55rem">
+                {{ sabado.data|date:"l, d \d\e F"|capfirst }}
+              </p>
+              <div class="pcf-progress"><span style="width:{{ sabado.percentual_respostas_int }}%"></span></div>
+              <p style="font-size:.76rem;color:hsl(var(--muted-foreground));margin:.4rem 0 0">
+                <strong class="pcf-num" style="color:var(--ink)">{{ sabado.total_respostas_view }}</strong>
+                de {{ sabado.total_voluntarios_ativos }} responderam
+                {% if sabado.total_nao_responderam %}· {{ sabado.total_nao_responderam }} pendente{{ sabado.total_nao_responderam|pluralize }}{% endif %}
+              </p>
+            </div>
+
+            <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+              <a href="{% url 'sabado:responder_disponibilidade' sabado.pk %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">Responder</a>
+              <a href="{% url 'sabado:resumo_sabado' %}?sabado={{ sabado.pk }}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Detalhes</a>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:.5rem;
+                    padding:2.5rem 1.25rem;border:1.5px dashed hsl(var(--border));border-radius:14px;background:hsl(var(--muted))">
+          <span class="pcf-icon-tile lg" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           </span>
-          <h2 class="ini-ronda-title">Próxima ronda aprovada</h2>
-          <p class="ini-ronda-sub">Voluntários escalados para o próximo sábado do projeto.</p>
-
-          <div class="ini-ronda-meta">
-            <div class="ini-ronda-date">
-              <span class="ini-rd-day">{{ proxima_ronda.sabado.data|date:"d" }}</span>
-              <span class="ini-rd-rest">{{ proxima_ronda.sabado.data|date:"M/Y" }}</span>
-            </div>
-            <div class="ini-ronda-meta-info">
-              <p class="ini-ronda-tema">{{ proxima_ronda.sabado.tema|default:"Sábado do Projeto" }}</p>
-              <p class="ini-ronda-full">{{ proxima_ronda.sabado.data|date:"l, d \d\e F \d\e Y" }}</p>
-            </div>
-            <span class="pcf-badge ok">Aprovada</span>
-          </div>
+          <p style="font-weight:750;margin:.4rem 0 0">Nenhum formulário aberto</p>
+          <p style="font-size:.85rem;color:hsl(var(--muted-foreground));margin:0;max-width:32ch">
+            Quando houver um sábado com enquete aberta, ele aparece aqui.
+          </p>
+          <a href="{% url 'sabado:resumo_sabado' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm" style="margin-top:.5rem">Ver painel do sábado</a>
         </div>
+      {% endif %}
+    </section>
 
-        <a href="{% url 'ronda:ronda_publica' %}" class="pcf-btn pcf-btn-white ini-ronda-cta">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Ver escala de rondas
+    <!-- Acesso rápido -->
+    <section class="pcf-tile pcf-col-2">
+      <h2 style="font-size:1.02rem;font-weight:750;letter-spacing:-.02em;margin:0 0 1rem">Acesso rápido</h2>
+      <div style="display:flex;flex-direction:column;gap:.55rem">
+
+        <a href="{% url 'atendido:atendido_view' %}" class="pcf-subcard" style="display:flex;align-items:center;gap:.75rem;text-decoration:none;color:inherit">
+          <span class="pcf-icon-tile tint-green"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-weight:700;font-size:.9rem">Atendidos</span>
+            <span style="display:block;font-size:.76rem;color:hsl(var(--muted-foreground))">Fichas, famílias e presenças</span>
+          </span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#b6ada4" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
         </a>
+
+        <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-subcard" style="display:flex;align-items:center;gap:.75rem;text-decoration:none;color:inherit">
+          <span class="pcf-icon-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></span>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-weight:700;font-size:.9rem">Voluntários</span>
+            <span style="display:block;font-size:.76rem;color:hsl(var(--muted-foreground))">Equipe, áreas e organograma</span>
+          </span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#b6ada4" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </a>
+
+        <a href="{% url 'semanario:semanario_view' %}" class="pcf-subcard" style="display:flex;align-items:center;gap:.75rem;text-decoration:none;color:inherit">
+          <span class="pcf-icon-tile tint-blue"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-weight:700;font-size:.9rem">Semanários</span>
+            <span style="display:block;font-size:.76rem;color:hsl(var(--muted-foreground))">Planejamento por sala</span>
+          </span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#b6ada4" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </a>
+
+        <a href="{% url 'supply:supply_view' %}" class="pcf-subcard" style="display:flex;align-items:center;gap:.75rem;text-decoration:none;color:inherit">
+          <span class="pcf-icon-tile tint-gold"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-weight:700;font-size:.9rem">Supply</span>
+            <span style="display:block;font-size:.76rem;color:hsl(var(--muted-foreground))">Estoque e materiais</span>
+          </span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#b6ada4" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </a>
+
       </div>
-    </div>
-  </section>
-  {% endif %}
-
-  <!-- ─────────────────────────── ACESSO RÁPIDO ─────────────────────────── -->
-  <section class="pcf-container ini-section ini-section-last" data-reveal>
-    <div class="ini-head">
-      <div class="ini-head-text">
-        <span class="pcf-eyebrow">Navegação</span>
-        <h2 class="ini-h2">Acesso Rápido</h2>
-        <p class="pcf-lead ini-sub">Navegue pelas principais áreas do projeto.</p>
-      </div>
-    </div>
-
-    <div class="ini-quick">
-      <a href="{% url 'semanario:semanario_view' %}" class="pcf-card pcf-hoverable ini-quick-card">
-        <span class="pcf-icon-tile tint-blue">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        </span>
-        <span class="ini-quick-body">
-          <span class="ini-quick-title">Semanário</span>
-          <span class="ini-quick-desc">Planejamento semanal de atividades por sala e competências.</span>
-        </span>
-        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-
-      <a href="{% url 'voluntario:voluntario_view' %}" class="pcf-card pcf-hoverable ini-quick-card">
-        <span class="pcf-icon-tile tint-orange">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </span>
-        <span class="ini-quick-body">
-          <span class="ini-quick-title">Voluntários</span>
-          <span class="ini-quick-desc">Gerencie a equipe, talentos, presenças e áreas de atuação.</span>
-        </span>
-        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-
-      <a href="{% url 'atendido:atendido_view' %}" class="pcf-card pcf-hoverable ini-quick-card">
-        <span class="pcf-icon-tile tint-green">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-        </span>
-        <span class="ini-quick-body">
-          <span class="ini-quick-title">Atendidos</span>
-          <span class="ini-quick-desc">Fichas das crianças, famílias, responsáveis e histórico.</span>
-        </span>
-        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-
-      <a href="{% url 'supply:supply_view' %}" class="pcf-card pcf-hoverable ini-quick-card">
-        <span class="pcf-icon-tile tint-gold">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-        </span>
-        <span class="ini-quick-body">
-          <span class="ini-quick-title">Supply</span>
-          <span class="ini-quick-desc">Controle de estoque, itens e movimentações de materiais.</span>
-        </span>
-        <svg class="ini-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </a>
-    </div>
-  </section>
-
+    </section>
+  </div>
 </div>
-
-{# Bloco enxuto: só LAYOUT específico desta página (grids, sobreposição e responsivo). #}
-{# Todo o visual vem das classes .pcf-* do design system (tailwindcss/input.css). #}
-<style>
-  .ini-page { background: hsl(var(--background)); }
-
-  /* ── Hero ── */
-  .ini-hero { margin-bottom: 0; }
-  .ini-hero-inner { padding-top: clamp(2.25rem, 6vw, 4rem); padding-bottom: clamp(3.75rem, 8vw, 5.5rem); position: relative; z-index: 1; }
-  .ini-orb { width: 320px; height: 320px; }
-  .ini-orb-1 { top: -110px; right: -80px; }
-  .ini-orb-2 { bottom: -140px; left: -90px; width: 260px; height: 260px; }
-  .ini-hero-eyebrow {
-    display: inline-flex; align-items: center; margin-bottom: 1rem;
-    padding: .3rem .8rem; border-radius: 999px;
-    font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
-    color: #fff; background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .28);
-  }
-  .ini-hero-title { margin: 0 0 .7rem; color: #fff; font-weight: 800; letter-spacing: -.03em; line-height: 1.05; font-size: clamp(1.8rem, 4.5vw, 3rem); }
-  .ini-hero-sub { margin: 0 0 1.75rem; max-width: 46ch; color: rgba(255, 255, 255, .9); line-height: 1.6; font-size: clamp(.95rem, 1.6vw, 1.05rem); }
-  .ini-hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
-  .ini-hero-outline { background: rgba(255, 255, 255, .1); color: #fff; border: 1.5px solid rgba(255, 255, 255, .55); }
-  .ini-hero-outline:hover { background: rgba(255, 255, 255, .2); color: #fff; transform: translateY(-1px); }
-
-  /* ── 4 atalhos (sobrepõem o hero) ── */
-  .ini-shortcuts { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: -2.5rem; position: relative; z-index: 3; }
-  .ini-shortcut { display: flex; align-items: center; gap: .9rem; text-decoration: none; color: var(--ink); padding: 1.1rem 1.2rem; }
-  .ini-shortcut:hover { color: var(--ink); }
-  .ini-shortcut-body { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
-  .ini-shortcut-title { font-weight: 800; font-size: 1rem; letter-spacing: -.01em; color: var(--ink); }
-  .ini-shortcut-hint { font-size: .78rem; color: var(--ink-muted); }
-  .ini-arrow { color: var(--ink-muted); margin-left: auto; flex-shrink: 0; transition: transform .18s ease, color .18s ease; }
-  .ini-shortcut:hover .ini-arrow,
-  .ini-quick-card:hover .ini-arrow { transform: translateX(3px); color: #e8560f; }
-
-  /* ── Seções ── */
-  .ini-section { padding-top: clamp(2.5rem, 6vw, 3.75rem); }
-  .ini-section-last { padding-bottom: clamp(3rem, 7vw, 5rem); }
-  .ini-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
-  .ini-head-text { display: flex; flex-direction: column; gap: .5rem; }
-  .ini-h2 { margin: 0; font-weight: 800; letter-spacing: -.025em; line-height: 1.1; font-size: clamp(1.5rem, 3vw, 2rem); color: var(--ink); }
-  .ini-sub { margin: 0; font-size: .92rem; }
-
-  /* ── Grid de sábados ── */
-  .ini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 1.25rem; }
-  .ini-sabado { display: flex; flex-direction: column; gap: 1.25rem; }
-  .ini-sabado-top { display: flex; align-items: flex-start; gap: .9rem; }
-  .ini-date { display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; min-width: 50px; padding: .45rem .6rem; border-radius: 14px; background: #fff0e6; }
-  .ini-date-day { font-size: 1.3rem; font-weight: 800; line-height: 1; color: #c9490a; }
-  .ini-date-month { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #e8560f; }
-  .ini-sabado-info { flex: 1; min-width: 0; }
-  .ini-sabado-tema { margin: 0 0 .15rem; font-size: .98rem; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ini-sabado-date { margin: 0; font-size: .78rem; color: var(--ink-muted); text-transform: capitalize; }
-  .ini-badge-open { flex-shrink: 0; }
-
-  /* ── Progresso ── */
-  .ini-progress-block { display: flex; flex-direction: column; gap: .5rem; }
-  .ini-progress-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-  .ini-progress-label { display: inline-flex; align-items: center; gap: .35rem; font-size: .78rem; color: var(--ink-soft); }
-  .ini-progress-count { font-size: .8rem; font-weight: 800; color: var(--ink); }
-  .ini-progress-foot { display: flex; align-items: center; justify-content: space-between; gap: .5rem; font-size: .74rem; }
-  .ini-muted { color: var(--ink-muted); }
-  .ini-pct { font-weight: 800; color: #e8560f; }
-  .ini-ok { display: inline-flex; align-items: center; gap: .3rem; font-weight: 700; color: #1f7a49; }
-
-  /* ── Ações do card de sábado ── */
-  .ini-sabado-actions { display: flex; gap: .625rem; margin-top: auto; }
-  .ini-flex1 { flex: 1; }
-
-  /* ── Estado vazio ── */
-  .ini-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
-  .ini-empty-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; background: #fff0e6; color: #e8560f; }
-  .ini-empty-title { margin: .4rem 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
-  .ini-empty-sub { margin: 0; max-width: 34ch; font-size: .88rem; color: var(--ink-muted); }
-  .ini-empty .pcf-btn { margin-top: .4rem; }
-
-  /* ── Próxima ronda (dark) ── */
-  .ini-ronda { border-radius: 28px; padding: clamp(1.5rem, 4vw, 2.5rem); }
-  .ini-ronda-orb { width: 300px; height: 300px; top: -120px; right: -70px; }
-  .ini-ronda-inner { display: flex; align-items: center; justify-content: space-between; gap: 1.75rem; flex-wrap: wrap; }
-  .ini-ronda-text { min-width: 0; }
-  .ini-ronda-title { margin: .9rem 0 .4rem; font-size: clamp(1.35rem, 2.6vw, 1.75rem); font-weight: 800; letter-spacing: -.02em; color: #fff; }
-  .ini-ronda-sub { margin: 0 0 1.25rem; font-size: .92rem; color: rgba(255, 255, 255, .72); max-width: 48ch; }
-  .ini-ronda-meta { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
-  .ini-ronda-date { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 56px; padding: .5rem .7rem; border-radius: 16px; background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .12); }
-  .ini-rd-day { font-size: 1.4rem; font-weight: 800; line-height: 1; color: #ffb47a; }
-  .ini-rd-rest { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: rgba(255, 255, 255, .6); }
-  .ini-ronda-meta-info { min-width: 0; }
-  .ini-ronda-tema { margin: 0 0 .1rem; font-size: .98rem; font-weight: 700; color: #fff; }
-  .ini-ronda-full { margin: 0; font-size: .78rem; color: rgba(255, 255, 255, .6); text-transform: capitalize; }
-  .ini-ronda-cta { flex-shrink: 0; }
-
-  /* ── Acesso rápido ── */
-  .ini-quick { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-  .ini-quick-card { display: flex; align-items: center; gap: 1rem; text-decoration: none; color: var(--ink); }
-  .ini-quick-card:hover { color: var(--ink); }
-  .ini-quick-body { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
-  .ini-quick-title { font-weight: 800; font-size: 1rem; color: var(--ink); }
-  .ini-quick-desc { font-size: .8rem; line-height: 1.5; color: var(--ink-muted); }
-
-  /* ── Breakpoints ── */
-  @media (min-width: 560px) {
-    .ini-shortcuts { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (min-width: 720px) {
-    .ini-quick { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (min-width: 960px) {
-    .ini-shortcuts { grid-template-columns: repeat(4, 1fr); }
-  }
-
-  /* ── Ajustes finos para telas estreitas (~360px) ── */
-  @media (max-width: 480px) {
-    .ini-shortcuts { margin-top: -2rem; }
-    .ini-hero-actions { flex-direction: column; }
-    .ini-hero-actions .pcf-btn { width: 100%; }
-    .ini-sabado-tema { white-space: normal; }
-    .ini-ronda-cta { width: 100%; }
-    .ini-quick-desc { display: none; }
-  }
-</style>
 {% endblock %}
