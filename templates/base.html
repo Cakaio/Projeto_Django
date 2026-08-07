@@ -5,7 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#e8560f">
-    <title>{% block titulo %}{% block title %}Projeto Criança Feliz{% endblock %}{% endblock %}</title>
+    {# Padrão de título: "PCF | <tela>". As telas definem só o nome em {% block titulo %}. #}
+    <title>PCF | {% block titulo %}{% block title %}Início{% endblock %}{% endblock %}</title>
+
+    <link rel="icon" href="{% static 'images/Logo_PCF.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'images/Logo_PCF.png' %}">
 
     <!-- Fonte da marca -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -18,12 +18,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import inicio, LandingView
+from .views import inicio, LandingView, busca
 from django.contrib.auth import views as auth_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', LandingView.as_view(), name='landing'),
+    path('buscar/', busca, name='busca'),
     path('login/', auth_view.LoginView.as_view(template_name='login.html', redirect_authenticated_user=True), name='login'),
     path('logout/', auth_view.LogoutView.as_view(next_page='login'), name='logout'),
     path('inicio/', inicio.as_view(), name='inicio'),

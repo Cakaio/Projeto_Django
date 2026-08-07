@@ -35,11 +35,11 @@
   /* nav de seções */
   .sec-nav a { display:block; padding:.35rem .6rem; border-radius:6px; font-size:.8rem; color:hsl(var(--muted-foreground)); }
   .sec-nav a:hover { background:hsl(var(--accent)); color:hsl(var(--foreground)); }
-  .sec-nav a.active { background:#0f172a; color:#fff; }
+  .sec-nav a.active { background:var(--brand); color:#fff; }
 </style>
 
 <div class="relative overflow-hidden text-white text-center"
-     style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#0f3460 100%);padding:2.5rem 1rem 4.5rem">
+     style="background:linear-gradient(135deg,#ff8a3d 0%,#f26b21 45%,#e04e0c 100%);padding:2.5rem 1rem 4.5rem">
   <div class="max-w-5xl mx-auto">
     <h1 class="text-2xl md:text-3xl font-bold">{% if modo == 'editar' %}Editar Matrícula{% else %}Nova Matrícula{% endif %}</h1>
     <p class="opacity-75 text-sm mt-1">Preencha os dados da criança, da família e dos responsáveis</p>
