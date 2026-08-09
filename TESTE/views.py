@@ -58,6 +58,12 @@ def _paginas_do_usuario(user):
          is_su or area == "TRIADE"),
         ("Caixa de Dores & Sugestões", "forms_pcf:feedback_inbox", "Feedbacks recebidos",
          is_su or area in ("PROJETOS", "TRIADE")),
+        ("Parceiros", "parceiros:painel", "CRM de doadores e arrecadação",
+         is_su or area in ("CR/RE", "TRIADE")),
+        ("Grade de Parceiros", "parceiros:grade", "Arrecadação mês a mês",
+         is_su or area in ("CR/RE", "TRIADE")),
+        ("Lista de Parceiros", "parceiros:lista", "Doadores e carteiras",
+         is_su or area in ("CR/RE", "TRIADE")),
         ("Meu Perfil", "voluntario:meu_perfil", "Seus dados e talentos", True),
     ]
     return [(nome, url, desc) for nome, url, desc, pode in paginas if pode]

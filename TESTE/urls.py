@@ -37,6 +37,7 @@ urlpatterns = [
     path('forms/', include('forms_pcf.urls', namespace='forms_pcf')),
     path('ronda/', include('ronda.urls', namespace='ronda')),
     path('gerenciamento/', include('gerenciamento.urls', namespace='gerenciamento')),
+    path('parceiros/', include('parceiros.urls', namespace='parceiros')),
 ]
 
 # Arquivos estáticos e de mídia.

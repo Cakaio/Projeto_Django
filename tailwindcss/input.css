@@ -273,7 +273,13 @@
   .pcf-badge.outline {
     background: hsl(var(--card));
     border-color: color-mix(in srgb, currentColor 18%, transparent);
+    /* ATENCAO: "outline" tambem e um utilitario do Tailwind
+       (.outline { outline-style: solid }). Sem esta linha, o badge ganha um
+       anel de 3px na cor CHEIA por cima do nosso fio diluido — era essa a
+       origem dos "tracos grossos". O contorno aqui e feito com border. */
+    outline: none;
   }
+  .pcf-badge.outline:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
   @supports not (color: color-mix(in srgb, red 50%, transparent)) {
     .pcf-badge.outline { border-color: hsl(var(--border)); }
   }

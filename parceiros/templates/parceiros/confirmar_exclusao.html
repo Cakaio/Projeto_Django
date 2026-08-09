@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% block titulo %}{% if parceiro %}Excluir parceiro{% else %}Excluir contribuição{% endif %}{% endblock %}
+
+{% block content %}
+{# Layout específico desta tela (prefixo .pdel-). O visual base vem das classes .pcf-*. #}
+<style>
+  .pdel-wrap { max-width: 560px; padding-block: clamp(2rem, 6vw, 3.5rem) clamp(2.5rem, 6vw, 4rem); }
+
+  .pdel-card { text-align: center; }
+  .pdel-icon { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto .95rem;
+               display: grid; place-items: center; background: #fdeaea; color: #b03636; }
+  .pdel-title { margin: 0 0 .5rem; font-size: clamp(1.2rem, 3vw, 1.45rem); font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .pdel-sub { margin: 0 auto; max-width: 44ch; font-size: .9rem; line-height: 1.6; color: var(--ink-soft); }
+
+  .pdel-resumo { margin-top: 1.15rem; text-align: left; }
+  .pdel-resumo dl { margin: 0; display: grid; gap: .55rem; }
+  .pdel-resumo .linha { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+  .pdel-resumo dt { margin: 0; font-size: .74rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .pdel-resumo dd { margin: 0; font-size: .9rem; font-weight: 650; color: var(--ink); text-align: right; overflow-wrap: anywhere; }
+
+  .pdel-aviso { display: flex; gap: .7rem; align-items: flex-start; text-align: left; margin-top: 1.15rem;
+                padding: .9rem 1rem; border-radius: 14px; background: #fdeaea; border: 1px solid #f7d4d4; color: #8f2f2f; }
+  .pdel-aviso svg { flex-shrink: 0; margin-top: .12rem; }
+  .pdel-aviso ul { margin: .3rem 0 0; padding-left: 1.1rem; }
+  .pdel-aviso li { font-size: .85rem; line-height: 1.55; }
+  .pdel-aviso p { margin: 0; font-size: .85rem; line-height: 1.55; font-weight: 700; }
+
+  .pdel-actions { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; }
+  .pdel-btn-danger { background: #d64545; color: #fff; }
+  .pdel-btn-danger:hover { background: #c23a3a; color: #fff; transform: translateY(-1px); }
+
+  @media (max-width: 520px) {
+    .pdel-actions { flex-direction: column-reverse; }
+    .pdel-actions .pcf-btn { width: 100%; justify-content: center; }
+    .pdel-resumo .linha { flex-direction: column; gap: .1rem; }
+    .pdel-resumo dd { text-align: left; }
+  }
+</style>
+
+<div class="pcf-container pdel-wrap">
+
+  <div class="pcf-card pdel-card">
+
+    <span class="pdel-icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </span>
+
+    {% if parceiro %}
+      <!-- ══════ Caso 1: excluir o parceiro inteiro ══════ -->
+      <h1 class="pdel-title">Excluir {{ parceiro.nome }}?</h1>
+      <p class="pdel-sub">
+        Você está prestes a remover este parceiro do CRM. Esta ação não pode ser desfeita.
+      </p>
+
+      <div class="pdel-resumo pcf-subcard">
+        <dl>
+          <div class="linha">
+            <dt>Parceiro</dt>
+            <dd>{{ parceiro.nome }}</dd>
+          </div>
+          <div class="linha">
+            <dt>Status</dt>
+            <dd>
+              <span class="pcf-badge {% if parceiro.status == 'ATIVO' %}ok{% elif parceiro.status == 'PROSPECTO' %}info{% elif parceiro.status == 'PAUSADO' %}warn{% else %}outline{% endif %}">
+                {{ parceiro.get_status_display }}
+              </span>
+            </dd>
+          </div>
+          <div class="linha">
+            <dt>Responsável</dt>
+            <dd>{{ parceiro.responsavel.get_full_name|default:parceiro.responsavel.username|default:"Sem responsável" }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="pdel-aviso" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <p>Ao excluir este parceiro, também serão apagados:</p>
+          <ul>
+            <li><strong>Todas as contribuições</strong> já registradas para ele, de todos os anos;</li>
+            <li>Os <strong>lançamentos correspondentes no Financeiro</strong> — os valores somem do fluxo de caixa e do DRE;</li>
+            <li>Todo o histórico de interações da ficha.</li>
+          </ul>
+        </div>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="pdel-actions">
+          <button type="submit" class="pcf-btn pdel-btn-danger">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Sim, excluir parceiro
+          </button>
+          <a href="{% url 'parceiros:ficha' parceiro.pk %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+        </div>
+      </form>
+
+    {% elif contribuicao %}
+      <!-- ══════ Caso 2: excluir uma contribuição ══════ -->
+      <h1 class="pdel-title">Excluir esta contribuição?</h1>
+      <p class="pdel-sub">
+        Você está prestes a remover a doação de {{ contribuicao.parceiro }} referente a
+        {{ contribuicao.competencia|date:"m/Y" }}. Esta ação não pode ser desfeita.
+      </p>
+
+      <div class="pdel-resumo pcf-subcard">
+        <dl>
+          <div class="linha">
+            <dt>Parceiro</dt>
+            <dd>{{ contribuicao.parceiro }}</dd>
+          </div>
+          <div class="linha">
+            <dt>Mês de referência</dt>
+            <dd>{{ contribuicao.competencia|date:"F/Y"|capfirst }}</dd>
+          </div>
+          <div class="linha">
+            <dt>Valor</dt>
+            <dd class="pcf-num">R$ {{ contribuicao.valor|floatformat:2 }}</dd>
+          </div>
+          <div class="linha">
+            <dt>Recebido em</dt>
+            <dd>{{ contribuicao.data_recebimento|date:"d/m/Y" }}{% if contribuicao.forma %} · {{ contribuicao.get_forma_display }}{% endif %}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="pdel-aviso" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          {% if contribuicao.lancamento %}
+            <p>O lançamento correspondente no Financeiro também será removido.</p>
+            <ul>
+              <li>O valor de R$ {{ contribuicao.valor|floatformat:2 }} sai do fluxo de caixa e do DRE.</li>
+              <li>Se a doação existiu de verdade, prefira <strong>editar</strong> a contribuição em vez de excluí-la.</li>
+            </ul>
+          {% else %}
+            <p>Esta contribuição não tem lançamento vinculado no Financeiro.</p>
+            <ul>
+              <li>Nada será removido do fluxo de caixa — mas confira se não há um lançamento solto lançado à mão.</li>
+            </ul>
+          {% endif %}
+        </div>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="pdel-actions">
+          <button type="submit" class="pcf-btn pdel-btn-danger">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Sim, excluir contribuição
+          </button>
+          <a href="{% url 'parceiros:ficha' contribuicao.parceiro.pk %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+        </div>
+      </form>
+
+    {% else %}
+      <!-- Contexto inesperado: nem parceiro nem contribuição -->
+      <h1 class="pdel-title">Nada para excluir</h1>
+      <p class="pdel-sub">O registro que você tentou remover não foi encontrado. Volte para a lista e tente novamente.</p>
+      <div class="pdel-actions">
+        <a href="{% url 'parceiros:lista' %}" class="pcf-btn pcf-btn-outline">Voltar para os parceiros</a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

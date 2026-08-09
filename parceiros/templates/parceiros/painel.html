@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% block titulo %}Painel de Parceiros{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .crmp-). #}
+{# O visual base vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .crmp-page { background: hsl(var(--background)); }
+  .crmp-wrap { padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+  .crmp-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  /* ── Barra do seletor de ano ── */
+  .crmp-toolbar { display: flex; align-items: flex-end; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.15rem; }
+  .crmp-toolbar-field { min-width: 9rem; }
+  .crmp-toolbar-note { margin: 0; flex: 1; min-width: 14rem; font-size: .8rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Cabeçalho interno dos cards ── */
+  .crmp-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .crmp-card-title { margin: 0; font-size: 1.02rem; font-weight: 750; letter-spacing: -.02em; color: var(--ink); }
+  .crmp-card-sub { margin: .2rem 0 0; font-size: .82rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Gráfico de barras ── */
+  .crmp-bars { height: clamp(96px, 18vw, 140px); }
+  .crmp-bars-labels { display: flex; gap: 3px; margin-top: .45rem; }
+  .crmp-bars-labels > span { flex: 1; min-width: 0; text-align: center; font-size: .62rem; font-weight: 650;
+                             letter-spacing: .02em; color: hsl(var(--muted-foreground)); }
+  .crmp-bars-labels > span.is-now { color: var(--ink); }
+  .crmp-months { list-style: none; display: flex; flex-wrap: wrap; gap: .35rem .5rem; margin: 1rem 0 0; padding: 0; }
+  .crmp-months li { font-size: .76rem; color: var(--ink-soft); background: hsl(var(--muted));
+                    border-radius: 999px; padding: .2rem .6rem; font-variant-numeric: tabular-nums; }
+  .crmp-months strong { color: var(--ink); font-weight: 700; margin-right: .25rem; }
+
+  /* ── Ranking de carteiras ── */
+  .crmp-rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .6rem; }
+  .crmp-rank-item { display: flex; align-items: flex-start; gap: .7rem; }
+  .crmp-rank-body { flex: 1; min-width: 0; }
+  .crmp-rank-top { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; margin-bottom: .4rem; }
+  .crmp-rank-name { font-size: .88rem; font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .crmp-rank-total { font-size: .84rem; font-weight: 800; color: var(--ink); white-space: nowrap; }
+  .crmp-rank-foot { margin: .4rem 0 0; font-size: .74rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Últimas contribuições ── */
+  .crmp-table { min-width: 620px; }
+  .crmp-parceiro { font-weight: 700; color: var(--ink); }
+  .crmp-carteira { display: flex; align-items: center; gap: .45rem; white-space: nowrap; }
+  .crmp-dim { color: hsl(var(--muted-foreground)); }
+  .crmp-nowrap { white-space: nowrap; }
+
+  /* ── Estado vazio ── */
+  .crmp-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem;
+                padding: 2.25rem 1.25rem; border: 1.5px dashed hsl(var(--border)); border-radius: 14px; background: hsl(var(--muted)); }
+  .crmp-empty-title { margin: .35rem 0 0; font-weight: 750; color: var(--ink); }
+  .crmp-empty-sub { margin: 0; max-width: 34ch; font-size: .84rem; color: hsl(var(--muted-foreground)); }
+
+  /* Na faixa intermediária o ranking ocupa a linha toda, para não deixar buraco no bento. */
+  @media (min-width: 900px) and (max-width: 1199px) { .crmp-wide { grid-column: span 4; } }
+  @media (max-width: 560px) {
+    .crmp-actions { width: 100%; }
+    .crmp-actions .pcf-btn { flex: 1; }
+    .crmp-toolbar-field { width: 100%; }
+  }
+</style>
+
+{% now "Y" as ano_de_hoje %}
+{% now "F" as mes_de_hoje %}
+
+<div class="crmp-page">
+  <div class="pcf-container crmp-wrap">
+
+    <!-- ══════ Cabeçalho ══════ -->
+    <header class="pcf-page-head" data-reveal>
+      <div>
+        <span class="pcf-eyebrow">CR/RE</span>
+        <h1 class="pcf-page-title" style="margin-top:.7rem">Painel de Parceiros</h1>
+        <p class="pcf-page-sub">Quem doa, quanto entrou e de quem é a carteira — o ano de {{ ano }} em um só lugar.</p>
+      </div>
+      <div class="crmp-actions">
+        <a href="{% url 'parceiros:grade' %}?ano={{ ano }}" class="pcf-btn pcf-btn-outline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          Ver grade anual
+        </a>
+        <a href="{% url 'parceiros:contribuicao_criar' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova contribuição
+        </a>
+      </div>
+    </header>
+
+    <!-- ══════ Seletor de ano ══════ -->
+    <form method="get" action="{% url 'parceiros:painel' %}" class="pcf-card crmp-toolbar" data-reveal>
+      <div class="pcf-field crmp-toolbar-field">
+        <label class="pcf-label" for="crmp-ano">Ano de referência</label>
+        <select class="pcf-input" id="crmp-ano" name="ano" onchange="this.form.submit()">
+          {% for a in anos %}
+            <option value="{{ a }}" {% if a == ano %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="pcf-btn pcf-btn-outline">Ver ano</button>
+      <p class="crmp-toolbar-note">
+        Os números abaixo consideram as contribuições cuja competência cai em {{ ano }}.
+      </p>
+    </form>
+
+    <!-- ══════ Bento ══════ -->
+    <div class="pcf-bento" data-reveal data-reveal-delay="60">
+
+      <!-- KPI: arrecadado no ano -->
+      <div class="pcf-tile pcf-col-2 pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Arrecadado em {{ ano }}</span>
+            <span class="pcf-icon-tile tint-green" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value">R$ {{ total_ano|floatformat:2 }}</div>
+          <div class="pcf-kpi-foot">
+            {{ doadores_no_ano }} parceiro{{ doadores_no_ano|pluralize }} doaram no ano
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI: arrecadado no mês -->
+      <div class="pcf-tile pcf-col-2 pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Arrecadado no mês</span>
+            <span class="pcf-icon-tile tint-orange" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value">R$ {{ total_mes|floatformat:2 }}</div>
+          <div class="pcf-kpi-foot">
+            {% if ano|stringformat:"s" == ano_de_hoje %}
+              competência de {{ mes_de_hoje|lower }}
+            {% else %}
+              só há mês corrente no ano atual
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI: parceiros ativos -->
+      <div class="pcf-tile pcf-col-2 pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Parceiros ativos</span>
+            <span class="pcf-icon-tile tint-blue" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value">{{ parceiros_ativos }}</div>
+          <div class="pcf-kpi-foot">
+            <a href="{% url 'parceiros:lista' %}" style="color:var(--brand);font-weight:650;text-decoration:none">Ver carteira completa →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI: ticket médio -->
+      <div class="pcf-tile pcf-col-2 pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Ticket médio</span>
+            <span class="pcf-icon-tile tint-gold" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value">R$ {{ ticket_medio|floatformat:2 }}</div>
+          <div class="pcf-kpi-foot">por parceiro que doou em {{ ano }}</div>
+        </div>
+      </div>
+
+      <!-- Gráfico: arrecadação mês a mês -->
+      <section class="pcf-tile pcf-col-4">
+        <div class="crmp-card-head">
+          <div>
+            <h2 class="crmp-card-title">Arrecadação mês a mês</h2>
+            <p class="crmp-card-sub">Competência de janeiro a dezembro de {{ ano }}.</p>
+          </div>
+          <a href="{% url 'parceiros:grade' %}?ano={{ ano }}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Abrir grade</a>
+        </div>
+
+        {% if total_ano %}
+          <div class="pcf-bars crmp-bars" role="img" aria-label="Arrecadação por mês em {{ ano }}, comparada ao melhor mês do ano.">
+            {% for item in serie %}
+              <span class="{% if item.atual %}is-now{% endif %}"
+                    style="height:{{ item.altura }}%"
+                    title="{{ item.rotulo }} — R$ {{ item.valor|floatformat:2 }}"></span>
+            {% endfor %}
+          </div>
+          <div class="crmp-bars-labels" aria-hidden="true">
+            {% for item in serie %}
+              <span class="{% if item.atual %}is-now{% endif %}">{{ item.rotulo }}</span>
+            {% endfor %}
+          </div>
+          <ul class="crmp-months">
+            {% for item in serie %}
+              {% if item.valor %}<li><strong>{{ item.rotulo }}</strong> R$ {{ item.valor|floatformat:2 }}</li>{% endif %}
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="crmp-empty">
+            <span class="pcf-icon-tile lg" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+            </span>
+            <p class="crmp-empty-title">Nenhuma contribuição em {{ ano }}</p>
+            <p class="crmp-empty-sub">Registre a primeira doação do ano para o gráfico começar a se desenhar.</p>
+            <a href="{% url 'parceiros:contribuicao_criar' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm" style="margin-top:.4rem">Nova contribuição</a>
+          </div>
+        {% endif %}
+      </section>
+
+      <!-- Ranking por carteira -->
+      <section class="pcf-tile pcf-col-2 crmp-wide">
+        <div class="crmp-card-head">
+          <div>
+            <h2 class="crmp-card-title">Carteiras</h2>
+            <p class="crmp-card-sub">Quanto cada responsável do CR trouxe em {{ ano }}.</p>
+          </div>
+        </div>
+
+        {% if carteiras %}
+          {% with maior=carteiras.0.total %}
+          <ol class="crmp-rank">
+            {% for carteira in carteiras %}
+              <li class="pcf-subcard crmp-rank-item">
+                <span class="pcf-avatar sm" aria-hidden="true">{% if carteira.responsavel__first_name %}{{ carteira.responsavel__first_name|slice:":1"|upper }}{% elif carteira.responsavel__username %}{{ carteira.responsavel__username|slice:":1"|upper }}{% else %}?{% endif %}</span>
+                <div class="crmp-rank-body">
+                  <div class="crmp-rank-top">
+                    <span class="crmp-rank-name">
+                      {% if carteira.responsavel__first_name %}
+                        {{ carteira.responsavel__first_name }} {{ carteira.responsavel__last_name }}
+                      {% elif carteira.responsavel__username %}
+                        {{ carteira.responsavel__username }}
+                      {% else %}
+                        Sem responsável
+                      {% endif %}
+                    </span>
+                    <span class="crmp-rank-total pcf-num">R$ {{ carteira.total|floatformat:2 }}</span>
+                  </div>
+                  <div class="pcf-progress">
+                    <span style="width:{% widthratio carteira.total maior 100 %}%"></span>
+                  </div>
+                  <p class="crmp-rank-foot">
+                    {{ carteira.parceiros }} parceiro{{ carteira.parceiros|pluralize }} com doação no ano
+                  </p>
+                </div>
+              </li>
+            {% endfor %}
+          </ol>
+          {% endwith %}
+        {% else %}
+          <div class="crmp-empty">
+            <span class="pcf-icon-tile lg" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+            </span>
+            <p class="crmp-empty-title">Nenhuma carteira com movimento</p>
+            <p class="crmp-empty-sub">Assim que houver contribuição em {{ ano }}, o ranking por responsável aparece aqui.</p>
+          </div>
+        {% endif %}
+      </section>
+
+      <!-- Últimas contribuições -->
+      <section class="pcf-tile pcf-col-4">
+        <div class="crmp-card-head">
+          <div>
+            <h2 class="crmp-card-title">Últimas contribuições</h2>
+            <p class="crmp-card-sub">As 8 doações mais recentes, de qualquer ano.</p>
+          </div>
+          <a href="{% url 'parceiros:lista' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver parceiros</a>
+        </div>
+
+        {% if ultimas %}
+          <div class="pcf-scroll-x">
+            <table class="pcf-table crmp-table">
+              <thead>
+                <tr>
+                  <th scope="col">Parceiro</th>
+                  <th scope="col">Competência</th>
+                  <th scope="col">Recebido em</th>
+                  <th scope="col">Forma</th>
+                  <th scope="col">Carteira</th>
+                  <th scope="col" class="num">Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for contribuicao in ultimas %}
+                  <tr>
+                    <td class="crmp-parceiro">{{ contribuicao.parceiro.nome }}</td>
+                    <td class="crmp-nowrap">{{ contribuicao.competencia|date:"m/Y" }}</td>
+                    <td class="crmp-nowrap">{{ contribuicao.data_recebimento|date:"d/m/Y" }}</td>
+                    <td><span class="pcf-badge">{{ contribuicao.get_forma_display|default:"—" }}</span></td>
+                    <td>
+                      {% if contribuicao.parceiro.responsavel %}
+                        <span class="crmp-carteira">
+                          <span class="pcf-avatar sm" aria-hidden="true">{% if contribuicao.parceiro.responsavel.first_name %}{{ contribuicao.parceiro.responsavel.first_name|slice:":1"|upper }}{% else %}{{ contribuicao.parceiro.responsavel.username|slice:":1"|upper }}{% endif %}</span>
+                          {% if contribuicao.parceiro.responsavel.first_name %}
+                            {{ contribuicao.parceiro.responsavel.first_name }}
+                          {% else %}
+                            {{ contribuicao.parceiro.responsavel.username }}
+                          {% endif %}
+                        </span>
+                      {% else %}
+                        <span class="crmp-dim">Sem responsável</span>
+                      {% endif %}
+                    </td>
+                    <td class="num"><strong>R$ {{ contribuicao.valor|floatformat:2 }}</strong></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="crmp-empty">
+            <span class="pcf-icon-tile lg" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+            <p class="crmp-empty-title">Nenhuma contribuição registrada</p>
+            <p class="crmp-empty-sub">Cadastre um parceiro e lance a primeira doação — ela também entra sozinha no Financeiro.</p>
+            <a href="{% url 'parceiros:contribuicao_criar' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm" style="margin-top:.4rem">Nova contribuição</a>
+          </div>
+        {% endif %}
+      </section>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

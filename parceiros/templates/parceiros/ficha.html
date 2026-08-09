@@ -1,0 +1,402 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ parceiro.nome }}{% endblock %}
+
+{% block content %}
+{# Layout específico desta tela (prefixo .fic-). O visual base vem das classes .pcf-*. #}
+<style>
+  .fic-wrap { padding-block: clamp(1.5rem, 4vw, 2.25rem) clamp(2.5rem, 6vw, 4rem); }
+
+  /* Cabeçalho */
+  .fic-ident { display: flex; align-items: flex-start; gap: .9rem; min-width: 0; }
+  .fic-name { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+  .fic-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  /* Duas colunas no desktop */
+  .fic-grid { display: grid; gap: 1.15rem; grid-template-columns: minmax(0, 1fr); }
+  .fic-main, .fic-side { display: flex; flex-direction: column; gap: 1.15rem; min-width: 0; }
+  @media (min-width: 1000px) {
+    .fic-grid { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+  }
+
+  /* KPIs pequenos */
+  .fic-kpis { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .fic-kpis .pcf-kpi-value { font-size: clamp(1.2rem, 3.4vw, 1.55rem); }
+
+  /* Títulos de seção */
+  .fic-sec-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .fic-sec-title { margin: 0; font-size: 1.02rem; font-weight: 750; letter-spacing: -.02em; color: var(--ink); }
+  .fic-sec-sub { margin: .2rem 0 0; font-size: .82rem; color: hsl(var(--muted-foreground)); }
+
+  /* Histórico por ano */
+  .fic-ano + .fic-ano { margin-top: .9rem; }
+  .fic-ano-total { text-align: right; }
+  .fic-ano-total .lbl { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .fic-ano-total .val { font-size: 1.1rem; font-weight: 800; letter-spacing: -.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  /* No celular o card do ano fica dentro de outro card, sobrando so ~260px de
+     largura. Sem estes minimos as colunas se espremem ("Importado da planilha"
+     quebrava em 3 linhas e "R$ 20,00" em 2). Com eles a tabela rola dentro do
+     .pcf-scroll-x, do mesmo jeito que a da grade. */
+  .fic-tab { min-width: 660px; }
+  .fic-tab th:nth-child(1), .fic-tab td:nth-child(1) { min-width: 150px; }
+  .fic-tab th:nth-child(2), .fic-tab td:nth-child(2) { min-width: 90px; white-space: nowrap; }
+  .fic-tab th:nth-child(3), .fic-tab td:nth-child(3) { white-space: nowrap; }
+  .fic-mes { font-weight: 700; color: var(--ink); }
+  .fic-obs { display: block; font-size: .76rem; color: hsl(var(--muted-foreground)); margin-top: .15rem; }
+  .fic-row-actions { display: flex; gap: .25rem; justify-content: flex-end; white-space: nowrap; }
+  .fic-link-danger { color: #b03636; }
+  .fic-link-danger:hover { background: #fdeaea; color: #8f2f2f; }
+
+  /* Timeline de interações */
+  .fic-tl { list-style: none; margin: 0; padding: 0; }
+  .fic-tl-item { position: relative; padding: 0 0 1.1rem 1.6rem; }
+  .fic-tl-item::before { content: ''; position: absolute; left: 5px; top: .55rem; bottom: -.2rem; width: 2px; background: hsl(var(--border)); }
+  .fic-tl-item:last-child { padding-bottom: 0; }
+  .fic-tl-item:last-child::before { display: none; }
+  .fic-tl-dot { position: absolute; left: 0; top: .35rem; width: 12px; height: 12px; border-radius: 999px; background: var(--brand); box-shadow: 0 0 0 3px hsl(var(--accent)); }
+  .fic-tl-top { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .fic-tl-date { font-size: .78rem; font-weight: 650; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+  .fic-tl-desc { margin: .4rem 0 0; font-size: .88rem; line-height: 1.55; color: var(--ink-soft); overflow-wrap: anywhere; }
+  .fic-tl-autor { margin: .3rem 0 0; font-size: .76rem; color: hsl(var(--muted-foreground)); }
+
+  /* Dados de contato */
+  .fic-dl { margin: 0; }
+  .fic-dl > div { padding: .7rem 0; border-bottom: 1px solid hsl(var(--border)); }
+  .fic-dl > div:first-child { padding-top: 0; }
+  .fic-dl > div:last-child { border-bottom: 0; padding-bottom: 0; }
+  .fic-dt { margin: 0 0 .2rem; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .fic-dd { margin: 0; font-size: .9rem; color: var(--ink); overflow-wrap: anywhere; }
+  .fic-dd a { color: var(--brand); font-weight: 650; text-decoration: none; }
+  .fic-dd a:hover { text-decoration: underline; }
+  .fic-dd.is-empty { color: hsl(var(--muted-foreground)); font-style: italic; }
+  .fic-dd.pre { white-space: pre-line; line-height: 1.55; color: var(--ink-soft); }
+
+  /* Formulário de interação */
+  .fic-form { display: flex; flex-direction: column; gap: .9rem; }
+  .fic-help { margin: 0; font-size: .76rem; color: hsl(var(--muted-foreground)); }
+  .fic-err { margin: 0; font-size: .78rem; font-weight: 600; color: #b03636; }
+  .fic-form textarea.pcf-input { min-height: 5rem; resize: vertical; }
+
+  /* Estado vazio */
+  .fic-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .45rem;
+               padding: 2rem 1.1rem; border: 1.5px dashed hsl(var(--border)); border-radius: 14px; background: hsl(var(--muted)); }
+  .fic-empty p { margin: 0; }
+  .fic-empty .t { font-weight: 750; color: var(--ink); }
+  .fic-empty .s { font-size: .85rem; color: hsl(var(--muted-foreground)); max-width: 34ch; }
+
+  .fic-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @media (max-width: 560px) {
+    .fic-actions .pcf-btn { flex: 1 1 auto; justify-content: center; }
+  }
+</style>
+
+<div class="pcf-container fic-wrap">
+
+  <!-- ══════ Cabeçalho ══════ -->
+  <header class="pcf-page-head">
+    <div class="fic-ident">
+      <span class="pcf-avatar lg" aria-hidden="true">{{ parceiro.nome|first|upper }}</span>
+      <div style="min-width:0">
+        <span class="pcf-eyebrow">CRM de Parceiros</span>
+        <h1 class="pcf-page-title fic-name" style="margin-top:.55rem">
+          {{ parceiro.nome }}
+          <span class="pcf-badge {% if parceiro.status == 'ATIVO' %}ok{% elif parceiro.status == 'PROSPECTO' %}info{% elif parceiro.status == 'PAUSADO' %}warn{% else %}outline{% endif %}">
+            <span class="dot" aria-hidden="true"></span> {{ parceiro.get_status_display }}
+          </span>
+        </h1>
+        <p class="pcf-page-sub">
+          {% if parceiro.responsavel %}
+            Carteira de <strong style="color:var(--ink)">{{ parceiro.responsavel.get_full_name|default:parceiro.responsavel.username }}</strong>
+          {% else %}
+            Sem responsável definido — atribua alguém do CR em “Editar”
+          {% endif %}
+          {% if parceiro.criado_em %} · no CRM desde {{ parceiro.criado_em|date:"d/m/Y" }}{% endif %}
+        </p>
+      </div>
+    </div>
+
+    <div class="fic-actions">
+      <a href="{% url 'parceiros:editar' parceiro.pk %}" class="pcf-btn pcf-btn-outline">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+        Editar
+      </a>
+      <a href="{% url 'parceiros:contribuicao_criar' %}?parceiro={{ parceiro.pk }}&amp;voltar={{ request.path }}" class="pcf-btn pcf-btn-primary">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova contribuição
+      </a>
+      <a href="{% url 'parceiros:excluir' parceiro.pk %}" class="pcf-btn pcf-btn-ghost fic-link-danger">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Excluir
+      </a>
+    </div>
+  </header>
+
+  <div class="fic-grid">
+
+    <!-- ══════ Coluna principal ══════ -->
+    <div class="fic-main">
+
+      <!-- KPIs -->
+      {% with ultima=historico.0.contribuicoes.0 %}
+      <section class="fic-kpis" aria-label="Resumo do parceiro">
+        <div class="pcf-card">
+          <div class="pcf-kpi">
+            <div class="pcf-kpi-top">
+              <span class="pcf-kpi-label">Total arrecadado</span>
+              <span class="pcf-icon-tile tint-green" style="width:32px;height:32px;border-radius:9px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </span>
+            </div>
+            <div class="pcf-kpi-value pcf-num">R$ {{ total_geral|floatformat:2 }}</div>
+            <div class="pcf-kpi-foot">desde o início da parceria</div>
+          </div>
+        </div>
+
+        <div class="pcf-card">
+          <div class="pcf-kpi">
+            <div class="pcf-kpi-top">
+              <span class="pcf-kpi-label">Contribuições</span>
+              <span class="pcf-icon-tile tint-blue" style="width:32px;height:32px;border-radius:9px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </span>
+            </div>
+            <div class="pcf-kpi-value pcf-num">{{ parceiro.contribuicoes.count }}</div>
+            <div class="pcf-kpi-foot">
+              {% if historico %}{{ historico|length }} ano{{ historico|length|pluralize }} com registro{% else %}nenhum mês registrado{% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="pcf-card">
+          <div class="pcf-kpi">
+            <div class="pcf-kpi-top">
+              <span class="pcf-kpi-label">Última doação</span>
+              <span class="pcf-icon-tile tint-gold" style="width:32px;height:32px;border-radius:9px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
+            </div>
+            {% if ultima %}
+              <div class="pcf-kpi-value pcf-num">R$ {{ ultima.valor|floatformat:2 }}</div>
+              <div class="pcf-kpi-foot">{{ ultima.competencia|date:"F/Y"|capfirst }} · recebida em {{ ultima.data_recebimento|date:"d/m/Y" }}</div>
+            {% else %}
+              <div class="pcf-kpi-value">—</div>
+              <div class="pcf-kpi-foot">ainda sem doação registrada</div>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+      {% endwith %}
+
+      <!-- Histórico de contribuições -->
+      <section class="pcf-card" aria-labelledby="fic-hist-titulo">
+        <div class="fic-sec-head">
+          <div>
+            <h2 class="fic-sec-title" id="fic-hist-titulo">Histórico de contribuições</h2>
+            <p class="fic-sec-sub">Um card por ano, do mais recente para o mais antigo. Meses sem doação simplesmente não aparecem.</p>
+          </div>
+          <a href="{% url 'parceiros:contribuicao_criar' %}?parceiro={{ parceiro.pk }}&amp;voltar={{ request.path }}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Lançar mês</a>
+        </div>
+
+        {% for grupo in historico %}
+          <article class="pcf-subcard fic-ano">
+            <header class="fic-sec-head" style="margin-bottom:.8rem">
+              <div>
+                <h3 class="fic-sec-title">{{ grupo.ano }}</h3>
+                <p class="fic-sec-sub">{{ grupo.contribuicoes|length }} registro{{ grupo.contribuicoes|length|pluralize }}</p>
+              </div>
+              <p class="fic-ano-total" style="margin:0">
+                <span class="lbl">Total no ano</span>
+                <span class="val">R$ {{ grupo.total|floatformat:2 }}</span>
+              </p>
+            </header>
+
+            <div class="pcf-scroll-x">
+              <table class="pcf-table fic-tab">
+                <thead>
+                  <tr>
+                    <th scope="col">Mês</th>
+                    <th scope="col" class="num">Valor</th>
+                    <th scope="col">Recebido em</th>
+                    <th scope="col">Forma</th>
+                    <th scope="col">Financeiro</th>
+                    <th scope="col"><span class="fic-sr">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in grupo.contribuicoes %}
+                  <tr>
+                    <td>
+                      <span class="fic-mes">{{ c.competencia|date:"F"|capfirst }}</span>
+                      {% if c.observacao %}<span class="fic-obs">{{ c.observacao }}</span>{% endif %}
+                    </td>
+                    <td class="num">R$ {{ c.valor|floatformat:2 }}</td>
+                    <td>{{ c.data_recebimento|date:"d/m/Y" }}</td>
+                    <td>{{ c.get_forma_display|default:"—" }}</td>
+                    <td>
+                      {% if c.lancamento %}
+                        <span class="pcf-badge outline ok">Lançado</span>
+                      {% else %}
+                        <span class="pcf-badge outline warn">Sem lançamento</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <span class="fic-row-actions">
+                        <a href="{% url 'parceiros:contribuicao_editar' c.pk %}?voltar={{ request.path }}"
+                           class="pcf-btn pcf-btn-ghost pcf-btn-sm">Editar</a>
+                        <a href="{% url 'parceiros:contribuicao_excluir' c.pk %}"
+                           class="pcf-btn pcf-btn-ghost pcf-btn-sm fic-link-danger">Excluir</a>
+                      </span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        {% empty %}
+          <div class="fic-empty">
+            <span class="pcf-icon-tile lg" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+            <p class="t">Nenhuma contribuição registrada</p>
+            <p class="s">Quando este parceiro doar, lance o mês aqui — o valor entra automaticamente no Financeiro como doação.</p>
+            <a href="{% url 'parceiros:contribuicao_criar' %}?parceiro={{ parceiro.pk }}&amp;voltar={{ request.path }}" class="pcf-btn pcf-btn-primary pcf-btn-sm" style="margin-top:.5rem">Registrar primeira contribuição</a>
+          </div>
+        {% endfor %}
+      </section>
+
+      <!-- Timeline de interações -->
+      <section class="pcf-card" aria-labelledby="fic-rel-titulo">
+        <div class="fic-sec-head">
+          <div>
+            <h2 class="fic-sec-title" id="fic-rel-titulo">Relacionamento</h2>
+            <p class="fic-sec-sub">Contatos, agradecimentos e combinados — o que a planilha não guardava.</p>
+          </div>
+        </div>
+
+        <ol class="fic-tl">
+          {% for interacao in interacoes %}
+          <li class="fic-tl-item">
+            <span class="fic-tl-dot" aria-hidden="true"></span>
+            <div>
+              <div class="fic-tl-top">
+                <span class="pcf-badge outline {% if interacao.tipo == 'AGRADECIMENTO' %}ok{% elif interacao.tipo == 'COBRANCA' %}warn{% elif interacao.tipo == 'REUNIAO' %}brand{% elif interacao.tipo == 'CONTATO' %}info{% endif %}">
+                  {{ interacao.get_tipo_display }}
+                </span>
+                <time class="fic-tl-date">{{ interacao.data|date:"d/m/Y" }}</time>
+              </div>
+              <p class="fic-tl-desc">{{ interacao.descricao|linebreaksbr }}</p>
+              <p class="fic-tl-autor">
+                por {{ interacao.autor.get_full_name|default:interacao.autor.username|default:"voluntário não identificado" }}
+              </p>
+            </div>
+          </li>
+          {% empty %}
+          <li>
+            <div class="fic-empty">
+              <span class="pcf-icon-tile lg" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"/></svg>
+              </span>
+              <p class="t">Nenhuma interação registrada</p>
+              <p class="s">Use o formulário ao lado para anotar cada conversa, agradecimento ou reunião com este parceiro.</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ol>
+      </section>
+    </div>
+
+    <!-- ══════ Coluna lateral ══════ -->
+    <aside class="fic-side">
+
+      <!-- Dados de contato -->
+      <section class="pcf-card" aria-labelledby="fic-contato-titulo">
+        <div class="fic-sec-head">
+          <h2 class="fic-sec-title" id="fic-contato-titulo">Dados de contato</h2>
+        </div>
+
+        <dl class="fic-dl">
+          <div>
+            <dt class="fic-dt">E-mail</dt>
+            {% if parceiro.email %}
+              <dd class="fic-dd"><a href="mailto:{{ parceiro.email }}">{{ parceiro.email }}</a></dd>
+            {% else %}
+              <dd class="fic-dd is-empty">Não informado</dd>
+            {% endif %}
+          </div>
+
+          <div>
+            <dt class="fic-dt">Telefone / WhatsApp</dt>
+            {% if parceiro.telefone %}
+              <dd class="fic-dd">
+                <a href="https://wa.me/55{{ parceiro.telefone|cut:"("|cut:")"|cut:" "|cut:"-"|cut:"."|cut:"+" }}"
+                   target="_blank" rel="noopener noreferrer">{{ parceiro.telefone }}</a>
+              </dd>
+            {% else %}
+              <dd class="fic-dd is-empty">Não informado</dd>
+            {% endif %}
+          </div>
+
+          <div>
+            <dt class="fic-dt">CPF / CNPJ</dt>
+            <dd class="fic-dd {% if not parceiro.documento %}is-empty{% endif %}">
+              {{ parceiro.documento|default:"Não informado (necessário só para recibo)" }}
+            </dd>
+          </div>
+
+          <div>
+            <dt class="fic-dt">Valor de referência</dt>
+            {% if parceiro.valor_referencia %}
+              <dd class="fic-dd pcf-num">R$ {{ parceiro.valor_referencia|floatformat:2 }} <span style="font-weight:400;color:hsl(var(--muted-foreground));font-size:.8rem">/ mês (orientativo)</span></dd>
+            {% else %}
+              <dd class="fic-dd is-empty">Não definido</dd>
+            {% endif %}
+          </div>
+
+          <div>
+            <dt class="fic-dt">Observações</dt>
+            <dd class="fic-dd pre {% if not parceiro.observacoes %}is-empty{% endif %}">
+              {{ parceiro.observacoes|default:"Sem observações." }}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Nova interação -->
+      <section class="pcf-card" aria-labelledby="fic-form-titulo">
+        <div class="fic-sec-head">
+          <div>
+            <h2 class="fic-sec-title" id="fic-form-titulo">Registrar interação</h2>
+            <p class="fic-sec-sub">Fica no histórico com o seu nome.</p>
+          </div>
+        </div>
+
+        <form method="post" action="" class="fic-form">
+          {% csrf_token %}
+
+          {% if form_interacao.non_field_errors %}
+            <p class="fic-err">{{ form_interacao.non_field_errors|join:", " }}</p>
+          {% endif %}
+
+          {% for field in form_interacao %}
+            <div class="pcf-field">
+              <label class="pcf-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<p class="fic-help">{{ field.help_text }}</p>{% endif %}
+              {% if field.errors %}<p class="fic-err">{{ field.errors|join:", " }}</p>{% endif %}
+            </div>
+          {% endfor %}
+
+          <button type="submit" class="pcf-btn pcf-btn-primary pcf-btn-block">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            Salvar interação
+          </button>
+        </form>
+      </section>
+
+      <a href="{% url 'parceiros:lista' %}" class="pcf-btn pcf-btn-outline pcf-btn-block">Voltar para a lista de parceiros</a>
+    </aside>
+
+  </div>
+</div>
+{% endblock %}

@@ -11,7 +11,7 @@ from django.apps import apps
 from functools import wraps
 from decimal import Decimal
 import csv
-from .models import Categoria, Lancamento
+from .models import Categoria, Lancamento, ORIGENS_AUTOMATICAS
 from .forms import CategoriaForm, LancamentoForm
 
 AREAS_LEITURA = {'ADM/FIN', 'TRIADE'}
@@ -123,8 +123,12 @@ def criar_lancamento(request):
 @adm_escrita_required
 def editar_lancamento(request, pk):
     lan = get_object_or_404(Lancamento, pk=pk)
-    if lan.origem == 'SUPPLY':
-        messages.error(request, 'Lançamentos do Supply não podem ser editados manualmente.')
+    if lan.origem in ORIGENS_AUTOMATICAS:
+        messages.error(
+            request,
+            f'Lançamentos com origem "{lan.get_origem_display()}" são gerados automaticamente '
+            'e não podem ser editados aqui. Altere o registro de origem.'
+        )
         return redirect('adm:lista_lancamentos')
     form = LancamentoForm(request.POST or None, instance=lan)
     if form.is_valid():
@@ -137,8 +141,12 @@ def editar_lancamento(request, pk):
 @adm_escrita_required
 def deletar_lancamento(request, pk):
     lan = get_object_or_404(Lancamento, pk=pk)
-    if lan.origem == 'SUPPLY':
-        messages.error(request, 'Lançamentos do Supply não podem ser removidos manualmente.')
+    if lan.origem in ORIGENS_AUTOMATICAS:
+        messages.error(
+            request,
+            f'Lançamentos com origem "{lan.get_origem_display()}" são gerados automaticamente '
+            'e não podem ser removidos aqui. Remova o registro de origem.'
+        )
         return redirect('adm:lista_lancamentos')
     if request.method == 'POST':
         lan.delete()

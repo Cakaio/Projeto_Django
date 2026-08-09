@@ -10,7 +10,13 @@ ORIGEM_CHOICES = (
     ('MANUAL', 'Manual'),
     ('SUPPLY', 'Supply'),
     ('REEMBOLSO', 'Reembolso'),
+    ('DOACAO', 'Doação'),
 )
+
+# Lançamentos gerados por outra área do sistema: a fonte da verdade é o
+# registro de origem (pedido do Supply, reembolso, contribuição de parceiro).
+# Editar/remover pela tela do Financeiro deixaria os dois lados divergentes.
+ORIGENS_AUTOMATICAS = ('SUPPLY', 'REEMBOLSO', 'DOACAO')
 
 
 class Categoria(models.Model):
