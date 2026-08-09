@@ -15,9 +15,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include, re_path
+from django.urls import path, include
 from django.conf import settings
-from django.views.static import serve
+from django.conf.urls.static import static
 from .views import inicio, LandingView, busca
 from django.contrib.auth import views as auth_view
 
@@ -40,19 +40,7 @@ urlpatterns = [
     path('parceiros/', include('parceiros.urls', namespace='parceiros')),
 ]
 
-# Arquivos estáticos e de mídia.
-# ATENÇÃO: o helper `static()` do Django só funciona com DEBUG=True. Como o
-# DEBUG agora vem do .env (e o padrão é False), usar só ele deixaria o site
-# inteiro sem CSS, JS e imagens em produção. As rotas abaixo servem os arquivos
-# independentemente do DEBUG, garantindo que nada quebre.
-#
-# O ideal, em produção, é o servidor web entregar esses arquivos: na aba "Web"
-# do PythonAnywhere, mapeie  /static/ -> /home/pcf/Projeto_Django/static  e
-# /media/ -> /home/pcf/Projeto_Django/media. Feito isso, o mapeamento tem
-# precedência e estas rotas ficam apenas como reserva.
-urlpatterns += [
-    re_path(r'^%s(?P<path>.*)$' % settings.STATIC_URL.lstrip('/'),
-            serve, {'document_root': settings.STATIC_ROOT}),
-    re_path(r'^%s(?P<path>.*)$' % settings.MEDIA_URL.lstrip('/'),
-            serve, {'document_root': settings.MEDIA_ROOT}),
-]
+# WhiteNoise entrega /static/ em produção. O Django serve uploads somente no
+# desenvolvimento; em produção, /media/ deve ser mapeado pelo PythonAnywhere.
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
