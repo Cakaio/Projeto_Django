@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+{% block titulo %}{% if demanda %}Editar demanda{% else %}Nova demanda{% endif %}{% endblock %}
+
+{% block content %}
+{% comment %}
+Formulário da demanda do backlog de Projetos (contexto: form, demanda).
+Só LAYOUT específico desta tela mora no <style>, com prefixo .pj- exclusivo.
+O visual base vem das classes .pcf-* de tailwindcss/input.css.
+{% endcomment %}
+<style>
+  .pj-f-wrap { max-width: 820px; padding-block: clamp(1.5rem, 4vw, 2.25rem) clamp(2.5rem, 6vw, 4rem); }
+  .pj-f-head-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+  /* Título de demanda é texto livre e às vezes vem sem espaço; sem isto a
+     página ganha rolagem horizontal no celular. */
+  .pj-f-wrap .pcf-page-title, .pj-f-wrap .pcf-page-sub { overflow-wrap: anywhere; }
+
+  /* Cada fieldset é um assunto do formulário. O `min-width: 0` é obrigatório:
+     fieldset nasce com min-inline-size: min-content e, sem ele, o grid interno
+     não encolhe abaixo de ~400px e a tela estoura em 360px. */
+  .pj-f-sec { border: 0; margin: 0; padding: 0; min-width: 0; }
+  .pj-f-sec + .pj-f-sec { margin-top: 1.6rem; padding-top: 1.4rem; border-top: 1px solid hsl(var(--border)); }
+  .pj-f-sec-title { padding: 0; font-size: .96rem; font-weight: 750; letter-spacing: -.015em; color: var(--ink); }
+  .pj-f-sec-sub { margin: .2rem 0 1rem; font-size: .8rem; line-height: 1.5; color: hsl(var(--muted-foreground)); }
+
+  .pj-f-grid { display: grid; gap: 1.05rem; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 700px) {
+    .pj-f-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pj-f-wide { grid-column: 1 / -1; }
+  }
+
+  .pj-f-help { margin: 0; font-size: .76rem; line-height: 1.45; color: hsl(var(--muted-foreground)); }
+  .pj-f-err { margin: 0; font-size: .78rem; font-weight: 600; color: #b03636; }
+  .pj-f-alert { display: flex; gap: .7rem; align-items: flex-start; margin-bottom: 1.1rem;
+                padding: .85rem 1rem; border-radius: 14px; background: #fdeaea;
+                border: 1px solid #f7d4d4; color: #8f2f2f; }
+  .pj-f-alert svg { flex-shrink: 0; margin-top: .12rem; }
+  .pj-f-alert p { margin: 0; font-size: .85rem; line-height: 1.5; }
+
+  /* Aviso de onde mora o histórico: sem ele o time tenta narrar a conversa
+     dentro de "o que fizemos" e o registro por data se perde. */
+  .pj-f-nota { display: flex; gap: .7rem; align-items: flex-start; margin-bottom: 1.25rem; }
+  .pj-f-nota svg { flex-shrink: 0; margin-top: .15rem; color: var(--brand); }
+  .pj-f-nota p { margin: 0; font-size: .82rem; line-height: 1.55; color: var(--ink-soft); }
+  .pj-f-nota a { color: var(--brand); font-weight: 650; text-decoration: none; }
+  .pj-f-nota a:hover { text-decoration: underline; }
+
+  .pj-f-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.6rem;
+                  padding-top: 1.25rem; border-top: 1px solid hsl(var(--border)); }
+  .pj-f-danger { color: #b03636; }
+  .pj-f-danger:hover { background: #fdeaea; color: #8f2f2f; }
+
+  .pj-f-form textarea.pcf-input { min-height: 5.5rem; resize: vertical; }
+  .pj-f-form select.pcf-input { appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23857f78' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right .8rem center; padding-right: 2.2rem; }
+
+  @media (max-width: 560px) {
+    .pj-f-head-actions { width: 100%; }
+    .pj-f-head-actions .pcf-btn { flex: 1 1 auto; justify-content: center; }
+    .pj-f-actions { flex-direction: column-reverse; }
+    .pj-f-actions .pcf-btn { width: 100%; justify-content: center; }
+  }
+</style>
+
+<div class="pcf-container pj-f-wrap">
+
+  <!-- ══════ Cabeçalho ══════ -->
+  <header class="pcf-page-head">
+    <div style="min-width:0">
+      <span class="pcf-eyebrow">Projetos · Backlog</span>
+      <h1 class="pcf-page-title" style="margin-top:.55rem">
+        {% if demanda %}Editar demanda{% else %}Nova demanda{% endif %}
+      </h1>
+      <p class="pcf-page-sub">
+        {% if demanda %}
+          Ajuste <strong style="color:var(--ink)">{{ demanda.titulo }}</strong>, da área
+          {{ demanda.get_area_display }}. O histórico do que já foi conversado continua na ficha.
+        {% else %}
+          Registre o que Projetos está fazendo (ou pensando em fazer) para uma área do PCF.
+          Depois de salvar, a ficha guarda cada conversa, cobrança e entrega por data.
+        {% endif %}
+      </p>
+    </div>
+
+    {% if demanda %}
+      <div class="pj-f-head-actions">
+        <a href="{% url 'projetos:ficha' demanda.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+          Ver a ficha
+        </a>
+        <a href="{% url 'projetos:deletar' demanda.pk %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm pj-f-danger">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Excluir
+        </a>
+      </div>
+    {% else %}
+      <div class="pj-f-head-actions">
+        <a href="{% url 'projetos:backlog' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Voltar ao backlog
+        </a>
+      </div>
+    {% endif %}
+  </header>
+
+  <div class="pcf-card">
+
+    <div class="pcf-subcard pj-f-nota">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <div>
+        <p>
+          Esta tela guarda a <strong>situação atual</strong> da demanda.
+          Cada conversa, cobrança, resposta da área e entrega é registrada por data
+          {% if demanda %}
+            no histórico da <a href="{% url 'projetos:ficha' demanda.pk %}">ficha</a> —
+          {% else %}
+            no histórico da ficha, que abre logo depois de salvar —
+          {% endif %}
+          e é dali que sai a conta de há quantos dias a demanda está parada.
+        </p>
+      </div>
+    </div>
+
+    <form method="post" action="" class="pj-f-form" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="pj-f-alert" role="alert">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <p>{{ form.non_field_errors|join:" " }}</p>
+        </div>
+      {% endif %}
+
+      <!-- ══════ 1. O que é e para quem ══════ -->
+      <fieldset class="pj-f-sec">
+        <legend class="pj-f-sec-title">O que é e para quem</legend>
+        <p class="pj-f-sec-sub">O mínimo para reconhecer a demanda daqui a três meses.</p>
+
+        <div class="pj-f-grid">
+          <div class="pcf-field pj-f-wide">
+            <label class="pcf-label" for="{{ form.titulo.id_for_label }}">Título da demanda</label>
+            {{ form.titulo }}
+            <p class="pj-f-help">Em uma linha, o que a área ganha com isso. Ex.: “Tela de presença dos voluntários no sábado”.</p>
+            {% if form.titulo.errors %}<p class="pj-f-err">{{ form.titulo.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field pj-f-wide">
+            <label class="pcf-label" for="{{ form.area.id_for_label }}">Área atendida</label>
+            {{ form.area }}
+            <p class="pj-f-help">Para qual área do PCF é a entrega. É por este campo que a leitura “quais áreas estão no vácuo” se monta.</p>
+            {% if form.area.errors %}<p class="pj-f-err">{{ form.area.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- ══════ 2. A conversa com a área ══════ -->
+      <fieldset class="pj-f-sec">
+        <legend class="pj-f-sec-title">A conversa com a área</legend>
+        <p class="pj-f-sec-sub">Os dois campos podem ficar vazios enquanto a conversa não aconteceu.</p>
+
+        <div class="pj-f-grid">
+          <div class="pcf-field pj-f-wide">
+            <label class="pcf-label" for="{{ form.o_que_pediram.id_for_label }}">O que a área pediu</label>
+            {{ form.o_que_pediram }}
+            <p class="pj-f-help">Nas palavras deles, sem traduzir para técnico — é o que evita entregar coisa diferente do combinado.</p>
+            {% if form.o_que_pediram.errors %}<p class="pj-f-err">{{ form.o_que_pediram.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field pj-f-wide">
+            <label class="pcf-label" for="{{ form.o_que_fizemos.id_for_label }}">O que já fizemos no site</label>
+            {{ form.o_que_fizemos }}
+            <p class="pj-f-help">O que já está no ar para eles hoje. Quem chegar depois precisa saber o que existe sem abrir o código.</p>
+            {% if form.o_que_fizemos.errors %}<p class="pj-f-err">{{ form.o_que_fizemos.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- ══════ 3. Como está hoje ══════ -->
+      <fieldset class="pj-f-sec">
+        <legend class="pj-f-sec-title">Como está hoje</legend>
+        <p class="pj-f-sec-sub">
+          Estes quatro campos são o que aparece no backlog e no painel por área.
+          Demanda aberta, esperando a área e parada há mais de 14 dias é marcada como travada.
+        </p>
+
+        <div class="pj-f-grid">
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.status.id_for_label }}">Status</label>
+            {{ form.status }}
+            <p class="pj-f-help">“Pausado” e “Descartado” tiram a demanda da contagem do que está em pé, sem apagar o registro.</p>
+            {% if form.status.errors %}<p class="pj-f-err">{{ form.status.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.retorno.id_for_label }}">Retorno da área</label>
+            {{ form.retorno }}
+            <p class="pj-f-help">Este é o campo da dor: é ele que separa “ainda não procuramos” de “procuramos e a área sumiu”.</p>
+            {% if form.retorno.errors %}<p class="pj-f-err">{{ form.retorno.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.prioridade.id_for_label }}">Prioridade</label>
+            {{ form.prioridade }}
+            <p class="pj-f-help">Ordem de ataque quando sobrar pouco tempo na semana.</p>
+            {% if form.prioridade.errors %}<p class="pj-f-err">{{ form.prioridade.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.entregue_em.id_for_label }}">Entregue em</label>
+            {{ form.entregue_em }}
+            <p class="pj-f-help">Dia em que subiu para a área. Deixe vazio enquanto o status não for “Entregue”.</p>
+            {% if form.entregue_em.errors %}<p class="pj-f-err">{{ form.entregue_em.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- ══════ 4. Quem toca e com quem falamos ══════ -->
+      <fieldset class="pj-f-sec">
+        <legend class="pj-f-sec-title">Quem toca e com quem falamos</legend>
+        <p class="pj-f-sec-sub">Só voluntários ativos aparecem aqui — é para cobrar e procurar que estes dois campos existem.</p>
+
+        <div class="pj-f-grid">
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.responsavel.id_for_label }}">Responsável em Projetos</label>
+            {{ form.responsavel }}
+            {% if form.responsavel.field.queryset %}
+              <p class="pj-f-help">Quem de Projetos toca esta demanda até o fim. Demanda sem dono é a que apodrece no backlog.</p>
+            {% else %}
+              <p class="pj-f-help">Nenhum voluntário ativo está cadastrado no sistema — peça à Gestão de Talentos para cadastrar o time e os nomes aparecerão nesta lista.</p>
+            {% endif %}
+            {% if form.responsavel.errors %}<p class="pj-f-err">{{ form.responsavel.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.contato_na_area.id_for_label }}">Contato na área</label>
+            {{ form.contato_na_area }}
+            {% if form.contato_na_area.field.queryset %}
+              <p class="pj-f-help">Com quem falamos nessa área. Sem nome aqui, a cobrança vira “alguém de lá” e ninguém responde.</p>
+            {% else %}
+              <p class="pj-f-help">Nenhum voluntário ativo está cadastrado no sistema — enquanto isso, anote o nome do contato em “o que a área pediu”.</p>
+            {% endif %}
+            {% if form.contato_na_area.errors %}<p class="pj-f-err">{{ form.contato_na_area.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="pj-f-actions">
+        <button type="submit" class="pcf-btn pcf-btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          {% if demanda %}Salvar alterações{% else %}Criar demanda{% endif %}
+        </button>
+        <a href="{% if demanda %}{% url 'projetos:ficha' demanda.pk %}{% else %}{% url 'projetos:backlog' %}{% endif %}"
+           class="pcf-btn pcf-btn-outline">Cancelar</a>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

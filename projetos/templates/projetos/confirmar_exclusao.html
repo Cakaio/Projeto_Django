@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+{% block titulo %}{% if registro %}Excluir registro{% elif demanda %}Excluir demanda{% else %}Nada para excluir{% endif %}{% endblock %}
+
+{% block content %}
+{% comment %}
+Uma tela para as duas exclusões do app (a view manda um contexto ou o outro):
+  · registro + demanda  → apagar uma linha do histórico;
+  · demanda + quantos_registros → apagar o item do backlog inteiro.
+O teste do `registro` vem primeiro porque `demanda` existe nos dois casos.
+Layout específico com prefixo .pj- exclusivo; o visual base vem das .pcf-*.
+{% endcomment %}
+<style>
+  .pj-d-wrap { max-width: 560px; padding-block: clamp(2rem, 6vw, 3.5rem) clamp(2.5rem, 6vw, 4rem); }
+
+  .pj-d-card { text-align: center; }
+  .pj-d-icon { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto .95rem;
+               display: grid; place-items: center; background: #fdeaea; color: #b03636; }
+  .pj-d-title { margin: 0 0 .5rem; font-size: clamp(1.2rem, 3vw, 1.45rem); font-weight: 800;
+                letter-spacing: -.02em; color: var(--ink); overflow-wrap: anywhere; }
+  .pj-d-sub { margin: 0 auto; max-width: 46ch; font-size: .9rem; line-height: 1.6; color: var(--ink-soft); }
+
+  .pj-d-resumo { margin-top: 1.15rem; text-align: left; }
+  .pj-d-resumo dl { margin: 0; display: grid; gap: .55rem; }
+  .pj-d-resumo .linha { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+  .pj-d-resumo dt { margin: 0; font-size: .74rem; font-weight: 700; letter-spacing: .07em;
+                    text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .pj-d-resumo dd { margin: 0; font-size: .9rem; font-weight: 650; color: var(--ink);
+                    text-align: right; overflow-wrap: anywhere; }
+
+  /* O texto do registro é o que a pessoa precisa reler antes de apagar; sem o
+     limite de altura uma anotação longa empurra os botões para fora da tela. */
+  .pj-d-texto { margin-top: .8rem; padding-top: .8rem; border-top: 1px solid hsl(var(--border)); }
+  .pj-d-texto-label { margin: 0 0 .3rem; font-size: .74rem; font-weight: 700; letter-spacing: .07em;
+                      text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .pj-d-texto-corpo { margin: 0; max-height: 11rem; overflow-y: auto; font-size: .88rem; line-height: 1.6;
+                      color: var(--ink-soft); white-space: pre-line; overflow-wrap: anywhere; }
+  .pj-d-texto-corpo.is-empty { font-style: italic; color: hsl(var(--muted-foreground)); }
+
+  .pj-d-aviso { display: flex; gap: .7rem; align-items: flex-start; text-align: left; margin-top: 1.15rem;
+                padding: .9rem 1rem; border-radius: 14px; background: #fdeaea;
+                border: 1px solid #f7d4d4; color: #8f2f2f; }
+  .pj-d-aviso svg { flex-shrink: 0; margin-top: .12rem; }
+  .pj-d-aviso p { margin: 0; font-size: .85rem; line-height: 1.55; font-weight: 700; }
+  .pj-d-aviso ul { margin: .3rem 0 0; padding-left: 1.1rem; }
+  .pj-d-aviso li { font-size: .85rem; line-height: 1.55; }
+
+  /* Saída sem perda: quase sempre é o que a pessoa realmente queria. */
+  .pj-d-saida { display: flex; gap: .7rem; align-items: flex-start; text-align: left; margin-top: .8rem; }
+  .pj-d-saida svg { flex-shrink: 0; margin-top: .15rem; color: var(--brand); }
+  .pj-d-saida p { margin: 0; font-size: .83rem; line-height: 1.55; color: var(--ink-soft); }
+  .pj-d-saida a { color: var(--brand); font-weight: 650; text-decoration: none; }
+  .pj-d-saida a:hover { text-decoration: underline; }
+
+  .pj-d-actions { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; }
+  .pj-d-btn-danger { background: #d64545; color: #fff; }
+  .pj-d-btn-danger:hover { background: #c23a3a; color: #fff; transform: translateY(-1px); }
+
+  @media (max-width: 520px) {
+    .pj-d-actions { flex-direction: column-reverse; }
+    .pj-d-actions .pcf-btn { width: 100%; justify-content: center; }
+    .pj-d-resumo .linha { flex-direction: column; gap: .1rem; }
+    .pj-d-resumo dd { text-align: left; }
+  }
+</style>
+
+<div class="pcf-container pj-d-wrap">
+
+  <div class="pcf-card pj-d-card">
+
+    <span class="pj-d-icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </span>
+
+    {% if registro %}
+      <!-- ══════ Caso 1: apagar uma linha do histórico ══════ -->
+      <h1 class="pj-d-title">Excluir este registro do histórico?</h1>
+      <p class="pj-d-sub">
+        Você está prestes a remover uma linha do histórico de
+        <strong style="color:var(--ink)">{{ demanda.titulo }}</strong>.
+        Esta ação não pode ser desfeita.
+      </p>
+
+      <div class="pj-d-resumo pcf-subcard">
+        <dl>
+          <div class="linha">
+            <dt>Data</dt>
+            <dd>{{ registro.data|date:"d/m/Y" }}</dd>
+          </div>
+          <div class="linha">
+            <dt>Tipo</dt>
+            <dd>
+              <span class="pcf-badge {% if registro.tipo == 'ENTREGA' %}ok{% elif registro.tipo == 'RETORNO' %}info{% elif registro.tipo == 'COBRANCA' %}warn{% elif registro.tipo == 'CONVERSA' %}brand{% else %}outline{% endif %}">
+                {{ registro.get_tipo_display }}
+              </span>
+            </dd>
+          </div>
+          <div class="linha">
+            <dt>Quem registrou</dt>
+            {% comment %}
+            `firstof` e nao `default`: argumento de filtro nao tolera lookup que
+            falha, e `autor` e nulo quando o voluntario sai do projeto.
+            {% endcomment %}
+            <dd>{% firstof registro.autor.get_full_name registro.autor.username "Autor não identificado" %}</dd>
+          </div>
+          <div class="linha">
+            <dt>Demanda</dt>
+            <dd>{{ demanda.titulo }} · {{ demanda.get_area_display }}</dd>
+          </div>
+        </dl>
+
+        <div class="pj-d-texto">
+          <p class="pj-d-texto-label">O que aconteceu</p>
+          {% if registro.descricao %}
+            <p class="pj-d-texto-corpo">{{ registro.descricao }}</p>
+          {% else %}
+            <p class="pj-d-texto-corpo is-empty">Este registro foi salvo sem texto.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="pj-d-aviso" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <p>Apagar esta linha mexe nas contas da demanda:</p>
+          <ul>
+            <li>A conta de <strong>dias parada</strong> sai do registro mais recente. Se este for o último,
+                a demanda passa a contar do anterior e pode aparecer como travada no backlog.</li>
+            {% if registro.tipo == 'RETORNO' %}
+              <li>O <strong>retorno da área não volta sozinho</strong>: a demanda continua marcada como
+                  “{{ demanda.get_retorno_display }}”. Se a área não respondeu mesmo, corrija o campo
+                  na edição da demanda.</li>
+            {% elif registro.tipo == 'CONVERSA' or registro.tipo == 'COBRANCA' %}
+              <li>O <strong>retorno da área não volta sozinho</strong>: a demanda continua marcada como
+                  “{{ demanda.get_retorno_display }}”, mesmo que esta tenha sido a única vez que procuramos.</li>
+            {% endif %}
+            <li>O histórico é o que responde “o que aconteceu com isso?” meses depois — apague só o que
+                foi lançado por engano.</li>
+          </ul>
+        </div>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="pj-d-actions">
+          <button type="submit" class="pcf-btn pj-d-btn-danger">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Sim, excluir registro
+          </button>
+          <a href="{% url 'projetos:ficha' demanda.pk %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+        </div>
+      </form>
+
+    {% elif demanda %}
+      <!-- ══════ Caso 2: apagar o item do backlog inteiro ══════ -->
+      <h1 class="pj-d-title">Excluir “{{ demanda.titulo }}”?</h1>
+      <p class="pj-d-sub">
+        Você está prestes a tirar esta demanda do backlog de Projetos.
+        Esta ação não pode ser desfeita.
+      </p>
+
+      <div class="pj-d-resumo pcf-subcard">
+        <dl>
+          <div class="linha">
+            <dt>Área atendida</dt>
+            <dd>{{ demanda.get_area_display }}</dd>
+          </div>
+          <div class="linha">
+            <dt>Status</dt>
+            <dd>
+              <span class="pcf-badge {% if demanda.status == 'ENTREGUE' %}ok{% elif demanda.status == 'FAZENDO' %}info{% elif demanda.status == 'ESPERANDO_AREA' or demanda.status == 'PAUSADO' %}warn{% elif demanda.status == 'CONVERSANDO' %}brand{% else %}outline{% endif %}">
+                {{ demanda.get_status_display }}
+              </span>
+            </dd>
+          </div>
+          <div class="linha">
+            <dt>Retorno da área</dt>
+            <dd>
+              <span class="pcf-badge {% if demanda.retorno == 'RESPONDEU' %}ok{% elif demanda.retorno == 'AGUARDANDO' %}warn{% elif demanda.retorno == 'NAO_RESPONDE' %}danger{% else %}outline{% endif %}">
+                {{ demanda.get_retorno_display }}
+              </span>
+            </dd>
+          </div>
+          <div class="linha">
+            <dt>Responsável</dt>
+            <dd>{% firstof demanda.responsavel.get_full_name demanda.responsavel.username "Ninguém ainda" %}</dd>
+          </div>
+          <div class="linha">
+            <dt>Contato na área</dt>
+            <dd>{% firstof demanda.contato_na_area.get_full_name demanda.contato_na_area.username "Ainda não falamos com ninguém" %}</dd>
+          </div>
+          <div class="linha">
+            <dt>Histórico</dt>
+            <dd class="pcf-num">{{ quantos_registros }} registro{{ quantos_registros|pluralize:",s" }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="pj-d-aviso" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          {% if quantos_registros %}
+            <p>Junto com a demanda vão {{ quantos_registros }} registro{{ quantos_registros|pluralize:",s" }} do histórico:</p>
+            <ul>
+              <li>Todas as <strong>conversas, cobranças e respostas</strong> anotadas para a área
+                  {{ demanda.get_area_display }} nesta demanda;</li>
+              <li>As <strong>datas</strong> que provam quando procuramos a área — é o que sustenta a
+                  cobrança na reunião;</li>
+              <li>A demanda some da leitura por área e dos números do backlog.</li>
+            </ul>
+          {% else %}
+            <p>Esta demanda ainda não tem nenhum registro no histórico.</p>
+            <ul>
+              <li>Nada de conversa ou cobrança será perdido — só o item do backlog é apagado.</li>
+              <li>Ainda assim, a demanda some da leitura por área e dos números do backlog.</li>
+            </ul>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="pcf-subcard pj-d-saida">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <div>
+          <p>
+            Se a ideia foi só abandonada, prefira
+            <a href="{% url 'projetos:editar' demanda.pk %}">editar a demanda</a> e marcar o status como
+            “Descartado”: ela sai da contagem do que está em pé e o histórico continua servindo de prova
+            de que a área foi procurada.
+          </p>
+        </div>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="pj-d-actions">
+          <button type="submit" class="pcf-btn pj-d-btn-danger">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Sim, excluir demanda
+          </button>
+          <a href="{% url 'projetos:ficha' demanda.pk %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+        </div>
+      </form>
+
+    {% else %}
+      <!-- Contexto inesperado: nem registro nem demanda chegaram na tela -->
+      <h1 class="pj-d-title">Nada para excluir</h1>
+      <p class="pj-d-sub">
+        O item que você tentou remover não foi encontrado — provavelmente já foi apagado por outra pessoa.
+        Volte ao backlog e confira a lista.
+      </p>
+      <div class="pj-d-actions">
+        <a href="{% url 'projetos:backlog' %}" class="pcf-btn pcf-btn-outline">Voltar ao backlog</a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

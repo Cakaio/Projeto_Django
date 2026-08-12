@@ -1,0 +1,421 @@
+{% extends 'base.html' %}
+{% block titulo %}Relação com as áreas{% endblock %}
+
+{% block content %}
+{% comment %}
+  Bloco enxuto: só o LAYOUT desta tela (prefixo .pj-).
+  O visual base vem das classes .pcf-* (tailwindcss/input.css).
+
+  Esta tela responde "quais áreas estão me deixando no vácuo?". Por isso a
+  ordem da tabela (que vem pronta de panorama_por_area) nunca é alfabética:
+  é da área mais parada para a mais ativa. Reordenar aqui esconderia a dor.
+{% endcomment %}
+<style>
+  .pj-wrap { padding-block: clamp(1.5rem, 4vw, 2.25rem) clamp(2.5rem, 6vw, 4rem); }
+  .pj-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  /* KPIs: 1 coluna no celular, 2 no tablet, 4 no desktop. */
+  .pj-kpis { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.15rem; }
+  .pj-kpi-link { color: var(--brand); font-weight: 650; text-decoration: none; }
+  .pj-kpi-link:hover { text-decoration: underline; }
+
+  /* Faixa das áreas esquecidas: elas somem no meio da tabela se não forem
+     chamadas pelo nome logo no topo — e são exatamente o que ninguém lembra. */
+  .pj-esquecidas { margin-bottom: 1.15rem; }
+  .pj-esq-head { display: flex; align-items: flex-start; gap: .8rem; flex-wrap: wrap; }
+  .pj-esq-head > div { flex: 1 1 220px; min-width: 0; }
+  .pj-esq-title { margin: 0; font-size: .95rem; font-weight: 750; color: var(--ink); }
+  .pj-esq-sub { margin: .2rem 0 0; max-width: 64ch; font-size: .8rem; color: hsl(var(--muted-foreground)); }
+  .pj-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .9rem 0 0; padding: 0; list-style: none; }
+  /* max-width + quebra: nome comprido ("Captação de Recursos & Relações
+     Externas") estouraria o card num celular de 360px. */
+  .pj-chip { display: inline-block; max-width: 100%; padding: .34rem .7rem; border-radius: 999px;
+             border: 1px dashed hsl(var(--border)); background: hsl(var(--muted));
+             font-size: .78rem; font-weight: 650; line-height: 1.35; color: var(--ink-soft);
+             overflow-wrap: anywhere; }
+
+  /* ── Tabela ──
+     Largura por coluna: sem isso as colunas se espremem no celular e o nome da
+     área vira uma torre de letras. A soma cabe num notebook comum. */
+  .pj-table { min-width: 1080px; table-layout: fixed; }
+  .pj-table th, .pj-table td { vertical-align: top; overflow-wrap: break-word; }
+  .pj-table th:nth-child(1), .pj-table td:nth-child(1) { width: 230px; }
+  .pj-table th:nth-child(2), .pj-table td:nth-child(2) { width: 176px; }
+  .pj-table th:nth-child(3), .pj-table td:nth-child(3) { width: 118px; }
+  .pj-table th:nth-child(4), .pj-table td:nth-child(4) { width: 88px; }
+  .pj-table th:nth-child(5), .pj-table td:nth-child(5) { width: 96px; }
+  .pj-table th:nth-child(6), .pj-table td:nth-child(6) { width: 92px; }
+  .pj-table th:nth-child(7), .pj-table td:nth-child(7) { width: 170px; }
+  .pj-table th:nth-child(8), .pj-table td:nth-child(8) { width: 110px; }
+
+  .pj-area { font-weight: 700; color: var(--ink); }
+  .pj-area-sub { display: block; margin-top: .28rem; font-size: .72rem; color: hsl(var(--muted-foreground)); }
+  .pj-motivo { display: block; margin-top: .32rem; font-size: .72rem; color: hsl(var(--muted-foreground)); }
+  .pj-numero { font-size: 1rem; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+  /* .pcf-progress e um <span> sem display proprio: solto numa celula ele fica
+     inline e a altura de 7px nao vale nada. Aqui ele precisa virar bloco. */
+  .pj-barra { display: block; margin-top: .4rem; }
+  .pj-data { display: block; font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .pj-nota { display: block; margin-top: .3rem; font-size: .72rem; color: hsl(var(--muted-foreground)); }
+  .pj-dim { color: hsl(var(--muted-foreground)); }
+  .pj-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  {% comment %}
+    Marca na borda da linha, nunca só isso: a célula "Situação" sempre diz por
+    escrito o que a cor está tentando dizer.
+  {% endcomment %}
+  .pj-table tbody tr.is-travada td:first-child { box-shadow: inset 3px 0 0 #b03636; }
+  .pj-table tbody tr.is-esquecida { background: hsl(var(--muted)); }
+  .pj-table tbody tr.is-esquecida td:first-child { box-shadow: inset 3px 0 0 hsl(var(--border)); }
+  .pj-table tbody tr.is-esquecida .pj-area { color: hsl(var(--muted-foreground)); }
+
+  /* ── Como ler ── */
+  .pj-legenda { margin-top: 1.15rem; }
+  .pj-legenda h2 { margin: 0 0 .55rem; font-size: .92rem; font-weight: 750; color: var(--ink); }
+  .pj-legenda ul { margin: 0; padding-left: 1.1rem; }
+  .pj-legenda li { font-size: .82rem; line-height: 1.5; color: hsl(var(--muted-foreground)); }
+  .pj-legenda li + li { margin-top: .35rem; }
+  .pj-legenda b { color: var(--ink); font-weight: 700; }
+
+  /* ── Estado vazio ── */
+  .pj-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem;
+              padding: clamp(2.25rem, 6vw, 3.25rem) 1.25rem; }
+  .pj-empty-title { margin: .35rem 0 0; font-size: 1.02rem; font-weight: 800; color: var(--ink); }
+  .pj-empty-sub { margin: 0; max-width: 46ch; font-size: .86rem; color: hsl(var(--muted-foreground)); }
+  .pj-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-top: .5rem; }
+
+  @media (min-width: 560px) { .pj-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1000px) { .pj-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (min-width: 561px) { .pj-esq-head > .pcf-btn { margin-left: auto; } }
+  @media (max-width: 560px) {
+    .pj-actions { width: 100%; }
+    .pj-actions .pcf-btn { flex: 1 1 100%; justify-content: center; }
+    .pj-esq-head > .pcf-btn { width: 100%; justify-content: center; }
+  }
+</style>
+
+<div class="pcf-container pj-wrap">
+
+  <!-- ══════ Cabeçalho ══════ -->
+  <header class="pcf-page-head" data-reveal>
+    <div>
+      <span class="pcf-eyebrow">Backlog de Projetos</span>
+      <h1 class="pcf-page-title" style="margin-top:.7rem">Relação com as áreas</h1>
+      <p class="pcf-page-sub">
+        Uma linha por área do PCF, da mais parada para a mais ativa. Quem está no topo é quem
+        está nos deixando no vácuo — ou quem a gente nunca procurou.
+      </p>
+    </div>
+    <div class="pj-actions">
+      <a href="{% url 'projetos:backlog' %}" class="pcf-btn pcf-btn-outline">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Ver o backlog
+      </a>
+      <a href="{% url 'projetos:criar' %}" class="pcf-btn pcf-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova demanda
+      </a>
+    </div>
+  </header>
+
+  {% if panorama %}
+
+    <!-- ══════ Números do topo ══════ -->
+    <div class="pj-kpis" data-reveal>
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Áreas do PCF</span>
+            <span class="pcf-icon-tile tint-blue" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13A4 4 0 0 1 16 11"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ total_areas }}</div>
+          <div class="pcf-kpi-foot">{{ areas_atendidas }} com alguma demanda registrada</div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Nunca procuramos</span>
+            <span class="pcf-icon-tile tint-gold" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ areas_sem_contato }}</div>
+          <div class="pcf-kpi-foot">sem nenhuma conversa registrada até hoje</div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Áreas no vácuo</span>
+            <span class="pcf-icon-tile tint-orange" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ areas_travadas }}</div>
+          <div class="pcf-kpi-foot">
+            {% if areas_travadas %}
+              <a class="pj-kpi-link" href="{% url 'projetos:backlog' %}?travadas=1">Ver as demandas travadas →</a>
+            {% else %}
+              nenhuma demanda esperando há mais de 14 dias
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Áreas atendidas</span>
+            <span class="pcf-icon-tile tint-green" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ areas_atendidas }}</div>
+          <div class="pcf-kpi-foot">têm pelo menos uma demanda no backlog</div>
+        </div>
+      </div>
+    </div>
+
+    {% comment %}
+      Área com zero demanda é a que ninguém lembrou de procurar. Ela aparece na
+      tabela lá embaixo, mas no meio de 17 linhas passa batido — por isso vem
+      também aqui em cima, com nome e sobrenome.
+      areas_atendidas conta as linhas com total > 0; se for menor que
+      total_areas, existe pelo menos uma área zerada. Com o backlog inteiro
+      vazio a faixa não ajuda (seriam todas as áreas), então entra no lugar
+      dela o aviso de que ninguém cadastrou nada ainda.
+    {% endcomment %}
+    {% if not areas_atendidas %}
+      <section class="pcf-card pj-esquecidas" data-reveal>
+        <div class="pj-esq-head">
+          <span class="pcf-icon-tile tint-gold" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          </span>
+          <div>
+            <h2 class="pj-esq-title">O backlog ainda está vazio</h2>
+            <p class="pj-esq-sub">
+              Todas as {{ total_areas }} áreas aparecem zeradas na tabela abaixo porque nenhuma
+              demanda foi cadastrada até agora. Comece pela área com quem Projetos já conversou:
+              abra a demanda, escreva o que ela pediu e vá registrando cada conversa na ficha —
+              é esse histórico que, daqui a alguns meses, vai dizer quem respondeu e quem sumiu.
+            </p>
+          </div>
+          <a href="{% url 'projetos:criar' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">Abrir a primeira demanda</a>
+        </div>
+      </section>
+    {% elif areas_atendidas < total_areas %}
+      <section class="pcf-card pj-esquecidas" data-reveal>
+        <div class="pj-esq-head">
+          <span class="pcf-icon-tile tint-gold" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </span>
+          <div>
+            <h2 class="pj-esq-title">Áreas que nunca entraram no backlog</h2>
+            <p class="pj-esq-sub">
+              Nenhuma demanda cadastrada para elas — nem ideia, nem conversa. Não quer dizer que
+              não precisam de nada; quer dizer que ninguém registrou. Puxe uma conversa com a
+              liderança da área e abra a primeira demanda.
+            </p>
+          </div>
+          <a href="{% url 'projetos:criar' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Abrir demanda</a>
+        </div>
+        <ul class="pj-chips">
+          {% for linha in panorama %}
+            {% if not linha.total %}
+              <li class="pj-chip">{{ linha.nome }}</li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    <!-- ══════ Tabela por área ══════ -->
+    <div class="pcf-card pcf-tile-pad-0" data-reveal data-reveal-delay="60">
+      <div class="pcf-scroll-x">
+        <table class="pcf-table pj-table">
+          <thead>
+            <tr>
+              <th scope="col">Área</th>
+              <th scope="col">Situação</th>
+              <th scope="col" class="num">Demandas</th>
+              <th scope="col" class="num">Abertas</th>
+              <th scope="col" class="num">Entregues</th>
+              <th scope="col" class="num">Travadas</th>
+              <th scope="col">Último contato</th>
+              <th scope="col">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for linha in panorama %}
+              <tr class="{% if linha.travadas %}is-travada{% elif not linha.total %}is-esquecida{% endif %}">
+                <!-- Área -->
+                <td>
+                  <span class="pj-area">{{ linha.nome }}</span>
+                  {% if not linha.total %}
+                    <span class="pj-area-sub">nunca teve demanda registrada</span>
+                  {% elif linha.abertas %}
+                    <span class="pj-area-sub">{{ linha.abertas }} demanda{{ linha.abertas|pluralize }} em pé</span>
+                  {% else %}
+                    <span class="pj-area-sub">nada em aberto no momento</span>
+                  {% endif %}
+                </td>
+
+                <!-- Situação: sempre por escrito, a cor é só reforço -->
+                <td>
+                  {% if linha.travadas %}
+                    <span class="pcf-badge danger">
+                      <span class="dot" aria-hidden="true"></span>No vácuo
+                    </span>
+                    <span class="pj-motivo">
+                      {{ linha.travadas }} demanda{{ linha.travadas|pluralize }} esperando a área há mais de 14 dias
+                    </span>
+                  {% elif not linha.total %}
+                    <span class="pcf-badge outline">
+                      <span class="dot" aria-hidden="true"></span>Nunca procuramos
+                    </span>
+                    <span class="pj-motivo">área esquecida: cadastre a primeira demanda</span>
+                  {% elif linha.sem_contato %}
+                    <span class="pcf-badge warn">
+                      <span class="dot" aria-hidden="true"></span>Ainda não procuramos
+                    </span>
+                    <span class="pj-motivo">demanda registrada, mas ninguém falou com a área</span>
+                  {% elif linha.abertas %}
+                    <span class="pcf-badge info">
+                      <span class="dot" aria-hidden="true"></span>Em andamento
+                    </span>
+                    <span class="pj-motivo">conversa viva, nada parado além da conta</span>
+                  {% elif linha.entregues %}
+                    <span class="pcf-badge ok">
+                      <span class="dot" aria-hidden="true"></span>Tudo entregue
+                    </span>
+                    <span class="pj-motivo">nenhuma demanda em pé para esta área</span>
+                  {% else %}
+                    <span class="pcf-badge outline">
+                      <span class="dot" aria-hidden="true"></span>Sem pendência
+                    </span>
+                    <span class="pj-motivo">o que existia foi pausado ou descartado</span>
+                  {% endif %}
+                </td>
+
+                <!-- Demandas -->
+                <td class="num">
+                  {% if linha.total %}
+                    <span class="pj-numero">{{ linha.total }}</span>
+                    <span class="pcf-progress pj-barra" aria-hidden="true">
+                      <span style="width:{% widthratio linha.entregues linha.total 100 %}%"></span>
+                    </span>
+                  {% else %}
+                    <span class="pj-dim">nenhuma</span>
+                  {% endif %}
+                </td>
+
+                <!-- Abertas -->
+                <td class="num">
+                  {% if linha.abertas %}
+                    <span class="pj-numero">{{ linha.abertas }}</span>
+                  {% else %}
+                    <span class="pj-dim">—</span>
+                  {% endif %}
+                </td>
+
+                <!-- Entregues -->
+                <td class="num">
+                  {% if linha.entregues %}
+                    <span class="pj-numero">{{ linha.entregues }}</span>
+                  {% else %}
+                    <span class="pj-dim">—</span>
+                  {% endif %}
+                </td>
+
+                <!-- Travadas -->
+                <td class="num">
+                  {% if linha.travadas %}
+                    <span class="pj-numero" style="color:#b03636">{{ linha.travadas }}</span>
+                  {% else %}
+                    <span class="pj-dim">—</span>
+                  {% endif %}
+                </td>
+
+                <!-- Último contato -->
+                <td>
+                  {% if linha.ultimo_contato %}
+                    <span class="pj-data">{{ linha.ultimo_contato|date:"d/m/Y" }}</span>
+                    {% if linha.dias_sem_contato == 0 %}
+                      <span class="pj-nota">foi hoje</span>
+                    {% elif linha.dias_sem_contato == 1 %}
+                      <span class="pj-nota">há 1 dia</span>
+                    {% elif linha.dias_sem_contato > 30 %}
+                      <span class="pcf-badge warn" style="margin-top:.3rem">
+                        <span class="dot" aria-hidden="true"></span>há {{ linha.dias_sem_contato }} dias
+                      </span>
+                    {% else %}
+                      <span class="pj-nota">há {{ linha.dias_sem_contato }} dias</span>
+                    {% endif %}
+                  {% elif linha.total %}
+                    <span class="pj-dim">Nenhum contato registrado</span>
+                    <span class="pj-nota">abra a demanda e registre a conversa</span>
+                  {% else %}
+                    <span class="pj-dim">Nunca</span>
+                    <span class="pj-nota">ninguém procurou esta área</span>
+                  {% endif %}
+                </td>
+
+                <!-- Ações -->
+                <td>
+                  {% if linha.total %}
+                    <a class="pcf-btn pcf-btn-outline pcf-btn-sm"
+                       href="{% url 'projetos:backlog' %}?area={{ linha.area|urlencode:'' }}">
+                      Ver<span class="pj-sr"> as {{ linha.total }} demandas de {{ linha.nome }}</span>
+                    </a>
+                  {% else %}
+                    <a class="pcf-btn pcf-btn-ghost pcf-btn-sm" href="{% url 'projetos:criar' %}">
+                      Cadastrar<span class="pj-sr"> a primeira demanda de {{ linha.nome }}</span>
+                    </a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if areas_atendidas %}
+      <div class="pcf-card pj-legenda" data-reveal>
+        <h2>Como ler esta tabela</h2>
+        <ul>
+          <li><b>No vácuo</b> — a área tem demanda aberta, a bola está com ela e ninguém mexe há mais de 14 dias. É o caso de cobrar.</li>
+          <li><b>Último contato</b> — data do registro mais recente de conversa, cobrança, retorno ou entrega. Anotação interna não conta: lembrete nosso não é contato com a área.</li>
+          <li><b>Nunca procuramos</b> — nenhuma conversa registrada. Pode ser área sem demanda nenhuma ou demanda cadastrada que ainda não saiu do papel.</li>
+          <li>A ordem é do pior para o melhor: primeiro quem está no vácuo, depois quem nunca foi procurado, e só então quem está em dia.</li>
+        </ul>
+      </div>
+    {% endif %}
+
+  {% else %}
+    <!-- ══════ Estado vazio: nem as áreas do PCF chegaram aqui ══════ -->
+    <div class="pcf-card" data-reveal>
+      <div class="pj-empty">
+        <span class="pcf-icon-tile lg" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13A4 4 0 0 1 16 11"/></svg>
+        </span>
+        <p class="pj-empty-title">Nenhuma área para mostrar</p>
+        <p class="pj-empty-sub">
+          Esta tabela é montada a partir da lista de áreas do PCF, e ela voltou vazia — não é
+          falta de demanda, é a lista de áreas que não chegou. Avise o time de sistemas antes de
+          cadastrar qualquer coisa.
+        </p>
+        <div class="pj-empty-actions">
+          <a href="{% url 'projetos:backlog' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver o backlog</a>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
