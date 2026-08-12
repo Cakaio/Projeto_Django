@@ -15,10 +15,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
-from django.conf.urls.static import static
-from .views import inicio, LandingView, busca
+from .views import inicio, LandingView, busca, midia
 from django.contrib.auth import views as auth_view
 
 urlpatterns = [
@@ -38,9 +37,20 @@ urlpatterns = [
     path('ronda/', include('ronda.urls', namespace='ronda')),
     path('gerenciamento/', include('gerenciamento.urls', namespace='gerenciamento')),
     path('parceiros/', include('parceiros.urls', namespace='parceiros')),
+    path('editais/', include('editais.urls', namespace='editais')),
+    # A revista entra na RAIZ de propósito: o prefixo 'revista/' já está escrito
+    # em cada rota dela, porque a página do doador mora em '/r/<token>/' — link
+    # curto, para colar em e-mail e WhatsApp. Dois include com o mesmo namespace
+    # se sobrescreveriam no reverse, então é um include só, montado aqui.
+    path('', include('revista.urls', namespace='revista')),
 ]
 
-# WhiteNoise entrega /static/ em produção. O Django serve uploads somente no
-# desenvolvimento; em produção, /media/ deve ser mapeado pelo PythonAnywhere.
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# O WhiteNoise entrega /static/, mas NÃO entrega /media/ — e /media/ são os
+# uploads. Servir só com DEBUG=True deixaria as fotos em 404 na produção; e
+# servir tudo aberto, como estava, publicava documento de criança e comprovante
+# de reembolso para qualquer um. A view `midia` resolve os dois: entrega as
+# fotos da revista sem login (a página do doador é pública por design) e exige
+# sessão para o resto.
+urlpatterns += [
+    re_path(r'^%s(?P<path>.*)$' % settings.MEDIA_URL.lstrip('/'), midia),
+]

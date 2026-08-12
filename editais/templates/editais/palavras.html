@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% block titulo %}Palavras-chave do robô{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .edp-). #}
+{# O visual base vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .edp-page { background: hsl(var(--background)); }
+  .edp-wrap { padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+  .edp-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  /* ── Explicação da regra: o CR precisa entender a nota antes de mexer nela ── */
+  .edp-regra { display: grid; gap: .9rem; grid-template-columns: minmax(0, 1fr); margin-bottom: 1.15rem; }
+  .edp-regra-item { display: flex; align-items: flex-start; gap: .7rem; }
+  .edp-regra-item svg { flex-shrink: 0; margin-top: .15rem; }
+  .edp-regra-t { margin: 0; font-size: .88rem; font-weight: 750; color: var(--ink); }
+  .edp-regra-s { margin: .2rem 0 0; font-size: .81rem; line-height: 1.5; color: hsl(var(--muted-foreground)); }
+  .edp-mais { color: #1f7a49; }
+  .edp-menos { color: #b03636; }
+  @media (min-width: 860px) { .edp-regra { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+  /* ── Duas colunas: formulário fixo à esquerda, dicionário à direita ── */
+  .edp-grid { display: grid; gap: 1.15rem; grid-template-columns: minmax(0, 1fr); align-items: start; }
+  @media (min-width: 1000px) { .edp-grid { grid-template-columns: 320px minmax(0, 1fr); } }
+
+  .edp-card-head { display: flex; align-items: flex-start; justify-content: space-between;
+                   gap: .75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .edp-card-title { margin: 0; font-size: 1.02rem; font-weight: 750; letter-spacing: -.02em; color: var(--ink); }
+  .edp-card-sub { margin: .2rem 0 0; font-size: .82rem; line-height: 1.5; color: hsl(var(--muted-foreground)); }
+
+  /* ── Formulário ── */
+  .edp-form { display: flex; flex-direction: column; gap: .95rem; }
+  .edp-help { margin: 0; font-size: .76rem; line-height: 1.45; color: hsl(var(--muted-foreground)); }
+  .edp-err { margin: 0; font-size: .78rem; font-weight: 600; color: #b03636; }
+  .edp-alert { display: flex; gap: .7rem; align-items: flex-start; padding: .8rem .95rem; border-radius: 14px;
+               background: #fdeaea; border: 1px solid #f7d4d4; color: #8f2f2f; }
+  .edp-alert svg { flex-shrink: 0; margin-top: .12rem; }
+  .edp-alert p { margin: 0; font-size: .84rem; line-height: 1.5; }
+  .edp-check { display: flex; align-items: flex-start; gap: .6rem; padding: .8rem .95rem;
+               border: 1px solid hsl(var(--border)); border-radius: 14px; background: hsl(var(--muted)); }
+  .edp-check input[type="checkbox"] { width: 18px; height: 18px; margin-top: .1rem; flex-shrink: 0; cursor: pointer; accent-color: var(--brand); }
+  .edp-check label { font-size: .85rem; font-weight: 650; color: var(--ink); cursor: pointer; }
+  .edp-check p { margin: .2rem 0 0; font-size: .77rem; line-height: 1.45; color: hsl(var(--muted-foreground)); }
+  .edp-form-actions { display: flex; gap: .5rem; flex-wrap: wrap; padding-top: .3rem; }
+  .edp-form-actions .pcf-btn { flex: 1; justify-content: center; }
+  .edp-editando { display: flex; align-items: flex-start; gap: .6rem; padding: .8rem .95rem; border-radius: 14px;
+                  background: hsl(var(--accent)); border: 1px solid #fbe3d3; }
+  .edp-editando p { margin: 0; font-size: .82rem; line-height: 1.5; color: var(--ink-soft); }
+  .edp-editando strong { color: var(--ink); }
+
+  /* ── Tabela do dicionário ──
+     Sem os mínimos por coluna, em 360px o termo quebra em três linhas e os
+     badges de efeito ficam ilegíveis. Com eles a tabela rola no .pcf-scroll-x. */
+  .edp-table { min-width: 660px; }
+  .edp-table th:nth-child(1), .edp-table td:nth-child(1) { min-width: 200px; }
+  .edp-table th:nth-child(2), .edp-table td:nth-child(2) { min-width: 74px; white-space: nowrap; }
+  .edp-table th:nth-child(3), .edp-table td:nth-child(3) { min-width: 132px; white-space: nowrap; }
+  .edp-table th:nth-child(4), .edp-table td:nth-child(4) { min-width: 120px; white-space: nowrap; }
+  .edp-table th:nth-child(5), .edp-table td:nth-child(5) { min-width: 134px; white-space: nowrap; }
+
+  .edp-termo { font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+  .edp-peso { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .edp-peso.mais { color: #1f7a49; }
+  .edp-peso.menos { color: #b03636; }
+  .edp-peso.zero { color: hsl(var(--muted-foreground)); }
+  .edp-dim { color: hsl(var(--muted-foreground)); }
+  .edp-row-actions { display: flex; gap: .25rem; justify-content: flex-end; align-items: center; }
+  .edp-inline { display: inline; margin: 0; }
+  .edp-apagar { color: #b03636; }
+  .edp-apagar:hover { background: #fdeaea; color: #8f2f2f; }
+  .edp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .edp-linha-off td:not(:last-child) { opacity: .6; }
+
+  /* ── Estado vazio ── */
+  .edp-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem;
+               padding: clamp(2rem, 6vw, 3rem) 1.25rem; }
+  .edp-empty-title { margin: .35rem 0 0; font-size: 1.02rem; font-weight: 800; color: var(--ink); }
+  .edp-empty-sub { margin: 0; max-width: 42ch; font-size: .86rem; line-height: 1.55; color: hsl(var(--muted-foreground)); }
+  .edp-code { font-size: .8rem; font-weight: 650; color: var(--ink); background: hsl(var(--card));
+              border: 1px solid hsl(var(--border)); border-radius: 6px; padding: .05rem .35rem; overflow-wrap: anywhere; }
+
+  @media (max-width: 560px) {
+    .edp-actions { width: 100%; }
+    .edp-actions .pcf-btn { flex: 1; }
+  }
+</style>
+
+<div class="edp-page">
+  <div class="pcf-container edp-wrap">
+
+    <!-- ══════ Cabeçalho ══════ -->
+    <header class="pcf-page-head" data-reveal>
+      <div>
+        <span class="pcf-eyebrow">Captação &amp; Relações · Editais</span>
+        <h1 class="pcf-page-title" style="margin-top:.7rem">Palavras-chave do robô</h1>
+        <p class="pcf-page-sub">
+          É aqui que o CR ensina o robô o que serve ao projeto. Não há inteligência artificial: a nota de cada edital é a soma dos pesos das palavras encontradas.
+        </p>
+      </div>
+      <div class="edp-actions">
+        <a href="{% url 'editais:lista' %}" class="pcf-btn pcf-btn-outline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Editais
+        </a>
+        <a href="{% url 'editais:fontes' %}" class="pcf-btn pcf-btn-outline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          Fontes
+        </a>
+      </div>
+    </header>
+
+    <!-- ══════ Como a nota funciona ══════ -->
+    <div class="pcf-card edp-regra" data-reveal>
+      <div class="edp-regra-item">
+        <svg class="edp-mais" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <div>
+          <p class="edp-regra-t">Peso positivo <span class="edp-mais">atrai</span></p>
+          <p class="edp-regra-s">Cada termo encontrado soma o seu peso. Use de <strong>+1 a +3</strong>: quanto mais o assunto for a cara do PCF, maior o peso.</p>
+        </div>
+      </div>
+      <div class="edp-regra-item">
+        <svg class="edp-menos" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <div>
+          <p class="edp-regra-t">Peso negativo <span class="edp-menos">descarta</span></p>
+          <p class="edp-regra-s">Subtrai da nota e derruba o edital. Use de <strong>-1 a -3</strong> para o que nunca serve — mestrado, bolsa de pesquisa, startup.</p>
+        </div>
+      </div>
+      <div class="edp-regra-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand)" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+        <div>
+          <p class="edp-regra-t">Título vale o dobro</p>
+          <p class="edp-regra-s">Termo achado no título conta peso × 2; na descrição, peso × 1. Cada termo conta uma vez, e a busca ignora acento, maiúscula e plural simples.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="edp-grid">
+
+      <!-- ══════ Formulário ══════ -->
+      <section class="pcf-card" data-reveal>
+        <div class="edp-card-head">
+          <div>
+            <h2 class="edp-card-title">{% if em_edicao %}Editar palavra{% else %}Nova palavra-chave{% endif %}</h2>
+            <p class="edp-card-sub">
+              {% if em_edicao %}Vale a partir da próxima varredura. Os editais já pontuados não são recalculados.{% else %}Uma palavra ou expressão curta. Vale a partir da próxima varredura.{% endif %}
+            </p>
+          </div>
+        </div>
+
+        <form method="post" action="{% url 'editais:palavras' %}" class="edp-form" novalidate>
+          {% csrf_token %}
+          {% if em_edicao %}<input type="hidden" name="editar" value="{{ em_edicao.pk }}">{% endif %}
+
+          {% if em_edicao %}
+            <div class="edp-editando">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--brand);flex-shrink:0;margin-top:.15rem" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              <p>Editando <strong>{{ em_edicao.termo }}</strong>. Para cadastrar outra palavra em vez desta, cancele a edição abaixo.</p>
+            </div>
+          {% endif %}
+
+          {% if form.non_field_errors %}
+            <div class="edp-alert" role="alert">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <p>{{ form.non_field_errors|join:" " }}</p>
+            </div>
+          {% endif %}
+
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.termo.id_for_label }}">{{ form.termo.label }}</label>
+            {{ form.termo }}
+            <p class="edp-help">Uma palavra ou expressão de duas ou três palavras. Não repita o mesmo termo: ele é único no dicionário.</p>
+            {% if form.termo.errors %}<p class="edp-err">{{ form.termo.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.peso.id_for_label }}">{{ form.peso.label }}</label>
+            {{ form.peso }}
+            <p class="edp-help">
+              {% if form.peso.help_text %}{{ form.peso.help_text }}{% endif %}
+              Peso <strong>0</strong> deixa o termo sem efeito nenhum na nota.
+            </p>
+            {% if form.peso.errors %}<p class="edp-err">{{ form.peso.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="edp-check">
+            {{ form.ativo }}
+            <div>
+              <label for="{{ form.ativo.id_for_label }}">Ativa — contar na pontuação</label>
+              <p>Desmarcada, a palavra fica guardada mas não influencia mais a nota. Serve para testar sem apagar o histórico.</p>
+              {% if form.ativo.errors %}<p class="edp-err">{{ form.ativo.errors|join:", " }}</p>{% endif %}
+            </div>
+          </div>
+
+          <div class="edp-form-actions">
+            <button type="submit" class="pcf-btn pcf-btn-primary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              {% if em_edicao %}Salvar alteração{% else %}Adicionar{% endif %}
+            </button>
+            {% if em_edicao %}
+              <a href="{% url 'editais:palavras' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+            {% endif %}
+          </div>
+        </form>
+      </section>
+
+      <!-- ══════ Dicionário ══════ -->
+      <section class="pcf-card" style="padding:0;overflow:hidden" data-reveal data-reveal-delay="60">
+        <div class="edp-card-head" style="padding:1.15rem 1.15rem 0;margin-bottom:.9rem">
+          <div>
+            <h2 class="edp-card-title">Dicionário do robô</h2>
+            <p class="edp-card-sub">
+              {{ palavras|length }} termo{{ palavras|length|pluralize }} cadastrado{{ palavras|length|pluralize }} —
+              {{ positivas|length }} que atra{{ positivas|length|pluralize:"i,em" }} e {{ negativas|length }} que descarta{{ negativas|length|pluralize:"m" }}.
+            </p>
+          </div>
+        </div>
+
+        {% if palavras %}
+          <div class="pcf-scroll-x">
+            <table class="pcf-table edp-table">
+              <thead>
+                <tr>
+                  <th scope="col">Termo</th>
+                  <th scope="col" class="num">Peso</th>
+                  <th scope="col">Efeito na nota</th>
+                  <th scope="col">Situação</th>
+                  <th scope="col" class="num"><span class="edp-sr">Ações</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for palavra in palavras %}
+                  <tr {% if not palavra.ativo %}class="edp-linha-off"{% endif %}>
+                    <td><span class="edp-termo">{{ palavra.termo }}</span></td>
+
+                    <td class="num">
+                      <span class="edp-peso {% if palavra.peso > 0 %}mais{% elif palavra.peso < 0 %}menos{% else %}zero{% endif %}">
+                        {% if palavra.peso > 0 %}+{% endif %}{{ palavra.peso }}
+                      </span>
+                    </td>
+
+                    <td>
+                      {% if palavra.peso > 0 %}
+                        <span class="pcf-badge ok"><span class="dot" aria-hidden="true"></span>Atrai o edital</span>
+                      {% elif palavra.peso < 0 %}
+                        <span class="pcf-badge danger"><span class="dot" aria-hidden="true"></span>Descarta o edital</span>
+                      {% else %}
+                        <span class="pcf-badge outline"><span class="dot" aria-hidden="true"></span>Sem efeito</span>
+                      {% endif %}
+                    </td>
+
+                    <td>
+                      {% if palavra.ativo %}
+                        <span class="pcf-badge info">Contando</span>
+                      {% else %}
+                        <span class="pcf-badge outline">Desativada</span>
+                      {% endif %}
+                    </td>
+
+                    <td class="num">
+                      <div class="edp-row-actions">
+                        <a href="{% url 'editais:palavras' %}?editar={{ palavra.pk }}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Editar</a>
+                        <form method="post" action="{% url 'editais:palavras' %}" class="edp-inline"
+                              onsubmit="return confirm('Apagar esta palavra-chave? Ela deixa de contar na próxima varredura.');">
+                          {% csrf_token %}
+                          <input type="hidden" name="excluir" value="{{ palavra.pk }}">
+                          <button type="submit" class="pcf-btn pcf-btn-ghost pcf-btn-sm edp-apagar">Apagar</button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="edp-empty">
+            <span class="pcf-icon-tile lg" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            </span>
+            <p class="edp-empty-title">O robô ainda não sabe o que procurar</p>
+            <p class="edp-empty-sub">
+              Sem nenhuma palavra-chave toda nota fica em zero, abaixo da mínima, e a varredura não guarda nenhum edital.
+              Cadastre a primeira no formulário ao lado — comece por <strong>criança</strong>, <strong>primeira infância</strong> e
+              <strong>assistência social</strong> — ou rode <span class="edp-code">python manage.py seed_editais</span> para
+              carregar o conjunto inicial e revisar depois.
+            </p>
+          </div>
+        {% endif %}
+
+        <p class="edp-help" style="padding:1rem 1.15rem 1.15rem">
+          A nota só é usada na próxima varredura (<span class="edp-code">python manage.py buscar_editais</span>), que guarda
+          apenas o que ficar igual ou acima da nota mínima — 2 por padrão. Editais já salvos mantêm a nota e os termos do dia em que foram coletados.
+        </p>
+      </section>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

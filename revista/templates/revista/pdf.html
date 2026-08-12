@@ -1,0 +1,456 @@
+{% comment %}
+  Revista em PDF (xhtml2pdf / ReportLab).
+
+  Este template NÃO estende base.html e não usa as classes .pcf-*: o xhtml2pdf
+  entende só um subconjunto do CSS — nada de flex, grid, variável CSS, rem ou
+  webfont. Por isso: layout em tabela, medidas em pt/cm/% e cores em hex
+  literal (o laranja da marca é #e8560f).
+
+  Comentário de várias linhas usa a tag comment, nunca a forma de cerquilha:
+  aquela só vale para UMA linha e o resto do texto vazaria para dentro do PDF.
+
+  Ele é renderizado com render_to_string() SEM request, então aqui não existem
+  `request`, `user`, MEDIA_URL nem context processors. Fotos entram pelo caminho
+  absoluto em disco (`secao.foto.path`), que o xhtml2pdf abre direto — foto que
+  sumiu do disco vira apenas um aviso, não derruba a geração do PDF.
+{% endcomment %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>{{ revista.titulo }}</title>
+
+  <style>
+    /* ── Página ─────────────────────────────────────────────────────────── */
+    @page {
+      size: A4 portrait;
+      margin: 1.5cm;
+
+      /* Só o rodapé é declarado como frame. Declarar também um frame de
+         conteúdo faz o xhtml2pdf empilhar dois fluxos na mesma página e o
+         texto sai sobreposto — o frame de conteúdo tem que continuar vindo
+         da margem.
+
+         A4 tem 29,7cm: com margem de 1,5cm o conteúdo termina em 28,2cm.
+         O rodapé começa em 28,35cm, ou seja DENTRO da margem inferior; se
+         ficasse acima disso, a última linha de cada página passaria por cima
+         dele. */
+      @frame rodape {
+        -pdf-frame-content: bloco-rodape;
+        left: 1.5cm; top: 28.35cm; width: 18cm; height: 0.85cm;
+      }
+    }
+
+    body {
+      font-family: Helvetica, sans-serif;
+      font-size: 10pt;
+      line-height: 1.5;
+      color: #1c130e;
+    }
+
+    p { margin: 0 0 6pt; }
+
+    /* ── Capa ───────────────────────────────────────────────────────────── */
+    .capa-cel {
+      background-color: #e8560f;
+      color: #ffffff;
+      padding: 24pt 22pt;
+    }
+    .capa-kicker {
+      font-size: 8pt;
+      font-weight: bold;
+      color: #ffe6d6;
+      padding-bottom: 6pt;
+    }
+    .capa-titulo {
+      font-size: 24pt;
+      font-weight: bold;
+      color: #ffffff;
+      line-height: 1.15;
+      margin: 0;
+    }
+    .capa-sub {
+      font-size: 11pt;
+      color: #ffe6d6;
+      padding-top: 7pt;
+    }
+    .capa-periodo {
+      font-size: 9pt;
+      color: #ffffff;
+      padding-top: 12pt;
+    }
+
+    /* ── Títulos de seção ───────────────────────────────────────────────── */
+    /* O respiro entre blocos vem de margin-top, nunca de padding num <div>:
+       o xhtml2pdf traduz margem em espaço antes do parágrafo, mas ignora o
+       padding vertical de div — com padding os blocos saem colados. */
+    .titulo-secao {
+      font-size: 13pt;
+      font-weight: bold;
+      color: #1c130e;
+      margin: 22pt 0 4pt;
+      -pdf-keep-with-next: true;
+    }
+    .sub-secao {
+      font-size: 8.5pt;
+      color: #857f78;
+      margin: 0 0 4pt;
+    }
+    /* Filete da marca. Precisa ser tabela: div vazia não pinta fundo aqui, e a
+       largura vai no atributo width= porque o xhtml2pdf ignora width via CSS
+       em tabela (sem ele o filete atravessa a página inteira). */
+    .regua { margin: 0 0 7pt; }
+    .regua td {
+      background-color: #e8560f;
+      font-size: 2pt;
+      line-height: 2pt;
+    }
+
+    /* ── Números do período ─────────────────────────────────────────────── */
+    .kpi {
+      background-color: #fbfaf8;
+      border: 1pt solid #eae9e6;
+      padding: 9pt 10pt;
+      width: 33%;
+    }
+    .kpi-valor {
+      font-size: 17pt;
+      font-weight: bold;
+      color: #e8560f;
+    }
+    .kpi-rotulo {
+      font-size: 7.5pt;
+      font-weight: bold;
+      color: #55504b;
+      padding-top: 2pt;
+    }
+    .dimensoes {
+      font-size: 8.5pt;
+      color: #55504b;
+      margin-top: 9pt;
+    }
+
+    /* ── Texto corrido (carta e fechamento) ─────────────────────────────── */
+    .prosa {
+      font-size: 10.5pt;
+      line-height: 1.6;
+      color: #55504b;
+    }
+    .prosa-destacada {
+      background-color: #fdf0e7;
+      border-left: 3pt solid #e8560f;
+      padding: 12pt 14pt;
+    }
+    .caixa-prosa { margin-top: 18pt; }
+
+    /* ── Destaques ──────────────────────────────────────────────────────── */
+    .destaque { padding-bottom: 4pt; }
+    .destaque-cel-foto {
+      width: 5cm;
+      padding: 10pt 12pt 10pt 0;
+    }
+    .destaque-cel-texto {
+      padding: 10pt 0;
+    }
+    .destaque-meta {
+      font-size: 7.5pt;
+      font-weight: bold;
+      color: #e8560f;
+      padding-bottom: 2pt;
+    }
+    .destaque-titulo {
+      font-size: 11.5pt;
+      font-weight: bold;
+      color: #1c130e;
+      margin: 0 0 4pt;
+    }
+    .destaque-texto {
+      font-size: 9.5pt;
+      line-height: 1.55;
+      color: #55504b;
+      margin: 0;
+    }
+    .destaque-competencia {
+      font-size: 8pt;
+      color: #857f78;
+      padding-top: 5pt;
+    }
+    .separador {
+      background-color: #eae9e6;
+      height: 1pt;
+      font-size: 1pt;
+    }
+
+    /* ── Tabela do financeiro ───────────────────────────────────────────── */
+    .tabela { width: 100%; }
+    .tabela th {
+      background-color: #f6f4f1;
+      border-bottom: 1pt solid #eae9e6;
+      font-size: 8pt;
+      font-weight: bold;
+      color: #55504b;
+      padding: 6pt 8pt;
+      text-align: left;
+    }
+    .tabela td {
+      border-bottom: 1pt solid #eae9e6;
+      font-size: 9.5pt;
+      color: #1c130e;
+      padding: 6pt 8pt;
+    }
+    .num { text-align: right; }
+    .tabela .linha-total td {
+      background-color: #fdf0e7;
+      border-bottom: 0;
+      font-weight: bold;
+      color: #1c130e;
+    }
+
+    /* ── Caixa de estado vazio ──────────────────────────────────────────── */
+    /* Caixa em tabela, não em div: cada div filha pintaria a própria faixa de
+       fundo e a caixa sairia partida em duas. */
+    .vazio { margin-top: 6pt; }
+    .vazio td {
+      background-color: #f6f4f1;
+      border: 1pt solid #eae9e6;
+      padding: 14pt 16pt;
+      color: #55504b;
+      font-size: 9.5pt;
+    }
+    .vazio-titulo {
+      font-weight: bold;
+      color: #1c130e;
+      font-size: 10pt;
+      margin: 0 0 4pt;
+    }
+
+    .assinatura {
+      font-size: 8.5pt;
+      color: #857f78;
+      margin-top: 18pt;
+    }
+
+    /* ── Rodapé ─────────────────────────────────────────────────────────── */
+    #bloco-rodape {
+      border-top: 1pt solid #eae9e6;
+      padding-top: 4pt;
+      font-size: 7.5pt;
+      color: #857f78;
+    }
+  </style>
+</head>
+
+<body>
+
+  {# ══════════════════ Rodapé repetido em toda página ══════════════════ #}
+  <div id="bloco-rodape">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="font-size:7.5pt; color:#857f78;">
+          Projeto Criança Feliz &middot; {{ revista.titulo }}
+        </td>
+        <td style="font-size:7.5pt; color:#857f78; text-align:right;">
+          Página <pdf:pagenumber> de <pdf:pagecount>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  {# ══════════════════ Capa ══════════════════ #}
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td class="capa-cel">
+        <div class="capa-kicker">PROJETO CRIANÇA FELIZ</div>
+        <div class="capa-titulo">{{ revista.titulo }}</div>
+        {% if revista.subtitulo %}
+          <div class="capa-sub">{{ revista.subtitulo }}</div>
+        {% endif %}
+        <div class="capa-periodo">
+          Período de {{ revista.periodo_inicio|date:"d/m/Y" }}
+          a {{ revista.periodo_fim|date:"d/m/Y" }}
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  {# ══════════════════ Carta de abertura ══════════════════ #}
+  {% if revista.texto_abertura %}
+    <table width="100%" cellpadding="0" cellspacing="0" class="caixa-prosa">
+      <tr>
+        <td class="prosa prosa-destacada">
+          {{ revista.texto_abertura|linebreaks }}
+        </td>
+      </tr>
+    </table>
+  {% endif %}
+
+  {# ══════════════════ Números do período ══════════════════ #}
+  {% if numeros %}
+      <div class="titulo-secao">O período em números</div>
+      <table class="regua" width="52" cellpadding="0" cellspacing="0"><tr><td>&nbsp;</td></tr></table>
+      <div class="sub-secao">
+        Apurado direto do sistema, entre {{ revista.periodo_inicio|date:"d/m/Y" }}
+        e {{ revista.periodo_fim|date:"d/m/Y" }}.
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td class="kpi">
+            <div class="kpi-valor">{{ numeros.criancas }}</div>
+            <div class="kpi-rotulo">CRIANÇAS PRESENTES</div>
+          </td>
+          <td class="kpi">
+            <div class="kpi-valor">{{ numeros.voluntarios }}</div>
+            <div class="kpi-rotulo">VOLUNTÁRIOS EM AÇÃO</div>
+          </td>
+          <td class="kpi">
+            <div class="kpi-valor">{{ numeros.sabados }}</div>
+            <div class="kpi-rotulo">SÁBADOS DE ENCONTRO</div>
+          </td>
+        </tr>
+        <tr>
+          <td class="kpi">
+            <div class="kpi-valor">{{ numeros.atividades }}</div>
+            <div class="kpi-rotulo">ATIVIDADES REALIZADAS</div>
+          </td>
+          <td class="kpi">
+            <div class="kpi-valor">{{ numeros.salas }}</div>
+            <div class="kpi-rotulo">SALAS EM FUNCIONAMENTO</div>
+          </td>
+          <td class="kpi">
+            <div class="kpi-valor">{{ numeros.dimensoes|length }}</div>
+            <div class="kpi-rotulo">DIMENSÕES TRABALHADAS</div>
+          </td>
+        </tr>
+      </table>
+
+      {% if numeros.dimensoes %}
+        <div class="dimensoes">
+          <strong>Dimensões desenvolvidas no período:</strong>
+          {% for dimensao in numeros.dimensoes %}{{ dimensao }}{% if not forloop.last %} &middot; {% endif %}{% endfor %}
+        </div>
+      {% endif %}
+  {% endif %}
+
+  {# ══════════════════ Destaques ══════════════════ #}
+    <div class="titulo-secao">O que aconteceu nas salas</div>
+    <table class="regua" width="52" cellpadding="0" cellspacing="0"><tr><td>&nbsp;</td></tr></table>
+    <div class="sub-secao">
+      Cada destaque nasceu do semanário escrito pelos voluntários no dia da atividade.
+    </div>
+
+    {% for secao in secoes %}
+      <table width="100%" cellpadding="0" cellspacing="0" class="destaque">
+        <tr>
+          {% if secao.foto %}
+            <td class="destaque-cel-foto">
+              {# Caminho absoluto em disco: sem link_callback na view, URL relativa não resolve. #}
+              <img src="{{ secao.foto.path }}" style="width:4.6cm;" alt="">
+            </td>
+          {% endif %}
+          <td class="destaque-cel-texto">
+            <div class="destaque-meta">
+              {% if secao.sala %}
+                {% if secao.sala == 'FAMILIA_FELIZ' %}FAMÍLIA FELIZ{% else %}SALA {{ secao.sala }}{% endif %}
+              {% endif %}
+              {% if secao.sala and secao.sabado %} &middot; {% endif %}
+              {% if secao.sabado %}{{ secao.sabado.data|date:"d/m/Y" }}{% endif %}
+            </div>
+            <div class="destaque-titulo">{{ secao.titulo }}</div>
+            {% if secao.texto %}
+              <div class="destaque-texto">{{ secao.texto|linebreaks }}</div>
+            {% endif %}
+            {% if secao.competencia %}
+              <div class="destaque-competencia">
+                Competência trabalhada: {{ secao.competencia }}
+              </div>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+      {% if not forloop.last %}
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr><td class="separador"></td></tr>
+        </table>
+      {% endif %}
+
+    {% empty %}
+      <table width="100%" cellpadding="0" cellspacing="0" class="vazio">
+        <tr>
+          <td>
+            <div class="vazio-titulo">Esta edição ainda não tem destaques</div>
+            Abra a revista em "Montar", clique em "Trazer do semanário" e marque
+            as atividades que devem aparecer aqui. Só entram atividades com
+            descrição preenchida no semanário.
+          </td>
+        </tr>
+      </table>
+    {% endfor %}
+
+  {# ══════════════════ Onde o dinheiro foi aplicado ══════════════════ #}
+  {% if financeiro %}
+      <div class="titulo-secao">Onde o dinheiro foi aplicado</div>
+      <table class="regua" width="52" cellpadding="0" cellspacing="0"><tr><td>&nbsp;</td></tr></table>
+      <div class="sub-secao">
+        Despesas lançadas no Financeiro entre
+        {{ revista.periodo_inicio|date:"d/m/Y" }} e {{ revista.periodo_fim|date:"d/m/Y" }}.
+      </div>
+
+      {# Larguras em pt na 1a linha: em % o xhtml2pdf espreme e corta o cabeçalho. #}
+      {# A área útil é 18cm = 510pt (A4 menos as margens de 1,5cm). #}
+      <table class="tabela" cellpadding="0" cellspacing="0">
+        <thead>
+          <tr>
+            <th style="width:216pt">Categoria</th>
+            <th class="num" style="width:92pt">Lançamentos</th>
+            <th class="num" style="width:112pt">Valor</th>
+            <th class="num" style="width:90pt">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for linha in financeiro.linhas %}
+            <tr>
+              <td>{{ linha.nome }}</td>
+              <td class="num">{{ linha.lancamentos }}</td>
+              <td class="num">R$ {{ linha.valor|floatformat:2 }}</td>
+              <td class="num">{{ linha.percentual|floatformat:1 }}%</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4">
+                Nenhuma despesa foi lançada nesse período — não há prestação de
+                contas a mostrar nesta edição.
+              </td>
+            </tr>
+          {% endfor %}
+          {% if financeiro.linhas %}
+            {# O &nbsp; é obrigatório: célula sem filho faz o xhtml2pdf zerar a #}
+            {# largura da coluna inteira e o cabeçalho sai cortado. #}
+            <tr class="linha-total">
+              <td>Total aplicado</td>
+              <td class="num">&nbsp;</td>
+              <td class="num">R$ {{ financeiro.total|floatformat:2 }}</td>
+              <td class="num">100,0%</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+  {% endif %}
+
+  {# ══════════════════ Fechamento ══════════════════ #}
+  {% if revista.texto_fechamento %}
+    <table width="100%" cellpadding="0" cellspacing="0" class="caixa-prosa">
+      <tr>
+        <td class="prosa prosa-destacada">
+          {{ revista.texto_fechamento|linebreaks }}
+        </td>
+      </tr>
+    </table>
+  {% endif %}
+
+  <div class="assinatura">
+    Obrigado por caminhar com o Projeto Criança Feliz. Cada número desta
+    edição tem nome, rosto e sábado de manhã.
+  </div>
+
+</body>
+</html>

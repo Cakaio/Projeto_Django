@@ -7,15 +7,22 @@ from django.http import HttpResponse
 from django.db.models import Sum
 from django.db.models.deletion import ProtectedError
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.apps import apps
 from functools import wraps
 from decimal import Decimal
+from datetime import date
 import csv
 from .models import Categoria, Lancamento, ORIGENS_AUTOMATICAS
 from .forms import CategoriaForm, LancamentoForm
+from .servicos import despesas_por_categoria
 
 AREAS_LEITURA = {'ADM/FIN', 'TRIADE'}
 AREAS_ESCRITA = {'ADM/FIN'}
+
+# Prestação de contas é a única tela do Financeiro que o CR/RE enxerga: ele
+# precisa dela para responder ao doador, mas continua fora dos lançamentos.
+AREAS_PRESTACAO_CONTAS = {'ADM/FIN', 'TRIADE', 'CR/RE'}
 
 
 class AdmAcessoMixin(LoginRequiredMixin):
@@ -335,6 +342,61 @@ def dre(request):
         'deltas': deltas,
         'mes': mes_str,
         'comparar': comp_str,
+    })
+
+
+def _data_ou_padrao(texto, padrao):
+    """Lê uma data da querystring e cai no padrão se ela não servir.
+
+    parse_date() ainda levanta ValueError quando o formato está certo mas o dia
+    não existe ('2026-02-31'), então o try é obrigatório: link torto colado no
+    grupo do WhatsApp não pode virar erro 500 na cara do voluntário.
+    """
+    try:
+        return parse_date(texto or '') or padrao
+    except ValueError:
+        return padrao
+
+
+def _periodo_prestacao_contas(request):
+    """Período do filtro, com o ano corrente como padrão."""
+    hoje = timezone.localdate()
+    padrao_inicio = date(hoje.year, 1, 1)
+    padrao_fim = date(hoje.year, 12, 31)
+
+    inicio = _data_ou_padrao(request.GET.get('inicio'), padrao_inicio)
+    fim = _data_ou_padrao(request.GET.get('fim'), padrao_fim)
+
+    # Fim antes do início não é filtro, é erro de digitação: mostrar zero
+    # despesas faria o doador achar que o projeto não gastou nada.
+    if fim < inicio:
+        return padrao_inicio, padrao_fim
+
+    return inicio, fim
+
+
+@login_required
+def onde_investimos(request):
+    """Prestação de contas: para onde foi o dinheiro, por categoria.
+
+    Gate escrito à mão de propósito — adm_acesso_required é mais estreito e
+    deixaria o CR/RE de fora, e é justamente ele quem precisa desta tela para
+    responder ao doador. Somente leitura: nada aqui cria, edita ou apaga
+    lançamento.
+    """
+    if not (request.user.is_superuser
+            or getattr(request.user, 'area', None) in AREAS_PRESTACAO_CONTAS):
+        raise PermissionDenied('Esta tela é do Financeiro e do CR/RE.')
+
+    inicio, fim = _periodo_prestacao_contas(request)
+    linhas, total = despesas_por_categoria(inicio, fim)
+
+    return render(request, 'onde_investimos.html', {
+        'linhas': linhas,
+        'total': total,
+        'quantidade_lancamentos': sum(linha['lancamentos'] for linha in linhas),
+        'inicio': inicio,
+        'fim': fim,
     })
 
 

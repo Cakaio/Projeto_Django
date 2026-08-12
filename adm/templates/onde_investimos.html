@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% block titulo %}Onde investimos{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .oi-). #}
+{# O visual base vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .oi-page { background: hsl(var(--background)); }
+  .oi-wrap { padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+
+  /* ── Filtro de período ── */
+  .oi-filtros { display: grid; grid-template-columns: 1fr; gap: .8rem; margin-bottom: 1.15rem; }
+  .oi-filtros-botoes { display: flex; align-items: flex-end; gap: .5rem; flex-wrap: wrap; }
+  .oi-filtros-botoes .pcf-btn { flex: 1; }
+  .oi-nota { margin: 0; grid-column: 1 / -1; font-size: .8rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── KPIs ── */
+  .oi-kpis { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.15rem; }
+
+  /* ── Cabeçalho do card da tabela ── */
+  .oi-card-head { display: flex; align-items: flex-start; justify-content: space-between;
+                  gap: .75rem; flex-wrap: wrap; padding: 1.15rem 1.15rem .95rem; }
+  .oi-card-title { margin: 0; font-size: 1.02rem; font-weight: 750; letter-spacing: -.02em; color: var(--ink); }
+  .oi-card-sub { margin: .2rem 0 0; font-size: .82rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Tabela ── */
+  /* min-width própria: sem ela as colunas espremem no celular e o nome da
+     categoria quebra em três linhas. Melhor rolar de lado dentro do card. */
+  .oi-table { min-width: 640px; }
+  /* A célula da categoria é <th scope="row"> por acessibilidade, mas não pode
+     herdar o visual de cabeçalho (caixa alta e fundo cinza) do .pcf-table th. */
+  .oi-table tbody th { padding: .7rem .9rem; background: transparent; text-transform: none;
+                       letter-spacing: normal; font-size: .875rem; white-space: normal;
+                       border-bottom: 1px solid hsl(var(--border)); }
+  .oi-table tbody tr:last-child th { border-bottom: 0; }
+  .oi-cat { font-weight: 700; color: var(--ink); }
+  .oi-part { display: flex; align-items: center; gap: .6rem; min-width: 190px; }
+  .oi-part .pcf-progress { flex: 1; }
+  .oi-pct { font-size: .8rem; font-weight: 700; color: var(--ink); white-space: nowrap;
+            font-variant-numeric: tabular-nums; min-width: 4.5ch; text-align: right; }
+  .oi-valor { font-weight: 800; color: var(--ink); white-space: nowrap; }
+  .oi-table tfoot td { border-top: 1.5px solid hsl(var(--border)); border-bottom: 0;
+                       background: hsl(var(--muted)); font-weight: 800; color: var(--ink); }
+
+  /* ── Estado vazio ── */
+  .oi-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem;
+              padding: clamp(2.25rem, 6vw, 3.25rem) 1.25rem; }
+  .oi-empty-title { margin: .35rem 0 0; font-size: 1.02rem; font-weight: 800; color: var(--ink); }
+  .oi-empty-sub { margin: 0; max-width: 40ch; font-size: .86rem; color: hsl(var(--muted-foreground)); }
+
+  @media (min-width: 640px) { .oi-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 700px) { .oi-filtros { grid-template-columns: 1fr 1fr auto; align-items: end; } }
+</style>
+
+<div class="oi-page">
+  <div class="pcf-container oi-wrap">
+
+    <!-- ══════ Cabeçalho ══════ -->
+    <header class="pcf-page-head" data-reveal>
+      <div>
+        <span class="pcf-eyebrow">Prestação de contas</span>
+        <h1 class="pcf-page-title" style="margin-top:.7rem">Onde investimos</h1>
+        <p class="pcf-page-sub">
+          Para onde foi cada real gasto entre {{ inicio|date:"d/m/Y" }} e {{ fim|date:"d/m/Y" }} — a resposta que o doador quer ouvir.
+        </p>
+      </div>
+      <span class="pcf-badge outline">Somente leitura</span>
+    </header>
+
+    <!-- ══════ Filtro de período ══════ -->
+    <form method="get" action="{% url 'adm:onde_investimos' %}" class="pcf-card oi-filtros" data-reveal>
+      <div class="pcf-field">
+        <label class="pcf-label" for="oi-inicio">Início do período</label>
+        <input class="pcf-input" type="date" id="oi-inicio" name="inicio" value="{{ inicio|date:'Y-m-d' }}">
+      </div>
+
+      <div class="pcf-field">
+        <label class="pcf-label" for="oi-fim">Fim do período</label>
+        <input class="pcf-input" type="date" id="oi-fim" name="fim" value="{{ fim|date:'Y-m-d' }}">
+      </div>
+
+      <div class="oi-filtros-botoes">
+        <button type="submit" class="pcf-btn pcf-btn-outline">Ver período</button>
+        <a href="{% url 'adm:onde_investimos' %}" class="pcf-btn pcf-btn-ghost">Ano inteiro</a>
+      </div>
+
+      <p class="oi-nota">
+        Entram aqui só as saídas (despesas) com data dentro do período. As entradas ficam no fluxo de caixa do Financeiro.
+      </p>
+    </form>
+
+    <!-- ══════ KPIs ══════ -->
+    <div class="oi-kpis" data-reveal data-reveal-delay="60">
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Total investido no período</span>
+            <span class="pcf-icon-tile tint-orange" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">R$ {{ total|floatformat:2 }}</div>
+          <div class="pcf-kpi-foot">
+            {{ linhas|length }} categoria{{ linhas|length|pluralize }} de despesa
+          </div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Lançamentos somados</span>
+            <span class="pcf-icon-tile tint-blue" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ quantidade_lancamentos }}</div>
+          <div class="pcf-kpi-foot">
+            saída{{ quantidade_lancamentos|pluralize }} registrada{{ quantidade_lancamentos|pluralize }} entre {{ inicio|date:"d/m/Y" }} e {{ fim|date:"d/m/Y" }}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══════ Tabela por categoria ══════ -->
+    <section class="pcf-card" style="padding:0;overflow:hidden" data-reveal data-reveal-delay="120">
+      <div class="oi-card-head">
+        <div>
+          <h2 class="oi-card-title">Gasto por categoria</h2>
+          <p class="oi-card-sub">Da maior fatia para a menor, com a participação de cada uma no total do período.</p>
+        </div>
+      </div>
+
+      {% if linhas %}
+        <div class="pcf-scroll-x">
+          <table class="pcf-table oi-table">
+            <thead>
+              <tr>
+                <th scope="col">Categoria</th>
+                <th scope="col">Participação no total</th>
+                <th scope="col" class="num">Valor</th>
+                <th scope="col" class="num">Lançamentos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for linha in linhas %}
+                <tr>
+                  <th scope="row" class="oi-cat">{{ linha.nome }}</th>
+                  <td>
+                    <span class="oi-part">
+                      {% comment %} widthratio (e não floatformat) porque em pt-BR o decimal sai
+                         com vírgula e quebraria o width no CSS. {% endcomment %}
+                      <span class="pcf-progress" aria-hidden="true">
+                        <span style="width:{% if total %}{% widthratio linha.valor total 100 %}{% else %}0{% endif %}%"></span>
+                      </span>
+                      <span class="oi-pct">{{ linha.percentual|floatformat:1 }}%</span>
+                    </span>
+                  </td>
+                  <td class="num"><span class="oi-valor">R$ {{ linha.valor|floatformat:2 }}</span></td>
+                  <td class="num">{{ linha.lancamentos }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total do período</td>
+                <td>100,0%</td>
+                <td class="num">R$ {{ total|floatformat:2 }}</td>
+                <td class="num">{{ quantidade_lancamentos }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      {% else %}
+        <div class="oi-empty">
+          <span class="pcf-icon-tile lg" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </span>
+          <p class="oi-empty-title">Nenhuma despesa entre {{ inicio|date:"d/m/Y" }} e {{ fim|date:"d/m/Y" }}</p>
+          <p class="oi-empty-sub">
+            Escolha outro período no filtro acima ou veja o ano inteiro. Se você esperava ver gastos aqui,
+            avise o Financeiro (ADM/FIN) — é quem lança as despesas.
+          </p>
+          <a href="{% url 'adm:onde_investimos' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm" style="margin-top:.4rem">Ver o ano inteiro</a>
+        </div>
+      {% endif %}
+    </section>
+
+  </div>
+</div>
+{% endblock %}

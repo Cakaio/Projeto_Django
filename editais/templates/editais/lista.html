@@ -1,0 +1,425 @@
+{% extends 'base.html' %}
+{% block titulo %}Editais{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .ed-). #}
+{# O visual base vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .ed-page { background: hsl(var(--background)); }
+  .ed-wrap { padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+  .ed-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  /* ── KPIs: 1 coluna no celular, 2 no tablet, 4 no desktop ── */
+  .ed-kpis { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.15rem; }
+
+  /* ── Contadores por status: cada um também é um filtro ── */
+  .ed-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.15rem; }
+  .ed-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .4rem .75rem; border-radius: 999px;
+             border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: var(--ink-soft);
+             font-size: .8rem; font-weight: 650; text-decoration: none; line-height: 1.25;
+             transition: border-color .15s, background .15s, color .15s; }
+  .ed-chip:hover { border-color: #e8d5c6; background: #fffaf6; color: var(--ink); text-decoration: none; }
+  .ed-chip.is-active { background: hsl(var(--accent)); border-color: #fbe3d3; color: #c9490a; }
+  .ed-chip b { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  /* ── Filtros ── */
+  .ed-filtros { display: grid; grid-template-columns: 1fr; gap: .8rem; margin-bottom: 1.15rem; }
+  .ed-filtros-botoes { display: flex; align-items: flex-end; gap: .5rem; flex-wrap: wrap; }
+  .ed-filtros-botoes .pcf-btn { flex: 1; }
+  .ed-check { display: flex; align-items: center; gap: .55rem; padding: .62rem .8rem; border-radius: 12px;
+              border: 1px solid hsl(var(--border)); background: hsl(var(--card)); }
+  .ed-check input { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; accent-color: var(--brand); }
+  .ed-check label { font-size: .82rem; font-weight: 600; color: var(--ink-soft); cursor: pointer; }
+
+  /* ── Aviso de fonte quebrada ── */
+  .ed-alerta { display: flex; align-items: flex-start; gap: .8rem; flex-wrap: wrap; margin-bottom: 1.15rem; }
+  .ed-alerta-title { margin: 0; font-size: .9rem; font-weight: 750; color: var(--ink); }
+  .ed-alerta-sub { margin: .2rem 0 0; max-width: 62ch; font-size: .8rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Tabela ── */
+  /* Largura fixa por coluna: sem isso as colunas se espremem e o texto vira torre de letras. */
+  /* A soma das colunas cabe num notebook de 1440px com a sidebar recolhida.
+     Importa porque a ultima coluna e o botao "Abrir" — a acao principal da
+     tela — e ninguem deveria rolar de lado para alcancar ela. */
+  .ed-table { min-width: 1120px; table-layout: fixed; }
+  .ed-table th, .ed-table td { vertical-align: top; overflow-wrap: break-word; }
+  .ed-table th:nth-child(1), .ed-table td:nth-child(1) { width: 268px; }
+  .ed-table th:nth-child(2), .ed-table td:nth-child(2) { width: 86px; }
+  .ed-table th:nth-child(3), .ed-table td:nth-child(3) { width: 196px; }
+  .ed-table th:nth-child(4), .ed-table td:nth-child(4) { width: 168px; }
+  .ed-table th:nth-child(5), .ed-table td:nth-child(5) { width: 96px; }
+  .ed-table th:nth-child(6), .ed-table td:nth-child(6) { width: 84px; }
+  .ed-table th:nth-child(7), .ed-table td:nth-child(7) { width: 112px; }
+  .ed-table th:nth-child(8), .ed-table td:nth-child(8) { width: 110px; }
+
+  .ed-titulo { font-weight: 700; color: var(--ink); text-decoration: none; }
+  .ed-titulo:hover { color: #c9490a; text-decoration: underline; }
+  .ed-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; margin-top: .35rem;
+             font-size: .72rem; font-weight: 600; color: hsl(var(--muted-foreground)); }
+  .ed-termos { display: block; margin-top: .25rem; font-size: .71rem; color: hsl(var(--muted-foreground)); }
+  .ed-clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .ed-nota { display: flex; flex-direction: column; gap: .35rem; }
+  .ed-data { display: block; font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .ed-prazo-nota { display: block; margin-top: .3rem; font-size: .72rem; color: hsl(var(--muted-foreground)); }
+  .ed-valor { font-weight: 800; color: var(--ink); white-space: nowrap; }
+  .ed-resp { display: block; margin-top: .35rem; font-size: .72rem; color: hsl(var(--muted-foreground)); }
+  .ed-acoes { display: flex; flex-direction: column; gap: .35rem; }
+  .ed-dim { color: hsl(var(--muted-foreground)); }
+  .ed-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* Destaque de prazo: marca na borda da linha, mas o texto da célula sempre diz o porquê. */
+  .ed-table tbody tr.is-urgente td:first-child { box-shadow: inset 3px 0 0 var(--brand); }
+  .ed-table tbody tr.is-vencido td:first-child { box-shadow: inset 3px 0 0 hsl(var(--border)); }
+  .ed-table tbody tr.is-vencido .ed-titulo,
+  .ed-table tbody tr.is-vencido .ed-valor { color: hsl(var(--muted-foreground)); }
+
+  /* ── Estado vazio ── */
+  .ed-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem;
+              padding: clamp(2.25rem, 6vw, 3.25rem) 1.25rem; }
+  .ed-empty-title { margin: .35rem 0 0; font-size: 1.02rem; font-weight: 800; color: var(--ink); }
+  .ed-empty-sub { margin: 0; max-width: 44ch; font-size: .86rem; color: hsl(var(--muted-foreground)); }
+  .ed-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-top: .5rem; }
+
+  @media (min-width: 560px) { .ed-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1000px) { .ed-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (min-width: 760px) { .ed-filtros { grid-template-columns: 1.5fr 1fr auto auto; align-items: end; } }
+  @media (max-width: 560px) {
+    .ed-actions { width: 100%; }
+    .ed-actions .pcf-btn { flex: 1 1 100%; justify-content: center; }
+    .ed-alerta .pcf-btn { width: 100%; justify-content: center; }
+  }
+  @media (min-width: 561px) { .ed-alerta .pcf-btn { margin-left: auto; } }
+</style>
+
+<div class="ed-page">
+  <div class="pcf-container ed-wrap">
+
+    <!-- ══════ Cabeçalho ══════ -->
+    <header class="pcf-page-head" data-reveal>
+      <div>
+        <span class="pcf-eyebrow">Captação &amp; Relações Externas</span>
+        <h1 class="pcf-page-title" style="margin-top:.7rem">Editais</h1>
+        <p class="pcf-page-sub">
+          {{ editais|length }} edit{{ editais|length|pluralize:"al,ais" }} na tela, do mais relevante para o menos.
+          O robô varre as fontes todo dia e traz o que tem cara de servir ao projeto — quem decide se a gente concorre é você.
+        </p>
+      </div>
+      <div class="ed-actions">
+        <a href="{% url 'editais:palavras' %}" class="pcf-btn pcf-btn-outline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="9" y1="20" x2="15" y2="20"/></svg>
+          Palavras-chave
+        </a>
+        <a href="{% url 'editais:fontes' %}" class="pcf-btn pcf-btn-outline">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>
+          Fontes
+        </a>
+        <a href="{% url 'editais:criar' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo edital
+        </a>
+      </div>
+    </header>
+
+    <!-- ══════ Aviso: fonte que parou de funcionar ══════ -->
+    {% if fontes_com_erro %}
+      <div class="pcf-card ed-alerta" data-reveal>
+        <span class="pcf-icon-tile tint-gold" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <div>
+          <p class="ed-alerta-title">
+            {{ fontes_com_erro }} fonte{{ fontes_com_erro|pluralize }} com erro na última varredura
+          </p>
+          <p class="ed-alerta-sub">
+            Enquanto o erro não for resolvido, essa fonte não traz edital nenhum. Abra a tela de fontes,
+            leia a mensagem do erro e ajuste o endereço ou os seletores.
+          </p>
+        </div>
+        <a href="{% url 'editais:fontes' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver fontes</a>
+      </div>
+    {% endif %}
+
+    <!-- ══════ Números do topo ══════ -->
+    <div class="ed-kpis" data-reveal>
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Editais na base</span>
+            <span class="pcf-icon-tile tint-blue" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ total }}</div>
+          <div class="pcf-kpi-foot">{{ editais|length }} aparecendo com os filtros de agora</div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Novos, sem triagem</span>
+            <span class="pcf-icon-tile tint-orange" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ novos }}</div>
+          <div class="pcf-kpi-foot">
+            <a href="?status=NOVO" style="color:var(--brand);font-weight:650;text-decoration:none">Ver só os novos →</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Prazo em até 7 dias</span>
+            <span class="pcf-icon-tile tint-gold" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ vencendo }}</div>
+          <div class="pcf-kpi-foot">entre os que ainda estamos avaliando</div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Fontes com erro</span>
+            <span class="pcf-icon-tile tint-green" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.5"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ fontes_com_erro }}</div>
+          <div class="pcf-kpi-foot">
+            <a href="{% url 'editais:fontes' %}" style="color:var(--brand);font-weight:650;text-decoration:none">Abrir fontes →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ Contadores por status (clicar filtra) ══════ -->
+    <nav class="ed-chips" aria-label="Filtrar por status" data-reveal>
+      <a class="ed-chip {% if not status %}is-active{% endif %}"
+         href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}{% if abertos %}abertos=1{% endif %}">
+        Todos <b>{{ total }}</b>
+      </a>
+      {% for contador in contadores %}
+        <a class="ed-chip {% if status == contador.valor %}is-active{% endif %}"
+           href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}{% if abertos %}abertos=1&amp;{% endif %}status={{ contador.valor }}">
+          {{ contador.rotulo }} <b>{{ contador.total }}</b>
+        </a>
+      {% endfor %}
+    </nav>
+
+    <!-- ══════ Filtros ══════ -->
+    <form method="get" action="{% url 'editais:lista' %}" class="pcf-card ed-filtros" data-reveal>
+      <div class="pcf-field">
+        <label class="pcf-label" for="ed-q">Buscar edital</label>
+        <input class="pcf-input" type="search" id="ed-q" name="q" value="{{ q }}"
+               placeholder="Palavra do título ou da descrição…" autocomplete="off">
+      </div>
+
+      <div class="pcf-field">
+        <label class="pcf-label" for="ed-status">Status</label>
+        <select class="pcf-input" id="ed-status" name="status" onchange="this.form.submit()">
+          <option value="">Todos os status</option>
+          {% for valor, rotulo in status_choices %}
+            <option value="{{ valor }}" {% if status == valor %}selected{% endif %}>{{ rotulo }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="ed-check">
+        <input type="checkbox" id="ed-abertos" name="abertos" value="1" {% if abertos %}checked{% endif %}>
+        <label for="ed-abertos">Só com prazo aberto</label>
+      </div>
+
+      <div class="ed-filtros-botoes">
+        <button type="submit" class="pcf-btn pcf-btn-outline">Filtrar</button>
+        {% if q or status or abertos %}
+          <a href="{% url 'editais:lista' %}" class="pcf-btn pcf-btn-ghost">Limpar</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <!-- ══════ Tabela ══════ -->
+    <div class="pcf-card pcf-tile-pad-0" data-reveal data-reveal-delay="60">
+      {% if editais %}
+        <div class="pcf-scroll-x">
+          <table class="pcf-table ed-table">
+            <thead>
+              <tr>
+                <th scope="col">Edital</th>
+                <th scope="col">Relevância</th>
+                <th scope="col">Descritivo</th>
+                <th scope="col">O que precisamos</th>
+                <th scope="col">Prazo</th>
+                <th scope="col" class="num">Valor</th>
+                <th scope="col">Status</th>
+                <th scope="col">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for edital in editais %}
+                <tr class="{% if edital.vencido %}is-vencido{% elif edital.prazo_proximo %}is-urgente{% endif %}">
+                  <!-- Edital -->
+                  <td>
+                    <a class="ed-titulo" href="{% url 'editais:editar' edital.pk %}"
+                       title="{{ edital.titulo }}">{{ edital.titulo|truncatechars:110 }}</a>
+                    <span class="ed-meta">
+                      {% if edital.origem == 'MANUAL' %}
+                        <span class="pcf-badge outline">Cadastro manual</span>
+                      {% elif edital.fonte %}
+                        {{ edital.fonte.nome|truncatechars:34 }}
+                      {% elif edital.consulta %}
+                        {% comment %} Veio da varredura: o que importa é o site que publicou,
+                           porque é ele que pode virar fonte fixa depois. {% endcomment %}
+                        <span class="pcf-badge outline brand">Achado na web</span>
+                        {{ edital.dominio }}
+                      {% else %}
+                        Origem não registrada
+                      {% endif %}
+                    </span>
+                    {% if edital.termos_encontrados %}
+                      <span class="ed-termos">bateu com: {{ edital.termos_encontrados|truncatechars:56 }}</span>
+                    {% endif %}
+                  </td>
+
+                  <!-- Relevância -->
+                  <td>
+                    <span class="ed-nota">
+                      <span class="pcf-badge {% if edital.relevancia >= 8 %}brand{% elif edital.relevancia >= 4 %}info{% else %}outline{% endif %}">
+                        nota {{ edital.relevancia }}
+                      </span>
+                      {% if edital.relevancia > 0 %}
+                        <span class="pcf-progress" aria-hidden="true">
+                          <span style="width:{% if edital.relevancia >= 20 %}100{% else %}{% widthratio edital.relevancia 20 100 %}{% endif %}%"></span>
+                        </span>
+                      {% endif %}
+                    </span>
+                  </td>
+
+                  <!-- Descritivo -->
+                  <td>
+                    {% if edital.descricao %}
+                      <span class="ed-clamp">{{ edital.descricao|striptags|truncatewords:22 }}</span>
+                    {% else %}
+                      <span class="ed-dim">Sem descrição — abra o edital para ler a chamada.</span>
+                    {% endif %}
+                  </td>
+
+                  <!-- O que precisamos -->
+                  <td>
+                    {% if edital.requisitos %}
+                      <span class="ed-clamp">{{ edital.requisitos|striptags|truncatewords:18 }}</span>
+                    {% else %}
+                      <span class="ed-dim">Ainda não anotado — leia o edital e registre em “Editar”.</span>
+                    {% endif %}
+                  </td>
+
+                  <!-- Prazo -->
+                  <td>
+                    {% if edital.prazo %}
+                      <span class="ed-data">{{ edital.prazo|date:"d/m/Y" }}</span>
+                      {% if edital.vencido %}
+                        <span class="pcf-badge danger" style="margin-top:.3rem">
+                          <span class="dot" aria-hidden="true"></span>Vencido
+                        </span>
+                        <span class="ed-prazo-nota">há {{ edital.prazo|timesince:hoje }}</span>
+                      {% elif edital.prazo == hoje %}
+                        <span class="pcf-badge warn" style="margin-top:.3rem">
+                          <span class="dot" aria-hidden="true"></span>Vence hoje
+                        </span>
+                      {% elif edital.prazo_proximo %}
+                        <span class="pcf-badge warn" style="margin-top:.3rem">
+                          <span class="dot" aria-hidden="true"></span>Fecha em {{ edital.prazo|timeuntil:hoje }}
+                        </span>
+                      {% else %}
+                        {# "fecha em" serve para 1 dia e para 3 meses; "falta/faltam" quebraria a concordância. #}
+                        <span class="ed-prazo-nota">fecha em {{ edital.prazo|timeuntil:hoje }}</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="ed-dim">Sem prazo informado</span>
+                    {% endif %}
+                  </td>
+
+                  <!-- Valor -->
+                  <td class="num">
+                    {% if edital.valor %}
+                      <span class="ed-valor">R$ {{ edital.valor|floatformat:2 }}</span>
+                    {% else %}
+                      <span class="ed-dim">—</span>
+                    {% endif %}
+                  </td>
+
+                  <!-- Status -->
+                  <td>
+                    <span class="pcf-badge {% if edital.status == 'INSCRITO' %}ok{% elif edital.status == 'VAMOS_CONCORRER' %}brand{% elif edital.status == 'AVALIANDO' %}warn{% elif edital.status == 'NOVO' %}info{% else %}outline{% endif %}">
+                      <span class="dot" aria-hidden="true"></span>{{ edital.get_status_display }}
+                    </span>
+                    {% if edital.responsavel %}
+                      <span class="ed-resp">
+                        {% if edital.responsavel.first_name %}
+                          resp. {{ edital.responsavel.first_name }}
+                        {% else %}
+                          resp. {{ edital.responsavel.username }}
+                        {% endif %}
+                      </span>
+                    {% else %}
+                      <span class="ed-resp">sem responsável</span>
+                    {% endif %}
+                  </td>
+
+                  <!-- Ações -->
+                  <td>
+                    <span class="ed-acoes">
+                      <a class="pcf-btn pcf-btn-outline pcf-btn-sm" href="{{ edital.link }}"
+                         target="_blank" rel="noopener">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        Abrir<span class="ed-sr"> o edital no site de origem, em nova aba</span>
+                      </a>
+                      <a class="pcf-btn pcf-btn-ghost pcf-btn-sm" href="{% url 'editais:editar' edital.pk %}">
+                        Editar<span class="ed-sr"> os dados de {{ edital.titulo }}</span>
+                      </a>
+                    </span>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="ed-empty">
+          <span class="pcf-icon-tile lg" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+          </span>
+          {% if q or status or abertos %}
+            <p class="ed-empty-title">Nenhum edital com esses filtros</p>
+            <p class="ed-empty-sub">
+              Tente outra palavra na busca, escolha outro status ou desmarque “só com prazo aberto” —
+              edital vencido continua guardado aqui.
+            </p>
+            <div class="ed-empty-actions">
+              <a href="{% url 'editais:lista' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Limpar filtros</a>
+            </div>
+          {% else %}
+            <p class="ed-empty-title">Nenhum edital na lista ainda</p>
+            <p class="ed-empty-sub">
+              O robô varre as fontes cadastradas uma vez por dia e guarda aqui o que combina com as
+              palavras-chave do projeto. Se nada apareceu, confira se existe alguma fonte ativa —
+              e, quando alguém do CR encontrar uma chamada por fora, dá para cadastrar à mão.
+            </p>
+            <div class="ed-empty-actions">
+              <a href="{% url 'editais:criar' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">Novo edital</a>
+              <a href="{% url 'editais:fontes' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver fontes</a>
+              <a href="{% url 'editais:palavras' %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Palavras-chave</a>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% block titulo %}{% if tipo == 'fonte' %}Excluir fonte{% else %}Excluir edital{% endif %}{% endblock %}
+
+{% block content %}
+{# Layout específico desta tela (prefixo .edx-). O visual base vem das classes .pcf-*. #}
+{# Tela compartilhada: serve para apagar um edital ou uma fonte do robô — a view #}
+{# manda `objeto`, `nome`, `tipo`, `aviso` e `voltar`. #}
+<style>
+  .edx-wrap { max-width: 580px; padding-block: clamp(2rem, 6vw, 3.5rem) clamp(2.5rem, 6vw, 4rem); }
+
+  .edx-card { text-align: center; }
+  .edx-icon { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto .95rem;
+              display: grid; place-items: center; background: #fdeaea; color: #b03636; }
+  .edx-title { margin: 0 0 .5rem; font-size: clamp(1.15rem, 3vw, 1.45rem); font-weight: 800; letter-spacing: -.02em; color: var(--ink); overflow-wrap: anywhere; }
+  .edx-sub { margin: 0 auto; max-width: 46ch; font-size: .9rem; line-height: 1.6; color: var(--ink-soft); }
+
+  .edx-resumo { margin-top: 1.15rem; text-align: left; }
+  .edx-resumo dl { margin: 0; display: grid; gap: .55rem; }
+  .edx-resumo .linha { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+  .edx-resumo dt { margin: 0; font-size: .72rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: hsl(var(--muted-foreground)); white-space: nowrap; }
+  .edx-resumo dd { margin: 0; font-size: .88rem; font-weight: 650; color: var(--ink); text-align: right; overflow-wrap: anywhere; min-width: 0; }
+  .edx-resumo dd.is-empty { font-weight: 500; font-style: italic; color: hsl(var(--muted-foreground)); }
+  .edx-resumo dd a { color: var(--brand); text-decoration: none; }
+  .edx-resumo dd a:hover { text-decoration: underline; }
+
+  .edx-aviso { display: flex; gap: .7rem; align-items: flex-start; text-align: left; margin-top: 1.15rem;
+               padding: .9rem 1rem; border-radius: 14px; background: #fdeaea; border: 1px solid #f7d4d4; color: #8f2f2f; }
+  .edx-aviso svg { flex-shrink: 0; margin-top: .12rem; }
+  .edx-aviso p { margin: 0; font-size: .85rem; line-height: 1.55; }
+  .edx-aviso p + p { margin-top: .45rem; }
+  .edx-aviso a { color: #8f2f2f; font-weight: 750; }
+
+  .edx-actions { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; }
+  .edx-btn-danger { background: #d64545; color: #fff; }
+  .edx-btn-danger:hover { background: #c23a3a; color: #fff; transform: translateY(-1px); }
+
+  @media (max-width: 520px) {
+    .edx-actions { flex-direction: column-reverse; }
+    .edx-actions .pcf-btn { width: 100%; justify-content: center; }
+    .edx-resumo .linha { flex-direction: column; gap: .1rem; }
+    .edx-resumo dd { text-align: left; }
+  }
+</style>
+
+<div class="pcf-container edx-wrap">
+  <div class="pcf-card edx-card">
+
+    <span class="edx-icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </span>
+
+    {% if objeto and tipo == 'fonte' %}
+      <!-- ══════ Caso 1: apagar uma fonte do robô ══════ -->
+      <h1 class="edx-title">Excluir a fonte “{{ nome }}”?</h1>
+      <p class="edx-sub">
+        O robô deixa de varrer este endereço. Esta ação não pode ser desfeita.
+      </p>
+
+      <div class="edx-resumo pcf-subcard">
+        <dl>
+          <div class="linha">
+            <dt>Fonte</dt>
+            <dd>{{ nome }}</dd>
+          </div>
+          <div class="linha">
+            <dt>Tipo</dt>
+            <dd>{{ objeto.get_tipo_display }}</dd>
+          </div>
+          <div class="linha">
+            <dt>Endereço</dt>
+            <dd><a href="{{ objeto.url }}" target="_blank" rel="noopener noreferrer">{{ objeto.url|truncatechars:60 }}</a></dd>
+          </div>
+          <div class="linha">
+            <dt>Situação</dt>
+            <dd>
+              {% if not objeto.ativo %}
+                <span class="pcf-badge outline">Desativada</span>
+              {% elif objeto.ultimo_erro %}
+                <span class="pcf-badge warn">Ativa, com erro na última coleta</span>
+              {% else %}
+                <span class="pcf-badge ok">Ativa e sem erro</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="linha">
+            <dt>Última coleta</dt>
+            <dd class="{% if not objeto.ultima_coleta %}is-empty{% endif %}">
+              {% if objeto.ultima_coleta %}
+                {{ objeto.ultima_coleta|date:"d/m/Y H:i" }} ·
+                {% if objeto.itens_ultima_coleta == 1 %}1 item{% else %}{{ objeto.itens_ultima_coleta }} itens{% endif %}
+              {% else %}
+                Nunca varrida
+              {% endif %}
+            </dd>
+          </div>
+          <div class="linha">
+            <dt>Editais já trazidos</dt>
+            <dd class="pcf-num">{{ objeto.editais.count }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="edx-aviso" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <p>{{ aviso }}</p>
+          <p><a href="{% url 'editais:fonte_editar' objeto.pk %}">Abrir a fonte e desmarcar “ativo”</a> em vez de apagar.</p>
+        </div>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="edx-actions">
+          <button type="submit" class="pcf-btn edx-btn-danger">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Sim, excluir fonte
+          </button>
+          <a href="{% if voltar %}{{ voltar }}{% else %}{% url 'editais:fontes' %}{% endif %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+        </div>
+      </form>
+
+    {% elif objeto %}
+      <!-- ══════ Caso 2: apagar um edital ══════ -->
+      <h1 class="edx-title">Excluir o edital “{{ nome }}”?</h1>
+      <p class="edx-sub">
+        Some da lista o registro, as observações e o histórico do time sobre esta chamada. Esta ação não pode ser desfeita.
+      </p>
+
+      <div class="edx-resumo pcf-subcard">
+        <dl>
+          <div class="linha">
+            <dt>Edital</dt>
+            <dd>{{ nome }}</dd>
+          </div>
+          <div class="linha">
+            <dt>Status</dt>
+            <dd>
+              <span class="pcf-badge {% if objeto.status == 'VAMOS_CONCORRER' or objeto.status == 'INSCRITO' %}ok{% elif objeto.status == 'AVALIANDO' %}warn{% elif objeto.status == 'NOVO' %}info{% else %}outline{% endif %}">
+                <span class="dot" aria-hidden="true"></span>{{ objeto.get_status_display }}
+              </span>
+            </dd>
+          </div>
+          <div class="linha">
+            <dt>Prazo</dt>
+            <dd class="{% if not objeto.prazo %}is-empty{% endif %}">
+              {% if objeto.prazo %}
+                {{ objeto.prazo|date:"d/m/Y" }}{% if objeto.vencido %} · vencido{% elif objeto.prazo_proximo %} · fecha em até 7 dias{% endif %}
+              {% else %}
+                Sem prazo informado
+              {% endif %}
+            </dd>
+          </div>
+          <div class="linha">
+            <dt>Valor previsto</dt>
+            <dd class="pcf-num {% if not objeto.valor %}is-empty{% endif %}">
+              {% if objeto.valor %}R$ {{ objeto.valor|floatformat:2 }}{% else %}Não informado{% endif %}
+            </dd>
+          </div>
+          <div class="linha">
+            <dt>Responsável</dt>
+            {% comment %} Sem responsavel, `objeto.responsavel.username` como argumento de
+               filtro estoura (VariableDoesNotExist nao e engolido em argumento);
+               por isso o if em vez de encadear defaults. {% endcomment %}
+            <dd class="{% if not objeto.responsavel %}is-empty{% endif %}">
+              {% if objeto.responsavel %}
+                {{ objeto.responsavel.get_full_name|default:objeto.responsavel.username }}
+              {% else %}
+                Sem responsável
+              {% endif %}
+            </dd>
+          </div>
+          <div class="linha">
+            <dt>Origem</dt>
+            <dd>{{ objeto.get_origem_display }}{% if objeto.fonte %} · {{ objeto.fonte.nome }}{% endif %}</dd>
+          </div>
+          <div class="linha">
+            <dt>Link</dt>
+            <dd><a href="{{ objeto.link }}" target="_blank" rel="noopener noreferrer">{{ objeto.link|truncatechars:60 }}</a></dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="edx-aviso" role="alert">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <p>{{ aviso }}</p>
+          <p><a href="{% url 'editais:editar' objeto.pk %}">Abrir o edital e marcar como “Descartado”</a> em vez de apagar.</p>
+        </div>
+      </div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <div class="edx-actions">
+          <button type="submit" class="pcf-btn edx-btn-danger">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Sim, excluir edital
+          </button>
+          <a href="{% if voltar %}{{ voltar }}{% else %}{% url 'editais:lista' %}{% endif %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+        </div>
+      </form>
+
+    {% else %}
+      <!-- ══════ Estado vazio: a view não mandou o que apagar ══════ -->
+      <h1 class="edx-title">Nada para excluir</h1>
+      <p class="edx-sub">
+        O registro que você tentou remover não foi encontrado — outra pessoa pode tê-lo apagado antes.
+        Volte para a lista e confira.
+      </p>
+      <div class="edx-actions">
+        <a href="{% if voltar %}{{ voltar }}{% else %}{% url 'editais:lista' %}{% endif %}" class="pcf-btn pcf-btn-outline">Voltar para os editais</a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

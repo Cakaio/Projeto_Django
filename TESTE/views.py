@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
+from django.http import Http404
 from django.shortcuts import render, redirect
 from django.views.generic import TemplateView
 from django.db import models
@@ -15,6 +17,56 @@ from ronda.models import ConfiguracaoRondaSabado
 class LandingView(TemplateView):
     """Landing page pública do projeto (rota '/'). Não exige login."""
     template_name = "landing.html"
+
+
+# ─────────────────────────── Uploads (/media/) ───────────────────────────
+# Só estas pastas podem ser abertas sem login, e por um motivo concreto: são
+# as fotos que aparecem na revista do doador, que é uma página pública por
+# design (link secreto, sem conta no sistema).
+#
+# Todo o resto exige sessão. Ali dentro estão documentos de atendidos
+# (documentos_atendidos), fotos das crianças (fotos_atendidos), comprovantes de
+# reembolso com dado pessoal (reembolsos) e fotos dos voluntários — nada disso
+# pode ficar acessível a quem descobrir ou adivinhar um endereço.
+PASTAS_DE_MIDIA_PUBLICA = ("revista/", "fotos_atividades/")
+
+
+def midia(request, path):
+    """Entrega um arquivo de /media/, exigindo login no que é sensível.
+
+    Existe porque o WhiteNoise só serve /static/, e servir /media/ inteiro sem
+    autenticação (como estava) publicava documento de criança para qualquer um.
+
+    Em produção o ideal é o PythonAnywhere entregar /media/ pelo mapeamento da
+    aba "Web" — mas o mapeamento não sabe checar sessão, então as pastas
+    privadas devem continuar passando por aqui.
+    """
+    import posixpath
+
+    from django.views.static import serve as servir_arquivo
+
+    # Normalizar ANTES de olhar o prefixo é o ponto todo: sem isto,
+    # "fotos_atividades/../documentos_atendidos/rg.pdf" começa com uma pasta
+    # pública, passa na checagem, e o `serve` — que normaliza por conta
+    # própria — entrega o documento da criança. A pasta pública viraria porta
+    # dos fundos para o resto do /media/.
+    caminho = posixpath.normpath((path or "").replace("\\", "/")).lstrip("/")
+    if caminho.startswith("..") or caminho == ".":
+        raise Http404("Arquivo não disponível.")
+
+    publico = caminho.startswith(PASTAS_DE_MIDIA_PUBLICA)
+
+    if not publico and not request.user.is_authenticated:
+        # 404, e não 403: para quem não tem sessão o arquivo simplesmente não
+        # existe — assim não confirmamos que aquele caminho é válido.
+        raise Http404("Arquivo não disponível.")
+
+    resposta = servir_arquivo(request, caminho, document_root=settings.MEDIA_ROOT)
+    if publico:
+        # São fotos de crianças: podem ser abertas por quem tem o link da
+        # revista, mas não podem cair em buscador.
+        resposta["X-Robots-Tag"] = "noindex, nofollow, noimageindex"
+    return resposta
 
 
 # ─────────────────────────── Busca global ───────────────────────────
@@ -64,6 +116,14 @@ def _paginas_do_usuario(user):
          is_su or area in ("CR/RE", "TRIADE")),
         ("Lista de Parceiros", "parceiros:lista", "Doadores e carteiras",
          is_su or area in ("CR/RE", "TRIADE")),
+        ("Revistinha", "revista:lista", "Revista dos semanários para os doadores",
+         is_su or area in ("CR/RE", "TRIADE")),
+        ("Editais", "editais:lista", "Editais que o robô encontrou",
+         is_su or area in ("CR/RE", "TRIADE")),
+        ("Fontes de Editais", "editais:fontes", "De onde o robô lê",
+         is_su or area in ("CR/RE", "TRIADE")),
+        ("Onde Investimos", "adm:onde_investimos", "Em que o dinheiro foi aplicado",
+         is_su or area in ("CR/RE", "ADM/FIN", "TRIADE")),
         ("Meu Perfil", "voluntario:meu_perfil", "Seus dados e talentos", True),
     ]
     return [(nome, url, desc) for nome, url, desc, pode in paginas if pode]

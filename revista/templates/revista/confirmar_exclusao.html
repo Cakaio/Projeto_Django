@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block titulo %}Excluir edição{% endblock %}
+
+{% block content %}
+{# Layout específico desta tela (prefixo .rvd-). O visual base vem das classes .pcf-*. #}
+<style>
+  .rvd-wrap { max-width: 600px; padding-block: clamp(2rem, 6vw, 3.5rem) clamp(2.5rem, 6vw, 4rem); }
+
+  .rvd-card { text-align: center; }
+  .rvd-icon { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto .95rem;
+              display: grid; place-items: center; background: #fdeaea; color: #b03636; }
+  .rvd-title { margin: 0 0 .5rem; font-size: clamp(1.2rem, 3vw, 1.45rem); font-weight: 800; letter-spacing: -.02em; color: var(--ink); overflow-wrap: anywhere; }
+  .rvd-sub { margin: 0 auto; max-width: 46ch; font-size: .9rem; line-height: 1.6; color: var(--ink-soft); }
+
+  /* Resumo do que vai embora */
+  .rvd-resumo { margin-top: 1.15rem; text-align: left; }
+  .rvd-resumo dl { margin: 0; display: grid; gap: .55rem; }
+  .rvd-linha { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+  .rvd-resumo dt { margin: 0; font-size: .74rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .rvd-resumo dd { margin: 0; font-size: .9rem; font-weight: 650; color: var(--ink); text-align: right; overflow-wrap: anywhere; }
+
+  /* Aviso do que é apagado junto */
+  .rvd-aviso { display: flex; gap: .7rem; align-items: flex-start; text-align: left; margin-top: 1.15rem;
+               padding: .9rem 1rem; border-radius: 14px; background: #fdeaea; border: 1px solid #f7d4d4; color: #8f2f2f; }
+  .rvd-aviso svg { flex-shrink: 0; margin-top: .12rem; }
+  .rvd-aviso p { margin: 0; font-size: .85rem; line-height: 1.55; font-weight: 700; }
+  .rvd-aviso ul { margin: .35rem 0 0; padding-left: 1.1rem; }
+  .rvd-aviso li { font-size: .85rem; line-height: 1.55; }
+  .rvd-aviso li + li { margin-top: .2rem; }
+
+  /* Saída melhor que apagar, quando ela existe */
+  .rvd-saida { text-align: left; margin-top: 1.15rem; padding: .9rem 1rem; border-radius: 14px;
+               background: hsl(var(--muted)); border: 1px solid hsl(var(--border)); }
+  .rvd-saida-t { margin: 0 0 .3rem; font-size: .86rem; font-weight: 750; color: var(--ink); }
+  .rvd-saida-s { margin: 0 0 .7rem; font-size: .82rem; line-height: 1.55; color: hsl(var(--muted-foreground)); }
+
+  .rvd-ok { text-align: left; margin-top: .9rem; font-size: .8rem; line-height: 1.55; color: hsl(var(--muted-foreground)); }
+
+  .rvd-actions { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; }
+  .rvd-btn-danger { background: #d64545; color: #fff; }
+  .rvd-btn-danger:hover { background: #c23a3a; color: #fff; transform: translateY(-1px); }
+
+  .rvd-voltar { display: block; margin-top: 1.1rem; font-size: .82rem; color: hsl(var(--muted-foreground)); }
+
+  @media (max-width: 520px) {
+    .rvd-actions { flex-direction: column-reverse; }
+    .rvd-actions .pcf-btn { width: 100%; justify-content: center; }
+    .rvd-linha { flex-direction: column; gap: .1rem; }
+    .rvd-resumo dd { text-align: left; }
+  }
+</style>
+
+<div class="pcf-container rvd-wrap">
+  <div class="pcf-card rvd-card">
+
+    <span class="rvd-icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </span>
+
+    <h1 class="rvd-title">Excluir “{{ revista.titulo }}”?</h1>
+    <p class="rvd-sub">
+      Você está prestes a apagar esta edição da revista e tudo o que foi escrito nela. Esta ação não pode ser desfeita.
+    </p>
+
+    <!-- ══════ O que existe hoje nesta edição ══════ -->
+    <div class="rvd-resumo pcf-subcard">
+      <dl>
+        <div class="rvd-linha">
+          <dt>Período</dt>
+          <dd>{{ revista.periodo_inicio|date:"d/m/Y" }} a {{ revista.periodo_fim|date:"d/m/Y" }}</dd>
+        </div>
+        <div class="rvd-linha">
+          <dt>Situação</dt>
+          <dd>
+            <span class="pcf-badge {% if revista.status == 'PUBLICADA' %}ok{% else %}outline{% endif %}">
+              <span class="dot" aria-hidden="true"></span> {{ revista.get_status_display }}
+            </span>
+          </dd>
+        </div>
+        <div class="rvd-linha">
+          <dt>Seções escritas</dt>
+          {% with total=revista.secoes.count incluidas=revista.secoes_incluidas.count %}
+            <dd>
+              {% if total %}
+                {{ total }} seç{{ total|pluralize:"ão,ões" }} · {{ incluidas }} entrando na revista
+              {% else %}
+                Nenhuma seção montada
+              {% endif %}
+            </dd>
+          {% endwith %}
+        </div>
+        <div class="rvd-linha">
+          <dt>Link do doador</dt>
+          <dd>
+            {% if revista.link_publico_valido and revista.status == 'PUBLICADA' %}
+              <span class="pcf-badge warn"><span class="dot" aria-hidden="true"></span> Aberto agora</span>
+            {% else %}
+              <span class="pcf-badge outline"><span class="dot" aria-hidden="true"></span> Fechado</span>
+            {% endif %}
+          </dd>
+        </div>
+        <div class="rvd-linha">
+          <dt>Criada</dt>
+          <dd>
+            {{ revista.criado_em|date:"d/m/Y" }}
+            {% if revista.criado_por %}
+              por {{ revista.criado_por.get_full_name|default:revista.criado_por.username }}
+            {% endif %}
+          </dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- ══════ O que some junto ══════ -->
+    <div class="rvd-aviso" role="alert">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>
+        <p>Ao excluir esta edição, também serão apagados:</p>
+        <ul>
+          {% if revista.secoes.count %}
+            <li>As <strong>{{ revista.secoes.count }} seç{{ revista.secoes.count|pluralize:"ão,ões" }}</strong> desta revista, com os textos que o CR reescreveu à mão;</li>
+          {% else %}
+            <li>Qualquer seção que venha a ser montada depois — a edição inteira deixa de existir;</li>
+          {% endif %}
+          <li>As <strong>fotos enviadas só para a revista</strong> (as fotos do semanário continuam onde estão);</li>
+          <li>O <strong>link do doador</strong>: quem já recebeu o endereço por e-mail ou WhatsApp vai clicar e ver “página não encontrada”.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="rvd-ok">
+      Não são afetados: os semanários, as atividades, as presenças nem os lançamentos do Financeiro. A revista só lê esses dados.
+    </p>
+
+    <!-- ══════ Saída menos radical, quando o link está aberto ══════ -->
+    {% if revista.link_publico_ativo %}
+      <div class="rvd-saida">
+        <p class="rvd-saida-t">Só quer tirar a revista do ar?</p>
+        <p class="rvd-saida-s">
+          Revogar o link fecha a página do doador na hora — há fotos de crianças nela — e mantém a edição guardada aqui dentro para consulta.
+        </p>
+        <form method="post" action="{% url 'revista:publicar' revista.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="acao" value="revogar">
+          <button type="submit" class="pcf-btn pcf-btn-outline pcf-btn-sm">Revogar o link e manter a edição</button>
+        </form>
+      </div>
+    {% endif %}
+
+    <!-- ══════ Confirmação ══════ -->
+    <form method="post" action="">
+      {% csrf_token %}
+      <div class="rvd-actions">
+        <button type="submit" class="pcf-btn rvd-btn-danger">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Sim, excluir esta edição
+        </button>
+        <a href="{% url 'revista:ver' revista.pk %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+      </div>
+    </form>
+
+    <a href="{% url 'revista:lista' %}" class="rvd-voltar">Voltar para todas as edições</a>
+
+  </div>
+</div>
+{% endblock %}

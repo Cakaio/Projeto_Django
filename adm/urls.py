@@ -16,6 +16,7 @@ urlpatterns = [
     path('categorias/<int:pk>/deletar/', views.deletar_categoria, name='deletar_categoria'),
     path('fluxo-de-caixa/', views.fluxo_caixa, name='fluxo_caixa'),
     path('dre/', views.dre, name='dre'),
+    path('onde-investimos/', views.onde_investimos, name='onde_investimos'),
     path('notificacoes-reembolso/', forms_views.receptores_reembolso, name='receptores_reembolso'),
     path('notificacoes-reembolso/novo/', forms_views.receptor_criar, name='receptor_criar'),
     path('notificacoes-reembolso/<int:pk>/editar/', forms_views.receptor_editar, name='receptor_editar'),

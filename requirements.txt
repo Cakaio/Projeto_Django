@@ -11,3 +11,14 @@ tablib==3.9.0
 typing_extensions==4.15.0
 whitenoise==6.11.0
 tzdata==2025.3
+
+# Revistinha do CR/RE — PDF gerado no servidor.
+# xhtml2pdf é Python puro (não precisa de cairo/pango como o WeasyPrint),
+# por isso roda igual no Windows e no PythonAnywhere.
+xhtml2pdf==0.2.17
+reportlab==4.5.1
+
+# Robô de editais: lê RSS e páginas HTML das fontes cadastradas.
+requests==2.34.2
+feedparser==6.0.14
+beautifulsoup4==4.15.0

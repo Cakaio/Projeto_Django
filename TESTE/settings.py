@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     'ronda',
     'gerenciamento',
     'parceiros',
+    'revista',
+    'editais',
 ]
 
 MIDDLEWARE = [

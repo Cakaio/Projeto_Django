@@ -1,0 +1,534 @@
+{% comment %}
+  Revista em versão e-mail.
+
+  Duas coisas convivem nesta página, e é de propósito:
+
+  1. A barra do topo (.rv-*) é ferramenta interna do CR: fica FORA do e-mail e
+     some na impressão. É a única parte com <style>.
+  2. O e-mail em si é a tabela #rv-email, com TODO estilo inline. Cliente de
+     e-mail (Gmail, Outlook, Yahoo) descarta <style> do <head> — se o visual
+     dependesse dele, o doador receberia texto cru. Layout em tabela pelo mesmo
+     motivo: flex e grid não existem em Outlook.
+
+  Esta view roda com render(request, ...), então aqui EXISTE `request` — é o que
+  permite montar URL absoluta das fotos. Em e-mail, caminho relativo não abre.
+
+  Não estende base.html: quem copia a página inteira não pode levar junto a
+  navbar do sistema.
+{% endcomment %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Versão para e-mail — {{ revista.titulo }}</title>
+
+  <style>
+    /* Barra de ferramentas do CR. Prefixo .rv- exclusivo desta tela.
+       Nada aqui vale para o e-mail: o e-mail é 100% inline. */
+    :root { color-scheme: light; }
+
+    body {
+      margin: 0;
+      background: #f3f1ed;
+      color: #1c130e;
+      font-family: 'Archivo', system-ui, -apple-system, Segoe UI, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .rv-bar {
+      background: #ffffff;
+      border-bottom: 1px solid #eae9e6;
+      padding: 1.1rem clamp(.9rem, 4vw, 1.75rem) 1.25rem;
+    }
+    .rv-bar-inner { max-width: 62rem; margin: 0 auto; }
+
+    .rv-eyebrow {
+      display: block;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #e8560f;
+    }
+    .rv-title {
+      margin: .5rem 0 .25rem;
+      font-size: clamp(1.15rem, 3.6vw, 1.5rem);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: #1c130e;
+    }
+    .rv-sub {
+      margin: 0;
+      max-width: 62ch;
+      font-size: .85rem;
+      line-height: 1.6;
+      color: #55504b;
+    }
+
+    .rv-acoes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-top: 1rem;
+    }
+    .rv-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .4rem;
+      padding: .55rem .95rem;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font: inherit;
+      font-size: .85rem;
+      font-weight: 650;
+      line-height: 1.2;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .rv-btn-primario { background: #e8560f; color: #ffffff; }
+    .rv-btn-primario:hover { background: #e04e0c; }
+    .rv-btn-contorno {
+      background: #ffffff;
+      color: #1c130e;
+      border-color: #eae9e6;
+    }
+    .rv-btn-contorno:hover { border-color: #e8d5c6; background: #fffaf6; }
+    .rv-btn:focus-visible { outline: 2px solid #e8560f; outline-offset: 2px; }
+
+    .rv-aviso {
+      margin: .8rem 0 0;
+      min-height: 1.2em;
+      font-size: .82rem;
+      font-weight: 650;
+      color: #1f7a49;
+    }
+    .rv-aviso[data-erro="1"] { color: #b03636; }
+
+    .rv-nota {
+      margin: .9rem 0 0;
+      padding: .7rem .9rem;
+      border: 1px solid #eae9e6;
+      border-left: 3px solid #e8560f;
+      border-radius: 8px;
+      background: #fdf0e7;
+      font-size: .82rem;
+      line-height: 1.55;
+      color: #55504b;
+    }
+    .rv-nota strong { color: #1c130e; }
+
+    @media (max-width: 480px) {
+      .rv-acoes .rv-btn { flex: 1 1 100%; }
+    }
+
+    /* Na impressão sobra só o e-mail. */
+    @media print {
+      .rv-bar { display: none; }
+      body { background: #ffffff; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══════════════ Barra do CR (não faz parte do e-mail) ══════════════ -->
+  <div class="rv-bar">
+    <div class="rv-bar-inner">
+      <span class="rv-eyebrow">CR/RE &middot; Revista</span>
+      <h1 class="rv-title">Versão para e-mail</h1>
+      <p class="rv-sub">
+        Abaixo está a edição “{{ revista.titulo }}” em HTML de e-mail: tabelas e
+        estilo inline, largura de 600&nbsp;px. Use <strong>Copiar conteúdo</strong>
+        para colar direto na janela de escrever do Gmail ou do Outlook; use
+        <strong>Copiar HTML</strong> quando a ferramenta de disparo pedir o código.
+      </p>
+
+      <div class="rv-acoes">
+        <button type="button" class="rv-btn rv-btn-primario" id="rv-copiar-conteudo">
+          Copiar conteúdo (colar no e-mail)
+        </button>
+        <button type="button" class="rv-btn rv-btn-contorno" id="rv-copiar-html">
+          Copiar HTML
+        </button>
+        <a class="rv-btn rv-btn-contorno" href="{% url 'revista:ver' revista.pk %}">
+          Voltar para a revista
+        </a>
+        <a class="rv-btn rv-btn-contorno" href="{% url 'revista:pdf' revista.pk %}">
+          Baixar o PDF
+        </a>
+      </div>
+
+      <p class="rv-aviso" id="rv-aviso" role="status" aria-live="polite"></p>
+
+      {% if revista.status != 'PUBLICADA' or not revista.link_publico_valido %}
+        <p class="rv-nota">
+          <strong>Sem botão de link público neste e-mail.</strong>
+          Ele só entra quando a edição está publicada e com o link ligado.
+          Publique em “Voltar para a revista” e volte aqui para copiar de novo.
+        </p>
+      {% endif %}
+
+      {% if secoes %}
+        <p class="rv-nota">
+          <strong>Sobre as fotos:</strong> elas ficam hospedadas em
+          {{ request.get_host }} e o e-mail aponta para lá. Quem receber precisa
+          estar com internet e permitir imagens para vê-las — o texto de cada
+          destaque continua legível mesmo com as imagens bloqueadas.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       DAQUI PARA BAIXO É O E-MAIL. Todo estilo é inline de propósito.
+       ══════════════════════════════════════════════════════════════════════ -->
+  <table id="rv-email" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;background-color:#f3f1ed;">
+    <tr>
+      <td align="center" style="padding:24px 12px;background-color:#f3f1ed;">
+
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;border-collapse:collapse;background-color:#ffffff;border:1px solid #eae9e6;">
+
+          <!-- ── Capa ── -->
+          <tr>
+            <td bgcolor="#e8560f" style="padding:30px 24px;background-color:#e8560f;">
+              <p style="margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:1.5px;color:#ffe6d6;">
+                PROJETO CRIANÇA FELIZ
+              </p>
+              <h1 style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.2;font-weight:bold;color:#ffffff;">
+                {{ revista.titulo }}
+              </h1>
+              {% if revista.subtitulo %}
+                <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#ffe6d6;">
+                  {{ revista.subtitulo }}
+                </p>
+              {% endif %}
+              <p style="margin:16px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#ffffff;">
+                Período de {{ revista.periodo_inicio|date:"d/m/Y" }} a {{ revista.periodo_fim|date:"d/m/Y" }}
+              </p>
+            </td>
+          </tr>
+
+          <!-- ── Carta de abertura ── -->
+          {% if revista.texto_abertura %}
+            <tr>
+              <td style="padding:24px 24px 0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td style="padding:18px 20px;background-color:#fdf0e7;border-left:4px solid #e8560f;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:#55504b;">
+                      {{ revista.texto_abertura|linebreaks }}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          {% endif %}
+
+          <!-- ── Números do período ── -->
+          {% if numeros %}
+            <tr>
+              <td style="padding:28px 24px 0;">
+                <h2 style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:bold;color:#1c130e;">
+                  O período em números
+                </h2>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td width="42" height="3" style="width:42px;height:3px;background-color:#e8560f;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+                <p style="margin:8px 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#857f78;">
+                  Apurado direto do sistema, entre {{ revista.periodo_inicio|date:"d/m/Y" }} e {{ revista.periodo_fim|date:"d/m/Y" }}.
+                </p>
+
+                {# Duas colunas, nunca três: em tela de 360 px três colunas #}
+                {# espremem o rótulo e ele quebra em quatro linhas. #}
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td width="50%" style="width:50%;padding:14px 12px;background-color:#fbfaf8;border:1px solid #eae9e6;">
+                      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:bold;color:#e8560f;">{{ numeros.criancas }}</p>
+                      <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.5px;color:#55504b;">CRIANÇAS PRESENTES</p>
+                    </td>
+                    <td width="50%" style="width:50%;padding:14px 12px;background-color:#fbfaf8;border:1px solid #eae9e6;">
+                      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:bold;color:#e8560f;">{{ numeros.voluntarios }}</p>
+                      <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.5px;color:#55504b;">VOLUNTÁRIOS EM AÇÃO</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px 12px;background-color:#fbfaf8;border:1px solid #eae9e6;">
+                      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:bold;color:#e8560f;">{{ numeros.sabados }}</p>
+                      <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.5px;color:#55504b;">SÁBADOS DE ENCONTRO</p>
+                    </td>
+                    <td style="padding:14px 12px;background-color:#fbfaf8;border:1px solid #eae9e6;">
+                      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:bold;color:#e8560f;">{{ numeros.atividades }}</p>
+                      <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.5px;color:#55504b;">ATIVIDADES REALIZADAS</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:14px 12px;background-color:#fbfaf8;border:1px solid #eae9e6;">
+                      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:bold;color:#e8560f;">{{ numeros.salas }}</p>
+                      <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.5px;color:#55504b;">SALAS EM FUNCIONAMENTO</p>
+                    </td>
+                    <td style="padding:14px 12px;background-color:#fbfaf8;border:1px solid #eae9e6;">
+                      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:24px;font-weight:bold;color:#e8560f;">{{ numeros.dimensoes|length }}</p>
+                      <p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.5px;color:#55504b;">DIMENSÕES TRABALHADAS</p>
+                    </td>
+                  </tr>
+                </table>
+
+                {% if numeros.dimensoes %}
+                  <p style="margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;color:#55504b;">
+                    <strong style="color:#1c130e;">Dimensões desenvolvidas:</strong>
+                    {% for dimensao in numeros.dimensoes %}{{ dimensao }}{% if not forloop.last %} &middot; {% endif %}{% endfor %}
+                  </p>
+                {% endif %}
+              </td>
+            </tr>
+          {% endif %}
+
+          <!-- ── Destaques ── -->
+          <tr>
+            <td style="padding:28px 24px 0;">
+              <h2 style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:bold;color:#1c130e;">
+                O que aconteceu nas salas
+              </h2>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td width="42" height="3" style="width:42px;height:3px;background-color:#e8560f;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+              <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#857f78;">
+                Cada destaque nasceu do semanário escrito pelos voluntários no dia da atividade.
+              </p>
+            </td>
+          </tr>
+
+          {% for secao in secoes %}
+            <tr>
+              <td style="padding:20px 24px 0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
+                  {% if secao.foto %}
+                    <tr>
+                      <td style="padding:0 0 12px;">
+                        {# URL absoluta: em e-mail, /media/... não resolve na caixa de entrada. #}
+                        <img src="{{ request.scheme }}://{{ request.get_host }}{{ secao.foto.url }}"
+                             alt="Foto da atividade {{ secao.titulo }}"
+                             width="550"
+                             style="display:block;width:100%;max-width:550px;height:auto;border:0;outline:none;text-decoration:none;">
+                      </td>
+                    </tr>
+                  {% endif %}
+                  <tr>
+                    <td>
+                      {% if secao.sala or secao.sabado %}
+                        <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:.6px;color:#e8560f;">
+                          {% if secao.sala %}{% if secao.sala == 'FAMILIA_FELIZ' %}FAMÍLIA FELIZ{% else %}SALA {{ secao.sala }}{% endif %}{% endif %}
+                          {% if secao.sala and secao.sabado %} &middot; {% endif %}
+                          {% if secao.sabado %}{{ secao.sabado.data|date:"d/m/Y" }}{% endif %}
+                        </p>
+                      {% endif %}
+                      <h3 style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;line-height:1.35;color:#1c130e;">
+                        {{ secao.titulo }}
+                      </h3>
+                      {% if secao.texto %}
+                        <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.65;color:#55504b;">
+                          {{ secao.texto|linebreaks }}
+                        </div>
+                      {% endif %}
+                      {% if secao.competencia %}
+                        <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#857f78;">
+                          Competência trabalhada: {{ secao.competencia }}
+                        </p>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% if not forloop.last %}
+                    <tr>
+                      <td height="1" style="height:1px;padding:20px 0 0;font-size:0;line-height:0;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;"><tr><td height="1" style="height:1px;background-color:#eae9e6;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+                      </td>
+                    </tr>
+                  {% endif %}
+                </table>
+              </td>
+            </tr>
+
+          {% empty %}
+            <tr>
+              <td style="padding:16px 24px 0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td style="padding:18px 20px;background-color:#f6f4f1;border:1px solid #eae9e6;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#55504b;">
+                      <strong style="display:block;margin-bottom:4px;font-size:15px;color:#1c130e;">Esta edição ainda não tem destaques</strong>
+                      Não envie assim. Volte para a revista, abra “Montar”, traga
+                      as atividades do semanário e marque as que devem aparecer —
+                      só entram atividades com descrição preenchida.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          {% endfor %}
+
+          <!-- ── Onde o dinheiro foi aplicado ── -->
+          {% if financeiro %}
+            <tr>
+              <td style="padding:28px 24px 0;">
+                <h2 style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:bold;color:#1c130e;">
+                  Onde o dinheiro foi aplicado
+                </h2>
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td width="42" height="3" style="width:42px;height:3px;background-color:#e8560f;font-size:0;line-height:0;">&nbsp;</td></tr></table>
+                <p style="margin:8px 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#857f78;">
+                  Despesas lançadas no Financeiro no período.
+                </p>
+
+                {# Três colunas apenas: com a de "lançamentos" a tabela não cabe #}
+                {# em tela de 360 px e o nome da categoria quebra letra a letra. #}
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td style="padding:8px 10px;background-color:#f6f4f1;border-bottom:1px solid #eae9e6;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#55504b;">CATEGORIA</td>
+                    <td align="right" style="padding:8px 10px;background-color:#f6f4f1;border-bottom:1px solid #eae9e6;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#55504b;">VALOR</td>
+                    <td align="right" style="padding:8px 10px;background-color:#f6f4f1;border-bottom:1px solid #eae9e6;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#55504b;">%</td>
+                  </tr>
+                  {% for linha in financeiro.linhas %}
+                    <tr>
+                      <td style="padding:9px 10px;border-bottom:1px solid #eae9e6;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1c130e;">{{ linha.nome }}</td>
+                      <td align="right" style="padding:9px 10px;border-bottom:1px solid #eae9e6;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1c130e;white-space:nowrap;">R$ {{ linha.valor|floatformat:2 }}</td>
+                      <td align="right" style="padding:9px 10px;border-bottom:1px solid #eae9e6;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#55504b;white-space:nowrap;">{{ linha.percentual|floatformat:1 }}%</td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="3" style="padding:14px 10px;border-bottom:1px solid #eae9e6;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#55504b;">
+                        Nenhuma despesa foi lançada nesse período — não há prestação de contas a mostrar nesta edição.
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  {% if financeiro.linhas %}
+                    <tr>
+                      <td style="padding:11px 10px;background-color:#fdf0e7;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#1c130e;">Total aplicado</td>
+                      <td align="right" style="padding:11px 10px;background-color:#fdf0e7;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#1c130e;white-space:nowrap;">R$ {{ financeiro.total|floatformat:2 }}</td>
+                      <td align="right" style="padding:11px 10px;background-color:#fdf0e7;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#1c130e;white-space:nowrap;">100,0%</td>
+                    </tr>
+                  {% endif %}
+                </table>
+              </td>
+            </tr>
+          {% endif %}
+
+          <!-- ── Link do doador ── -->
+          {% if revista.link_publico_valido and revista.status == 'PUBLICADA' %}
+            <tr>
+              <td align="center" style="padding:28px 24px 0;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                  <tr>
+                    <td bgcolor="#e8560f" style="background-color:#e8560f;border-radius:10px;">
+                      <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'revista:publica' revista.token %}"
+                         style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">
+                        Ver a revista completa
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:10px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#857f78;">
+                  Este link é só seu, não precisa de senha.
+                  {% if revista.link_expira_em %}Ele fica no ar até {{ revista.link_expira_em|date:"d/m/Y" }}.{% endif %}
+                </p>
+              </td>
+            </tr>
+          {% endif %}
+
+          <!-- ── Fechamento ── -->
+          {% if revista.texto_fechamento %}
+            <tr>
+              <td style="padding:28px 24px 0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
+                  <tr>
+                    <td style="padding:18px 20px;background-color:#fdf0e7;border-left:4px solid #e8560f;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.65;color:#55504b;">
+                      {{ revista.texto_fechamento|linebreaks }}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          {% endif %}
+
+          <!-- ── Rodapé ── -->
+          <tr>
+            <td style="padding:28px 24px 30px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
+                <tr>
+                  <td height="1" style="height:1px;background-color:#eae9e6;font-size:0;line-height:0;">&nbsp;</td>
+                </tr>
+              </table>
+              <p style="margin:16px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;color:#857f78;">
+                Obrigado por caminhar com o <strong style="color:#1c130e;">Projeto Criança Feliz</strong>.
+                Cada número desta edição tem nome, rosto e sábado de manhã.
+              </p>
+              <p style="margin:8px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#857f78;">
+                As fotos são de atividades do projeto e não devem ser publicadas
+                fora deste envio.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+  <!-- ═══════════════════════ FIM DO E-MAIL ═══════════════════════ -->
+
+  <script>
+    (function () {
+      var email = document.getElementById('rv-email');
+      var aviso = document.getElementById('rv-aviso');
+
+      function avisar(texto, erro) {
+        aviso.textContent = texto;
+        if (erro) { aviso.setAttribute('data-erro', '1'); }
+        else { aviso.removeAttribute('data-erro'); }
+      }
+
+      // O PythonAnywhere serve em HTTPS, mas em desenvolvimento (http://localhost)
+      // a API de clipboard não existe: sem esta cópia velha o botão morria calado.
+      function copiarTexto(texto) {
+        if (navigator.clipboard && window.isSecureContext) {
+          return navigator.clipboard.writeText(texto);
+        }
+        return new Promise(function (ok, falhou) {
+          var caixa = document.createElement('textarea');
+          caixa.value = texto;
+          caixa.setAttribute('readonly', '');
+          caixa.style.position = 'fixed';
+          caixa.style.top = '-1000px';
+          document.body.appendChild(caixa);
+          caixa.select();
+          var deu = false;
+          try { deu = document.execCommand('copy'); } catch (e) { deu = false; }
+          document.body.removeChild(caixa);
+          if (deu) { ok(); } else { falhou(); }
+        });
+      }
+
+      document.getElementById('rv-copiar-html').addEventListener('click', function () {
+        copiarTexto(email.outerHTML).then(function () {
+          avisar('HTML copiado. Cole no campo de código da ferramenta de disparo.');
+        }, function () {
+          avisar('Não consegui copiar. Use Ctrl+U para ver o código da página e copie de lá.', true);
+        });
+      });
+
+      // Copiar "conteúdo" seleciona só a tabela do e-mail: colado no Gmail ou no
+      // Outlook, o formato vai junto. Selecionar a página toda levaria a barra
+      // de ferramentas para dentro do e-mail do doador.
+      document.getElementById('rv-copiar-conteudo').addEventListener('click', function () {
+        var selecao = window.getSelection();
+        var faixa = document.createRange();
+        faixa.selectNode(email);
+        selecao.removeAllRanges();
+        selecao.addRange(faixa);
+        var deu = false;
+        try { deu = document.execCommand('copy'); } catch (e) { deu = false; }
+        selecao.removeAllRanges();
+        if (deu) {
+          avisar('Conteúdo copiado. Cole (Ctrl+V) na janela de escrever o e-mail.');
+        } else {
+          avisar('Não consegui copiar. Selecione da capa laranja até o fim e use Ctrl+C.', true);
+        }
+      });
+    })();
+  </script>
+
+</body>
+</html>

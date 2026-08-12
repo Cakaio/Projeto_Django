@@ -18,7 +18,7 @@ LISTA_AREAS = (
     ("FAMILIA_FELIZ", "Família Feliz"),
     ("MARKETING", "Marketing"),
     ("ADM/FIN", "ADM/Fin"),
-    ("CR/RE", "CR/RE"),
+    ("CR/RE", "Captação de Recursos & Relações Externas"),
     ("EVENTOS", "Eventos"),
     ("GESTAO_DE_TALENTOS", "Gestão de Talentos"),
     ("RECREACAO", "Recreação"),
@@ -26,6 +26,14 @@ LISTA_AREAS = (
     ("PROJETOS", "Projetos"),
     ("TRIADE", "Tríade"),
 )
+
+# O nome por extenso é o correto em formulários, organograma e crachá, mas não
+# cabe em lugar apertado (o cargo embaixo do nome na navbar, um chip de tabela).
+# Só as áreas de nome comprido precisam de forma curta; o resto usa o próprio
+# rótulo.
+AREAS_ABREVIADAS = {
+    "CR/RE": "CR/RE",
+}
 
 FACULDADES = (
     ("EEL-USP", "EEL-USP"),
@@ -97,6 +105,14 @@ class Voluntario(AbstractUser):
         help_text="Cargo/posição na hierarquia."
     )
 
+
+    @property
+    def area_curta(self):
+        """Rótulo da área para espaço apertado (navbar, chips de tabela).
+        Onde houver espaço, use `get_area_display` — é o nome por extenso."""
+        if not self.area:
+            return ""
+        return AREAS_ABREVIADAS.get(self.area, self.get_area_display())
 
     def __str__(self):
         return self.get_full_name() or self.username

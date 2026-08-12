@@ -240,7 +240,7 @@
 
     {% if user.is_superuser or user.area == 'CR/RE' or user.area == 'TRIADE' %}
     <hr class="pcf-navsep">
-    <div class="pcf-navgroup">Parceiros</div>
+    <div class="pcf-navgroup" title="Captação de Recursos &amp; Relações Externas">Captação &amp; Relações</div>
     <a class="pcf-navitem" href="{% url 'parceiros:painel' %}" title="Painel de parceiros">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
       <span>Painel</span>
@@ -252,6 +252,21 @@
     <a class="pcf-navitem" href="{% url 'parceiros:lista' %}" title="Lista de parceiros">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
       <span>Parceiros</span>
+    </a>
+    <a class="pcf-navitem" href="{% url 'revista:lista' %}" title="Revistinha para os doadores">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      <span>Revistinha</span>
+    </a>
+    <a class="pcf-navitem" href="{% url 'editais:lista' %}" title="Editais encontrados pelo robô">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>
+      <span>Editais</span>
+    </a>
+    {% endif %}
+
+    {% if user.is_superuser or user.area == 'CR/RE' or user.area == 'ADM/FIN' or user.area == 'TRIADE' %}
+    <a class="pcf-navitem" href="{% url 'adm:onde_investimos' %}" title="Onde o dinheiro foi aplicado">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+      <span>Onde Investimos</span>
     </a>
     {% endif %}
 
@@ -302,7 +317,7 @@
         </span>
         <span class="who" style="text-align:left">
           <span class="name">{{ user.get_full_name|default:user.username }}</span>
-          <span class="role">{{ user.get_area_display|default:"Voluntário" }}</span>
+          <span class="role">{{ user.area_curta|default:"Voluntário" }}</span>
         </span>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#b6ada4;flex-shrink:0" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
       </button>

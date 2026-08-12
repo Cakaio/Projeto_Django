@@ -1,0 +1,473 @@
+{% load static %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {# Tem foto de criança nesta página: nunca pode ser indexada nem arquivada. #}
+  {# A view manda o mesmo no header X-Robots-Tag; aqui é o cinto de segurança #}
+  {# para quem lê o HTML (buscador que ignora header, leitor de link, etc.). #}
+  <meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#e8560f">
+  <title>{{ revista.titulo }} · Projeto Criança Feliz</title>
+
+  <link rel="icon" href="{% static 'images/Logo_PCF.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'images/Logo_PCF.png' %}">
+
+  {# Página autocontida: quem abre não tem conta no sistema, então ela não #}
+  {# estende base.html (nada de sidebar/navbar) e carrega a fonte e o CSS #}
+  {# do design system por conta própria. #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/pcf.css' %}">
+
+  {# Só LAYOUT desta página (prefixo .rvp- = revista pública). #}
+  {# Cores, botões, cards e tabela vêm das classes .pcf-*. #}
+  <style>
+    /* O preflight do Tailwind está desligado no pcf.css e esta página não
+       carrega o Bootstrap: sem isto o body fica com a margem de 8px do
+       navegador e a barra de identidade e o rodapé param de sangrar. */
+    body { margin: 0; }
+    img { max-width: 100%; }
+
+    /* Só para leitor de tela (legenda da tabela sem ocupar espaço). */
+    .rvp-sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden;
+              clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+    /* ── Barra de identidade (não é a navbar do sistema: só a marca) ── */
+    .rvp-top { background: hsl(var(--card)); border-bottom: 1px solid hsl(var(--border)); }
+    .rvp-top-in { display: flex; align-items: center; gap: .6rem 1rem; flex-wrap: wrap; padding-block: .85rem; }
+    .rvp-brand { display: flex; align-items: center; gap: .55rem; text-decoration: none; color: var(--ink); }
+    .rvp-brand img { width: 28px; height: 28px; border-radius: 8px; }
+    .rvp-brand span { font-weight: 750; font-size: .9rem; letter-spacing: -.01em; }
+
+    .rvp-wrap { padding-block: clamp(1.75rem, 5vw, 3rem) clamp(2.25rem, 6vw, 3.5rem); }
+    .rvp-narrow { max-width: 760px; margin-inline: auto; }
+    .rvp-bloco + .rvp-bloco { margin-top: clamp(1.5rem, 4vw, 2.5rem); }
+
+    /* ── Capa ── */
+    .rvp-capa { text-align: center; }
+    .rvp-titulo { margin: .9rem 0 0; font-size: clamp(1.8rem, 6.5vw, 3rem); font-weight: 800;
+                  letter-spacing: -.035em; line-height: 1.06; color: var(--ink); }
+    .rvp-sub { margin: .75rem auto 0; max-width: 46ch; font-size: clamp(.95rem, 2.7vw, 1.08rem);
+               line-height: 1.6; color: var(--ink-soft); }
+    .rvp-periodo { display: inline-flex; align-items: center; gap: .45rem; margin: 1rem 0 0;
+                   font-size: .74rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+                   color: hsl(var(--muted-foreground)); }
+    .rvp-fio { width: 56px; height: 3px; border-radius: 999px; background: var(--brand-grad); margin: 1.35rem auto 0; }
+
+    /* ── Números do período ── */
+    /* auto-fit com mínimo de 140px: em 360px cabem duas colunas em vez de
+       quatro cards empilhados, que deixariam a capa longa demais no celular. */
+    .rvp-nums { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .rvp-nums .pcf-kpi-value { font-size: clamp(1.4rem, 4.6vw, 1.9rem); }
+    .rvp-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+
+    /* ── Títulos de seção ── */
+    .rvp-sec-titulo { margin: .7rem 0 0; font-size: clamp(1.25rem, 3.6vw, 1.6rem); font-weight: 800;
+                      letter-spacing: -.028em; color: var(--ink); }
+    .rvp-sec-sub { margin: .35rem 0 0; font-size: .88rem; line-height: 1.6; color: hsl(var(--muted-foreground)); }
+    .rvp-sec-head { margin-bottom: 1rem; }
+
+    /* ── Texto corrido (carta de abertura e fechamento) ── */
+    .rvp-texto { font-size: clamp(.98rem, 2.7vw, 1.06rem); line-height: 1.78; color: var(--ink-soft);
+                 overflow-wrap: anywhere; }
+    .rvp-texto p { margin: 0 0 .85rem; }
+    .rvp-texto p:last-child { margin-bottom: 0; }
+    .rvp-assinatura { margin: 1.1rem 0 0; font-size: .84rem; font-weight: 650; color: var(--ink); }
+
+    /* ── Destaques (os "artigos" da revista) ── */
+    .rvp-artigo { padding: 0; overflow: hidden; }
+    .rvp-artigo + .rvp-artigo { margin-top: 1.1rem; }
+    .rvp-foto { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover;
+                background: hsl(var(--muted)); }
+    .rvp-corpo { padding: 1.15rem; min-width: 0; }
+    .rvp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-bottom: .65rem; }
+    .rvp-art-titulo { margin: 0; font-size: clamp(1.08rem, 3.4vw, 1.32rem); font-weight: 750;
+                      letter-spacing: -.022em; line-height: 1.25; color: var(--ink); }
+    .rvp-art-texto { margin: .55rem 0 0; font-size: .95rem; line-height: 1.72; color: var(--ink-soft);
+                     overflow-wrap: anywhere; }
+    .rvp-art-texto p { margin: 0 0 .7rem; }
+    .rvp-art-texto p:last-child { margin-bottom: 0; }
+
+    /* ── Onde o dinheiro foi aplicado ── */
+    /* Sem min-width a tabela se espreme no celular e "Sem categoria" quebra em
+       três linhas; com ela, rola dentro do .pcf-scroll-x. */
+    .rvp-fin { min-width: 560px; }
+    .rvp-fin th:nth-child(1), .rvp-fin td:nth-child(1) { min-width: 220px; }
+    .rvp-fin th:nth-child(2), .rvp-fin td:nth-child(2),
+    .rvp-fin th:nth-child(3), .rvp-fin td:nth-child(3),
+    .rvp-fin th:nth-child(4), .rvp-fin td:nth-child(4) { white-space: nowrap; }
+    .rvp-cat { font-weight: 700; color: var(--ink); }
+    .rvp-fin .pcf-progress { margin-top: .4rem; }
+    .rvp-fin tfoot td { font-weight: 800; color: var(--ink); background: hsl(var(--muted)); border-bottom: 0; }
+    .rvp-nota { margin: .85rem 0 0; font-size: .78rem; line-height: 1.6; color: hsl(var(--muted-foreground)); }
+
+    /* ── Estado vazio ── */
+    .rvp-vazio { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .45rem;
+                 padding: 2rem 1.1rem; border: 1.5px dashed hsl(var(--border)); border-radius: 14px;
+                 background: hsl(var(--muted)); }
+    .rvp-vazio p { margin: 0; }
+    .rvp-vazio .t { font-weight: 750; color: var(--ink); }
+    .rvp-vazio .s { max-width: 40ch; font-size: .85rem; line-height: 1.6; color: hsl(var(--muted-foreground)); }
+
+    /* ── Chamada para apoiar ── */
+    .rvp-cta { border-radius: 22px; padding: clamp(1.75rem, 5vw, 3rem); text-align: center; }
+    .rvp-cta-titulo { margin: .9rem 0 0; font-size: clamp(1.5rem, 5vw, 2.3rem); font-weight: 800;
+                      letter-spacing: -.03em; line-height: 1.12; color: #fff; }
+    .rvp-cta-texto { margin: .9rem auto 0; max-width: 44ch; font-size: clamp(.94rem, 2.6vw, 1.02rem);
+                     line-height: 1.68; color: rgba(255, 255, 255, .92); }
+    .rvp-cta-acoes { display: flex; flex-wrap: wrap; gap: .7rem; justify-content: center; margin-top: 1.6rem; }
+
+    /* ── Rodapé ── */
+    .rvp-rodape { background: hsl(var(--card)); border-top: 1px solid hsl(var(--border));
+                  padding-block: clamp(1.75rem, 5vw, 2.5rem); }
+    .rvp-rodape-in { display: flex; flex-wrap: wrap; gap: 1.25rem 2rem; align-items: flex-start; }
+    .rvp-rodape-sobre { max-width: 30ch; }
+    .rvp-rodape-sobre p { margin: .7rem 0 0; font-size: .82rem; line-height: 1.6; color: hsl(var(--muted-foreground)); }
+    .rvp-links { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+    .rvp-links a { font-size: .86rem; font-weight: 600; color: var(--ink-soft); text-decoration: none; }
+    .rvp-links a:hover { color: var(--brand); text-decoration: underline; }
+    .rvp-fim { display: flex; flex-wrap: wrap; gap: .5rem 1rem; justify-content: space-between;
+               margin-top: 1.5rem; padding-top: 1.15rem; border-top: 1px solid hsl(var(--border)); }
+    .rvp-fim p { margin: 0; font-size: .76rem; line-height: 1.55; color: hsl(var(--muted-foreground)); }
+
+    /* Desktop: foto ao lado do texto, alternando o lado a cada destaque. */
+    @media (min-width: 820px) {
+      .rvp-artigo.tem-foto { display: grid; grid-template-columns: minmax(0, 42%) minmax(0, 1fr); }
+      .rvp-artigo.tem-foto .rvp-foto { height: 100%; min-height: 230px; aspect-ratio: auto; }
+      .rvp-artigo.tem-foto .rvp-corpo { align-self: center; padding: 1.6rem; }
+      .rvp-artigo.tem-foto.invertido .rvp-foto { order: 2; }
+    }
+    @media (max-width: 560px) {
+      .rvp-cta-acoes .pcf-btn { flex: 1 1 100%; }
+    }
+    @media print {
+      .rvp-top, .rvp-cta-wrap { display: none; }
+      .rvp-artigo, .rvp-bloco { break-inside: avoid; }
+      body { background: #fff; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══════ Identidade (sem menu: quem abre não é do projeto) ══════ -->
+  <header class="rvp-top">
+    <div class="pcf-container rvp-top-in">
+      <a class="rvp-brand" href="{% url 'landing' %}">
+        <img src="{% static 'images/Logo_PCF.png' %}" alt="">
+        <span>Projeto Criança Feliz</span>
+      </a>
+      <span class="pcf-badge outline brand" style="margin-left:auto">Edição para apoiadores</span>
+    </div>
+  </header>
+
+  <main class="pcf-container rvp-wrap">
+
+    <!-- ══════ Capa ══════ -->
+    <section class="rvp-bloco rvp-capa rvp-narrow" aria-labelledby="rvp-capa-titulo">
+      <span class="pcf-eyebrow">Prestação de contas</span>
+      <h1 class="rvp-titulo" id="rvp-capa-titulo">{{ revista.titulo }}</h1>
+      {% if revista.subtitulo %}
+        <p class="rvp-sub">{{ revista.subtitulo }}</p>
+      {% else %}
+        <p class="rvp-sub">O que aconteceu nos sábados do projeto, contado por quem estava lá.</p>
+      {% endif %}
+      <p class="rvp-periodo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        {{ revista.periodo_inicio|date:"d/m/Y" }} a {{ revista.periodo_fim|date:"d/m/Y" }}
+      </p>
+      <div class="rvp-fio" aria-hidden="true"></div>
+    </section>
+
+    <!-- ══════ Os números do período ══════ -->
+    {% if numeros %}
+      <section class="rvp-bloco rvp-narrow" aria-labelledby="rvp-numeros-titulo">
+        <div class="rvp-sec-head">
+          <span class="pcf-eyebrow">Os números</span>
+          <h2 class="rvp-sec-titulo" id="rvp-numeros-titulo">O período em cinco linhas</h2>
+          <p class="rvp-sec-sub">Contagem real do sistema do projeto, no intervalo desta edição.</p>
+        </div>
+
+        <div class="rvp-nums">
+          <div class="pcf-card">
+            <div class="pcf-kpi">
+              <div class="pcf-kpi-top">
+                <span class="pcf-kpi-label">Crianças</span>
+                <span class="pcf-icon-tile tint-orange" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+                </span>
+              </div>
+              <div class="pcf-kpi-value pcf-num">{{ numeros.criancas }}</div>
+              <div class="pcf-kpi-foot">estiveram presentes no período</div>
+            </div>
+          </div>
+
+          <div class="pcf-card">
+            <div class="pcf-kpi">
+              <div class="pcf-kpi-top">
+                <span class="pcf-kpi-label">Sábados</span>
+                <span class="pcf-icon-tile tint-gold" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </span>
+              </div>
+              <div class="pcf-kpi-value pcf-num">{{ numeros.sabados }}</div>
+              <div class="pcf-kpi-foot">manhãs de projeto</div>
+            </div>
+          </div>
+
+          <div class="pcf-card">
+            <div class="pcf-kpi">
+              <div class="pcf-kpi-top">
+                <span class="pcf-kpi-label">Voluntários</span>
+                <span class="pcf-icon-tile tint-green" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </span>
+              </div>
+              <div class="pcf-kpi-value pcf-num">{{ numeros.voluntarios }}</div>
+              <div class="pcf-kpi-foot">doaram o sábado deles</div>
+            </div>
+          </div>
+
+          <div class="pcf-card">
+            <div class="pcf-kpi">
+              <div class="pcf-kpi-top">
+                <span class="pcf-kpi-label">Atividades</span>
+                <span class="pcf-icon-tile tint-blue" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                </span>
+              </div>
+              <div class="pcf-kpi-value pcf-num">{{ numeros.atividades }}</div>
+              <div class="pcf-kpi-foot">
+                planejadas em {{ numeros.salas }} sala{{ numeros.salas|pluralize }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% if numeros.dimensoes %}
+          <p class="rvp-sec-sub" style="margin-top:1.1rem">Dimensões de desenvolvimento trabalhadas no período:</p>
+          <ul class="rvp-chips">
+            {% for dimensao in numeros.dimensoes %}
+              <li><span class="pcf-badge outline brand">{{ dimensao }}</span></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    <!-- ══════ Carta de abertura ══════ -->
+    {% if revista.texto_abertura %}
+      <section class="rvp-bloco rvp-narrow" aria-labelledby="rvp-carta-titulo">
+        <article class="pcf-card">
+          <span class="pcf-eyebrow">Carta de abertura</span>
+          <h2 class="rvp-sec-titulo" id="rvp-carta-titulo" style="font-size:clamp(1.15rem,3.2vw,1.4rem)">Um recado para quem apoia</h2>
+          <div class="rvp-texto" style="margin-top:.9rem">{{ revista.texto_abertura|linebreaks }}</div>
+          <p class="rvp-assinatura">— Equipe do Projeto Criança Feliz</p>
+        </article>
+      </section>
+    {% endif %}
+
+    <!-- ══════ Destaques ══════ -->
+    <section class="rvp-bloco rvp-narrow" aria-labelledby="rvp-destaques-titulo">
+      <div class="rvp-sec-head">
+        <span class="pcf-eyebrow">Destaques</span>
+        <h2 class="rvp-sec-titulo" id="rvp-destaques-titulo">O que aconteceu nos sábados</h2>
+        <p class="rvp-sec-sub">Cada bloco é uma atividade que realmente rolou, escrita por quem conduziu a sala.</p>
+      </div>
+
+      {% for secao in secoes %}
+        <article class="pcf-card rvp-artigo {% if secao.foto %}tem-foto{% endif %} {% if forloop.counter|divisibleby:2 %}invertido{% endif %}">
+          {% if secao.foto %}
+            <img class="rvp-foto" src="{{ secao.foto.url }}" loading="lazy" decoding="async"
+                 alt="Foto da atividade {{ secao.titulo }}">
+          {% endif %}
+          <div class="rvp-corpo">
+            <div class="rvp-meta">
+              {% if secao.sala %}
+                <span class="pcf-badge brand">
+                  {% if secao.sala == 'FAMILIA_FELIZ' %}Família Feliz{% else %}Sala {{ secao.sala|title }}{% endif %}
+                </span>
+              {% endif %}
+              {% if secao.sabado %}
+                <span class="pcf-badge">{{ secao.sabado.data|date:"d/m/Y" }}</span>
+              {% endif %}
+              {% if secao.competencia %}
+                <span class="pcf-badge outline info">{{ secao.competencia }}</span>
+              {% endif %}
+            </div>
+
+            <h3 class="rvp-art-titulo">{{ secao.titulo }}</h3>
+
+            {% if secao.texto %}
+              <div class="rvp-art-texto">{{ secao.texto|linebreaks }}</div>
+            {% else %}
+              <p class="rvp-art-texto">Esta atividade entrou na edição sem relato escrito — a foto conta a história.</p>
+            {% endif %}
+          </div>
+        </article>
+      {% empty %}
+        <div class="rvp-vazio">
+          <span class="pcf-icon-tile lg" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </span>
+          <p class="t">Os destaques ainda não foram publicados</p>
+          <p class="s">
+            O time do projeto está fechando os relatos deste período. Guarde este mesmo link
+            e volte em alguns dias — ou fale com a gente pelo e-mail no rodapé desta página.
+          </p>
+        </div>
+      {% endfor %}
+    </section>
+
+    <!-- ══════ Onde o dinheiro foi aplicado ══════ -->
+    {% if financeiro %}
+      <section class="rvp-bloco rvp-narrow" aria-labelledby="rvp-fin-titulo">
+        <article class="pcf-card">
+          <div class="rvp-sec-head">
+            <span class="pcf-eyebrow">Transparência</span>
+            <h2 class="rvp-sec-titulo" id="rvp-fin-titulo">Onde o dinheiro foi aplicado</h2>
+            <p class="rvp-sec-sub">Despesas do período, agrupadas por categoria, da maior para a menor.</p>
+          </div>
+
+          {% if financeiro.linhas %}
+            <div class="pcf-scroll-x">
+              <table class="pcf-table rvp-fin">
+                {# Legenda só para leitor de tela: visível, ela herdaria o #}
+                {# min-width da tabela e só apareceria depois de rolar. #}
+                <caption class="rvp-sr">
+                  Despesas por categoria entre {{ revista.periodo_inicio|date:"d/m/Y" }} e {{ revista.periodo_fim|date:"d/m/Y" }}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Categoria</th>
+                    <th scope="col" class="num">Lançamentos</th>
+                    <th scope="col" class="num">Participação</th>
+                    <th scope="col" class="num">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for linha in financeiro.linhas %}
+                    <tr>
+                      <td>
+                        <span class="rvp-cat">{{ linha.nome }}</span>
+                        {# widthratio devolve inteiro: em pt-BR o decimal sairia #}
+                        {# com vírgula e quebraria o width do CSS. #}
+                        <div class="pcf-progress" aria-hidden="true">
+                          <span style="width:{% widthratio linha.valor financeiro.total 100 %}%"></span>
+                        </div>
+                      </td>
+                      <td class="num">{{ linha.lancamentos }}</td>
+                      <td class="num">{{ linha.percentual|floatformat:1 }}%</td>
+                      <td class="num"><strong>R$ {{ linha.valor|floatformat:2 }}</strong></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td>Total aplicado</td>
+                    <td class="num"></td>
+                    <td class="num">100,0%</td>
+                    <td class="num">R$ {{ financeiro.total|floatformat:2 }}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <p class="rvp-nota">
+              Os valores saem direto do controle financeiro do projeto, sem retoque.
+              Ficou alguma dúvida sobre uma linha? Escreva para
+              <a href="mailto:contato@criancafeliz.org" style="color:var(--brand);font-weight:650">contato@criancafeliz.org</a>
+              que a gente detalha.
+            </p>
+          {% else %}
+            <div class="rvp-vazio">
+              <span class="pcf-icon-tile lg" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </span>
+              <p class="t">Nenhuma despesa registrada neste período</p>
+              <p class="s">
+                Não houve saída de caixa lançada entre estas datas. Se você quiser ver a prestação
+                de contas de outro período, peça pelo e-mail no rodapé desta página.
+              </p>
+            </div>
+          {% endif %}
+        </article>
+      </section>
+    {% endif %}
+
+    <!-- ══════ Fechamento ══════ -->
+    {% if revista.texto_fechamento %}
+      <section class="rvp-bloco rvp-narrow" aria-labelledby="rvp-fecho-titulo">
+        <article class="pcf-card">
+          <span class="pcf-eyebrow">Para terminar</span>
+          <h2 class="rvp-sec-titulo" id="rvp-fecho-titulo" style="font-size:clamp(1.15rem,3.2vw,1.4rem)">Obrigado por chegar até aqui</h2>
+          <div class="rvp-texto" style="margin-top:.9rem">{{ revista.texto_fechamento|linebreaks }}</div>
+        </article>
+      </section>
+    {% endif %}
+
+    <!-- ══════ Chamada para apoiar ══════ -->
+    <section class="rvp-bloco rvp-cta-wrap rvp-narrow" aria-labelledby="rvp-cta-titulo">
+      <div class="pcf-dark-surface rvp-cta">
+        <span class="pcf-orb" style="width:420px;height:420px;top:-220px;left:50%;transform:translateX(-50%)" aria-hidden="true"></span>
+        <span class="pcf-eyebrow on-dark" style="margin-inline:auto">Apoie o projeto</span>
+        <h2 class="rvp-cta-titulo" id="rvp-cta-titulo">Sábado que vem tem criança esperando.</h2>
+        <p class="rvp-cta-texto">
+          Tudo o que você leu aqui só acontece porque alguém decidiu ajudar. Doar uma vez,
+          doar todo mês, ceder material ou emprestar seu talento — qualquer porta serve.
+        </p>
+        <div class="rvp-cta-acoes">
+          <a class="pcf-btn pcf-btn-white pcf-btn-lg"
+             href="mailto:contato@criancafeliz.org?subject=Quero%20apoiar%20o%20Projeto%20Crian%C3%A7a%20Feliz">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Quero apoiar
+          </a>
+          <a class="pcf-btn pcf-btn-outline-dark pcf-btn-lg"
+             href="https://www.instagram.com/criancafelizprojeto/" target="_blank" rel="noopener noreferrer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect width="20" height="20" x="2" y="2" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+            Acompanhar no Instagram
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════ Rodapé ══════ -->
+  <footer class="rvp-rodape">
+    <div class="pcf-container">
+      <div class="rvp-rodape-in">
+        <div class="rvp-rodape-sobre">
+          <a class="rvp-brand" href="{% url 'landing' %}">
+            <img src="{% static 'images/Logo_PCF.png' %}" alt="">
+            <span>Projeto Criança Feliz</span>
+          </a>
+          <p>
+            Um sábado por semana, crianças e voluntários no mesmo lugar, em Lorena (SP).
+            Quem sustenta isso são pessoas como você.
+          </p>
+        </div>
+
+        <div>
+          <div class="pcf-kpi-label" style="margin-bottom:.7rem">Fale com a gente</div>
+          <ul class="rvp-links">
+            <li><a href="mailto:contato@criancafeliz.org">contato@criancafeliz.org</a></li>
+            <li><a href="https://www.instagram.com/criancafelizprojeto/" target="_blank" rel="noopener noreferrer">@criancafelizprojeto</a></li>
+            <li><a href="{% url 'landing' %}">Conhecer o projeto</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="rvp-fim">
+        <p>&copy; {% now "Y" %} Projeto Criança Feliz — feito por voluntários.</p>
+        {# O doador precisa saber que o endereço é privado: a página tem foto #}
+        {# de criança e o link pode ser revogado a qualquer momento. #}
+        <p>Este link é pessoal e não aparece em buscadores. Por favor, não publique em redes sociais.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
