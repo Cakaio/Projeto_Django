@@ -22,3 +22,11 @@ reportlab==4.5.1
 requests==2.34.2
 feedparser==6.0.14
 beautifulsoup4==4.15.0
+
+# Varredura na web (comando varrer_editais): é a perna do robô que descobre
+# edital em site que ninguém mapeou. Usa DuckDuckGo porque não pede chave nem
+# cartão — Google e Bing cobram, e o projeto não tem orçamento para isso.
+# Se um dia parar de funcionar (bloqueio por IP de datacenter, por exemplo),
+# o robô continua rodando com as fontes fixas: cada consulta que falha grava o
+# motivo e segue, sem derrubar a coleta.
+ddgs==9.14.4

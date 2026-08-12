@@ -19,8 +19,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from .forms import EditalForm, FonteEditalForm, PalavraChaveForm
-from .models import STATUS_EDITAL, Edital, FonteEdital, PalavraChave
+from .forms import (ConsultaBuscaForm, EditalForm, FonteEditalForm,
+                    PalavraChaveForm)
+from .models import (STATUS_EDITAL, ConsultaBusca, Edital, FonteEdital,
+                     PalavraChave)
 
 AREAS_CRRE = {'CR/RE', 'TRIADE'}
 
@@ -190,4 +192,43 @@ def palavras(request):
         'palavras': todas,
         'positivas': [p for p in todas if p.peso > 0],
         'negativas': [p for p in todas if p.peso < 0],
+    })
+
+
+# ────────────────────────────── Consultas de busca ──────────────────────────
+@crre_required
+def consultas(request):
+    """As perguntas que o robô faz à web.
+
+    Esta é a tela que faz a varredura ser do CR e não do programador: ler
+    fontes cadastradas só encontra edital onde alguém já sabia procurar, e o
+    projeto não sabia. Quem entende do que o PCF precisa é quem está aqui.
+
+    Mesmo desenho da tela de palavras-chave: lista + formulário no mesmo POST
+    (`editar=<pk>` para edição, `excluir=<pk>` para apagar).
+    """
+    pk_edicao = request.POST.get('editar') or request.GET.get('editar') or ''
+    em_edicao = (ConsultaBusca.objects.filter(pk=pk_edicao).first()
+                 if str(pk_edicao).isdigit() else None)
+
+    if request.method == 'POST' and request.POST.get('excluir'):
+        alvo = get_object_or_404(ConsultaBusca, pk=request.POST['excluir'])
+        termo = alvo.termo
+        alvo.delete()
+        messages.success(request, f'O robô parou de perguntar "{termo}".')
+        return redirect('editais:consultas')
+
+    form = ConsultaBuscaForm(request.POST or None, instance=em_edicao)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Consulta salva. Vale na próxima varredura.')
+        return redirect('editais:consultas')
+
+    todas = list(ConsultaBusca.objects.all())
+    return render(request, 'editais/consultas.html', {
+        'form': form,
+        'em_edicao': em_edicao,
+        'consultas': todas,
+        'ativas': [c for c in todas if c.ativo],
+        'com_erro': [c for c in todas if c.ultimo_erro],
     })

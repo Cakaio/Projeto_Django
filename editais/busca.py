@@ -57,7 +57,16 @@ def buscar_na_web(termo, limite=20):
     """
     # Import adiado: assim o app carrega (e os testes rodam) mesmo numa máquina
     # sem a biblioteca, que só é obrigatória na hora de varrer de verdade.
-    from ddgs import DDGS
+    try:
+        from ddgs import DDGS
+    except ImportError:
+        # Quem lê isto é um voluntário na tela de consultas, não um programador:
+        # "No module named 'ddgs'" não diz o que fazer.
+        raise RuntimeError(
+            'A biblioteca de busca não está instalada no servidor. '
+            'Rode "pip install -r requirements.txt" e varra de novo. '
+            'As fontes fixas continuam funcionando sem ela.'
+        ) from None
 
     achados = []
     with DDGS() as buscador:

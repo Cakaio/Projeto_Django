@@ -43,6 +43,9 @@ TEMPLATES_DE_TESTE = [{
                 'palavras={{ palavras|length }}|positivas={{ positivas|length }}|'
                 'negativas={{ negativas|length }}',
             'editais/confirmar_exclusao.html': 'apagar {{ tipo }} {{ nome }}',
+            'editais/consultas.html':
+                'consultas={{ consultas|length }}|ativas={{ ativas|length }}|'
+                'com_erro={{ com_erro|length }}',
         })],
     },
 }]
@@ -667,3 +670,64 @@ class PluralTests(TestCase):
             with self.subTest(termo=termo):
                 nota, _ = coleta.pontuar('', texto, [self.palavra(termo)])
                 self.assertEqual(nota, 0, f'{termo!r} casou errado em {texto!r}')
+
+
+@override_settings(TEMPLATES=TEMPLATES_DE_TESTE)
+class ConsultasTelaTests(TestCase):
+    """A tela das perguntas do robô.
+
+    Ela existe porque é o que faz a varredura ser do CR e não do programador:
+    ler fontes cadastradas só acha edital onde alguém já sabia procurar.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.cr = criar_voluntario('livia', area='CR/RE')
+        cls.comum = criar_voluntario('zeca', area='RECREACAO')
+        cls.consulta = ConsultaBusca.objects.create(termo='edital FIA CMDCA 2026')
+
+    def test_cr_re_abre_e_outra_area_nao(self):
+        rota = reverse('editais:consultas')
+        self.assertEqual(views.consultas(requisicao('get', rota, self.cr)).status_code, 200)
+        with self.assertRaises(PermissionDenied):
+            views.consultas(requisicao('get', rota, self.comum))
+
+    def test_cadastra_pergunta(self):
+        rota = reverse('editais:consultas')
+        views.consultas(requisicao('post', rota, self.cr,
+                                   {'termo': 'edital primeira infância 2026', 'ativo': 'on'}))
+        self.assertTrue(ConsultaBusca.objects.filter(
+            termo='edital primeira infância 2026', ativo=True).exists())
+
+    def test_edita_pergunta(self):
+        rota = reverse('editais:consultas')
+        views.consultas(requisicao('post', rota, self.cr, {
+            'editar': self.consulta.pk, 'termo': 'edital FIA 2027', 'ativo': 'on'}))
+        self.consulta.refresh_from_db()
+        self.assertEqual(self.consulta.termo, 'edital FIA 2027')
+
+    def test_desligar_em_vez_de_apagar(self):
+        """Desligar guarda a pergunta sem usá-la — o CR não perde o texto."""
+        rota = reverse('editais:consultas')
+        views.consultas(requisicao('post', rota, self.cr, {
+            'editar': self.consulta.pk, 'termo': self.consulta.termo}))   # sem 'ativo'
+        self.consulta.refresh_from_db()
+        self.assertFalse(self.consulta.ativo)
+        self.assertTrue(ConsultaBusca.objects.filter(pk=self.consulta.pk).exists())
+
+    def test_apaga_pergunta_sem_apagar_os_editais_dela(self):
+        """O edital já encontrado é trabalho de triagem: não pode sumir junto."""
+        edital = Edital.objects.create(titulo='Edital achado', link='https://x.org/e',
+                                       consulta=self.consulta, origem='BUSCA')
+        views.consultas(requisicao('post', reverse('editais:consultas'), self.cr,
+                                   {'excluir': self.consulta.pk}))
+        self.assertFalse(ConsultaBusca.objects.filter(pk=self.consulta.pk).exists())
+        edital.refresh_from_db()
+        self.assertIsNone(edital.consulta)          # SET_NULL, não CASCADE
+
+    def test_mostra_a_consulta_que_falhou(self):
+        """Erro de robô tem que ser óbvio na tela, não silencioso."""
+        self.consulta.ultimo_erro = 'RuntimeError: buscador bloqueou'
+        self.consulta.save(update_fields=['ultimo_erro'])
+        resposta = views.consultas(requisicao('get', reverse('editais:consultas'), self.cr))
+        self.assertIn('com_erro=1', resposta.content.decode())

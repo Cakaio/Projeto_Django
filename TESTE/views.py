@@ -122,6 +122,8 @@ def _paginas_do_usuario(user):
          is_su or area in ("CR/RE", "TRIADE")),
         ("Fontes de Editais", "editais:fontes", "De onde o robô lê",
          is_su or area in ("CR/RE", "TRIADE")),
+        ("Buscas de Editais", "editais:consultas", "O que o robô pergunta à web",
+         is_su or area in ("CR/RE", "TRIADE")),
         ("Onde Investimos", "adm:onde_investimos", "Em que o dinheiro foi aplicado",
          is_su or area in ("CR/RE", "ADM/FIN", "TRIADE")),
         ("Meu Perfil", "voluntario:meu_perfil", "Seus dados e talentos", True),

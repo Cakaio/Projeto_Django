@@ -3,7 +3,7 @@ from django import forms
 from voluntario.models import Voluntario
 
 from .coleta import chave_do_link
-from .models import Edital, FonteEdital, PalavraChave
+from .models import ConsultaBusca, Edital, FonteEdital, PalavraChave
 
 # Quem pode ficar responsável por concorrer a um edital.
 AREAS_RESPONSAVEL = ('CR/RE', 'TRIADE')
@@ -82,6 +82,25 @@ class FonteEditalForm(forms.ModelForm):
         if limpos.get('tipo') == 'HTML' and not (limpos.get('seletor_item') or '').strip():
             self.add_error('seletor_item', 'Fonte HTML precisa do seletor de cada item da lista.')
         return limpos
+
+
+class ConsultaBuscaForm(forms.ModelForm):
+    class Meta:
+        model = ConsultaBusca
+        fields = ['termo', 'ativo']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['termo'].widget.attrs['placeholder'] = (
+            'ex.: edital FIA CMDCA 2026 fundo da infância e adolescência')
+        self.fields['termo'].help_text = (
+            'Escreva como você escreveria numa busca. Termo concreto '
+            '(FIA, CMDCA, contraturno) traz mais edital de verdade do que '
+            'palavra genérica.')
+        _aplicar_estilo(self)
+
+    def clean_termo(self):
+        return (self.cleaned_data['termo'] or '').strip()
 
 
 class PalavraChaveForm(forms.ModelForm):

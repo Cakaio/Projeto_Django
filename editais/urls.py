@@ -12,6 +12,7 @@ urlpatterns = [
     path('fontes/<int:pk>/editar/', views.fonte_form, name='fonte_editar'),
     path('fontes/<int:pk>/deletar/', views.fonte_deletar, name='fonte_deletar'),
     path('palavras/', views.palavras, name='palavras'),
+    path('consultas/', views.consultas, name='consultas'),
     path('<int:pk>/editar/', views.editar, name='editar'),
     path('<int:pk>/deletar/', views.deletar, name='deletar'),
 ]
