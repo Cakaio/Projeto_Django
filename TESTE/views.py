@@ -178,14 +178,24 @@ class inicio(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # Voluntários ATIVOS = sem data_saida
-        total_ativos = Voluntario.objects.filter(data_saida__isnull=True).count()
+        # A mesma regra usada no restante do projeto: o voluntário ainda faz
+        # parte da equipe e a checkbox "Ativo" do usuário está marcada.
+        total_ativos = Voluntario.objects.ativos().count()
 
         sabados_qs = (
             Sabado.objects
             .filter(data__gte=timezone.now().date())
             .order_by("data")
-            .annotate(respostas_count=Count("disponibilidades", distinct=True))
+            .annotate(
+                respostas_count=Count(
+                    "disponibilidades",
+                    filter=Q(
+                        disponibilidades__voluntario__data_saida__isnull=True,
+                        disponibilidades__voluntario__is_active=True,
+                    ),
+                    distinct=True,
+                )
+            )
         )
 
         sabados_abertos = []
@@ -206,6 +216,7 @@ class inicio(TemplateView):
             sabados_abertos.append(s)
 
         context["sabados_abertos"] = sabados_abertos
+        context["total_voluntarios_ativos"] = total_ativos
 
         context["proxima_ronda"] = (
             ConfiguracaoRondaSabado.objects

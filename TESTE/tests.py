@@ -7,6 +7,7 @@ a revista do doador é uma página pública por design e precisa das fotos das
 atividades. Estes testes travam essa fronteira, que é fácil de quebrar sem
 querer numa mexida futura em urls.py.
 """
+import datetime
 import shutil
 import tempfile
 from pathlib import Path
@@ -15,7 +16,8 @@ from django.contrib.auth.models import AnonymousUser
 from django.http import Http404
 from django.test import RequestFactory, TestCase, override_settings
 
-from TESTE.views import midia
+from TESTE.views import inicio, midia
+from sabado.models import DisponibilidadeVoluntario, Sabado
 from voluntario.models import Voluntario
 
 
@@ -96,3 +98,37 @@ class AcessoAMidiaTests(TestCase):
                      '/media/fotos_atividades/../../etc/passwd'):
             with self.subTest(fuga=fuga), self.assertRaises(Http404):
                 _pedir(fuga)
+
+
+class InicioVoluntariosAtivosTests(TestCase):
+    def test_card_e_respostas_consideram_somente_usuarios_ativos(self):
+        sabado = Sabado.objects.create(
+            data=datetime.date.today() + datetime.timedelta(days=7),
+            tema="Sábado aberto",
+            descricao="Teste",
+        )
+        ativo = Voluntario.objects.create_user(
+            username="ativo", password="teste", area="RECREACAO"
+        )
+        inativo = Voluntario.objects.create_user(
+            username="inativo", password="teste", area="RECREACAO", is_active=False
+        )
+        desligado = Voluntario.objects.create_user(
+            username="desligado",
+            password="teste",
+            area="RECREACAO",
+            data_saida=datetime.date.today(),
+        )
+        for voluntario in (ativo, inativo, desligado):
+            DisponibilidadeVoluntario.objects.create(
+                sabado=sabado, voluntario=voluntario
+            )
+
+        contexto = inicio().get_context_data()
+        formulario = contexto["sabados_abertos"][0]
+
+        self.assertEqual(contexto["total_voluntarios_ativos"], 1)
+        self.assertEqual(formulario.total_voluntarios_ativos, 1)
+        self.assertEqual(formulario.total_respostas_view, 1)
+        self.assertEqual(formulario.total_nao_responderam, 0)
+        self.assertEqual(formulario.percentual_respostas_int, 100)

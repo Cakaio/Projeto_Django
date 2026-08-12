@@ -53,7 +53,7 @@
           <span class="pcf-icon-tile tint-green" style="width:32px;height:32px;border-radius:9px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></span>
         </div>
         <div class="pcf-kpi-value">
-          {% if sabados_abertos %}{{ sabados_abertos.0.total_voluntarios_ativos }}{% else %}—{% endif %}
+          {{ total_voluntarios_ativos }}
         </div>
         <div class="pcf-kpi-foot">
           <a href="{% url 'voluntario:voluntario_view' %}" style="color:var(--brand);font-weight:650;text-decoration:none">Ver equipe →</a>
