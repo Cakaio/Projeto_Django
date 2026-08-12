@@ -53,6 +53,7 @@ def responder_disponibilidade(request, sabado_id):
         "created": created,  # opcional (debug)
     })
 
+@login_required
 def resumo_sabado(request):
     # dropdown com sábados recentes
     sabados = Sabado.objects.order_by("-data")[:40]
@@ -81,14 +82,53 @@ def resumo_sabado(request):
     )
 
     total_voluntarios = disp_qs.count()
-    
-    # ====== NÃO RESPONDERAM A ENQUETE ======
-    total_nao_responderam = (
-        Voluntario.objects
-        .exclude(disponibilidades__sabado=sabado)
-        .count()
+
+    # ====== QUEM DISSE QUE NÃO VAI ======
+    # Responder "não vou" é resposta: some da fila de cobrança e vira
+    # informação de planejamento (quantas mãos faltam no sábado).
+    disp_nao_vao = (
+        DisponibilidadeVoluntario.objects
+        .filter(sabado=sabado, vai_ao_projeto=False)
+        .select_related("voluntario")
     )
-    
+    total_nao_vao = disp_nao_vao.count()
+
+    # ====== QUEM AINDA NÃO RESPONDEU ======
+    # Só entram voluntários ATIVOS: contar desligado ou login desativado
+    # enchia a lista de gente que não tem como responder, e era justamente
+    # esse número que a liderança usava para cobrar.
+    nao_responderam_qs = (
+        Voluntario.objects.ativos()
+        .exclude(disponibilidades__sabado=sabado)
+        .order_by("first_name", "last_name", "username")
+    )
+    total_nao_responderam = nao_responderam_qs.count()
+
+    # Agrupado por área: cada líder cobra a própria equipe, em vez de encarar
+    # uma lista única enorme.
+    nao_responderam_map = defaultdict(list)
+    for voluntario in nao_responderam_qs:
+        nao_responderam_map[voluntario.area].append(voluntario)
+
+    nao_responderam_por_area = [
+        {"key": area_key, "nome": area_nome, "voluntarios": vols, "total": len(vols)}
+        for area_key, area_nome in LISTA_AREAS
+        if (vols := nao_responderam_map.get(area_key))
+    ]
+    # Área não preenchida existe no banco; sem isto o voluntário sumiria da
+    # lista e ninguém iria cobrá-lo.
+    sem_area = [v for v in nao_responderam_qs if not v.area]
+    if sem_area:
+        nao_responderam_por_area.append(
+            {"key": "", "nome": "Sem área definida", "voluntarios": sem_area,
+             "total": len(sem_area)})
+
+    total_ativos = Voluntario.objects.ativos().count()
+    total_responderam = total_ativos - total_nao_responderam
+    percentual_resposta = (
+        int(round(total_responderam / total_ativos * 100)) if total_ativos else 0
+    )
+
 
     # ====== 1) Por área (com lista de voluntários) ======
     area_vols_map = defaultdict(list)
@@ -200,10 +240,28 @@ def resumo_sabado(request):
         or getattr(request.user, "area", None) in AREAS_SAUDE_RESTRITA
     )
 
+    # Quem NÃO VAI é diferente de quem não respondeu: o primeiro se posicionou,
+    # muitas vezes por um motivo pessoal. Só Tríade e Gestão de Talentos veem os
+    # nomes; para o resto fica o número, que é o que serve para planejar o dia.
+    pode_ver_quem_nao_vai = pode_ver_saude_nao_ok
+
+    voluntarios_nao_vao = (
+        sorted((d.voluntario for d in disp_nao_vao),
+               key=lambda v: (v.get_full_name() or v.username).lower())
+        if pode_ver_quem_nao_vai else []
+    )
+
     context = {
         "sabados": sabados,
         "sabado": sabado,
         "total_nao_responderam": total_nao_responderam,
+        "nao_responderam_por_area": nao_responderam_por_area,
+        "total_ativos": total_ativos,
+        "total_responderam": total_responderam,
+        "percentual_resposta": percentual_resposta,
+        "total_nao_vao": total_nao_vao,
+        "voluntarios_nao_vao": voluntarios_nao_vao,
+        "pode_ver_quem_nao_vai": pode_ver_quem_nao_vai,
         "total_voluntarios": total_voluntarios,
         "total_ajudantes": total_ajudantes,
         "por_area_lista": por_area_lista,

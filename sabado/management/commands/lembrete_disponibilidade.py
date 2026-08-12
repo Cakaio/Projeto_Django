@@ -16,7 +16,10 @@ class Command(BaseCommand):
             data_fechamento = sabado.data - timedelta(days=3)
             if data_fechamento - hoje == timedelta(days=1) and sabado.enquete_aberta:
                 voluntarios_que_responderam = DisponibilidadeVoluntario.objects.filter(sabado=sabado).values_list('voluntario_id', flat=True)
-                voluntarios = Voluntario.objects.exclude(id__in=voluntarios_que_responderam)
+                # Só voluntários ATIVOS: antes o lembrete ia para todo mundo já
+                # cadastrado, então quem saiu do projeto continuava recebendo
+                # cobrança para responder uma enquete que não é mais dele.
+                voluntarios = Voluntario.objects.ativos().exclude(id__in=voluntarios_que_responderam)
                 for voluntario in voluntarios:
                     if voluntario.email:
                         send_mail(

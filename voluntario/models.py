@@ -1,7 +1,7 @@
 import uuid
 from django.db import models
 from django.utils import timezone
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 
@@ -69,7 +69,24 @@ CARGOS = (
 )
 
 
+class VoluntarioManager(UserManager):
+    """Herda de UserManager para não perder `create_user` / `createsuperuser`."""
+
+    def ativos(self):
+        """Quem está no projeto HOJE.
+
+        Duas condições, e as duas importam: `data_saida` vazia é quem não saiu
+        do projeto, e `is_active` é quem ainda consegue entrar no sistema.
+        Contar um desligado ou um login desativado como "pendente" numa enquete
+        inflava o número de quem falta responder com gente que não tem como
+        responder — e é esse número que a liderança usa para cobrar.
+        """
+        return self.filter(data_saida__isnull=True, is_active=True)
+
+
 class Voluntario(AbstractUser):
+    objects = VoluntarioManager()
+
     area = models.CharField(max_length=30, choices=LISTA_AREAS)
     apelido = models.CharField(max_length=50, blank=True, null=True)
     data_nascimento = models.DateField(blank=True, null=True)
