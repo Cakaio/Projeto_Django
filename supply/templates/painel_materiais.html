@@ -138,7 +138,7 @@
       <form method="post" action="{% url 'supply:salvar_materiais_lote' %}">
         {% csrf_token %}
         <input type="hidden" name="sabado" value="{{ sabado.id }}">
-        <input type="hidden" name="local" value="{{ local_id }}">
+        <input type="hidden" name="local" value="{{ local_id|default:'' }}">
         <input type="hidden" name="painel" value="{{ tipo_painel }}">
 
         <div class="pm-groups">

@@ -34,6 +34,12 @@ VALOR_TOTAL_EXPRESSION = ExpressionWrapper(
 )
 
 
+def _normalizar_id_filtro(valor):
+    """Mantém apenas IDs numéricos; ausência de filtro vira string vazia."""
+    valor = str(valor or "").strip()
+    return valor if valor.isdigit() else ""
+
+
 class ListaItensView(LoginRequiredMixin, ListView):
     model = Item
     template_name = 'supply/lista_itens.html'
@@ -66,7 +72,7 @@ def painel_materiais(request):
         return redirect("/supply/")
     
     sabado_id = request.GET.get("sabado")
-    local_id = request.GET.get("local")
+    local_id = _normalizar_id_filtro(request.GET.get("local"))
     tipo_painel = request.GET.get("painel", "material")
 
     sabados = Sabado.objects.order_by("-data")[:40]
@@ -203,7 +209,7 @@ def gerenciar_item_painel(request):
 
     sabado = get_object_or_404(Sabado, pk=request.POST.get("sabado"))
     tipo_painel = request.POST.get("painel", "material")
-    local_id = request.POST.get("local", "")
+    local_id = _normalizar_id_filtro(request.POST.get("local"))
     destino = (
         f"{reverse('supply:painel_materiais')}?sabado={sabado.pk}"
         f"&local={local_id}&painel={tipo_painel}"
@@ -274,7 +280,7 @@ def salvar_materiais_lote(request):
         return redirect("supply:painel_materiais")
 
     sabado_id = request.POST.get("sabado")
-    local_id = request.POST.get("local")
+    local_id = _normalizar_id_filtro(request.POST.get("local"))
     tipo_painel = request.POST.get("painel", "material")
 
     if tipo_painel == "pedido":
@@ -358,7 +364,7 @@ def salvar_materiais_lote(request):
 
 def painel_materiais_visualizacao(request):
     sabado_id = request.GET.get("sabado")
-    local_id = request.GET.get("local")
+    local_id = _normalizar_id_filtro(request.GET.get("local"))
     tipo_painel = request.GET.get("painel", "material")
 
     sabados = Sabado.objects.order_by("-data")[:40]
