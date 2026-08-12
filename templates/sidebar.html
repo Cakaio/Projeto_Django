@@ -277,6 +277,14 @@
       <span>Dores &amp; Sugestões</span>
     </a>
     {% if user.is_superuser or user.area == 'PROJETOS' or user.area == 'TRIADE' %}
+    <a class="pcf-navitem" href="{% url 'projetos:backlog' %}" title="Backlog do que Projetos está fazendo por área">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><path d="M3 17h7M3 21h7M14 17h7M14 21h7"/></svg>
+      <span>Backlog</span>
+    </a>
+    <a class="pcf-navitem" href="{% url 'projetos:por_area' %}" title="Como está a relação com cada área">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+      <span>Relação com as Áreas</span>
+    </a>
     <a class="pcf-navitem" href="{% url 'forms_pcf:feedback_inbox' %}" title="Caixa de dores e sugestões">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
       <span>Caixa de Entrada</span>

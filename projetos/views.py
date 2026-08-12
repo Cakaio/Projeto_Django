@@ -37,6 +37,20 @@ def projetos_required(view):
 
 
 # ────────────────────────────── Backlog ──────────────────────────────
+# Maior inteiro que Postgres (bigint) e SQLite aceitam. Acima disso o driver
+# levanta erro, não o Django — por isso o corte é aqui, antes da consulta.
+_MAIOR_ID = 2 ** 63 - 1
+
+
+def _id_valido(bruto):
+    """Devolve o id como int, ou None se não der para usar numa consulta."""
+    try:
+        numero = int(bruto)
+    except (TypeError, ValueError):
+        return None
+    return numero if 0 < numero <= _MAIOR_ID else None
+
+
 @projetos_required
 def backlog(request):
     """A lista do que está sendo feito, item por item.
@@ -68,8 +82,15 @@ def backlog(request):
     elif responsavel == 'sem':
         # Demanda sem dono é a que apodrece — vale poder olhar só para elas.
         demandas = demandas.filter(responsavel__isnull=True)
-    elif responsavel.isdigit():
-        demandas = demandas.filter(responsavel_id=int(responsavel))
+    elif responsavel:
+        # Valide ANTES de filtrar. `isdigit()` não serve: aceita '²', que
+        # `int()` rejeita. E não adianta envolver o `.filter()` num try/except
+        # — queryset é preguiçoso, então um id grande demais só estoura lá na
+        # frente, quando a lista é avaliada, longe deste bloco. Os dois casos
+        # viravam 500 servido por GET, bastando um link torto.
+        pk = _id_valido(responsavel)
+        if pk is not None:
+            demandas = demandas.filter(responsavel_id=pk)
     if busca:
         demandas = demandas.filter(Q(titulo__icontains=busca)
                                    | Q(o_que_pediram__icontains=busca)
