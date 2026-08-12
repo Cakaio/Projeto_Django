@@ -87,9 +87,14 @@ class Demanda(models.Model):
         É o número que denuncia o que está no vácuo — a dor que originou esta
         tela. Só faz sentido para demanda aberta.
         """
-        ultimo = self.registros.order_by('-data').first()
+        hoje = timezone.localdate()
+        # Ignora registro com data futura. `data` é digitada à mão, e um erro de
+        # digitação (2027 no lugar de 2026) daria "parada há -300 dias": a
+        # demanda sumiria da lista de travadas e do topo do panorama, que são
+        # exatamente os lugares onde ela precisa aparecer.
+        ultimo = self.registros.filter(data__lte=hoje).order_by('-data').first()
         referencia = ultimo.data if ultimo else timezone.localdate(self.criado_em)
-        return (timezone.localdate() - referencia).days
+        return (hoje - referencia).days
 
     @property
     def travada(self):

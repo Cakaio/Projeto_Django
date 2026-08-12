@@ -343,10 +343,16 @@
                   <td>
                     <span class="pcf-badge outline pj-badge-longo"
                           title="{{ demanda.get_area_display }}">{{ demanda.get_area_display|truncatechars:26 }}</span>
+                    {% comment %}
+                      "sem pessoa de contato" e não "sem contato": esta linha
+                      diz que ninguém anotou COM QUEM falar na área. Ao lado da
+                      coluna "Retorno da área", o texto antigo lia como "nunca
+                      falamos com eles" e aparecia junto de "Respondeu".
+                    {% endcomment %}
                     {% if demanda.contato_na_area %}
                       <span class="pj-meta">falamos com {{ demanda.contato_na_area.first_name|default:demanda.contato_na_area.username }}</span>
                     {% else %}
-                      <span class="pj-meta">sem contato registrado</span>
+                      <span class="pj-meta">sem pessoa de contato</span>
                     {% endif %}
                   </td>
 

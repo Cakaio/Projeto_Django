@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 
 from voluntario.models import Voluntario
 
@@ -35,7 +36,19 @@ class DemandaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['entregue_em'].input_formats = ['%Y-%m-%d']
         for campo in ('responsavel', 'contato_na_area'):
-            self.fields[campo].queryset = _voluntarios_ativos()
+            queryset = _voluntarios_ativos()
+            # Quem já está preenchido continua na lista mesmo se tiver saído do
+            # projeto. Sem isso, uma demanda cujo responsável foi desligado fica
+            # IMPOSSÍVEL de editar — nem para mudar o status — até alguém
+            # esvaziar o campo, e esvaziar apaga do registro quem cuidava dela
+            # na época. O objetivo da regra era melhorar a lista de escolha, não
+            # travar a edição e comer histórico.
+            atual = getattr(self.instance, f'{campo}_id', None)
+            if atual:
+                queryset = (Voluntario.objects
+                            .filter(Q(pk__in=queryset.values('pk')) | Q(pk=atual))
+                            .order_by('first_name', 'last_name', 'username'))
+            self.fields[campo].queryset = queryset
         self.fields['responsavel'].empty_label = 'Ninguém ainda'
         self.fields['contato_na_area'].empty_label = 'Ainda não falamos com ninguém'
         self.fields['titulo'].widget.attrs['placeholder'] = 'O que é, em uma linha'

@@ -20,6 +20,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from projetos import servicos, views
+from projetos.forms import DemandaForm
 from projetos.models import Demanda, RegistroDemanda
 from voluntario.models import LISTA_AREAS, Voluntario
 
@@ -485,3 +486,120 @@ class FormularioTests(TestCase):
             self.assertIn(ativo, escolhas)
             self.assertNotIn(saiu, escolhas)
             self.assertNotIn(desligado, escolhas)
+
+
+@override_settings(TEMPLATES=TEMPLATES_DE_TESTE)
+class CorrecoesDaRevisaoTests(TestCase):
+    """Regressões encontradas na revisão adversarial."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.pj = criar_voluntario('projetista', area='PROJETOS')
+
+    def _desligar(self, voluntario):
+        voluntario.data_saida = timezone.localdate() - timedelta(days=30)
+        voluntario.save(update_fields=['data_saida'])
+        return voluntario
+
+    def test_registro_com_data_futura_nao_zera_o_relogio(self):
+        """`data` é digitada à mão. Um 2027 no lugar de 2026 dava 'parada há
+        -300 dias' e tirava a demanda da lista de travadas — justamente o
+        lugar onde ela precisa aparecer."""
+        demanda = Demanda.objects.create(
+            titulo='Tela nova', area='SUPPLY', status='ESPERANDO_AREA',
+            retorno='AGUARDANDO')
+        Demanda.objects.filter(pk=demanda.pk).update(
+            criado_em=timezone.now() - timedelta(days=60))
+        demanda.refresh_from_db()
+
+        RegistroDemanda.objects.create(
+            demanda=demanda, tipo='COBRANCA', descricao='erro de digitação',
+            data=timezone.localdate() + timedelta(days=400))
+
+        self.assertGreater(demanda.dias_parada, 0)
+        self.assertTrue(demanda.travada)
+
+        # O mesmo pela lista, que usa a agregação em lote e não a property.
+        item = servicos.anotar_situacao(Demanda.objects.all())[0]
+        self.assertGreater(item.dias_sem_movimento, 0)
+        self.assertTrue(item.esta_travada)
+
+    def test_panorama_ignora_data_futura(self):
+        demanda = Demanda.objects.create(titulo='X', area='EVENTOS', retorno='AGUARDANDO')
+        RegistroDemanda.objects.create(
+            demanda=demanda, tipo='CONVERSA', descricao='digitação errada',
+            data=timezone.localdate() + timedelta(days=200))
+
+        linha = next(l for l in servicos.panorama_por_area() if l['area'] == 'EVENTOS')
+
+        if linha['dias_sem_contato'] is not None:
+            self.assertGreaterEqual(linha['dias_sem_contato'], 0)
+
+    def test_demanda_com_responsavel_desligado_continua_editavel(self):
+        """Antes, qualquer alteração era barrada até alguém esvaziar o campo —
+        e esvaziar apagava do registro quem cuidava dela na época."""
+        saiu = self._desligar(criar_voluntario('exdono', area='PROJETOS'))
+        demanda = Demanda.objects.create(titulo='Antiga', area='SUPPLY', responsavel=saiu)
+
+        form = DemandaForm(instance=demanda, data={
+            'titulo': 'Antiga (corrigida)', 'area': 'SUPPLY', 'o_que_pediram': '',
+            'o_que_fizemos': '', 'status': 'FAZENDO', 'retorno': 'RESPONDEU',
+            'prioridade': 'MEDIA', 'responsavel': saiu.pk,
+            'contato_na_area': '', 'entregue_em': ''})
+
+        self.assertTrue(form.is_valid(), form.errors.as_text())
+        self.assertEqual(form.save().responsavel, saiu)
+
+    def test_desligado_nao_aparece_em_demanda_nova(self):
+        """A regra original continua valendo onde ela faz sentido."""
+        saiu = self._desligar(criar_voluntario('outro', area='PROJETOS'))
+        escolhas = DemandaForm().fields['responsavel'].queryset
+        self.assertNotIn(saiu, escolhas)
+        self.assertIn(self.pj, escolhas)
+
+    def test_filtro_de_responsavel_torto_nao_derruba_a_pagina(self):
+        """Era 500 servido por GET: bastava um link torto. `isdigit()` aceita
+        '²' (que int() rejeita) e numero grande demais para o banco."""
+        for valor in ('99999999999999999999', '²', 'abc', '-1', ''):
+            with self.subTest(valor=valor):
+                requisicao = RequestFactory().get(
+                    reverse('projetos:backlog'), {'responsavel': valor})
+                requisicao.user = self.pj
+                self.assertEqual(views.backlog(requisicao).status_code, 200)
+
+    def test_inline_do_admin_sincroniza_o_retorno(self):
+        """O Django salva inline por `save_formset`, nao pelo `save_model` do
+        admin do filho. Sem o hook, dava para registrar um retorno da area pelo
+        inline e a demanda seguir marcada como 'aguardando resposta'."""
+        from django.contrib.admin.sites import AdminSite
+        from projetos.admin import DemandaAdmin
+
+        self.assertIn('save_formset', DemandaAdmin.__dict__,
+                      'sem save_formset o inline burla a sincronizacao')
+
+        demanda = Demanda.objects.create(titulo='Y', area='SUPPLY', retorno='AGUARDANDO')
+        admin_demanda = DemandaAdmin(Demanda, AdminSite())
+
+        requisicao = RequestFactory().post('/admin/')
+        # Superusuário de propósito: o formset de inline do admin descarta em
+        # silêncio a linha nova quando quem envia não tem permissão de adicionar
+        # (`has_changed()` devolve False e o objeto nunca é salvo). Quem mexe no
+        # /admin/ é staff — testar com um voluntário sem permissão não exercita
+        # o caminho real e faz o teste falhar por um motivo que não é o nosso.
+        requisicao.user = criar_voluntario('raiz', area='PROJETOS', superuser=True)
+
+        inline = admin_demanda.inlines[0](Demanda, AdminSite())
+        FormSet = inline.get_formset(requisicao, demanda)
+        formset = FormSet(instance=demanda, data={
+            'registros-TOTAL_FORMS': '1', 'registros-INITIAL_FORMS': '0',
+            'registros-MIN_NUM_FORMS': '0', 'registros-MAX_NUM_FORMS': '1000',
+            'registros-0-data': timezone.localdate().isoformat(),
+            'registros-0-tipo': 'RETORNO',
+            'registros-0-descricao': 'a area respondeu no grupo',
+        })
+        self.assertTrue(formset.is_valid(), formset.errors)
+        admin_demanda.save_formset(requisicao, None, formset, change=True)
+
+        demanda.refresh_from_db()
+        self.assertEqual(demanda.retorno, 'RESPONDEU')
+        self.assertEqual(demanda.registros.get().autor, requisicao.user)

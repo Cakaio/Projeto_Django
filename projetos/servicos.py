@@ -48,7 +48,11 @@ def anotar_situacao(demandas):
     estes atributos — dão o mesmo número sem uma consulta por item na lista.
     """
     hoje = timezone.localdate()
-    lista = list(demandas.annotate(ultimo_registro=Max('registros__data')))
+    # `filter=` ignora registro com data futura, pelo mesmo motivo do
+    # `Demanda.dias_parada`: um 2027 digitado por engano daria "parada há -300
+    # dias" e tiraria a demanda justamente da lista de travadas.
+    lista = list(demandas.annotate(
+        ultimo_registro=Max('registros__data', filter=Q(registros__data__lte=hoje))))
     for demanda in lista:
         demanda.dias_sem_movimento = _dias_parada(demanda, demanda.ultimo_registro, hoje)
         demanda.esta_travada = _travada(demanda, demanda.dias_sem_movimento)
@@ -74,7 +78,10 @@ def panorama_por_area():
     # acesso ao banco — são 17 áreas hoje, mas o custo cresceria com o backlog.
     resumo_historico = {
         linha['demanda']: linha
-        for linha in RegistroDemanda.objects.values('demanda').annotate(
+        # Registro com data futura fica de fora (erro de digitação viraria
+        # "dias sem contato" negativo e jogaria a área para o fim da lista).
+        for linha in RegistroDemanda.objects.filter(data__lte=hoje)
+        .values('demanda').annotate(
             ultimo=Max('data'),
             ultimo_contato=Max('data', filter=~Q(tipo=TIPO_SEM_CONTATO)),
         )
