@@ -132,3 +132,61 @@ class InicioVoluntariosAtivosTests(TestCase):
         self.assertEqual(formulario.total_respostas_view, 1)
         self.assertEqual(formulario.total_nao_responderam, 0)
         self.assertEqual(formulario.percentual_respostas_int, 100)
+
+
+class VersaoEstaticaTests(TestCase):
+    """O carimbo `?v=` nas URLs de CSS e JS.
+
+    Sem ele, uma correção publicada não chega em quem já visitou o site: o
+    endereço é o mesmo e o navegador serve a cópia guardada. Aconteceu de
+    verdade — uma correção de JavaScript passou três rodadas parecendo que não
+    tinha funcionado, com o arquivo certo no servidor o tempo todo.
+    """
+
+    def setUp(self):
+        from TESTE import versao_estatica
+        versao_estatica._carimbo = None      # o valor é calculado uma vez por processo
+
+    def test_carimbo_muda_quando_o_arquivo_muda(self):
+        import os
+        from TESTE import versao_estatica
+
+        with tempfile.TemporaryDirectory() as pasta:
+            destino = Path(pasta) / 'css'
+            destino.mkdir()
+            arquivo = destino / 'pcf.css'
+            arquivo.write_text('body{}', encoding='utf-8')
+
+            with override_settings(STATICFILES_DIRS=[pasta], STATIC_ROOT=None):
+                versao_estatica._carimbo = None
+                antes = versao_estatica.versao_estatica()['ESTATICO_V']
+
+                os.utime(arquivo, (1800000000, 1800000000))
+                versao_estatica._carimbo = None
+                depois = versao_estatica.versao_estatica()['ESTATICO_V']
+
+        self.assertNotEqual(antes, depois)
+        self.assertTrue(depois.isdigit(), f'carimbo deve ser numérico: {depois!r}')
+
+    def test_sem_os_arquivos_nao_estoura(self):
+        """Se a coleta ainda não rodou, o pior caso é voltar ao comportamento
+        antigo — nunca derrubar a página."""
+        from TESTE import versao_estatica
+
+        with tempfile.TemporaryDirectory() as vazio:
+            with override_settings(STATICFILES_DIRS=[vazio], STATIC_ROOT=None):
+                versao_estatica._carimbo = None
+                with self.assertLogs('TESTE.versao_estatica', level='WARNING'):
+                    self.assertEqual(versao_estatica.versao_estatica()['ESTATICO_V'], '0')
+
+    def test_o_carimbo_chega_no_html(self):
+        """De nada adianta calcular e não usar."""
+        from django.template import Context, Template
+        from TESTE.versao_estatica import versao_estatica
+
+        html = Template("{% load static %}"
+                        "<script src=\"{% static 'js/pcf-fx.js' %}?v={{ ESTATICO_V }}\">").render(
+            Context(versao_estatica()))
+
+        self.assertIn('?v=', html)
+        self.assertNotIn('?v=\"', html)      # variável vazia deixaria o carimbo em branco
