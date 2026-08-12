@@ -9,11 +9,27 @@
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasIO = 'IntersectionObserver' in window;
 
-  /* ---------- 1. Reveal on scroll ---------- */
+  /* ---------- 1. Reveal on scroll ----------
+     ATENÇÃO ao mexer aqui: este bloco ESCONDE conteúdo por JS e conta com o
+     observador para mostrá-lo de volta. Qualquer caminho em que o observador
+     não dispare deixa a página em branco de forma permanente — foi o que
+     aconteceu com a lista de editais: com `threshold: 0.12`, um card alto
+     (133 linhas, vários milhares de pixels) nunca conseguia ter 12% da sua
+     área visível de uma vez, o gatilho não disparava, e a tabela sumia depois
+     do primeiro instante. Daí `threshold: 0` (basta um pixel aparecer) e as
+     duas redes de segurança abaixo. */
   var revealEls = document.querySelectorAll('[data-reveal]');
   if (revealEls.length) {
+    var mostrar = function (el) {
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+    };
+    var mostrarTodos = function () {
+      revealEls.forEach(mostrar);
+    };
+
     if (reduce || !hasIO) {
-      revealEls.forEach(function (el) { el.style.opacity = '1'; el.style.transform = 'none'; });
+      mostrarTodos();
     } else {
       revealEls.forEach(function (el) {
         el.style.opacity = '0';
@@ -24,12 +40,25 @@
       var io = new IntersectionObserver(function (entries) {
         entries.forEach(function (e) {
           if (!e.isIntersecting) return;
-          e.target.style.opacity = '1';
-          e.target.style.transform = 'none';
+          mostrar(e.target);
           io.unobserve(e.target);
         });
-      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      }, { threshold: 0, rootMargin: '0px 0px -4% 0px' });
       revealEls.forEach(function (el) { io.observe(el); });
+
+      // Rede 1: imprimir não rola a página, então o que ainda não apareceu
+      // sairia em branco no papel e no PDF.
+      if (window.addEventListener) window.addEventListener('beforeprint', mostrarTodos);
+
+      // Rede 2: se em 4s ainda houver bloco escondido dentro da janela, algo
+      // deu errado no observador. Some com a animação, nunca com o conteúdo.
+      window.setTimeout(function () {
+        revealEls.forEach(function (el) {
+          if (el.style.opacity !== '0') return;
+          var r = el.getBoundingClientRect();
+          if (r.top < window.innerHeight && r.bottom > 0) mostrar(el);
+        });
+      }, 4000);
     }
   }
 
