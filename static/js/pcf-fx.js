@@ -6,6 +6,12 @@
 (function () {
   'use strict';
 
+  // Para conferir NO NAVEGADOR qual versão está no ar (digite `PCF_FX` no
+  // console). Este arquivo é servido de STATIC_ROOT, que só muda com
+  // `collectstatic` — sem isso o deploy entrega o JS antigo em silêncio, e o
+  // sintoma aparece como bug de tela.
+  window.PCF_FX = '2026-08-12 revela-o-que-ja-esta-na-tela';
+
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasIO = 'IntersectionObserver' in window;
 
@@ -31,7 +37,26 @@
     if (reduce || !hasIO) {
       mostrarTodos();
     } else {
+      // REGRA PRINCIPAL: o que já está na tela nunca é escondido.
+      //
+      // Animar exige esconder primeiro, e esconder só é seguro se alguém
+      // garantir que vai mostrar de volta. Para o conteúdo que o usuário já
+      // está olhando, essa garantia não vale o risco: se o observador falhar,
+      // se o JS chegar velho de um cache, se um navegador se comportar
+      // diferente — a primeira tela fica em branco e o site parece quebrado.
+      // Animar quem entra rolando é enfeite; a primeira tela é o produto.
+      var alturaJanela = window.innerHeight || document.documentElement.clientHeight;
+      var esconder = [];
       revealEls.forEach(function (el) {
+        var r = el.getBoundingClientRect();
+        if (r.top < alturaJanela && r.bottom > 0) {
+          mostrar(el);           // já visível: entra pronto, sem animação
+        } else {
+          esconder.push(el);
+        }
+      });
+
+      esconder.forEach(function (el) {
         el.style.opacity = '0';
         el.style.transform = 'translateY(18px)';
         el.style.transition = 'opacity .6s cubic-bezier(.2,.7,.3,1), transform .6s cubic-bezier(.2,.7,.3,1)';
@@ -44,7 +69,9 @@
           io.unobserve(e.target);
         });
       }, { threshold: 0, rootMargin: '0px 0px -4% 0px' });
-      revealEls.forEach(function (el) { io.observe(el); });
+      // Observa só o que foi escondido: o resto já está visível e não precisa
+      // de ninguém para aparecer.
+      esconder.forEach(function (el) { io.observe(el); });
 
       // Rede 1: imprimir não rola a página, então o que ainda não apareceu
       // sairia em branco no papel e no PDF.
