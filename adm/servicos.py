@@ -4,7 +4,7 @@ Vive fora de views.py porque a revista do CR/RE precisa dos mesmos números:
 importar uma view a partir de outro app amarraria os dois lados por acidente.
 """
 
-from calendar import monthrange
+from datetime import date
 from decimal import Decimal
 
 from django.db.models import Count, Sum
@@ -83,11 +83,21 @@ def _percentual(valor, base):
     return (Decimal(valor) / Decimal(base) * CEM).quantize(UMA_CASA)
 
 
-def _limites_do_mes(competencia):
-    """Primeiro e último dia do mês da competência, com as duas pontas dentro."""
-    primeiro = competencia.replace(day=1)
-    ultimo = primeiro.replace(day=monthrange(primeiro.year, primeiro.month)[1])
-    return primeiro, ultimo
+def limites_do_semestre(referencia):
+    """Primeiro e último dia do semestre da data dada, com as duas pontas dentro.
+
+    Janeiro–junho ou julho–dezembro. O teto é por semestre, então é este
+    intervalo que decide o que já foi usado.
+    """
+    if referencia.month <= 6:
+        return date(referencia.year, 1, 1), date(referencia.year, 6, 30)
+    return date(referencia.year, 7, 1), date(referencia.year, 12, 31)
+
+
+def rotulo_do_semestre(referencia):
+    """'1º semestre de 2026' — o que a tela mostra."""
+    numero = 1 if referencia.month <= 6 else 2
+    return f'{numero}º semestre de {referencia.year}'
 
 
 def _despesa_agrupada_por_area(inicio, fim):
@@ -179,23 +189,23 @@ def _linha_do_teto(area, rotulos, teto, gasto):
     }
 
 
-def situacao_dos_tetos(competencia):
-    """Teto x gasto de cada área no mês — a tela que o voluntário abre.
+def situacao_dos_tetos(referencia):
+    """Teto x gasto de cada área no semestre — a tela que o voluntário abre.
 
-    Entram as áreas COM teto definido no mês E as que gastaram sem ter teto:
-    gasto sem teto é justamente o que a tela precisa denunciar, e esconder
-    deixaria o furo invisível.
+    O teto é UM por área e vale até alguém alterar ou excluir; o que muda de
+    período é o gasto, medido no semestre da data dada.
+
+    Entram as áreas COM teto definido E as que gastaram sem ter teto: gasto sem
+    teto é justamente o que a tela precisa denunciar, e esconder deixaria o
+    furo invisível.
 
     Devolve lista de dicts com area, nome, teto (Decimal ou None), gasto,
     disponivel, percentual, estourou e sem_teto.
     """
-    inicio, fim = _limites_do_mes(competencia)
+    inicio, fim = limites_do_semestre(referencia)
     rotulos = dict(LISTA_AREAS)
 
-    tetos = {
-        teto.area: teto.valor
-        for teto in TetoArea.objects.filter(competencia=inicio)
-    }
+    tetos = {teto.area: teto.valor for teto in TetoArea.objects.all()}
     gastos = {
         linha['area']: (linha['valor_total'] or Decimal('0'))
         for linha in _despesa_agrupada_por_area(inicio, fim)

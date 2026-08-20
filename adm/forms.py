@@ -122,53 +122,53 @@ class RecargaCartaoForm(forms.ModelForm):
 
 
 class TetoAreaForm(forms.ModelForm):
-    # O usuário escolhe o mês; o dia é normalizado no model.
-    competencia = forms.DateField(
-        label='Mês de referência',
-        widget=forms.DateInput(attrs={'type': 'month', 'class': 'pcf-input'}),
-        input_formats=['%Y-%m', '%Y-%m-%d'],
-        help_text='O teto é mensal: zera todo dia 1º.',
-    )
+    """Um teto por área, que vale até alguém alterar ou excluir.
+
+    Não há campo de mês: o teto não é cadastrado por período. `vigente_desde` é
+    memória de quando o valor passou a valer, não recorte do gasto.
+    """
 
     class Meta:
         model = TetoArea
-        fields = ['area', 'competencia', 'valor', 'observacao']
+        fields = ['area', 'valor', 'vigente_desde', 'observacao']
         widgets = {
             'valor': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
-            'observacao': forms.TextInput(attrs={'placeholder': 'Ex.: mês de festa junina'}),
+            'vigente_desde': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+            'observacao': forms.TextInput(
+                attrs={'placeholder': 'Ex.: combinado na reunião de fevereiro'}),
         }
         labels = {
             'area': 'Área',
-            'valor': 'Teto do mês (R$)',
+            'valor': 'Teto por semestre (R$)',
+            'vigente_desde': 'Vale a partir de',
             'observacao': 'Observação',
+        }
+        help_texts = {
+            'valor': 'Quanto a área pode gastar no semestre. Vale até alguém alterar ou excluir.',
+            'vigente_desde': 'Só para registro de quando foi combinado.',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['vigente_desde'].input_formats = ['%Y-%m-%d']
         if not self.instance.pk:
-            self.fields['competencia'].initial = timezone.localdate().strftime('%Y-%m')
-        elif self.instance.competencia:
-            self.initial['competencia'] = self.instance.competencia.strftime('%Y-%m')
+            self.fields['vigente_desde'].initial = timezone.localdate()
         for campo in self.fields.values():
             campo.widget.attrs.setdefault('class', 'pcf-input')
 
-    def clean_competencia(self):
-        data = self.cleaned_data['competencia']
-        return data.replace(day=1) if data else data
+    def clean_area(self):
+        """Uma área não pode ter dois tetos.
 
-    def clean(self):
-        limpos = super().clean()
-        area, competencia = limpos.get('area'), limpos.get('competencia')
-        if area and competencia:
-            existente = TetoArea.objects.filter(area=area, competencia=competencia)
-            if self.instance.pk:
-                existente = existente.exclude(pk=self.instance.pk)
-            if existente.exists():
-                # A UniqueConstraint já barraria, mas com a mensagem crua do
-                # banco ("constraint ... is violated"), que não diz o que fazer.
-                self.add_error(
-                    'competencia',
-                    f'Já existe teto de {dict(self.fields["area"].choices).get(area, area)} '
-                    f'em {competencia:%m/%Y}. Edite o que já está lá em vez de criar outro.',
-                )
-        return limpos
+        O `unique=True` do model já barraria, mas com a mensagem crua do banco,
+        que não diz o que fazer. Aqui o recado aponta para a saída: editar o
+        que já existe.
+        """
+        area = self.cleaned_data['area']
+        existente = TetoArea.objects.filter(area=area)
+        if self.instance.pk:
+            existente = existente.exclude(pk=self.instance.pk)
+        if existente.exists():
+            rotulo = dict(self.fields['area'].choices).get(area, area)
+            raise forms.ValidationError(
+                f'{rotulo} já tem teto definido. Edite o que está lá em vez de criar outro.')
+        return area

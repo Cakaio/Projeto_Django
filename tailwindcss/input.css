@@ -328,6 +328,21 @@
     letter-spacing: -.035em; color: var(--ink); font-variant-numeric: tabular-nums;
   }
   .pcf-kpi-foot { display: flex; align-items: center; gap: .4rem; font-size: .76rem; color: hsl(var(--muted-foreground)); margin-top: auto; }
+
+  /* Par rótulo + número, na mesma escala dos KPI.
+     Existia como `.pcf-stat` em três telas (Financeiro, Minhas Pautas, Painel
+     do Sábado) sem NUNCA ter sido definida no CSS: sem regra, os dois spans
+     caem lado a lado e o card sai com o rótulo colado no valor. A ordem dos
+     filhos é livre — column resolve tanto rótulo-em-cima quanto número-em-cima. */
+  .pcf-stat { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+  .pcf-stat .lbl {
+    font-size: .72rem; font-weight: 650; letter-spacing: .04em; text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+  .pcf-stat .num {
+    font-size: clamp(1.5rem, 3vw, 1.95rem); font-weight: 800; line-height: 1.05;
+    letter-spacing: -.03em; color: var(--ink); font-variant-numeric: tabular-nums;
+  }
   .pcf-delta { display: inline-flex; align-items: center; gap: .2rem; font-weight: 700; font-size: .74rem; }
   .pcf-delta.up { color: #1f7a49; }
   .pcf-delta.down { color: #b03636; }

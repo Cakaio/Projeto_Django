@@ -17,7 +17,7 @@ from adm.servicos import (
     gasto_por_area, saldo_das_contas, situacao_dos_tetos,
 )
 from adm.views import (
-    AdmAcessoMixin, AdmEscritaMixin, _competencia_do_mes, _periodo_prestacao_contas,
+    AdmAcessoMixin, AdmEscritaMixin, _periodo_prestacao_contas, _semestre_escolhido,
     contas as view_contas, onde_investimos, recargas as view_recargas,
     reembolso_pagar, tetos as view_tetos,
 )
@@ -628,7 +628,8 @@ class SituacaoDosTetosTest(TestCase):
     def setUp(self):
         self.despesa = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
         self.receita = Categoria.objects.create(nome='Doação', tipo='RECEITA')
-        self.competencia = date(2026, 8, 1)
+        # Referência dentro do 2º semestre de 2026 (jul–dez).
+        self.referencia = date(2026, 8, 1)
 
     def _gasto(self, area, valor, dia=10):
         return Lancamento.objects.create(
@@ -639,10 +640,10 @@ class SituacaoDosTetosTest(TestCase):
         return next(linha for linha in linhas if linha['area'] == area)
 
     def test_area_com_teto_e_gasto(self):
-        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='1000.00')
+        TetoArea.objects.create(area='SUPPLY', valor='1000.00')
         self._gasto('SUPPLY', '250.00')
 
-        linha = self._linha(situacao_dos_tetos(self.competencia), 'SUPPLY')
+        linha = self._linha(situacao_dos_tetos(self.referencia), 'SUPPLY')
         self.assertEqual(linha['teto'], Decimal('1000.00'))
         self.assertEqual(linha['gasto'], Decimal('250.00'))
         self.assertEqual(linha['disponivel'], Decimal('750.00'))
@@ -652,8 +653,8 @@ class SituacaoDosTetosTest(TestCase):
         self.assertEqual(linha['nome'], 'Supply')
 
     def test_area_com_teto_e_sem_gasto_aparece_zerada(self):
-        TetoArea.objects.create(area='RECREACAO', competencia=self.competencia, valor='500.00')
-        linha = self._linha(situacao_dos_tetos(self.competencia), 'RECREACAO')
+        TetoArea.objects.create(area='RECREACAO', valor='500.00')
+        linha = self._linha(situacao_dos_tetos(self.referencia), 'RECREACAO')
         self.assertEqual(linha['gasto'], Decimal('0'))
         self.assertEqual(linha['disponivel'], Decimal('500.00'))
         self.assertEqual(linha['percentual'], Decimal('0.0'))
@@ -662,101 +663,109 @@ class SituacaoDosTetosTest(TestCase):
         """É o furo que a tela existe para mostrar: esconder deixaria invisível."""
         self._gasto('VIOLETA', '80.00')
 
-        linha = self._linha(situacao_dos_tetos(self.competencia), 'VIOLETA')
+        linha = self._linha(situacao_dos_tetos(self.referencia), 'VIOLETA')
         self.assertTrue(linha['sem_teto'])
         self.assertIsNone(linha['teto'])
         self.assertEqual(linha['gasto'], Decimal('80.00'))
         self.assertEqual(linha['percentual'], Decimal('0.0'))
 
     def test_teto_zero_com_gasto_nao_divide_por_zero(self):
-        TetoArea.objects.create(area='EVENTOS', competencia=self.competencia, valor='0.00')
+        TetoArea.objects.create(area='EVENTOS', valor='0.00')
         self._gasto('EVENTOS', '40.00')
 
-        linha = self._linha(situacao_dos_tetos(self.competencia), 'EVENTOS')
+        linha = self._linha(situacao_dos_tetos(self.referencia), 'EVENTOS')
         self.assertEqual(linha['teto'], Decimal('0.00'))
         self.assertTrue(linha['estourou'])
         self.assertEqual(linha['percentual'], Decimal('100.0'))
         self.assertEqual(linha['disponivel'], Decimal('-40.00'))
 
     def test_teto_zero_sem_gasto_nao_divide_por_zero(self):
-        TetoArea.objects.create(area='MARKETING', competencia=self.competencia, valor='0.00')
-        linha = self._linha(situacao_dos_tetos(self.competencia), 'MARKETING')
+        TetoArea.objects.create(area='MARKETING', valor='0.00')
+        linha = self._linha(situacao_dos_tetos(self.referencia), 'MARKETING')
         self.assertFalse(linha['estourou'])
         self.assertEqual(linha['percentual'], Decimal('0.0'))
 
     def test_estouro_de_teto(self):
-        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
+        TetoArea.objects.create(area='SUPPLY', valor='100.00')
         self._gasto('SUPPLY', '150.00')
 
-        linha = self._linha(situacao_dos_tetos(self.competencia), 'SUPPLY')
+        linha = self._linha(situacao_dos_tetos(self.referencia), 'SUPPLY')
         self.assertTrue(linha['estourou'])
         self.assertEqual(linha['percentual'], Decimal('150.0'))
         self.assertEqual(linha['disponivel'], Decimal('-50.00'))
 
     def test_estouro_vem_primeiro_e_sem_teto_depois(self):
-        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
-        TetoArea.objects.create(area='RECREACAO', competencia=self.competencia, valor='500.00')
+        TetoArea.objects.create(area='SUPPLY', valor='100.00')
+        TetoArea.objects.create(area='RECREACAO', valor='500.00')
         self._gasto('SUPPLY', '150.00')      # estourou
         self._gasto('VIOLETA', '10.00')      # gastou sem teto
         self._gasto('RECREACAO', '50.00')    # dentro do teto
 
-        ordem = [linha['area'] for linha in situacao_dos_tetos(self.competencia)]
+        ordem = [linha['area'] for linha in situacao_dos_tetos(self.referencia)]
         self.assertEqual(ordem[:2], ['SUPPLY', 'VIOLETA'])
 
-    def test_gasto_de_outro_mes_fica_fora(self):
-        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
-        Lancamento.objects.create(
-            categoria=self.despesa, valor='90.00', data=date(2026, 7, 31), area='SUPPLY'
-        )
-        Lancamento.objects.create(
-            categoria=self.despesa, valor='90.00', data=date(2026, 9, 1), area='SUPPLY'
-        )
-        # O teto é mensal: gasto de julho ou setembro no mês de agosto mentiria.
-        linha = self._linha(situacao_dos_tetos(self.competencia), 'SUPPLY')
-        self.assertEqual(linha['gasto'], Decimal('0'))
-
-    def test_duas_pontas_do_mes_entram(self):
-        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='1000.00')
-        self._gasto('SUPPLY', '10.00', dia=1)
-        self._gasto('SUPPLY', '10.00', dia=31)
-        linha = self._linha(situacao_dos_tetos(self.competencia), 'SUPPLY')
-        self.assertEqual(linha['gasto'], Decimal('20.00'))
-
     def test_receita_nao_conta_como_gasto(self):
-        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
+        TetoArea.objects.create(area='SUPPLY', valor='100.00')
         Lancamento.objects.create(
             categoria=self.receita, valor='5000.00', data=date(2026, 8, 5), area='SUPPLY'
         )
-        linha = self._linha(situacao_dos_tetos(self.competencia), 'SUPPLY')
+        linha = self._linha(situacao_dos_tetos(self.referencia), 'SUPPLY')
         self.assertEqual(linha['gasto'], Decimal('0'))
 
     def test_despesa_sem_area_nao_cria_linha(self):
         self._gasto('', '70.00')
         # Sem área não pertence a teto de ninguém: viraria acusação a uma área
         # que não existe.
-        self.assertEqual(situacao_dos_tetos(self.competencia), [])
+        self.assertEqual(situacao_dos_tetos(self.referencia), [])
 
-    def test_competencia_com_dia_qualquer_e_o_mes_inteiro(self):
-        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
+    def test_qualquer_data_do_semestre_da_o_mesmo_recorte(self):
+        """A referência é só para achar o semestre; o dia não recorta nada."""
+        TetoArea.objects.create(area='SUPPLY', valor='100.00')
         self._gasto('SUPPLY', '30.00', dia=20)
-        linha = self._linha(situacao_dos_tetos(date(2026, 8, 17)), 'SUPPLY')
-        self.assertEqual(linha['gasto'], Decimal('30.00'))
+        for referencia in (date(2026, 7, 1), date(2026, 8, 17), date(2026, 12, 31)):
+            with self.subTest(referencia=referencia):
+                linha = self._linha(situacao_dos_tetos(referencia), 'SUPPLY')
+                self.assertEqual(linha['gasto'], Decimal('30.00'))
+
+    def test_gasto_do_outro_semestre_fica_fora(self):
+        """O teto é por semestre: gasto de janeiro não pesa no segundo."""
+        TetoArea.objects.create(area='SUPPLY', valor='100.00')
+        Lancamento.objects.create(categoria=self.despesa, valor='40.00',
+                                  data=date(2026, 3, 10), area='SUPPLY')   # 1º semestre
+        self._gasto('SUPPLY', '30.00')                                      # 2º semestre
+        self.assertEqual(self._linha(situacao_dos_tetos(date(2026, 8, 1)), 'SUPPLY')['gasto'],
+                         Decimal('30.00'))
+        self.assertEqual(self._linha(situacao_dos_tetos(date(2026, 3, 1)), 'SUPPLY')['gasto'],
+                         Decimal('40.00'))
+
+    def test_as_duas_pontas_do_semestre_entram(self):
+        TetoArea.objects.create(area='SUPPLY', valor='1000.00')
+        for dia in (date(2026, 7, 1), date(2026, 12, 31)):
+            Lancamento.objects.create(categoria=self.despesa, valor='10.00',
+                                      data=dia, area='SUPPLY')
+        # E o vizinho de fora não entra.
+        Lancamento.objects.create(categoria=self.despesa, valor='99.00',
+                                  data=date(2027, 1, 1), area='SUPPLY')
+        self.assertEqual(self._linha(situacao_dos_tetos(date(2026, 9, 1)), 'SUPPLY')['gasto'],
+                         Decimal('20.00'))
 
     def test_numero_fixo_de_consultas(self):
-        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
-        TetoArea.objects.create(area='RECREACAO', competencia=self.competencia, valor='100.00')
+        TetoArea.objects.create(area='SUPPLY', valor='100.00')
+        TetoArea.objects.create(area='RECREACAO', valor='100.00')
         self._gasto('SUPPLY', '30.00')
         self._gasto('VIOLETA', '30.00')
         with self.assertNumQueries(2):
-            situacao_dos_tetos(self.competencia)
+            situacao_dos_tetos(self.referencia)
 
 
 class TetoAreaModelTest(TestCase):
-    def test_competencia_normalizada_para_dia_um(self):
-        """Dia real gravado deixaria dois tetos do mesmo mês conviverem."""
-        teto = TetoArea.objects.create(area='SUPPLY', competencia=date(2026, 8, 23), valor='10.00')
-        teto.refresh_from_db()
-        self.assertEqual(teto.competencia, date(2026, 8, 1))
+    def test_uma_area_nao_pode_ter_dois_tetos(self):
+        """O teto perpetua até alguém alterar. Dois na mesma área deixariam
+        ninguém sabendo qual vale."""
+        from django.db import IntegrityError
+        TetoArea.objects.create(area='SUPPLY', valor='10.00')
+        with self.assertRaises(IntegrityError):
+            TetoArea.objects.create(area='SUPPLY', valor='20.00')
 
 
 class GastoPorAreaTest(TestCase):
@@ -793,21 +802,33 @@ class GastoPorAreaTest(TestCase):
         self.assertEqual(total, Decimal('0'))
 
 
-class CompetenciaDoMesTest(TestCase):
+class SemestreEscolhidoTest(TestCase):
     """Link torto no grupo do WhatsApp não pode virar erro 500 na tela que
     todos os voluntários abrem."""
 
-    def test_vazio_cai_no_mes_corrente(self):
-        self.assertEqual(_competencia_do_mes(''), timezone.localdate().replace(day=1))
+    def test_vazio_cai_no_semestre_atual(self):
+        self.assertEqual(_semestre_escolhido(''), timezone.localdate())
 
-    def test_mes_valido_e_respeitado(self):
-        self.assertEqual(_competencia_do_mes('2026-03'), date(2026, 3, 1))
+    def test_semestre_valido_e_respeitado(self):
+        self.assertEqual(_semestre_escolhido('2026-1'), date(2026, 1, 1))
+        self.assertEqual(_semestre_escolhido('2026-2'), date(2026, 7, 1))
 
-    def test_mes_inexistente_cai_no_padrao(self):
-        self.assertEqual(_competencia_do_mes('2026-13'), timezone.localdate().replace(day=1))
+    def test_numero_invalido_cai_no_padrao(self):
+        for bruto in ('2026-3', '2026-0', '2026-13'):
+            with self.subTest(bruto=bruto):
+                self.assertEqual(_semestre_escolhido(bruto), timezone.localdate())
 
     def test_texto_qualquer_cai_no_padrao(self):
-        self.assertEqual(_competencia_do_mes('mes passado'), timezone.localdate().replace(day=1))
+        for bruto in ('semestre passado', '2026', 'abc-1', '99999-1'):
+            with self.subTest(bruto=bruto):
+                self.assertEqual(_semestre_escolhido(bruto), timezone.localdate())
+
+    def test_limites_do_semestre(self):
+        from adm.servicos import limites_do_semestre
+        self.assertEqual(limites_do_semestre(date(2026, 3, 9)),
+                         (date(2026, 1, 1), date(2026, 6, 30)))
+        self.assertEqual(limites_do_semestre(date(2026, 7, 1)),
+                         (date(2026, 7, 1), date(2026, 12, 31)))
 
 
 class AcessoDasTelasNovasTest(TestCase):
@@ -881,10 +902,10 @@ class TetosContextoTest(TestCase):
     def setUp(self):
         self.fabrica = RequestFactory()
         despesa = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
-        self.competencia = timezone.localdate().replace(day=1)
-        TetoArea.objects.create(area='RECREACAO', competencia=self.competencia, valor='200.00')
+        self.referencia = timezone.localdate()
+        TetoArea.objects.create(area='RECREACAO', valor='200.00')
         Lancamento.objects.create(
-            categoria=despesa, valor='50.00', data=self.competencia, area='RECREACAO'
+            categoria=despesa, valor='50.00', data=self.referencia, area='RECREACAO'
         )
 
     def _contexto(self, usuario):
@@ -1030,10 +1051,10 @@ class ReembolsoPagoTest(TestCase):
     def test_gasto_do_reembolso_entra_no_teto_da_area(self):
         self.cliente.post(self.url, self._dados())
         self.pedido.refresh_from_db()
-        competencia = self.pedido.lancamento.data.replace(day=1)
-        TetoArea.objects.create(area='RECREACAO', competencia=competencia, valor='200.00')
+        TetoArea.objects.create(area='RECREACAO', valor='200.00')
 
-        linha = next(l for l in situacao_dos_tetos(competencia) if l['area'] == 'RECREACAO')
+        referencia = self.pedido.lancamento.data
+        linha = next(l for l in situacao_dos_tetos(referencia) if l['area'] == 'RECREACAO')
         self.assertEqual(linha['gasto'], Decimal('120.00'))
         self.assertEqual(linha['disponivel'], Decimal('80.00'))
 

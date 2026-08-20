@@ -19,7 +19,8 @@ from .models import (
     Categoria, Conta, Lancamento, RecargaCartao, TetoArea, ORIGENS_AUTOMATICAS,
 )
 from .forms import CategoriaForm, ContaForm, LancamentoForm, RecargaCartaoForm, TetoAreaForm
-from .servicos import despesas_por_categoria, saldo_das_contas, situacao_dos_tetos
+from .servicos import (despesas_por_categoria, limites_do_semestre,
+                       rotulo_do_semestre, saldo_das_contas, situacao_dos_tetos)
 from forms_pcf.forms import PagamentoReembolsoForm
 from forms_pcf.views import sincronizar_lancamento_do_reembolso
 
@@ -480,41 +481,66 @@ def recarga_form(request, pk=None):
 
 # ─── Tetos por área ───
 
-def _competencia_do_mes(texto):
-    """Mês do filtro (YYYY-MM), caindo no mês corrente quando o texto não serve.
-
-    Link torto colado no grupo do WhatsApp não pode virar erro 500 na cara do
-    voluntário — e esta é a única tela do Financeiro que todos abrem.
-    """
-    padrao = timezone.localdate().replace(day=1)
-    if not texto:
-        return padrao
+def _semestre_escolhido(bruto):
+    """Lê ?semestre=YYYY-N da querystring. Valor torto cai no semestre atual —
+    filtro que não dá para entender não derruba a página."""
+    hoje = timezone.localdate()
+    if not bruto:
+        return hoje
     try:
-        ano, mes = texto.split('-')
-        return date(int(ano), int(mes), 1)
+        ano, numero = bruto.split('-')
+        ano, numero = int(ano), int(numero)
     except (ValueError, TypeError):
-        return padrao
+        return hoje
+    if numero not in (1, 2) or not (2000 <= ano <= 2100):
+        return hoje
+    return date(ano, 1 if numero == 1 else 7, 1)
+
+
+def _semestres_para_escolher(quantos=6):
+    """Os últimos semestres, do mais recente para o mais antigo.
+
+    Lista fechada em vez de campo de data livre: semestre não é data, e um
+    seletor de mês faria o usuário achar que o teto é mensal.
+    """
+    hoje = timezone.localdate()
+    ano, numero = hoje.year, 1 if hoje.month <= 6 else 2
+    opcoes = []
+    for _ in range(quantos):
+        opcoes.append({'valor': f'{ano}-{numero}', 'rotulo': f'{numero}º semestre de {ano}'})
+        numero -= 1
+        if numero == 0:
+            numero, ano = 2, ano - 1
+    return opcoes
 
 
 @login_required
 def tetos(request):
-    """Teto x gasto de cada área no mês.
+    """Teto x gasto de cada área no semestre.
 
     Gate escrito à mão de propósito: é a única tela do Financeiro aberta a
     qualquer voluntário logado, porque o pedido é que cada um veja a situação
     do teto da sua área sem depender do ADM. Somente leitura, e só teto x
     gasto — nenhum lançamento individual aparece aqui.
+
+    O teto é um só por área e vale até alguém alterar; o que muda de período é
+    o gasto, medido no semestre escolhido.
     """
-    competencia = _competencia_do_mes(request.GET.get('mes'))
-    linhas = situacao_dos_tetos(competencia)
+    referencia = _semestre_escolhido(request.GET.get('semestre'))
+    inicio, fim = limites_do_semestre(referencia)
+    linhas = situacao_dos_tetos(referencia)
 
     area_do_usuario = getattr(request.user, 'area', '') or ''
     minha_linha = next((linha for linha in linhas if linha['area'] == area_do_usuario), None)
 
     return render(request, 'tetos.html', {
         'linhas': linhas,
-        'competencia': competencia,
-        'mes': competencia.strftime('%Y-%m'),
+        'referencia': referencia,
+        'semestre_rotulo': rotulo_do_semestre(referencia),
+        'semestre': f'{referencia.year}-{1 if referencia.month <= 6 else 2}',
+        'semestres': _semestres_para_escolher(),
+        'inicio': inicio,
+        'fim': fim,
         'minha_linha': minha_linha,
         'area_do_usuario': area_do_usuario,
         'total_teto': sum((linha['teto'] for linha in linhas if linha['teto'] is not None), Decimal('0')),

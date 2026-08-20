@@ -21,6 +21,12 @@ module.exports = {
     "../forms_pcf/**/*.html",
     "../ronda/**/*.html",
     "../gerenciamento/**/*.html",
+    // Apps novos. Faltando aqui, classe usada SO neles e purgada em
+    // silencio e a tela quebra sem erro nenhum.
+    "../parceiros/**/*.html",
+    "../editais/**/*.html",
+    "../revista/**/*.html",
+    "../projetos/**/*.html",
   ],
   theme: {
     extend: {

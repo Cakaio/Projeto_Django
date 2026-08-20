@@ -39,5 +39,5 @@ class EventoAdmin(admin.ModelAdmin):
 
 @admin.register(TetoArea)
 class TetoAreaAdmin(admin.ModelAdmin):
-    list_display = ('area', 'competencia', 'valor', 'definido_por', 'atualizado_em')
+    list_display = ('area', 'valor', 'vigente_desde', 'definido_por', 'atualizado_em')
     list_filter = ('area',)

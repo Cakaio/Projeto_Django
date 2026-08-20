@@ -186,33 +186,30 @@ class Evento(models.Model):
 
 
 class TetoArea(models.Model):
-    """Quanto uma área pode gastar num mês.
+    """Quanto uma área pode gastar por semestre.
 
-    `competencia` é sempre o dia 1 do mês (normalizado no save), igual ao que
-    `parceiros.Contribuicao` faz: guardar o dia real deixaria dois tetos do
-    mesmo mês conviverem e ninguém saberia qual vale.
+    UM teto por área, que vale até alguém alterar ou excluir — não se cadastra
+    de novo a cada período. Era mensal antes; virou assim porque na prática o
+    valor combinado quase nunca muda, e obrigar a redigitar todo mês fazia a
+    tela mentir por esquecimento: sem o teto do mês, a área aparecia como
+    "gastou sem teto" mesmo tendo limite combinado.
+
+    O gasto é medido no SEMESTRE corrente. `vigente_desde` é só memória de
+    quando o valor passou a valer — não recorta o gasto, porque teto que muda
+    no meio do semestre continua sendo o teto daquele semestre.
     """
-    area = models.CharField(max_length=30, choices=LISTA_AREAS)
-    competencia = models.DateField('mês de referência')
-    valor = models.DecimalField(max_digits=10, decimal_places=2)
+    area = models.CharField(max_length=30, choices=LISTA_AREAS, unique=True)
+    valor = models.DecimalField('teto por semestre', max_digits=10, decimal_places=2)
+    vigente_desde = models.DateField('vale a partir de', default=timezone.localdate)
     definido_por = models.ForeignKey('voluntario.Voluntario', on_delete=models.SET_NULL,
                                      null=True, blank=True, related_name='tetos_definidos')
     observacao = models.CharField(max_length=200, blank=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-competencia', 'area']
-        constraints = [models.UniqueConstraint(fields=['area', 'competencia'],
-                                               name='um_teto_por_area_por_mes')]
+        ordering = ['area']
         verbose_name = 'teto de área'
         verbose_name_plural = 'tetos de área'
 
     def __str__(self):
-        return f'{self.get_area_display()} — {self.competencia:%m/%Y} — R$ {self.valor}'
-
-    def save(self, *args, **kwargs):
-        # Dia 1 sempre: dois tetos do mesmo mês com dias diferentes passariam
-        # pela constraint e ninguém saberia qual vale.
-        if self.competencia:
-            self.competencia = self.competencia.replace(day=1)
-        super().save(*args, **kwargs)
+        return f'{self.get_area_display()} — R$ {self.valor} por semestre'
