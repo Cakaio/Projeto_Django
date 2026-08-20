@@ -22,8 +22,7 @@
     <!-- Design system PCF (Tailwind compilado + tokens shadcn quentes + componentes .pcf-*).
          Carregado por último para vencer o Bootstrap onde houver sobreposição.
          Rebuild:  cd tailwindcss && npm run build -->
-    {# ?v= obriga o navegador a rebuscar quando o arquivo muda; sem isso
-   uma correção publicada não chega em quem já visitou o site. #}
+    {# ?v= força o navegador a rebuscar quando o arquivo muda (ver TESTE/versao_estatica.py). #}
     <link rel="stylesheet" href="{% static 'css/pcf.css' %}?v={{ ESTATICO_V }}">
 
     {% block head %}{% endblock %}
