@@ -172,3 +172,32 @@ class TetoAreaForm(forms.ModelForm):
             raise forms.ValidationError(
                 f'{rotulo} já tem teto definido. Edite o que está lá em vez de criar outro.')
         return area
+
+
+class CompletarLancamentoForm(forms.ModelForm):
+    """Só conta e área, para lançamento gerado por outro app.
+
+    Valor, data, categoria e origem continuam trancados: a fonte da verdade é o
+    registro que criou o lançamento (pedido do Supply, reembolso, doação), e
+    editar dos dois lados deixaria os dois divergentes.
+
+    Mas quem sabe de qual cartão saiu o dinheiro é o ADM, na hora de pagar —
+    não o voluntário que pediu o material. Sem esta tela, o gasto do Supply
+    ficava para sempre sem banco, contrariando o pedido de que TODA entrada e
+    saída diga de onde saiu.
+    """
+
+    class Meta:
+        model = Lancamento
+        fields = ['conta', 'area']
+        labels = {'conta': 'De onde saiu (ou entrou)', 'area': 'Área'}
+        help_texts = {
+            'conta': 'Banco, cartão ou dinheiro físico.',
+            'area': 'Deixe como está se a origem já preencheu certo.',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['conta'].queryset = Conta.objects.filter(ativo=True)
+        for campo in self.fields.values():
+            campo.widget.attrs.setdefault('class', 'pcf-input')

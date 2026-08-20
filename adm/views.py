@@ -18,7 +18,7 @@ import csv
 from .models import (
     Categoria, Conta, Lancamento, RecargaCartao, TetoArea, ORIGENS_AUTOMATICAS,
 )
-from .forms import CategoriaForm, ContaForm, LancamentoForm, RecargaCartaoForm, TetoAreaForm
+from .forms import CompletarLancamentoForm, CategoriaForm, ContaForm, LancamentoForm, RecargaCartaoForm, TetoAreaForm
 from .servicos import (despesas_por_categoria, limites_do_semestre,
                        rotulo_do_semestre, saldo_das_contas, situacao_dos_tetos)
 from forms_pcf.forms import PagamentoReembolsoForm
@@ -150,6 +150,30 @@ def editar_lancamento(request, pk):
         messages.success(request, 'Lançamento atualizado!')
         return redirect('adm:lista_lancamentos')
     return render(request, 'form_lancamento.html', {'form': form, 'titulo': 'Editar Lançamento', 'objeto': lan})
+
+
+@adm_escrita_required
+def completar_lancamento(request, pk):
+    """Preenche conta e área de um lançamento gerado por outro app.
+
+    O resto segue trancado (ver `CompletarLancamentoForm`): aqui não se muda
+    valor nem data, só se responde "de onde saiu esse dinheiro" — pergunta que
+    o pedido do Supply não tem como responder sozinho.
+    """
+    lan = get_object_or_404(Lancamento, pk=pk)
+    if lan.origem not in ORIGENS_AUTOMATICAS:
+        messages.info(request, 'Este lançamento é manual: edite normalmente.')
+        return redirect('adm:editar_lancamento', pk=lan.pk)
+
+    form = CompletarLancamentoForm(request.POST or None, instance=lan)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Conta e área atualizadas.')
+        return redirect('adm:lista_lancamentos')
+
+    return render(request, 'form_completar_lancamento.html',
+                  {'form': form, 'lancamento': lan,
+                   'titulo': 'Completar lançamento automático'})
 
 
 @adm_escrita_required

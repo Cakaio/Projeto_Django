@@ -18,6 +18,7 @@ from adm.servicos import (
 )
 from adm.views import (
     AdmAcessoMixin, AdmEscritaMixin, _periodo_prestacao_contas, _semestre_escolhido,
+    completar_lancamento,
     contas as view_contas, onde_investimos, recargas as view_recargas,
     reembolso_pagar, tetos as view_tetos,
 )
@@ -1110,3 +1111,160 @@ class DoacaoLevaContaTest(TestCase):
         contribuicao.refresh_from_db()
         self.assertEqual(contribuicao.lancamento.conta, conta)
         self.assertEqual(contribuicao.lancamento.tipo, 'RECEITA')
+
+
+class SupplyEntraNoFinanceiroTest(TestCase):
+    """O pedido do Supply é a maior fonte de gasto do projeto. Três defeitos
+    aqui deixavam dinheiro invisível — todos travados abaixo."""
+
+    def setUp(self):
+        from supply.models import Item
+        self.item = Item.objects.create(nome='Papel A4', unidade='UN')
+        self.pedinte = User.objects.create_user(
+            username='pede', password='x', area='SUPPLY')
+
+    def _pedido(self, **campos):
+        from supply.models import Pedido
+        campos.setdefault('nome', 'Papel A4')
+        campos.setdefault('quantidade', Decimal('10'))
+        campos.setdefault('valor', Decimal('5.00'))
+        campos.setdefault('area', 'SUPPLY')
+        return Pedido.objects.create(item=self.item, requisitado_por=self.pedinte, **campos)
+
+    def test_entra_mesmo_sem_a_categoria_existir(self):
+        """Antes o sinal desistia em silêncio: o pedido era salvo, o dinheiro
+        saía e nada aparecia no Financeiro — sem erro para ninguém notar."""
+        Categoria.objects.filter(nome='Materiais Supply').delete()
+
+        pedido = self._pedido()
+
+        lancamento = Lancamento.objects.filter(pedido=pedido).first()
+        self.assertIsNotNone(lancamento, 'gasto do Supply não pode sumir por falta de categoria')
+        self.assertEqual(lancamento.origem, 'SUPPLY')
+        self.assertEqual(lancamento.tipo, 'DESPESA')
+
+    def test_lanca_o_valor_TOTAL_e_nao_o_unitario(self):
+        """`valor` é o unitário. Lançar ele em vez de `valor_total` fazia um
+        pedido de 10 unidades a R$ 5 entrar como R$ 5 — dez vezes menos."""
+        pedido = self._pedido(quantidade=Decimal('10'), valor=Decimal('5.00'))
+
+        lancamento = Lancamento.objects.get(pedido=pedido)
+        self.assertEqual(lancamento.valor, Decimal('50.00'))
+        self.assertEqual(lancamento.valor, pedido.valor_total)
+
+    def test_leva_a_area_do_pedido(self):
+        """Sem a área, o gasto do Supply não contava no teto do Supply."""
+        pedido = self._pedido(area='RECREACAO')
+        self.assertEqual(Lancamento.objects.get(pedido=pedido).area, 'RECREACAO')
+
+    def test_pedido_sem_area_nao_inventa_uma(self):
+        pedido = self._pedido(area=None)
+        self.assertEqual(Lancamento.objects.get(pedido=pedido).area, '')
+
+    def test_editar_o_pedido_corrige_o_lancamento(self):
+        pedido = self._pedido(quantidade=Decimal('10'))
+        pedido.quantidade = Decimal('20')
+        pedido.area = 'AZUL'
+        pedido.save()
+
+        lancamento = Lancamento.objects.get(pedido=pedido)
+        self.assertEqual(lancamento.valor, Decimal('100.00'))
+        self.assertEqual(lancamento.area, 'AZUL')
+
+    def test_tirar_o_valor_remove_o_lancamento(self):
+        pedido = self._pedido()
+        pedido.valor = None
+        pedido.save()
+        self.assertFalse(Lancamento.objects.filter(pedido=pedido).exists())
+
+    def test_gasto_do_supply_conta_no_teto_da_area(self):
+        """O encontro das duas pontas: pedido do Supply vira gasto no teto."""
+        from adm.models import TetoArea
+        TetoArea.objects.create(area='SUPPLY', valor='500.00')
+        pedido = self._pedido(quantidade=Decimal('10'), valor=Decimal('5.00'),
+                              sabado=None)
+        Lancamento.objects.filter(pedido=pedido).update(data=timezone.localdate())
+
+        linha = next(l for l in situacao_dos_tetos(timezone.localdate())
+                     if l['area'] == 'SUPPLY')
+
+        self.assertEqual(linha['gasto'], Decimal('50.00'))
+        self.assertEqual(linha['disponivel'], Decimal('450.00'))
+
+    def test_categoria_desativada_nao_esconde_o_gasto(self):
+        """Alguém desativar a categoria pela tela não pode fazer o gasto
+        desaparecer do Financeiro."""
+        Categoria.objects.update_or_create(
+            nome='Materiais Supply', defaults={'tipo': 'RECEITA', 'ativo': False})
+
+        pedido = self._pedido()
+
+        lancamento = Lancamento.objects.get(pedido=pedido)
+        self.assertEqual(lancamento.tipo, 'DESPESA')
+        self.assertTrue(lancamento.categoria.ativo)
+
+
+class CompletarLancamentoAutomaticoTest(TestCase):
+    """Lançamento automático não se edita — mas alguém precisa poder dizer de
+    qual cartão saiu o dinheiro, senão o gasto do Supply fica para sempre sem
+    banco e o pedido do ADM ("toda entrada e saída com o banco") não fecha."""
+
+    def setUp(self):
+        self.financeiro = User.objects.create_user(
+            username='fin', password='x', area='ADM/FIN')
+        self.comum = User.objects.create_user(
+            username='zeca', password='x', area='RECREACAO')
+        self.conta = Conta.objects.create(nome='Caju 09', tipo='CARTAO', controla_saldo=True)
+        categoria = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        self.automatico = Lancamento.objects.create(
+            categoria=categoria, valor=Decimal('40.00'),
+            data=timezone.localdate(), origem='SUPPLY')
+        self.manual = Lancamento.objects.create(
+            categoria=categoria, valor=Decimal('10.00'),
+            data=timezone.localdate(), origem='MANUAL')
+        self.cliente = Client()
+
+    def _url(self, lancamento):
+        return reverse('adm:completar_lancamento', args=[lancamento.pk])
+
+    def test_financeiro_define_conta_e_area(self):
+        self.cliente.force_login(self.financeiro)
+        resposta = self.cliente.post(self._url(self.automatico),
+                                     {'conta': self.conta.pk, 'area': 'SUPPLY'})
+
+        self.assertEqual(resposta.status_code, 302)
+        self.automatico.refresh_from_db()
+        self.assertEqual(self.automatico.conta, self.conta)
+        self.assertEqual(self.automatico.area, 'SUPPLY')
+
+    def test_nao_mexe_em_valor_data_nem_categoria(self):
+        """O POST pode mandar qualquer coisa; o form só aceita conta e área."""
+        self.cliente.force_login(self.financeiro)
+        self.cliente.post(self._url(self.automatico), {
+            'conta': self.conta.pk, 'area': 'SUPPLY',
+            'valor': '99999.00', 'data': '2000-01-01',
+        })
+        self.automatico.refresh_from_db()
+        self.assertEqual(self.automatico.valor, Decimal('40.00'))
+        self.assertEqual(self.automatico.data, timezone.localdate())
+
+    def test_conta_definida_entra_no_saldo_do_cartao(self):
+        """O encontro das pontas: definir a conta faz o gasto descontar o saldo."""
+        self.cliente.force_login(self.financeiro)
+        self.cliente.post(self._url(self.automatico),
+                          {'conta': self.conta.pk, 'area': 'SUPPLY'})
+        self.conta.refresh_from_db()
+        self.assertEqual(self.conta.total_gasto, Decimal('40.00'))
+
+    def test_lancamento_manual_e_mandado_para_a_edicao_normal(self):
+        self.cliente.force_login(self.financeiro)
+        resposta = self.cliente.post(self._url(self.manual), {'conta': self.conta.pk})
+        self.assertEqual(resposta.status_code, 302)
+        self.assertIn(str(self.manual.pk), resposta.url)
+
+    def test_voluntario_comum_nao_entra(self):
+        self.cliente.force_login(self.comum)
+        with self.assertRaises(PermissionDenied):
+            requisicao = RequestFactory().get(self._url(self.automatico))
+            requisicao.user = self.comum
+            completar_lancamento(requisicao, pk=self.automatico.pk)
