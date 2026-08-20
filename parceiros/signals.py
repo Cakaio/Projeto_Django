@@ -45,6 +45,8 @@ def sincronizar_lancamento(sender, instance, **kwargs):
             valor=instance.valor,
             data=instance.data_recebimento,
             descricao=_descricao(instance),
+            # A conta pode ter sido corrigida depois ("caiu no BB, não no Caju").
+            conta_id=instance.conta_id,
         )
         return
 
@@ -55,6 +57,8 @@ def sincronizar_lancamento(sender, instance, **kwargs):
         descricao=_descricao(instance),
         origem='DOACAO',
         criado_por=instance.registrado_por,
+        # Sem copiar a conta, o saldo do cartão/banco ignoraria a doação.
+        conta_id=instance.conta_id,
     )
     # `update()` não dispara post_save — evita recursão infinita.
     Contribuicao.objects.filter(pk=instance.pk).update(lancamento=lancamento)

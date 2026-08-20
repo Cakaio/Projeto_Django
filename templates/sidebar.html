@@ -231,10 +231,27 @@
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       <span>Pedido de Reembolso</span>
     </a>
+    {% comment %}
+      "Teto da minha área" fica FORA do bloco do ADM de propósito: o pedido diz
+      que o voluntário precisa ver a situação do teto dele por lá mesmo. A tela
+      é só leitura e mostra teto x gasto por área, nada individual.
+    {% endcomment %}
+    <a class="pcf-navitem" href="{% url 'adm:tetos' %}" title="Teto de gasto da sua área no mês">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></svg>
+      <span>Teto da Área</span>
+    </a>
     {% if user.is_superuser or user.area == 'ADM/FIN' or user.area == 'TRIADE' %}
     <a class="pcf-navitem" href="{% url 'adm:painel' %}" title="Financeiro">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
       <span>Financeiro</span>
+    </a>
+    <a class="pcf-navitem" href="{% url 'adm:contas' %}" title="Contas e cartões, com saldo">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
+      <span>Contas &amp; Cartões</span>
+    </a>
+    <a class="pcf-navitem" href="{% url 'adm:reembolsos' %}" title="Reembolsos a pagar e pagos">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9"/><polyline points="3 3 3 9 9 9"/><path d="M12 8v5l3 2"/></svg>
+      <span>Reembolsos</span>
     </a>
     {% endif %}
 

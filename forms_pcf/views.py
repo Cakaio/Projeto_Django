@@ -49,6 +49,41 @@ class FeedbackInboxView(LoginRequiredMixin, ListView):
 REEMBOLSO_AREAS = {'ADM/FIN'}
 
 
+def sincronizar_lancamento_do_reembolso(pedido, usuario=None):
+    """Garante o lançamento de despesa do reembolso carregando área, evento e
+    conta do pedido.
+
+    Sem esses três o gasto do reembolso não entra no teto da área nem no
+    evento — e contabilizar no teto era metade do que a ADM pediu. Vive aqui,
+    e não na view de pagamento, porque aprovação e pagamento precisam do mesmo
+    lançamento: duplicar a regra deixaria os dois lados divergirem.
+
+    Não grava o pedido: quem chama salva, para que criação do lançamento e
+    mudança de status caiam juntas.
+    """
+    if pedido.lancamento_id:
+        lancamento = pedido.lancamento
+        lancamento.area = pedido.area
+        lancamento.evento = pedido.evento
+        lancamento.conta = pedido.conta_pagamento
+        lancamento.save()
+        return lancamento
+
+    lancamento = Lancamento.objects.create(
+        categoria=pedido.categoria,
+        valor=pedido.valor,
+        data=timezone.now().date(),
+        descricao=f'Reembolso: {pedido.descricao}',
+        origem='REEMBOLSO',
+        criado_por=usuario,
+        area=pedido.area,
+        evento=pedido.evento,
+        conta=pedido.conta_pagamento,
+    )
+    pedido.lancamento = lancamento
+    return lancamento
+
+
 class EnviarReembolsoView(LoginRequiredMixin, FormView):
     template_name = 'reembolso_form.html'
     form_class = PedidoReembolsoForm
@@ -132,18 +167,10 @@ class AprovarReembolsoView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
         pedido = get_object_or_404(PedidoReembolso, pk=pk, status='PENDENTE')
-        lan = Lancamento.objects.create(
-            categoria=pedido.categoria,
-            valor=pedido.valor,
-            data=timezone.now().date(),
-            descricao=f'Reembolso: {pedido.descricao}',
-            origem='REEMBOLSO',
-            criado_por=request.user,
-        )
+        sincronizar_lancamento_do_reembolso(pedido, request.user)
         pedido.status = 'APROVADO'
         pedido.aprovado_por = request.user
         pedido.aprovado_em = timezone.now()
-        pedido.lancamento = lan
         pedido.save()
         return redirect('forms_pcf:reembolso_inbox')
 

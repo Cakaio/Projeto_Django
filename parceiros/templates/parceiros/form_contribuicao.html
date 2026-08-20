@@ -111,6 +111,18 @@
           {% if form.forma.errors %}<p class="fcon-err">{{ form.forma.errors|join:", " }}</p>{% endif %}
         </div>
 
+        {% comment %}
+          O ADM pediu para saber qual banco recebeu cada doação (Caju ou BB).
+          Este template nomeia os campos um a um, então campo novo no form não
+          aparece sozinho — sem este bloco o dado nunca seria preenchido.
+        {% endcomment %}
+        <div class="pcf-field">
+          <label class="pcf-label" for="{{ form.conta.id_for_label }}">{{ form.conta.label }}</label>
+          {{ form.conta }}
+          {% if form.conta.help_text %}<p class="fcon-help">{{ form.conta.help_text }}</p>{% endif %}
+          {% if form.conta.errors %}<p class="fcon-err">{{ form.conta.errors|join:", " }}</p>{% endif %}
+        </div>
+
         <div class="pcf-field fcon-wide">
           <label class="pcf-label" for="{{ form.observacao.id_for_label }}">{{ form.observacao.label }}</label>
           {{ form.observacao }}

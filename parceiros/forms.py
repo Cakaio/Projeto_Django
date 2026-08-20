@@ -1,6 +1,7 @@
 from django import forms
 from django.utils import timezone
 
+from adm.models import Conta
 from voluntario.models import Voluntario
 
 from .models import Contribuicao, Interacao, Parceiro
@@ -45,7 +46,8 @@ class ContribuicaoForm(forms.ModelForm):
 
     class Meta:
         model = Contribuicao
-        fields = ['parceiro', 'competencia', 'valor', 'data_recebimento', 'forma', 'observacao']
+        fields = ['parceiro', 'competencia', 'valor', 'data_recebimento', 'forma',
+                  'conta', 'observacao']
         widgets = {
             'data_recebimento': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
         }
@@ -53,6 +55,10 @@ class ContribuicaoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['parceiro'].queryset = Parceiro.objects.exclude(status='ENCERRADO')
+        # Conta desativada continua no histórico, mas não deve ser oferecida
+        # para uma doação nova.
+        self.fields['conta'].queryset = Conta.objects.filter(ativo=True)
+        self.fields['conta'].empty_label = 'Não informado'
         self.fields['data_recebimento'].input_formats = ['%Y-%m-%d']
         self.fields['data_recebimento'].initial = timezone.localdate()
         self.fields['data_recebimento'].help_text = (

@@ -1,0 +1,425 @@
+{% extends 'base.html' %}
+{% block titulo %}Tetos por área{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .tet-). #}
+{# O visual base vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .tet-page { background: hsl(var(--background)); }
+  .tet-wrap { padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+
+  /* ── Seletor de mês ── */
+  .tet-filtros { display: grid; grid-template-columns: 1fr; gap: .8rem; margin-bottom: 1.15rem; }
+  .tet-filtros-botoes { display: flex; align-items: flex-end; gap: .5rem; flex-wrap: wrap; }
+  .tet-filtros-botoes .pcf-btn { flex: 1; }
+  .tet-nota { margin: 0; grid-column: 1 / -1; font-size: .8rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Avisos: estouro e gasto sem teto ── */
+  /* Não é faixa de topo nem hero: é um cartão de aviso no fluxo da página,
+     logo acima da tabela que ele resume. */
+  .tet-avisos { display: grid; gap: .7rem; margin-bottom: 1.15rem; }
+  .tet-aviso { display: flex; align-items: flex-start; gap: .8rem;
+               border: 1px solid; border-radius: 14px; padding: .95rem 1.05rem; }
+  .tet-aviso-t { margin: 0; font-size: .9rem; font-weight: 800; }
+  .tet-aviso-s { margin: .2rem 0 0; font-size: .83rem; line-height: 1.55; color: var(--ink-soft); }
+  .tet-aviso.perigo { background: #fdeaea; border-color: #f7d4d4; color: #b03636; }
+  .tet-aviso.atencao { background: #fdf3dd; border-color: #f2e2bc; color: #8a6a10; }
+  .tet-aviso-icone { flex-shrink: 0; margin-top: .1rem; }
+
+  /* ── Cartão "a minha área" ── */
+  .tet-minha { display: grid; gap: .8rem; margin-bottom: 1.15rem;
+               border-left: 4px solid var(--brand); }
+  .tet-minha-top { display: flex; align-items: flex-start; justify-content: space-between;
+                   gap: .75rem; flex-wrap: wrap; }
+  .tet-minha-rot { margin: 0; font-size: .7rem; font-weight: 700; letter-spacing: .1em;
+                   text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .tet-minha-area { margin: .25rem 0 0; font-size: 1.15rem; font-weight: 800;
+                    letter-spacing: -.02em; color: var(--ink); }
+  .tet-minha-num { margin: 0; font-size: clamp(1.45rem, 5vw, 1.9rem); font-weight: 800;
+                   letter-spacing: -.03em; line-height: 1.15; color: var(--ink); }
+  .tet-minha-de { font-size: .9rem; font-weight: 650; color: hsl(var(--muted-foreground)); }
+  .tet-minha-foot { margin: 0; font-size: .84rem; line-height: 1.55; color: var(--ink-soft); }
+
+  /* ── KPIs ── */
+  .tet-kpis { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.15rem; }
+
+  /* ── Cabeçalho do card da tabela ── */
+  .tet-card-head { display: flex; align-items: flex-start; justify-content: space-between;
+                   gap: .75rem; flex-wrap: wrap; padding: 1.15rem 1.15rem .95rem; }
+  .tet-card-title { margin: 0; font-size: 1.02rem; font-weight: 750; letter-spacing: -.02em; color: var(--ink); }
+  .tet-card-sub { margin: .2rem 0 0; font-size: .82rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Tabela ── */
+  /* min-width própria: sem ela as colunas de dinheiro espremem no celular e o
+     nome da área quebra em três linhas. Melhor rolar de lado dentro do card. */
+  .tet-table { min-width: 880px; }
+  /* A célula da área é <th scope="row"> por acessibilidade, mas não pode herdar
+     o visual de cabeçalho (caixa alta, fundo cinza) do .pcf-table th. */
+  .tet-table tbody th { padding: .7rem .9rem; background: transparent; text-transform: none;
+                        letter-spacing: normal; font-size: .875rem; white-space: normal;
+                        font-weight: 700; color: var(--ink);
+                        border-bottom: 1px solid hsl(var(--border)); }
+  .tet-table tbody tr:last-child th { border-bottom: 0; }
+  .tet-valor { font-weight: 800; color: var(--ink); white-space: nowrap; }
+  .tet-vazio-cel { color: hsl(var(--muted-foreground)); }
+  .tet-neg { font-weight: 800; color: #b03636; white-space: nowrap; }
+  .tet-cap { display: block; font-size: .72rem; font-weight: 600; color: hsl(var(--muted-foreground)); }
+  .tet-uso { display: flex; align-items: center; gap: .6rem; min-width: 200px; }
+  .tet-uso .pcf-progress { flex: 1; }
+  .tet-pct { font-size: .8rem; font-weight: 700; color: var(--ink); white-space: nowrap;
+             font-variant-numeric: tabular-nums; min-width: 5.5ch; text-align: right; }
+  /* Barra em cor de alerta quando passou do teto ou está perto dele: a cor
+     acompanha o badge, nunca substitui o texto dele. */
+  .tet-bar.estourou > span { background: #b03636; }
+  .tet-bar.perto > span { background: #b8860b; }
+  .tet-table tfoot td { border-top: 1.5px solid hsl(var(--border)); border-bottom: 0;
+                        background: hsl(var(--muted)); font-weight: 800; color: var(--ink); }
+  .tet-linha-estouro { background: #fef6f6; }
+  .tet-linha-sem-teto { background: #fffdf4; }
+
+  /* ── Estado vazio ── */
+  .tet-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem;
+               padding: clamp(2.25rem, 6vw, 3.25rem) 1.25rem; }
+  .tet-empty-title { margin: .35rem 0 0; font-size: 1.02rem; font-weight: 800; color: var(--ink); }
+  .tet-empty-sub { margin: 0; max-width: 46ch; font-size: .86rem; line-height: 1.6; color: hsl(var(--muted-foreground)); }
+
+  @media (min-width: 640px) { .tet-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 700px) { .tet-filtros { grid-template-columns: 1fr auto; align-items: end; } }
+  @media (min-width: 1024px) { .tet-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+</style>
+
+<div class="tet-page">
+  <div class="pcf-container tet-wrap">
+
+    <!-- ══════ Cabeçalho ══════ -->
+    <header class="pcf-page-head" data-reveal>
+      <div>
+        <span class="pcf-eyebrow">Financeiro</span>
+        <h1 class="pcf-page-title" style="margin-top:.7rem">Tetos por área</h1>
+        <p class="pcf-page-sub">
+          Quanto cada área pode gastar em {{ competencia|date:"m/Y" }} e quanto já usou. O teto é mensal: zera todo dia 1º.
+        </p>
+      </div>
+      {% if pode_editar %}
+        <a href="{% url 'adm:teto_criar' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Definir teto
+        </a>
+      {% else %}
+        <span class="pcf-badge outline">Somente leitura</span>
+      {% endif %}
+    </header>
+
+    <!-- ══════ Seletor de mês ══════ -->
+    <form method="get" action="{% url 'adm:tetos' %}" class="pcf-card tet-filtros" data-reveal>
+      <div class="pcf-field">
+        <label class="pcf-label" for="tet-mes">Mês de referência</label>
+        <input class="pcf-input" type="month" id="tet-mes" name="mes" value="{{ mes }}">
+      </div>
+
+      <div class="tet-filtros-botoes">
+        <button type="submit" class="pcf-btn pcf-btn-outline">Ver mês</button>
+        <a href="{% url 'adm:tetos' %}" class="pcf-btn pcf-btn-ghost">Mês atual</a>
+      </div>
+
+      <p class="tet-nota">
+        Entram as áreas com teto definido no mês e também as que gastaram sem teto nenhum. Só as saídas (despesas) contam.
+      </p>
+    </form>
+
+    {% if estouros or gastos_sem_teto %}
+      <!-- ══════ Avisos ══════ -->
+      <div class="tet-avisos" data-reveal data-reveal-delay="40">
+        {% if estouros %}
+          <div class="tet-aviso perigo" role="alert">
+            <svg class="tet-aviso-icone" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div>
+              <p class="tet-aviso-t">{{ estouros }} área{{ estouros|pluralize }} estourou o teto de {{ competencia|date:"m/Y" }}</p>
+              <p class="tet-aviso-s">
+                Gastou mais do que o combinado para o mês. Está no topo da tabela, marcada como "Estourou o teto".
+              </p>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if gastos_sem_teto %}
+          <div class="tet-aviso atencao" role="alert">
+            <svg class="tet-aviso-icone" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <p class="tet-aviso-t">{{ gastos_sem_teto }} área{{ gastos_sem_teto|pluralize }} gastou sem teto definido</p>
+              <p class="tet-aviso-s">
+                Saiu dinheiro em nome de uma área que não tem teto para {{ competencia|date:"m/Y" }} — então não existe limite contra o que comparar.
+                {% if pode_editar %}
+                  Defina o teto do mês, ou confira se a área do lançamento está certa.
+                {% else %}
+                  Avise o Financeiro (ADM/FIN): ou falta definir o teto, ou a área do lançamento está errada.
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if area_do_usuario %}
+      <!-- ══════ A situação da minha área ══════ -->
+      {% comment %} É por isto que a tela é aberta a qualquer voluntário: ver o teto
+         da própria área sem depender do ADM. Por isso vem antes da tabela geral. {% endcomment %}
+      <section class="pcf-card tet-minha" data-reveal data-reveal-delay="80" aria-label="Situação da minha área">
+        <div class="tet-minha-top">
+          <div>
+            <p class="tet-minha-rot">Minha área</p>
+            <p class="tet-minha-area">
+              {% if minha_linha %}{{ minha_linha.nome }}{% else %}{{ request.user.get_area_display|default:area_do_usuario }}{% endif %}
+            </p>
+          </div>
+          {% if minha_linha %}
+            {% if minha_linha.estourou %}
+              <span class="pcf-badge danger"><span class="dot" aria-hidden="true"></span>Estourou o teto</span>
+            {% elif minha_linha.sem_teto %}
+              <span class="pcf-badge warn"><span class="dot" aria-hidden="true"></span>Gastou sem teto definido</span>
+            {% elif minha_linha.percentual >= 80 %}
+              <span class="pcf-badge info"><span class="dot" aria-hidden="true"></span>Perto do limite</span>
+            {% else %}
+              <span class="pcf-badge ok"><span class="dot" aria-hidden="true"></span>Dentro do teto</span>
+            {% endif %}
+          {% else %}
+            <span class="pcf-badge">Sem teto e sem gasto</span>
+          {% endif %}
+        </div>
+
+        {% if minha_linha %}
+          {% if minha_linha.sem_teto %}
+            <p class="tet-minha-num pcf-num">R$ {{ minha_linha.gasto|floatformat:2 }}</p>
+            <p class="tet-minha-foot">
+              Sua área gastou este valor em {{ competencia|date:"m/Y" }} <strong>sem teto definido</strong>.
+              {% if pode_editar %}Defina o teto do mês para conseguir acompanhar.{% else %}Peça ao Financeiro (ADM/FIN) para definir o teto do mês.{% endif %}
+            </p>
+          {% else %}
+            <p class="tet-minha-num pcf-num">
+              R$ {{ minha_linha.gasto|floatformat:2 }}
+              <span class="tet-minha-de">de R$ {{ minha_linha.teto|floatformat:2 }}</span>
+            </p>
+            <span class="pcf-progress tet-bar {% if minha_linha.estourou %}estourou{% elif minha_linha.percentual >= 80 %}perto{% endif %}" aria-hidden="true">
+              {% comment %} widthratio (e não floatformat) porque em pt-BR o decimal sai com
+                 vírgula e quebraria o width no CSS. Teto zero cai no ramo do gasto e vira
+                 100%, sem dividir por zero. {% endcomment %}
+              <span style="width:{% if minha_linha.teto %}{% widthratio minha_linha.gasto minha_linha.teto 100 %}{% elif minha_linha.gasto %}100{% else %}0{% endif %}%"></span>
+            </span>
+            <p class="tet-minha-foot">
+              {{ minha_linha.percentual|floatformat:1 }}% do teto usado.
+              {% if minha_linha.estourou %}
+                Passou do limite em R$ {{ minha_linha.disponivel|floatformat:2 }} — o valor negativo é o quanto está acima.
+              {% else %}
+                Ainda sobram <strong>R$ {{ minha_linha.disponivel|floatformat:2 }}</strong> até o fim de {{ competencia|date:"m/Y" }}.
+              {% endif %}
+            </p>
+          {% endif %}
+        {% else %}
+          <p class="tet-minha-foot">
+            Sua área não tem teto definido para {{ competencia|date:"m/Y" }} e também não registrou gasto no mês.
+            {% if pode_editar %}Você pode definir o teto agora.{% else %}Se sua área vai gastar neste mês, peça ao Financeiro (ADM/FIN) para definir o teto.{% endif %}
+          </p>
+        {% endif %}
+      </section>
+    {% endif %}
+
+    <!-- ══════ KPIs ══════ -->
+    <div class="tet-kpis" data-reveal data-reveal-delay="120">
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Teto somado do mês</span>
+            <span class="pcf-icon-tile tint-orange" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">R$ {{ total_teto|floatformat:2 }}</div>
+          <div class="pcf-kpi-foot">soma dos tetos definidos para {{ competencia|date:"m/Y" }}</div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Já usado pelas áreas</span>
+            <span class="pcf-icon-tile tint-blue" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">R$ {{ total_gasto|floatformat:2 }}</div>
+          <div class="pcf-kpi-foot">{{ linhas|length }} área{{ linhas|length|pluralize }} na lista do mês</div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Estouraram o teto</span>
+            <span class="pcf-icon-tile {% if estouros %}tint-gold{% endif %}" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ estouros }}</div>
+          <div class="pcf-kpi-foot">
+            {% if estouros %}área{{ estouros|pluralize }} gastou mais que o combinado{% else %}nenhuma área passou do limite{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Gastaram sem teto</span>
+            <span class="pcf-icon-tile {% if gastos_sem_teto %}tint-gold{% endif %}" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ gastos_sem_teto }}</div>
+          <div class="pcf-kpi-foot">
+            {% if gastos_sem_teto %}saiu dinheiro sem limite definido{% else %}todo gasto do mês tem teto{% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══════ Tabela: teto x gasto por área ══════ -->
+    <section class="pcf-card" style="padding:0;overflow:hidden" data-reveal data-reveal-delay="160">
+      <div class="tet-card-head">
+        <div>
+          <h2 class="tet-card-title">Teto x gasto de {{ competencia|date:"m/Y" }}</h2>
+          <p class="tet-card-sub">
+            Quem precisa de atenção vem primeiro: estouro, depois gasto sem teto, depois o teto mais apertado.
+          </p>
+        </div>
+        <span class="pcf-badge outline">Só teto e gasto</span>
+      </div>
+
+      {% if linhas %}
+        <div class="pcf-scroll-x">
+          <table class="pcf-table tet-table">
+            <thead>
+              <tr>
+                <th scope="col">Área</th>
+                <th scope="col">Situação</th>
+                <th scope="col" class="num">Teto do mês</th>
+                <th scope="col" class="num">Já usado</th>
+                <th scope="col" class="num">Disponível</th>
+                <th scope="col">Uso do teto</th>
+                {% if pode_editar %}<th scope="col">Ação</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for linha in linhas %}
+                <tr class="{% if linha.estourou %}tet-linha-estouro{% elif linha.sem_teto %}tet-linha-sem-teto{% endif %}">
+                  <th scope="row">{{ linha.nome }}</th>
+
+                  <td>
+                    {% if linha.estourou %}
+                      <span class="pcf-badge danger"><span class="dot" aria-hidden="true"></span>Estourou o teto</span>
+                    {% elif linha.sem_teto %}
+                      <span class="pcf-badge warn"><span class="dot" aria-hidden="true"></span>Gastou sem teto definido</span>
+                    {% elif linha.percentual >= 80 %}
+                      <span class="pcf-badge info"><span class="dot" aria-hidden="true"></span>Perto do limite</span>
+                    {% else %}
+                      <span class="pcf-badge ok"><span class="dot" aria-hidden="true"></span>Dentro do teto</span>
+                    {% endif %}
+                  </td>
+
+                  <td class="num">
+                    {% if linha.sem_teto %}
+                      <span class="tet-vazio-cel">Não definido</span>
+                    {% else %}
+                      <span class="tet-valor">R$ {{ linha.teto|floatformat:2 }}</span>
+                    {% endif %}
+                  </td>
+
+                  <td class="num"><span class="tet-valor">R$ {{ linha.gasto|floatformat:2 }}</span></td>
+
+                  <td class="num">
+                    {% if linha.sem_teto %}
+                      <span class="tet-vazio-cel">—</span>
+                    {% elif linha.estourou %}
+                      <span class="tet-neg">R$ {{ linha.disponivel|floatformat:2 }}</span>
+                      <span class="tet-cap">acima do teto</span>
+                    {% else %}
+                      <span class="tet-valor">R$ {{ linha.disponivel|floatformat:2 }}</span>
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    {% if linha.sem_teto %}
+                      <span class="tet-vazio-cel" style="font-size:.8rem">Sem teto para comparar</span>
+                    {% else %}
+                      <span class="tet-uso">
+                        <span class="pcf-progress tet-bar {% if linha.estourou %}estourou{% elif linha.percentual >= 80 %}perto{% endif %}" aria-hidden="true">
+                          {% comment %} widthratio (e não floatformat) porque em pt-BR o decimal sai
+                             com vírgula e quebraria o width no CSS. Teto zero cai no ramo do gasto
+                             e vira 100%, sem dividir por zero. {% endcomment %}
+                          <span style="width:{% if linha.teto %}{% widthratio linha.gasto linha.teto 100 %}{% elif linha.gasto %}100{% else %}0{% endif %}%"></span>
+                        </span>
+                        <span class="tet-pct">{{ linha.percentual|floatformat:1 }}%</span>
+                      </span>
+                    {% endif %}
+                  </td>
+
+                  {% if pode_editar %}
+                    <td>
+                      {% comment %} linha.teto_id só existe se a view passar o id do TetoArea da
+                         linha; hoje situacao_dos_tetos() não devolve id, então sobra o botão de
+                         definir para quem não tem teto — que é onde a ação existe de verdade.
+                         Quando o id chegar, o botão de editar acende sozinho. {% endcomment %}
+                      {% if linha.teto_id %}
+                        <a href="{% url 'adm:teto_editar' linha.teto_id %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Editar teto</a>
+                      {% elif linha.sem_teto %}
+                        <a href="{% url 'adm:teto_criar' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Definir teto</a>
+                      {% else %}
+                        <span class="tet-vazio-cel" style="font-size:.8rem">—</span>
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total de {{ linhas|length }} área{{ linhas|length|pluralize }}</td>
+                <td>{{ estouros }} estouro{{ estouros|pluralize }} · {{ gastos_sem_teto }} sem teto</td>
+                <td class="num">R$ {{ total_teto|floatformat:2 }}</td>
+                <td class="num">R$ {{ total_gasto|floatformat:2 }}</td>
+                <td class="num">—</td>
+                <td></td>
+                {% if pode_editar %}<td></td>{% endif %}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      {% else %}
+        <div class="tet-empty">
+          <span class="pcf-icon-tile lg" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+          </span>
+          <p class="tet-empty-title">Nenhum teto definido e nenhum gasto por área em {{ competencia|date:"m/Y" }}</p>
+          <p class="tet-empty-sub">
+            {% if pode_editar %}
+              Comece definindo o teto do mês para as áreas que gastam — supply, recreação e as salinhas.
+              Enquanto não houver teto, nada aqui tem limite contra o que comparar.
+            {% else %}
+              Nenhuma área tem teto para este mês. Escolha outro mês no seletor acima, ou peça ao
+              Financeiro (ADM/FIN) para definir o teto da sua área — é quem cadastra.
+            {% endif %}
+          </p>
+          {% if pode_editar %}
+            <a href="{% url 'adm:teto_criar' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm" style="margin-top:.4rem">Definir o primeiro teto</a>
+          {% else %}
+            <a href="{% url 'adm:tetos' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm" style="margin-top:.4rem">Ver o mês atual</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </section>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% block titulo %}Recargas de cartão{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .rcg-). #}
+{# O visual base vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .rcg-page { background: hsl(var(--background)); }
+  .rcg-wrap { padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+
+  /* ── Aviso "recarga não é despesa" ── */
+  /* Fica antes da tabela porque é a dúvida que mais volta ao ADM; depois da
+     tabela ninguém leria. */
+  .rcg-aviso { display: flex; gap: .9rem; align-items: flex-start;
+               background: hsl(var(--accent)); border: 1px solid hsl(var(--border));
+               border-radius: 16px; padding: 1.05rem 1.15rem; margin-bottom: 1.15rem; }
+  .rcg-aviso-texto { min-width: 0; }
+  .rcg-aviso-titulo { margin: 0 0 .25rem; font-size: .95rem; font-weight: 800; color: var(--ink); }
+  .rcg-aviso-sub { margin: 0; font-size: .85rem; line-height: 1.55; color: var(--ink-soft); }
+
+  /* ── Filtro por cartão ── */
+  .rcg-filtros { display: grid; grid-template-columns: 1fr; gap: .8rem; margin-bottom: 1.15rem; }
+  .rcg-filtros-botoes { display: flex; align-items: flex-end; gap: .5rem; flex-wrap: wrap; }
+  .rcg-filtros-botoes .pcf-btn { flex: 1; }
+  .rcg-nota { margin: 0; grid-column: 1 / -1; font-size: .8rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── KPIs ── */
+  .rcg-kpis { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.15rem; }
+
+  /* ── Cabeçalho do card da tabela ── */
+  .rcg-card-head { display: flex; align-items: flex-start; justify-content: space-between;
+                   gap: .75rem; flex-wrap: wrap; padding: 1.15rem 1.15rem .95rem; }
+  .rcg-card-title { margin: 0; font-size: 1.02rem; font-weight: 750; letter-spacing: -.02em; color: var(--ink); }
+  .rcg-card-sub { margin: .2rem 0 0; font-size: .82rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Tabela ── */
+  /* min-width própria: sem ela o motivo e o nome do cartão viram colunas de
+     três linhas no celular. Melhor rolar de lado dentro do card. */
+  .rcg-table { min-width: 880px; }
+  .rcg-data { white-space: nowrap; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .rcg-cartao { display: flex; flex-direction: column; gap: .25rem; align-items: flex-start; min-width: 150px; }
+  .rcg-cartao-nome { font-weight: 700; color: var(--ink); }
+  .rcg-valor { font-weight: 800; color: var(--ink); white-space: nowrap; }
+  .rcg-motivo { color: var(--ink-soft); max-width: 32ch; }
+  .rcg-sem { color: hsl(var(--muted-foreground)); font-style: italic; }
+  .rcg-acoes { white-space: nowrap; }
+  .rcg-table tfoot td { border-top: 1.5px solid hsl(var(--border)); border-bottom: 0;
+                        background: hsl(var(--muted)); font-weight: 800; color: var(--ink); }
+
+  /* ── Estado vazio ── */
+  .rcg-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem;
+               padding: clamp(2.25rem, 6vw, 3.25rem) 1.25rem; }
+  .rcg-empty-title { margin: .35rem 0 0; font-size: 1.02rem; font-weight: 800; color: var(--ink); }
+  .rcg-empty-sub { margin: 0; max-width: 44ch; font-size: .86rem; line-height: 1.55; color: hsl(var(--muted-foreground)); }
+  .rcg-empty-botoes { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center; margin-top: .5rem; }
+
+  @media (min-width: 640px) { .rcg-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 700px) { .rcg-filtros { grid-template-columns: 1fr auto; align-items: end; } }
+  @media (max-width: 520px) { .rcg-aviso { flex-direction: column; gap: .6rem; } }
+</style>
+
+<div class="rcg-page">
+  <div class="pcf-container rcg-wrap">
+
+    <!-- ══════ Cabeçalho ══════ -->
+    <header class="pcf-page-head" data-reveal>
+      <div>
+        <span class="pcf-eyebrow">Financeiro · Contas e cartões</span>
+        <h1 class="pcf-page-title" style="margin-top:.7rem">Recargas de cartão</h1>
+        <p class="pcf-page-sub">
+          Toda vez que um cartão foi carregado: quando, quanto, para qual área foi, quem carregou e por quê. Da mais recente para a mais antiga.
+        </p>
+      </div>
+      {% if user.is_superuser or user.area == 'ADM/FIN' %}
+        <a href="{% url 'adm:recarga_criar' %}" class="pcf-btn pcf-btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova recarga
+        </a>
+      {% else %}
+        <span class="pcf-badge outline">Somente leitura</span>
+      {% endif %}
+    </header>
+
+    <!-- ══════ Recarga não é despesa ══════ -->
+    <div class="rcg-aviso" data-reveal>
+      <span class="pcf-icon-tile" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      </span>
+      <div class="rcg-aviso-texto">
+        <p class="rcg-aviso-titulo">Recarga não é despesa — é transferência entre contas</p>
+        <p class="rcg-aviso-sub">
+          Carregar um cartão só move dinheiro de uma conta para outra: nada foi gasto ainda.
+          Por isso <strong>nenhuma linha desta tela aparece no fluxo de caixa</strong> nem no DRE.
+          A despesa entra depois, quando o cartão for usado e o gasto for lançado.
+          Contar as duas coisas somaria o mesmo real duas vezes.
+        </p>
+      </div>
+    </div>
+
+    <!-- ══════ Filtro por cartão ══════ -->
+    <form method="get" action="{% url 'adm:recargas' %}" class="pcf-card rcg-filtros" data-reveal data-reveal-delay="60">
+      <div class="pcf-field">
+        <label class="pcf-label" for="rcg-conta">Cartão / conta</label>
+        <select class="pcf-input" id="rcg-conta" name="conta">
+          <option value="">Todos os cartões e contas</option>
+          {% for conta in contas %}
+            <option value="{{ conta.pk }}"{% if filtro_conta == conta.pk|stringformat:"s" %} selected{% endif %}>{{ conta.nome }} — {{ conta.get_tipo_display }}{% if not conta.ativo %} (inativa){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="rcg-filtros-botoes">
+        <button type="submit" class="pcf-btn pcf-btn-outline">Filtrar</button>
+        {% if filtro_conta %}
+          <a href="{% url 'adm:recargas' %}" class="pcf-btn pcf-btn-ghost">Ver todas</a>
+        {% endif %}
+      </div>
+
+      <p class="rcg-nota">
+        Quanto ainda resta em cada cartão fica em <a href="{% url 'adm:contas' %}">Contas e cartões</a>. Aqui é só o histórico de quem foi carregado.
+      </p>
+    </form>
+
+    <!-- ══════ KPIs ══════ -->
+    <div class="rcg-kpis" data-reveal data-reveal-delay="120">
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Total recarregado{% if filtro_conta %} neste cartão{% endif %}</span>
+            <span class="pcf-icon-tile tint-orange" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">R$ {{ total|floatformat:2 }}</div>
+          <div class="pcf-kpi-foot">transferência entre contas — fora do fluxo de caixa</div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Recargas registradas</span>
+            <span class="pcf-icon-tile tint-blue" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ recargas|length }}</div>
+          <div class="pcf-kpi-foot">
+            {% if filtro_conta %}com o filtro de cartão aplicado{% else %}em todos os cartões e contas{% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══════ Histórico ══════ -->
+    <section class="pcf-card" style="padding:0;overflow:hidden" data-reveal data-reveal-delay="180">
+      <div class="rcg-card-head">
+        <div>
+          <h2 class="rcg-card-title">Histórico de recargas</h2>
+          <p class="rcg-card-sub">Da mais recente para a mais antiga.</p>
+        </div>
+        {% for conta in contas %}{% if filtro_conta == conta.pk|stringformat:"s" %}<span class="pcf-badge brand">Só {{ conta.nome }}</span>{% endif %}{% endfor %}
+      </div>
+
+      {% if recargas %}
+        <div class="pcf-scroll-x">
+          <table class="pcf-table rcg-table">
+            <thead>
+              <tr>
+                <th scope="col">Data</th>
+                <th scope="col">Cartão / conta</th>
+                <th scope="col" class="num">Valor</th>
+                <th scope="col">Para qual área foi</th>
+                <th scope="col">Quem carregou</th>
+                <th scope="col">Motivo</th>
+                {% if user.is_superuser or user.area == 'ADM/FIN' %}<th scope="col">Ação</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for recarga in recargas %}
+                <tr>
+                  <td class="rcg-data">{{ recarga.data|date:"d/m/Y" }}</td>
+                  <td>
+                    <span class="rcg-cartao">
+                      <span class="rcg-cartao-nome">{{ recarga.conta.nome }}</span>
+                      <span class="pcf-badge outline">{{ recarga.conta.get_tipo_display }}</span>
+                    </span>
+                  </td>
+                  <td class="num"><span class="rcg-valor">R$ {{ recarga.valor|floatformat:2 }}</span></td>
+                  <td>
+                    {% if recarga.area %}{{ recarga.get_area_display }}{% else %}<span class="rcg-sem">Área não informada</span>{% endif %}
+                  </td>
+                  <td>
+                    {% if recarga.carregado_por %}{{ recarga.carregado_por }}{% else %}<span class="rcg-sem">Não informado</span>{% endif %}
+                  </td>
+                  <td class="rcg-motivo">
+                    {% if recarga.motivo %}{{ recarga.motivo }}{% else %}<span class="rcg-sem">Sem motivo escrito</span>{% endif %}
+                  </td>
+                  {% if user.is_superuser or user.area == 'ADM/FIN' %}
+                    <td class="rcg-acoes">
+                      <a href="{% url 'adm:recarga_editar' recarga.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Editar</a>
+                    </td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="2">Total recarregado{% if filtro_conta %} neste cartão{% endif %}</td>
+                <td class="num">R$ {{ total|floatformat:2 }}</td>
+                <td colspan="{% if user.is_superuser or user.area == 'ADM/FIN' %}4{% else %}3{% endif %}">
+                  {{ recargas|length }} recarga{{ recargas|length|pluralize }} — nenhuma delas é despesa
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      {% else %}
+        <div class="rcg-empty">
+          <span class="pcf-icon-tile lg" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          </span>
+          {% if filtro_conta %}
+            <p class="rcg-empty-title">Este cartão ainda não teve recarga registrada</p>
+            <p class="rcg-empty-sub">
+              Escolha outro cartão no filtro acima, ou veja todas as recargas.
+              Se ele já foi carregado e não está aqui, registre a recarga — sem ela o saldo do cartão aparece menor do que o real.
+            </p>
+            <div class="rcg-empty-botoes">
+              <a href="{% url 'adm:recargas' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver todas as recargas</a>
+              {% if user.is_superuser or user.area == 'ADM/FIN' %}
+                <a href="{% url 'adm:recarga_criar' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">Registrar recarga</a>
+              {% endif %}
+            </div>
+          {% elif contas %}
+            <p class="rcg-empty-title">Nenhuma recarga registrada ainda</p>
+            <p class="rcg-empty-sub">
+              Os cartões já estão cadastrados, mas ninguém lançou recarga.
+              Registre a primeira para o saldo de cada cartão começar a aparecer no painel de contas.
+            </p>
+            <div class="rcg-empty-botoes">
+              {% if user.is_superuser or user.area == 'ADM/FIN' %}
+                <a href="{% url 'adm:recarga_criar' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">Registrar a primeira recarga</a>
+              {% else %}
+                <a href="{% url 'adm:contas' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver contas e cartões</a>
+              {% endif %}
+            </div>
+          {% else %}
+            <p class="rcg-empty-title">Nenhum cartão ou conta cadastrado</p>
+            <p class="rcg-empty-sub">
+              Recarga precisa de um cartão para apontar. Cadastre a conta primeiro (BB, Mercado Pago, Caju…) e depois volte aqui.
+            </p>
+            <div class="rcg-empty-botoes">
+              {% if user.is_superuser or user.area == 'ADM/FIN' %}
+                <a href="{% url 'adm:conta_criar' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">Cadastrar cartão</a>
+              {% endif %}
+              <a href="{% url 'adm:contas' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver contas e cartões</a>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    </section>
+
+  </div>
+</div>
+{% endblock %}

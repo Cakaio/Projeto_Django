@@ -5,6 +5,9 @@ from voluntario.models import LISTA_AREAS
 STATUS_CHOICES = (
     ('PENDENTE', 'Pendente'),
     ('APROVADO', 'Aprovado'),
+    # PAGO vem depois de APROVADO porque é o passo seguinte, não um substituto:
+    # aprovado é a decisão, pago é o dinheiro tendo saído de verdade.
+    ('PAGO', 'Pago'),
     ('REJEITADO', 'Rejeitado'),
 )
 
@@ -36,7 +39,21 @@ class PedidoReembolso(models.Model):
     categoria = models.ForeignKey(
         'adm.Categoria', on_delete=models.PROTECT, related_name='pedidos_reembolso'
     )
+    # O comprovante do gasto, enviado pelo voluntário. Nada a ver com
+    # `comprovante_pagamento`, que é o do ADM: reaproveitar um campo para os
+    # dois apagaria a prova de um dos lados.
     comprovante = models.FileField(upload_to='reembolsos/')
+    area = models.CharField('área', max_length=30, choices=LISTA_AREAS, blank=True)
+    evento = models.ForeignKey('adm.Evento', on_delete=models.SET_NULL, null=True,
+                               blank=True, related_name='reembolsos')
+    conta_pagamento = models.ForeignKey('adm.Conta', on_delete=models.SET_NULL, null=True,
+                                        blank=True, related_name='reembolsos_pagos',
+                                        help_text='De onde saiu o pagamento.')
+    comprovante_pagamento = models.FileField(upload_to='reembolsos_pagos/', blank=True,
+                                             help_text='Comprovante de que o ADM pagou.')
+    pago_em = models.DateField(null=True, blank=True)
+    pago_por = models.ForeignKey('voluntario.Voluntario', on_delete=models.SET_NULL,
+                                 null=True, blank=True, related_name='reembolsos_pagos_por')
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDENTE')
     observacao_adm = models.TextField(blank=True)
     aprovado_por = models.ForeignKey(

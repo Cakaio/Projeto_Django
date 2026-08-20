@@ -1,4 +1,6 @@
-from django.test import TestCase, RequestFactory, Client
+import tempfile
+
+from django.test import TestCase, RequestFactory, Client, override_settings
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
@@ -7,12 +9,21 @@ from django.urls import reverse
 from unittest.mock import MagicMock, patch
 from datetime import date
 from decimal import Decimal
-from adm.models import Categoria, Lancamento
-from adm.servicos import SEM_CATEGORIA, _linha_despesa, despesas_por_categoria
-from adm.views import (
-    AdmAcessoMixin, AdmEscritaMixin, _periodo_prestacao_contas, onde_investimos,
+from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
+from adm.models import Categoria, Conta, Evento, Lancamento, RecargaCartao, TetoArea
+from adm.servicos import (
+    SEM_AREA, SEM_CATEGORIA, _linha_despesa, despesas_por_categoria,
+    gasto_por_area, saldo_das_contas, situacao_dos_tetos,
 )
+from adm.views import (
+    AdmAcessoMixin, AdmEscritaMixin, _competencia_do_mes, _periodo_prestacao_contas,
+    contas as view_contas, onde_investimos, recargas as view_recargas,
+    reembolso_pagar, tetos as view_tetos,
+)
+from forms_pcf.forms import PagamentoReembolsoForm
 from forms_pcf.models import ReceptorNotificacaoReembolso, PedidoReembolso
+from forms_pcf.views import sincronizar_lancamento_do_reembolso
 
 User = get_user_model()
 
@@ -508,3 +519,573 @@ class PeriodoOndeInvestimosTest(TestCase):
             onde_investimos(requisicao)
         except TemplateDoesNotExist:
             pass  # Chegou até a renderização: o cálculo passou inteiro.
+
+
+# ─── Contas, cartões e saldo ───
+
+class SaldoDoCartaoTest(TestCase):
+    """O saldo do cartão é recarga MENOS gasto. Se a recarga virasse lançamento,
+    o mesmo real seria contado duas vezes: uma na recarga, outra no uso."""
+
+    def setUp(self):
+        self.cartao = Conta.objects.create(
+            nome='Caju Recreação', tipo='CARTAO', controla_saldo=True
+        )
+        self.despesa = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        self.receita = Categoria.objects.create(nome='Doação', tipo='RECEITA')
+
+    def test_recarga_nao_gera_lancamento(self):
+        RecargaCartao.objects.create(
+            conta=self.cartao, data=date(2026, 8, 1), valor='300.00'
+        )
+        # Zero lançamentos: recarga é dinheiro mudando de bolso, não gasto.
+        self.assertEqual(Lancamento.objects.count(), 0)
+        self.assertEqual(self.cartao.saldo, Decimal('300.00'))
+
+    def test_saldo_e_recarga_menos_gasto(self):
+        RecargaCartao.objects.create(conta=self.cartao, data=date(2026, 8, 1), valor='300.00')
+        RecargaCartao.objects.create(conta=self.cartao, data=date(2026, 8, 10), valor='200.00')
+        Lancamento.objects.create(
+            categoria=self.despesa, valor='120.00', data=date(2026, 8, 12), conta=self.cartao
+        )
+        self.assertEqual(self.cartao.total_recarregado, Decimal('500.00'))
+        self.assertEqual(self.cartao.total_gasto, Decimal('120.00'))
+        self.assertEqual(self.cartao.saldo, Decimal('380.00'))
+        self.assertFalse(self.cartao.saldo_negativo)
+
+    def test_receita_na_conta_nao_consome_saldo(self):
+        RecargaCartao.objects.create(conta=self.cartao, data=date(2026, 8, 1), valor='100.00')
+        Lancamento.objects.create(
+            categoria=self.receita, valor='900.00', data=date(2026, 8, 3), conta=self.cartao
+        )
+        # Receita entrando na conta não é gasto: subtrair inverteria o sinal.
+        self.assertEqual(self.cartao.total_gasto, Decimal('0'))
+        self.assertEqual(self.cartao.saldo, Decimal('100.00'))
+
+    def test_conta_sem_movimento_devolve_zero_e_nao_none(self):
+        # A tela formata como dinheiro: None viraria "R$ None".
+        self.assertEqual(self.cartao.total_recarregado, Decimal('0'))
+        self.assertEqual(self.cartao.total_gasto, Decimal('0'))
+        self.assertEqual(self.cartao.saldo, Decimal('0'))
+
+    def test_gasto_maior_que_recarga_acusa_saldo_negativo(self):
+        RecargaCartao.objects.create(conta=self.cartao, data=date(2026, 8, 1), valor='50.00')
+        Lancamento.objects.create(
+            categoria=self.despesa, valor='80.00', data=date(2026, 8, 2), conta=self.cartao
+        )
+        self.assertEqual(self.cartao.saldo, Decimal('-30.00'))
+        self.assertTrue(self.cartao.saldo_negativo)
+
+    def test_gasto_de_outra_conta_nao_entra(self):
+        outro = Conta.objects.create(nome='BB', tipo='BANCO')
+        RecargaCartao.objects.create(conta=self.cartao, data=date(2026, 8, 1), valor='100.00')
+        Lancamento.objects.create(
+            categoria=self.despesa, valor='70.00', data=date(2026, 8, 2), conta=outro
+        )
+        self.assertEqual(self.cartao.saldo, Decimal('100.00'))
+
+
+class SaldoDasContasTest(TestCase):
+    def setUp(self):
+        self.cartao = Conta.objects.create(nome='Caju', tipo='CARTAO', controla_saldo=True)
+        self.banco = Conta.objects.create(nome='BB', tipo='BANCO', controla_saldo=False)
+        self.despesa = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        RecargaCartao.objects.create(conta=self.cartao, data=date(2026, 8, 1), valor='400.00')
+        Lancamento.objects.create(
+            categoria=self.despesa, valor='150.00', data=date(2026, 8, 5), conta=self.cartao
+        )
+        Lancamento.objects.create(
+            categoria=self.despesa, valor='999.00', data=date(2026, 8, 5), conta=self.banco
+        )
+
+    def test_lista_so_quem_controla_saldo(self):
+        linhas = saldo_das_contas()
+        self.assertEqual([linha['conta'].nome for linha in linhas], ['Caju'])
+
+    def test_valores_da_linha(self):
+        linha = saldo_das_contas()[0]
+        self.assertEqual(linha['recarregado'], Decimal('400.00'))
+        self.assertEqual(linha['gasto'], Decimal('150.00'))
+        self.assertEqual(linha['saldo'], Decimal('250.00'))
+        self.assertFalse(linha['negativo'])
+
+    def test_numero_fixo_de_consultas(self):
+        """Três consultas, sempre: com query dentro do laço a tela ficaria mais
+        lenta a cada cartão novo."""
+        Conta.objects.create(nome='Mercado Pago', tipo='CARTAO', controla_saldo=True)
+        Conta.objects.create(nome='Caju Supply', tipo='CARTAO', controla_saldo=True)
+        with self.assertNumQueries(3):
+            saldo_das_contas()
+
+    def test_sem_conta_controlada_devolve_vazio(self):
+        Conta.objects.filter(controla_saldo=True).update(controla_saldo=False)
+        self.assertEqual(saldo_das_contas(), [])
+
+
+# ─── Tetos por área ───
+
+class SituacaoDosTetosTest(TestCase):
+    def setUp(self):
+        self.despesa = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        self.receita = Categoria.objects.create(nome='Doação', tipo='RECEITA')
+        self.competencia = date(2026, 8, 1)
+
+    def _gasto(self, area, valor, dia=10):
+        return Lancamento.objects.create(
+            categoria=self.despesa, valor=valor, data=date(2026, 8, dia), area=area
+        )
+
+    def _linha(self, linhas, area):
+        return next(linha for linha in linhas if linha['area'] == area)
+
+    def test_area_com_teto_e_gasto(self):
+        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='1000.00')
+        self._gasto('SUPPLY', '250.00')
+
+        linha = self._linha(situacao_dos_tetos(self.competencia), 'SUPPLY')
+        self.assertEqual(linha['teto'], Decimal('1000.00'))
+        self.assertEqual(linha['gasto'], Decimal('250.00'))
+        self.assertEqual(linha['disponivel'], Decimal('750.00'))
+        self.assertEqual(linha['percentual'], Decimal('25.0'))
+        self.assertFalse(linha['estourou'])
+        self.assertFalse(linha['sem_teto'])
+        self.assertEqual(linha['nome'], 'Supply')
+
+    def test_area_com_teto_e_sem_gasto_aparece_zerada(self):
+        TetoArea.objects.create(area='RECREACAO', competencia=self.competencia, valor='500.00')
+        linha = self._linha(situacao_dos_tetos(self.competencia), 'RECREACAO')
+        self.assertEqual(linha['gasto'], Decimal('0'))
+        self.assertEqual(linha['disponivel'], Decimal('500.00'))
+        self.assertEqual(linha['percentual'], Decimal('0.0'))
+
+    def test_gasto_sem_teto_aparece_e_e_denunciado(self):
+        """É o furo que a tela existe para mostrar: esconder deixaria invisível."""
+        self._gasto('VIOLETA', '80.00')
+
+        linha = self._linha(situacao_dos_tetos(self.competencia), 'VIOLETA')
+        self.assertTrue(linha['sem_teto'])
+        self.assertIsNone(linha['teto'])
+        self.assertEqual(linha['gasto'], Decimal('80.00'))
+        self.assertEqual(linha['percentual'], Decimal('0.0'))
+
+    def test_teto_zero_com_gasto_nao_divide_por_zero(self):
+        TetoArea.objects.create(area='EVENTOS', competencia=self.competencia, valor='0.00')
+        self._gasto('EVENTOS', '40.00')
+
+        linha = self._linha(situacao_dos_tetos(self.competencia), 'EVENTOS')
+        self.assertEqual(linha['teto'], Decimal('0.00'))
+        self.assertTrue(linha['estourou'])
+        self.assertEqual(linha['percentual'], Decimal('100.0'))
+        self.assertEqual(linha['disponivel'], Decimal('-40.00'))
+
+    def test_teto_zero_sem_gasto_nao_divide_por_zero(self):
+        TetoArea.objects.create(area='MARKETING', competencia=self.competencia, valor='0.00')
+        linha = self._linha(situacao_dos_tetos(self.competencia), 'MARKETING')
+        self.assertFalse(linha['estourou'])
+        self.assertEqual(linha['percentual'], Decimal('0.0'))
+
+    def test_estouro_de_teto(self):
+        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
+        self._gasto('SUPPLY', '150.00')
+
+        linha = self._linha(situacao_dos_tetos(self.competencia), 'SUPPLY')
+        self.assertTrue(linha['estourou'])
+        self.assertEqual(linha['percentual'], Decimal('150.0'))
+        self.assertEqual(linha['disponivel'], Decimal('-50.00'))
+
+    def test_estouro_vem_primeiro_e_sem_teto_depois(self):
+        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
+        TetoArea.objects.create(area='RECREACAO', competencia=self.competencia, valor='500.00')
+        self._gasto('SUPPLY', '150.00')      # estourou
+        self._gasto('VIOLETA', '10.00')      # gastou sem teto
+        self._gasto('RECREACAO', '50.00')    # dentro do teto
+
+        ordem = [linha['area'] for linha in situacao_dos_tetos(self.competencia)]
+        self.assertEqual(ordem[:2], ['SUPPLY', 'VIOLETA'])
+
+    def test_gasto_de_outro_mes_fica_fora(self):
+        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
+        Lancamento.objects.create(
+            categoria=self.despesa, valor='90.00', data=date(2026, 7, 31), area='SUPPLY'
+        )
+        Lancamento.objects.create(
+            categoria=self.despesa, valor='90.00', data=date(2026, 9, 1), area='SUPPLY'
+        )
+        # O teto é mensal: gasto de julho ou setembro no mês de agosto mentiria.
+        linha = self._linha(situacao_dos_tetos(self.competencia), 'SUPPLY')
+        self.assertEqual(linha['gasto'], Decimal('0'))
+
+    def test_duas_pontas_do_mes_entram(self):
+        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='1000.00')
+        self._gasto('SUPPLY', '10.00', dia=1)
+        self._gasto('SUPPLY', '10.00', dia=31)
+        linha = self._linha(situacao_dos_tetos(self.competencia), 'SUPPLY')
+        self.assertEqual(linha['gasto'], Decimal('20.00'))
+
+    def test_receita_nao_conta_como_gasto(self):
+        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
+        Lancamento.objects.create(
+            categoria=self.receita, valor='5000.00', data=date(2026, 8, 5), area='SUPPLY'
+        )
+        linha = self._linha(situacao_dos_tetos(self.competencia), 'SUPPLY')
+        self.assertEqual(linha['gasto'], Decimal('0'))
+
+    def test_despesa_sem_area_nao_cria_linha(self):
+        self._gasto('', '70.00')
+        # Sem área não pertence a teto de ninguém: viraria acusação a uma área
+        # que não existe.
+        self.assertEqual(situacao_dos_tetos(self.competencia), [])
+
+    def test_competencia_com_dia_qualquer_e_o_mes_inteiro(self):
+        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
+        self._gasto('SUPPLY', '30.00', dia=20)
+        linha = self._linha(situacao_dos_tetos(date(2026, 8, 17)), 'SUPPLY')
+        self.assertEqual(linha['gasto'], Decimal('30.00'))
+
+    def test_numero_fixo_de_consultas(self):
+        TetoArea.objects.create(area='SUPPLY', competencia=self.competencia, valor='100.00')
+        TetoArea.objects.create(area='RECREACAO', competencia=self.competencia, valor='100.00')
+        self._gasto('SUPPLY', '30.00')
+        self._gasto('VIOLETA', '30.00')
+        with self.assertNumQueries(2):
+            situacao_dos_tetos(self.competencia)
+
+
+class TetoAreaModelTest(TestCase):
+    def test_competencia_normalizada_para_dia_um(self):
+        """Dia real gravado deixaria dois tetos do mesmo mês conviverem."""
+        teto = TetoArea.objects.create(area='SUPPLY', competencia=date(2026, 8, 23), valor='10.00')
+        teto.refresh_from_db()
+        self.assertEqual(teto.competencia, date(2026, 8, 1))
+
+
+class GastoPorAreaTest(TestCase):
+    def setUp(self):
+        self.despesa = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        self.receita = Categoria.objects.create(nome='Doação', tipo='RECEITA')
+        for area, valor in (('SUPPLY', '300.00'), ('RECREACAO', '100.00'), ('SUPPLY', '100.00')):
+            Lancamento.objects.create(
+                categoria=self.despesa, valor=valor, data=date(2026, 8, 10), area=area
+            )
+        Lancamento.objects.create(
+            categoria=self.receita, valor='9000.00', data=date(2026, 8, 10), area='SUPPLY'
+        )
+
+    def test_agrupa_e_ordena_do_maior_para_o_menor(self):
+        linhas, total = gasto_por_area(date(2026, 8, 1), date(2026, 8, 31))
+        self.assertEqual(total, Decimal('500.00'))
+        self.assertEqual([linha['area'] for linha in linhas], ['SUPPLY', 'RECREACAO'])
+        self.assertEqual(linhas[0]['valor'], Decimal('400.00'))
+        self.assertEqual(linhas[0]['lancamentos'], 2)
+        self.assertEqual(linhas[0]['percentual'], Decimal('80.0'))
+        self.assertEqual(linhas[0]['nome'], 'Supply')
+
+    def test_gasto_sem_area_recebe_rotulo_honesto(self):
+        Lancamento.objects.create(
+            categoria=self.despesa, valor='700.00', data=date(2026, 8, 11), area=''
+        )
+        linhas, _ = gasto_por_area(date(2026, 8, 1), date(2026, 8, 31))
+        self.assertEqual(linhas[0]['nome'], SEM_AREA)
+
+    def test_periodo_sem_gasto_devolve_vazio(self):
+        linhas, total = gasto_por_area(date(2020, 1, 1), date(2020, 12, 31))
+        self.assertEqual(linhas, [])
+        self.assertEqual(total, Decimal('0'))
+
+
+class CompetenciaDoMesTest(TestCase):
+    """Link torto no grupo do WhatsApp não pode virar erro 500 na tela que
+    todos os voluntários abrem."""
+
+    def test_vazio_cai_no_mes_corrente(self):
+        self.assertEqual(_competencia_do_mes(''), timezone.localdate().replace(day=1))
+
+    def test_mes_valido_e_respeitado(self):
+        self.assertEqual(_competencia_do_mes('2026-03'), date(2026, 3, 1))
+
+    def test_mes_inexistente_cai_no_padrao(self):
+        self.assertEqual(_competencia_do_mes('2026-13'), timezone.localdate().replace(day=1))
+
+    def test_texto_qualquer_cai_no_padrao(self):
+        self.assertEqual(_competencia_do_mes('mes passado'), timezone.localdate().replace(day=1))
+
+
+class AcessoDasTelasNovasTest(TestCase):
+    """A tela de tetos é a única do Financeiro aberta a qualquer voluntário: o
+    pedido é que cada um veja a situação do teto da sua área sem depender do ADM.
+    Conta e recarga continuam fechadas."""
+
+    def setUp(self):
+        self.fabrica = RequestFactory()
+        self.comum = User.objects.create_user(
+            username='vol_comum', password='pw', area='RECREACAO'
+        )
+        self.financeiro = User.objects.create_user(
+            username='vol_fin', password='pw', area='ADM/FIN'
+        )
+
+    def _gate_liberou(self, view, url, usuario):
+        """True se a view deixou passar.
+
+        RequestFactory porque o test Client quebra ao copiar o contexto do
+        template neste ambiente. O template é entrega de outro agente, então
+        TemplateDoesNotExist conta como liberado: o que se prova é a permissão.
+        """
+        requisicao = self.fabrica.get(url)
+        requisicao.user = usuario
+        try:
+            view(requisicao)
+        except PermissionDenied:
+            return False
+        except TemplateDoesNotExist:
+            return True
+        return True
+
+    def test_voluntario_comum_ve_tetos(self):
+        self.assertTrue(self._gate_liberou(view_tetos, '/adm/tetos/', self.comum))
+
+    def test_voluntario_comum_nao_ve_contas(self):
+        self.assertFalse(self._gate_liberou(view_contas, '/adm/contas/', self.comum))
+
+    def test_voluntario_comum_nao_ve_recargas(self):
+        self.assertFalse(self._gate_liberou(view_recargas, '/adm/contas/recargas/', self.comum))
+
+    def test_financeiro_ve_contas(self):
+        self.assertTrue(self._gate_liberou(view_contas, '/adm/contas/', self.financeiro))
+
+    def test_contas_responde_403_pela_url(self):
+        cliente = Client()
+        cliente.force_login(self.comum)
+        self.assertEqual(cliente.get('/adm/contas/').status_code, 403)
+
+    def test_tetos_sem_login_redireciona(self):
+        self.assertEqual(Client().get('/adm/tetos/').status_code, 302)
+
+    def test_rotas_registradas(self):
+        self.assertEqual(reverse('adm:contas'), '/adm/contas/')
+        self.assertEqual(reverse('adm:conta_criar'), '/adm/contas/nova/')
+        self.assertEqual(reverse('adm:conta_editar', args=[7]), '/adm/contas/7/editar/')
+        self.assertEqual(reverse('adm:recargas'), '/adm/contas/recargas/')
+        self.assertEqual(reverse('adm:recarga_criar'), '/adm/contas/recargas/nova/')
+        self.assertEqual(reverse('adm:recarga_editar', args=[7]), '/adm/contas/recargas/7/editar/')
+        self.assertEqual(reverse('adm:tetos'), '/adm/tetos/')
+        self.assertEqual(reverse('adm:teto_criar'), '/adm/tetos/novo/')
+        self.assertEqual(reverse('adm:teto_editar', args=[7]), '/adm/tetos/7/editar/')
+        self.assertEqual(reverse('adm:reembolsos'), '/adm/reembolsos/')
+        self.assertEqual(reverse('adm:reembolso_pagar', args=[7]), '/adm/reembolsos/7/pagar/')
+
+
+class TetosContextoTest(TestCase):
+    """O voluntário precisa achar a linha da própria área sem procurar."""
+
+    def setUp(self):
+        self.fabrica = RequestFactory()
+        despesa = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        self.competencia = timezone.localdate().replace(day=1)
+        TetoArea.objects.create(area='RECREACAO', competencia=self.competencia, valor='200.00')
+        Lancamento.objects.create(
+            categoria=despesa, valor='50.00', data=self.competencia, area='RECREACAO'
+        )
+
+    def _contexto(self, usuario):
+        requisicao = self.fabrica.get('/adm/tetos/')
+        requisicao.user = usuario
+        with patch('adm.views.render') as render_falso:
+            view_tetos(requisicao)
+        return render_falso.call_args[0][2]
+
+    def test_minha_linha_e_a_da_area_do_usuario(self):
+        usuario = User.objects.create_user(username='rec_teto', password='pw', area='RECREACAO')
+        contexto = self._contexto(usuario)
+        self.assertEqual(contexto['minha_linha']['area'], 'RECREACAO')
+        self.assertEqual(contexto['minha_linha']['gasto'], Decimal('50.00'))
+        self.assertFalse(contexto['pode_editar'])
+
+    def test_area_sem_teto_nem_gasto_nao_tem_linha(self):
+        usuario = User.objects.create_user(username='mkt_teto', password='pw', area='MARKETING')
+        self.assertIsNone(self._contexto(usuario)['minha_linha'])
+
+    def test_financeiro_pode_editar(self):
+        usuario = User.objects.create_user(username='fin_teto', password='pw', area='ADM/FIN')
+        self.assertTrue(self._contexto(usuario)['pode_editar'])
+
+
+# ─── Reembolso pago ───
+
+# Upload real de comprovante: sem isto os arquivos de teste caem no media/ do
+# projeto e ficam lá para sempre.
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class ReembolsoPagoTest(TestCase):
+    def setUp(self):
+        self.fabrica = RequestFactory()
+        self.cliente = Client()
+        self.adm = User.objects.create_user(
+            username='fin_pag', password='pw', area='ADM/FIN', email='fin@pcf.org'
+        )
+        self.solicitante = User.objects.create_user(
+            username='vol_pag', password='pw', area='RECREACAO', email='vol@pcf.org'
+        )
+        self.categoria = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        self.conta = Conta.objects.create(nome='BB', tipo='BANCO')
+        self.evento = Evento.objects.create(nome='PC Feijuca', data=date(2026, 8, 15))
+        self.pedido = PedidoReembolso.objects.create(
+            solicitante=self.solicitante, valor='120.00', descricao='Tinta e pincel',
+            data_gasto=date(2026, 8, 2), categoria=self.categoria,
+            comprovante='reembolsos/nota.jpg', status='APROVADO',
+        )
+        # Lançamento nasce na aprovação; o pagamento apenas o completa.
+        sincronizar_lancamento_do_reembolso(self.pedido, self.adm)
+        self.pedido.save()
+        self.cliente.force_login(self.adm)
+        self.url = reverse('adm:reembolso_pagar', args=[self.pedido.pk])
+
+    def _comprovante(self):
+        return SimpleUploadedFile('pix.png', b'conteudo-falso', content_type='image/png')
+
+    def _dados(self, **extra):
+        dados = {
+            'conta_pagamento': self.conta.pk,
+            'pago_em': '2026-08-20',
+            'area': 'RECREACAO',
+            'evento': self.evento.pk,
+            'comprovante_pagamento': self._comprovante(),
+        }
+        dados.update(extra)
+        return dados
+
+    def test_form_exige_comprovante_e_conta(self):
+        form = PagamentoReembolsoForm(
+            data={'pago_em': '2026-08-20', 'area': 'RECREACAO'}, instance=self.pedido
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn('conta_pagamento', form.errors)
+        self.assertIn('comprovante_pagamento', form.errors)
+
+    def test_post_sem_comprovante_nao_paga(self):
+        requisicao = self.fabrica.post(self.url, {'conta_pagamento': self.conta.pk})
+        requisicao.user = self.adm
+        try:
+            reembolso_pagar(requisicao, pk=self.pedido.pk)
+        except TemplateDoesNotExist:
+            pass  # o template é de outro agente; o que importa é não ter pago
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.status, 'APROVADO')
+        self.assertIsNone(self.pedido.pago_em)
+
+    def test_pagamento_grava_quem_quando_e_conta(self):
+        resposta = self.cliente.post(self.url, self._dados())
+        self.assertEqual(resposta.status_code, 302)
+
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.status, 'PAGO')
+        self.assertEqual(self.pedido.pago_por, self.adm)
+        self.assertEqual(self.pedido.pago_em, date(2026, 8, 20))
+        self.assertEqual(self.pedido.conta_pagamento, self.conta)
+        self.assertTrue(self.pedido.comprovante_pagamento)
+
+    def test_comprovante_do_gasto_nao_e_sobrescrito_pelo_do_pagamento(self):
+        self.cliente.post(self.url, self._dados())
+        self.pedido.refresh_from_db()
+        # São provas de lados diferentes: reaproveitar um campo apagaria uma.
+        self.assertEqual(self.pedido.comprovante.name, 'reembolsos/nota.jpg')
+        self.assertIn('reembolsos_pagos/', self.pedido.comprovante_pagamento.name)
+
+    def test_pagamento_manda_email_ao_solicitante(self):
+        mail.outbox = []
+        self.cliente.post(self.url, self._dados())
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['vol@pcf.org'])
+        self.assertIn('120.00', mail.outbox[0].body)
+        self.assertIn('BB', mail.outbox[0].body)
+
+    def test_falha_de_email_nao_desfaz_o_pagamento(self):
+        """O dinheiro saiu de verdade: SMTP fora do ar não pode desfazer isso."""
+        with patch('adm.views.send_mail', side_effect=Exception('smtp fora do ar')):
+            resposta = self.cliente.post(self.url, self._dados())
+        self.assertEqual(resposta.status_code, 302)
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.status, 'PAGO')
+        self.assertEqual(self.pedido.pago_por, self.adm)
+
+    def test_solicitante_sem_email_nao_derruba_pagamento(self):
+        self.solicitante.email = ''
+        self.solicitante.save()
+        mail.outbox = []
+        self.cliente.post(self.url, self._dados())
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.status, 'PAGO')
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_lancamento_leva_area_evento_e_conta(self):
+        self.cliente.post(self.url, self._dados())
+        self.pedido.refresh_from_db()
+        lancamento = self.pedido.lancamento
+        # Sem os três o gasto não conta no teto da área nem no evento.
+        self.assertEqual(lancamento.area, 'RECREACAO')
+        self.assertEqual(lancamento.evento, self.evento)
+        self.assertEqual(lancamento.conta, self.conta)
+        self.assertEqual(lancamento.origem, 'REEMBOLSO')
+        self.assertEqual(lancamento.tipo, 'DESPESA')
+
+    def test_gasto_do_reembolso_entra_no_teto_da_area(self):
+        self.cliente.post(self.url, self._dados())
+        self.pedido.refresh_from_db()
+        competencia = self.pedido.lancamento.data.replace(day=1)
+        TetoArea.objects.create(area='RECREACAO', competencia=competencia, valor='200.00')
+
+        linha = next(l for l in situacao_dos_tetos(competencia) if l['area'] == 'RECREACAO')
+        self.assertEqual(linha['gasto'], Decimal('120.00'))
+        self.assertEqual(linha['disponivel'], Decimal('80.00'))
+
+    def test_pagamento_nao_duplica_lancamento(self):
+        antes = Lancamento.objects.count()
+        self.cliente.post(self.url, self._dados())
+        self.assertEqual(Lancamento.objects.count(), antes)
+
+    def test_pedido_pendente_nao_pode_ser_pago(self):
+        pendente = PedidoReembolso.objects.create(
+            solicitante=self.solicitante, valor='10.00', descricao='x',
+            data_gasto=date(2026, 8, 2), categoria=self.categoria,
+            comprovante='reembolsos/x.jpg', status='PENDENTE',
+        )
+        resposta = self.cliente.post(
+            reverse('adm:reembolso_pagar', args=[pendente.pk]), self._dados()
+        )
+        self.assertEqual(resposta.status_code, 302)
+        pendente.refresh_from_db()
+        self.assertEqual(pendente.status, 'PENDENTE')
+
+    def test_pagar_duas_vezes_e_recusado(self):
+        self.cliente.post(self.url, self._dados())
+        antes = Lancamento.objects.count()
+        resposta = self.cliente.post(self.url, self._dados())
+        self.assertEqual(resposta.status_code, 302)
+        # Pagar de novo geraria despesa em dobro.
+        self.assertEqual(Lancamento.objects.count(), antes)
+
+    def test_voluntario_comum_nao_paga_reembolso(self):
+        cliente = Client()
+        cliente.force_login(User.objects.create_user(
+            username='rec_pag', password='pw', area='RECREACAO'
+        ))
+        self.assertEqual(cliente.post(self.url, self._dados()).status_code, 403)
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.status, 'APROVADO')
+
+
+class DoacaoLevaContaTest(TestCase):
+    """A doação precisa dizer qual banco recebeu, senão o saldo da conta ignora
+    o dinheiro que entrou."""
+
+    def test_contribuicao_copia_conta_para_o_lancamento(self):
+        from parceiros.models import Contribuicao, Parceiro
+
+        conta = Conta.objects.create(nome='Caju', tipo='CARTAO', controla_saldo=True)
+        parceiro = Parceiro.objects.create(nome='Padaria do Zé')
+        contribuicao = Contribuicao.objects.create(
+            parceiro=parceiro, competencia=date(2026, 8, 1), valor='250.00',
+            data_recebimento=date(2026, 8, 5), conta=conta,
+        )
+        contribuicao.refresh_from_db()
+        self.assertEqual(contribuicao.lancamento.conta, conta)
+        self.assertEqual(contribuicao.lancamento.tipo, 'RECEITA')

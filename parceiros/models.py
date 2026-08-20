@@ -108,6 +108,13 @@ class Contribuicao(models.Model):
         help_text='Data em que o dinheiro entrou. É ela que vale no fluxo de caixa e no DRE.',
     )
     forma = models.CharField(max_length=15, choices=FORMAS_CONTRIBUICAO, default='PIX', blank=True)
+    # Qual banco recebeu. Opcional porque o histórico já lançado não registrou
+    # isso, e exigir agora travaria a edição de contribuição antiga.
+    conta = models.ForeignKey(
+        'adm.Conta', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='contribuicoes',
+        help_text='Onde o dinheiro caiu (ex.: BB, Caju).',
+    )
     observacao = models.CharField('observação', max_length=200, blank=True)
 
     # Lançamento gerado no Financeiro. SET_NULL para que apagar um lançamento

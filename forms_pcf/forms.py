@@ -1,6 +1,7 @@
 from django import forms
+from django.utils import timezone
 from .models import FeedbackArea, PedidoReembolso, ReceptorNotificacaoReembolso
-from adm.models import Categoria
+from adm.models import Categoria, Conta, Evento
 
 
 class FeedbackAreaForm(forms.ModelForm):
@@ -79,3 +80,44 @@ class ReceptorNotificacaoReembolsoForm(forms.ModelForm):
             'email': 'E-mail',
             'ativo': 'Ativo',
         }
+
+
+class PagamentoReembolsoForm(forms.ModelForm):
+    """O que o ADM preenche quando o reembolso é de fato pago.
+
+    Área e evento entram aqui porque é o ADM quem sabe a qual teto o gasto
+    pertence — e sem eles o reembolso pago não apareceria no teto da área, que
+    é metade do que o pedido pediu.
+    """
+
+    class Meta:
+        model = PedidoReembolso
+        fields = ['conta_pagamento', 'comprovante_pagamento', 'pago_em', 'area', 'evento']
+        widgets = {
+            'pago_em': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+        }
+        labels = {
+            'conta_pagamento': 'De onde saiu o pagamento',
+            'comprovante_pagamento': 'Comprovante do pagamento',
+            'pago_em': 'Data do pagamento',
+            'area': 'Área que gastou',
+            'evento': 'Evento (se for de um evento)',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Os dois são opcionais no model (histórico antigo não tem), mas
+        # obrigatórios para marcar como PAGO: dinheiro que saiu sem comprovante
+        # e sem conta não tem como ser conferido depois.
+        self.fields['conta_pagamento'].required = True
+        self.fields['comprovante_pagamento'].required = True
+        self.fields['conta_pagamento'].queryset = Conta.objects.filter(ativo=True)
+        self.fields['conta_pagamento'].empty_label = 'Escolha a conta'
+        self.fields['evento'].queryset = Evento.objects.filter(ativo=True)
+        self.fields['evento'].empty_label = 'Nenhum'
+        self.fields['pago_em'].input_formats = ['%Y-%m-%d']
+        self.fields['pago_em'].required = False
+        if not self.instance.pago_em:
+            self.fields['pago_em'].initial = timezone.localdate()
+        for campo in self.fields.values():
+            campo.widget.attrs.setdefault('class', 'pcf-input')
