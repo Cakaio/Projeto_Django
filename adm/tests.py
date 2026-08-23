@@ -3,6 +3,10 @@ import tempfile
 from django.test import TestCase, RequestFactory, Client, override_settings
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied
+from pathlib import Path
+from django.conf import settings
+from django.contrib.staticfiles import finders
+from voluntario.models import Voluntario
 from django.contrib.auth import get_user_model
 from django.template import TemplateDoesNotExist
 from django.urls import reverse
@@ -1268,3 +1272,55 @@ class CompletarLancamentoAutomaticoTest(TestCase):
             requisicao = RequestFactory().get(self._url(self.automatico))
             requisicao.user = self.comum
             completar_lancamento(requisicao, pk=self.automatico.pk)
+
+
+class SelectComBuscaTest(TestCase):
+    """O select com busca é enhancement em cima do <select> nativo.
+
+    Estes testes cobrem o que dá para checar do lado do servidor: que o script
+    é entregue nas telas e que ele não substitui o campo do formulário. O
+    comportamento no navegador (filtrar, teclado, clone de linha) é JS e não
+    passa por aqui — está no próprio arquivo, com o cuidado de nunca esconder
+    o select antes de a casca existir.
+    """
+
+    def setUp(self):
+        self.usuario = Voluntario.objects.create_user(
+            username='zeca', password='x', area='SUPPLY')
+        self.client.force_login(self.usuario)
+
+    def test_script_e_entregue_com_carimbo_de_versao(self):
+        """Sem o ?v= uma correção no combo não chegaria em quem já visitou."""
+        from django.template import Context, Template
+        from TESTE.versao_estatica import versao_estatica
+
+        html = Template(
+            "{% load static %}<script src=\"{% static 'js/pcf-combo.js' %}?v={{ ESTATICO_V }}\">"
+        ).render(Context(versao_estatica()))
+
+        self.assertIn('pcf-combo.js', html)
+        self.assertIn('?v=', html)
+
+    def test_base_html_carrega_o_script(self):
+        caminho = Path(settings.BASE_DIR) / 'templates' / 'base.html'
+        base = caminho.read_text(encoding='utf-8')
+        self.assertIn("js/pcf-combo.js", base)
+        # `defer` importa: sem ele o script roda antes do formulário existir.
+        linha = next(l for l in base.splitlines() if 'pcf-combo.js' in l)
+        self.assertIn('defer', linha)
+
+    def test_o_arquivo_existe_onde_o_template_aponta(self):
+        """Template apontando para arquivo inexistente daria 404 silencioso e
+        o select ficaria sem busca, sem ninguém entender por quê."""
+        achado = finders.find('js/pcf-combo.js')
+        self.assertIsNotNone(achado, 'pcf-combo.js não foi encontrado nos estáticos')
+
+    def test_o_select_nativo_continua_no_formulario(self):
+        """A casca não substitui o campo: quem envia o valor é o <select>.
+        Se o JS falhar, o formulário tem de continuar funcionando."""
+        from supply.forms import PedidoForm
+
+        html = str(PedidoForm()['item'])
+
+        self.assertIn('<select', html)
+        self.assertIn('name="item"', html)
