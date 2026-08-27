@@ -3,7 +3,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, TemplateView, UpdateView
 from .models import (
     Voluntario, PresencaVoluntario, Ocorrencia, Regra, HistoricoLideranca, Grupo,
-    FALTAS_POR_ALERTA, ALERTAS_POR_ADVERTENCIA,
+    FALTAS_POR_ALERTA, ALERTAS_POR_ADVERTENCIA, REGRA_FALTAS_CONSECUTIVAS,
     ADVERTENCIAS_PARA_OBSERVACAO, MAX_ALERTAS_DISPLAY,
 )
 from .forms import GrupoForm, MeuPerfilForm
@@ -743,7 +743,33 @@ def _enviar_email_ocorrencia(advertido, notificacoes, regra=None):
         logger.error(f'[SAAs] Falha ao enviar para {email_dest}: {e}')
 
 
-def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
+def contar_faltas_consecutivas(voluntario, sabado):
+    """Faltas seguidas do voluntário até `sabado`, e a data em que a sequência começou.
+
+    Esta é a ÚNICA contagem de faltas que pode gerar alerta automático. Antes o
+    comando retroativo somava faltas do ano inteiro — quem faltou 3 sábados
+    espalhados recebia alerta como se tivesse sumido três semanas seguidas.
+
+    Sábado sem registro de presença quebra a sequência de propósito: ausência de
+    dado não é prova de falta, e é melhor deixar de gerar um alerta do que gerar
+    um errado.
+    """
+    from voluntario.models import PresencaVoluntario
+
+    consecutivas = 0
+    streak_inicio = None  # data do primeiro sábado ausente da sequência atual
+    for s in Sabado.objects.filter(data__lte=sabado.data).order_by('-data'):
+        presenca = PresencaVoluntario.objects.filter(voluntario=voluntario, data=s).first()
+        if presenca and presenca.presenca == 'AUSENTE':
+            consecutivas += 1
+            streak_inicio = s.data  # avança para o mais antigo da sequência
+        else:
+            break  # sequência quebrada — para
+
+    return consecutivas, streak_inicio
+
+
+def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por, notificar=True):
     """
     Dispara alertas automáticos por faltas CONSECUTIVAS nos sábados:
       3 consecutivas → 1º alerta
@@ -752,21 +778,12 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
       (e assim por diante a cada múltiplo de 3)
 
     A sequência é reiniciada sempre que a pessoa comparecer (Presente ou Justificada).
+
+    O alerta sempre sai com a regra de 3 faltas consecutivas — nunca outra. Use
+    `notificar=False` numa varredura retroativa, para não mandar e-mail de falta
+    antiga para meio projeto de uma vez.
     """
-    from voluntario.models import PresencaVoluntario
-
-    # Percorre os sábados do mais recente ao mais antigo e conta a sequência atual de ausências
-    sabados_ordenados = Sabado.objects.filter(data__lte=sabado.data).order_by('-data')
-
-    consecutivas = 0
-    streak_inicio = None  # data do primeiro sábado ausente da sequência atual
-    for s in sabados_ordenados:
-        presenca = PresencaVoluntario.objects.filter(voluntario=voluntario, data=s).first()
-        if presenca and presenca.presenca == 'AUSENTE':
-            consecutivas += 1
-            streak_inicio = s.data  # avança para o mais antigo da sequência
-        else:
-            break  # sequência quebrada — para
+    consecutivas, streak_inicio = contar_faltas_consecutivas(voluntario, sabado)
 
     alertas_esperados = consecutivas // FALTAS_POR_ALERTA
     if alertas_esperados == 0:
@@ -788,7 +805,7 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
     Ocorrencia.objects.create(
         advertido=voluntario,
         tipo='ALERTA',
-        regra='AL13',
+        regra=REGRA_FALTAS_CONSECUTIVAS,
         razao=f'Alerta automático: {consecutivas} faltas consecutivas nos sábados.',
         aplicado_por=None,
         automatico=True,
@@ -803,7 +820,7 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
         advertido=voluntario, tipo='ADVERTENCIA', automatico=True, deleted_at__isnull=True
     ).count()
 
-    notificacoes = [('ALERTA', 'AL13')]
+    notificacoes = [('ALERTA', REGRA_FALTAS_CONSECUTIVAS)]
     if adv_esperadas > adv_existentes:
         Ocorrencia.objects.create(
             advertido=voluntario,
@@ -814,8 +831,9 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
         )
         notificacoes.append('ADVERTENCIA_AUTO')
 
-    threading.Thread(
-        target=_enviar_email_ocorrencia,
-        args=(voluntario, notificacoes),
-        daemon=True,
-    ).start()
+    if notificar:
+        threading.Thread(
+            target=_enviar_email_ocorrencia,
+            args=(voluntario, notificacoes),
+            daemon=True,
+        ).start()

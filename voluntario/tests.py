@@ -3,7 +3,12 @@ import json
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Grupo, Voluntario
+from sabado.models import Sabado
+
+from .models import (
+    Grupo, Voluntario, Ocorrencia, PresencaVoluntario, REGRA_FALTAS_CONSECUTIVAS,
+)
+from .views import verificar_faltas_e_gerar_alertas
 
 
 class GrupoTests(TestCase):
@@ -66,3 +71,101 @@ class GrupoTests(TestCase):
         self.assertContains(resposta, "lider-x")
 
 # Create your tests here.
+
+
+class AlertaAutomaticoDeFaltaTests(TestCase):
+    """A régua do alerta automático: 3 faltas SEGUIDAS, e uma regra só.
+
+    Os dois pontos que a liderança reclamou: o alerta chegava com o texto de
+    outra regra, e chegava para quem não tinha faltado 3 sábados seguidos.
+    """
+
+    def setUp(self):
+        from datetime import date
+        self.voluntario = Voluntario.objects.create_user(
+            username="faltante", password="teste123", area="VIOLETA",
+        )
+        # Seis sábados quinzenais, do mais antigo para o mais recente.
+        self.sabados = [
+            Sabado.objects.create(data=date(2026, 3, dia), tema=f"T{dia}", descricao="d")
+            for dia in (7, 14, 21, 28)
+        ]
+
+    def _registrar(self, indice, presenca):
+        PresencaVoluntario.objects.create(
+            voluntario=self.voluntario, data=self.sabados[indice], presenca=presenca,
+        )
+
+    def _alertas(self):
+        return Ocorrencia.objects.filter(
+            advertido=self.voluntario, tipo='ALERTA', automatico=True,
+        )
+
+    def test_tres_faltas_seguidas_geram_alerta_com_a_regra_de_faltas_consecutivas(self):
+        for i in (1, 2, 3):
+            self._registrar(i, 'AUSENTE')
+
+        verificar_faltas_e_gerar_alertas(
+            self.voluntario, self.sabados[3], None, notificar=False,
+        )
+
+        alerta = self._alertas().get()
+        self.assertEqual(alerta.regra, REGRA_FALTAS_CONSECUTIVAS)
+        # O texto da regra tem que falar de 3 sábados seguidos, e não de
+        # julgamento do líder — era exatamente esse o desencaixe reclamado.
+        self.assertIn('3 sábados consecutivos', Ocorrencia.REGRAS_DICT[alerta.regra])
+
+    def test_tres_faltas_espalhadas_nao_geram_alerta(self):
+        """Faltou, veio, faltou, veio... não é sumiço: não pode virar alerta."""
+        self._registrar(0, 'AUSENTE')
+        self._registrar(1, 'PRESENTE')
+        self._registrar(2, 'AUSENTE')
+        self._registrar(3, 'AUSENTE')
+
+        verificar_faltas_e_gerar_alertas(
+            self.voluntario, self.sabados[3], None, notificar=False,
+        )
+
+        self.assertFalse(self._alertas().exists())
+
+    def test_falta_justificada_reinicia_a_sequencia(self):
+        self._registrar(0, 'AUSENTE')
+        self._registrar(1, 'AUSENTE')
+        self._registrar(2, 'JUSTIFICADA')
+        self._registrar(3, 'AUSENTE')
+
+        verificar_faltas_e_gerar_alertas(
+            self.voluntario, self.sabados[3], None, notificar=False,
+        )
+
+        self.assertFalse(self._alertas().exists())
+
+    def test_nao_duplica_alerta_na_mesma_sequencia(self):
+        for i in (1, 2, 3):
+            self._registrar(i, 'AUSENTE')
+
+        for _ in range(3):
+            verificar_faltas_e_gerar_alertas(
+                self.voluntario, self.sabados[3], None, notificar=False,
+            )
+
+        self.assertEqual(self._alertas().count(), 1)
+
+    def test_comando_retroativo_usa_a_mesma_regua(self):
+        """O comando tinha régua própria (faltas totais, regra AL2). Não tem mais."""
+        from io import StringIO
+        from django.core.management import call_command
+
+        self._registrar(0, 'AUSENTE')
+        self._registrar(1, 'PRESENTE')
+        self._registrar(2, 'AUSENTE')
+        self._registrar(3, 'AUSENTE')
+
+        call_command('sync_alertas_faltas', stdout=StringIO())
+        self.assertFalse(self._alertas().exists())
+
+        # Agora sim, três seguidas: o mesmo comando passa a alertar — com a regra certa.
+        PresencaVoluntario.objects.filter(data=self.sabados[1]).update(presenca='AUSENTE')
+        call_command('sync_alertas_faltas', stdout=StringIO())
+
+        self.assertEqual(self._alertas().get().regra, REGRA_FALTAS_CONSECUTIVAS)

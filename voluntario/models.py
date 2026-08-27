@@ -261,6 +261,14 @@ class Regra(models.Model):
 # templates via contexto). Não espalhar esses números pelo código.
 # ─────────────────────────────────────────────────────────────────────────────
 FALTAS_POR_ALERTA = 3          # faltas consecutivas necessárias para 1 alerta automático
+
+# A ÚNICA regra que o alerta automático de faltas pode usar. Antes cada gerador
+# escolhia uma: o registro de presença gravava AL13 ("faltou a um sábado sem
+# avisar e o líder julgou pertinente") e o comando retroativo gravava AL2
+# ("confirmou presença e não compareceu") — duas regras que descrevem
+# julgamento humano, não contagem. O voluntário recebia um alerta cujo texto não
+# tinha nada a ver com o motivo real.
+REGRA_FALTAS_CONSECUTIVAS = 'AL18'
 ALERTAS_POR_ADVERTENCIA = 3    # alertas ativos acumulados que geram 1 advertência automática
 ADVERTENCIAS_PARA_OBSERVACAO = 3   # advertências ativas que disparam Período de Observação
 # Teto visual de alertas: ao atingir, há 3 advertências → Período de Observação
@@ -293,6 +301,7 @@ class Ocorrencia(models.Model):
             ('AL15', 'AL15 – Não respondeu o grupo da área por uma semana ou mais'),
             ('AL16', 'AL16 – Líder não cumpriu prazos estabelecidos pela gestão'),
             ('AL17', 'AL17 – Líder não compareceu às reuniões da Gestão sem justificar'),
+            ('AL18', 'AL18 – Faltou a 3 sábados consecutivos'),
         )),
         ('Advertências', (
             ('AD1', 'AD1 – Estava sob influência de álcool ou substância psicoativa durante o projeto'),
