@@ -180,3 +180,43 @@ class AlertaAutomaticoDeFaltaTests(TestCase):
         self.assertIn('três sábados seguidos', regra.descricao)
         # O painel lista por `ativo=True` — é essa consulta que a torna aplicável.
         self.assertIn(regra, Regra.objects.filter(ativo=True))
+
+    def test_foi_um_sabado_e_faltou_dois_nao_aplica(self):
+        """Compareceu, depois faltou 2 seguidos: são 2, não 3. Nada acontece."""
+        self._registrar(0, 'PRESENTE')
+        self._registrar(1, 'AUSENTE')
+        self._registrar(2, 'AUSENTE')
+
+        verificar_faltas_e_gerar_alertas(
+            self.voluntario, self.sabados[2], None, notificar=False,
+        )
+
+        self.assertFalse(self._alertas().exists())
+
+    def test_foi_um_sabado_e_faltou_tres_seguidos_aplica(self):
+        """Compareceu, depois sumiu por 3 sábados: é o caso da regra."""
+        self._registrar(0, 'PRESENTE')
+        for i in (1, 2, 3):
+            self._registrar(i, 'AUSENTE')
+
+        verificar_faltas_e_gerar_alertas(
+            self.voluntario, self.sabados[3], None, notificar=False,
+        )
+
+        self.assertEqual(self._alertas().get().regra, REGRA_FALTAS_CONSECUTIVAS)
+
+    def test_a_terceira_falta_aplica_no_momento_em_que_e_registrada(self):
+        """A presença anterior não 'protege': o que conta é a sequência atual."""
+        self._registrar(0, 'PRESENTE')
+        self._registrar(1, 'AUSENTE')
+        self._registrar(2, 'AUSENTE')
+        verificar_faltas_e_gerar_alertas(
+            self.voluntario, self.sabados[2], None, notificar=False,
+        )
+        self.assertFalse(self._alertas().exists())  # ainda 2
+
+        self._registrar(3, 'AUSENTE')
+        verificar_faltas_e_gerar_alertas(
+            self.voluntario, self.sabados[3], None, notificar=False,
+        )
+        self.assertEqual(self._alertas().count(), 1)  # virou 3
