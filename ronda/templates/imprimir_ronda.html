@@ -31,20 +31,21 @@
 
   {% if cfg.dia_de_evento %}
   <table>
-    <thead><tr><th>Local</th><th>Dupla 1</th><th>Dupla 2</th></tr></thead>
+    <thead><tr><th>Local</th><th>Grupo 1</th><th>Grupo 2</th></tr></thead>
     <tbody>
       {% for item in grade_evento %}
       <tr>
-        <th>{{ item.local.nome|default:"—" }}</th>
-        <td>{% for escala in item.dupla1 %}{{ escala.voluntario.get_full_name }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}</td>
-        <td>{% for escala in item.dupla2 %}{{ escala.voluntario.get_full_name }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}</td>
+        <th>{{ item.local.nome|default:"—" }}<br><small style="font-weight:400;color:#5a4a41">2 × {{ item.rotulo|lower }}</small></th>
+        {% for grupo in item.grupos %}
+        <td>{% for escala in grupo.escalas %}{{ escala.voluntario.get_full_name }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}</td>
+        {% endfor %}
       </tr>
       {% empty %}
       <tr><td colspan="3">Nenhum local cadastrado.</td></tr>
       {% endfor %}
     </tbody>
   </table>
-  <p style="margin-top:.75rem;color:#5a4a41;font-size:.85rem">Revezamento 2×2 a cada 30 min, combinado entre as duplas no dia.</p>
+  <p style="margin-top:.75rem;color:#5a4a41;font-size:.85rem">Revezamento a cada 30 min, combinado entre os dois grupos de cada local no dia.</p>
   {% else %}
   {% for bloco in grade %}
   <div class="janela">

@@ -32,8 +32,9 @@ def executar_sorteio(configuracao):
     Modo normal: 2 voluntários por linha (horário + local); um voluntário não se
     repete na mesma faixa de horário.
 
-    Modo dia de evento: 4 voluntários fixos por local, divididos em 2 duplas fixas
-    (dupla 1 e dupla 2); cada voluntário aparece em um único local.
+    Modo dia de evento: 2 grupos fixos por local (grupo 1 e grupo 2), com o
+    tamanho definido em cada local (`pessoas_por_grupo`: 2 = duplas, 3 = trios);
+    cada voluntário aparece em um único local.
 
     Em ambos: só entram quem confirmou presença (vai_ao_projeto=True), priorizando
     menor score anual. Deleta escalas anteriores antes de re-sortear.
@@ -57,7 +58,7 @@ def executar_sorteio(configuracao):
         )
 
     if configuracao.dia_de_evento:
-        # 4 por local, duplas fixas, cada pessoa em um único local
+        # 2 grupos fixos por local (tamanho por local), cada pessoa em um único local
         ja_global = set()
         for horario in horarios:
             if horario.local_id is None:
@@ -66,13 +67,14 @@ def executar_sorteio(configuracao):
             if not pool:
                 continue
             _ordenar_por_score(pool, ano)
-            escolhidos = pool[:4]
+            tamanho = horario.local.pessoas_por_grupo or 2
+            escolhidos = pool[:tamanho * 2]
             for i, vol in enumerate(escolhidos):
                 EscalaRonda.objects.create(
                     horario=horario,
                     local=horario.local,
                     voluntario=vol,
-                    dupla=1 if i < 2 else 2,
+                    dupla=1 if i < tamanho else 2,
                     is_substituto=False,
                 )
                 ja_global.add(vol.pk)

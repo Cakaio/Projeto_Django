@@ -44,14 +44,24 @@ def _contar_confirmados(sabado):
 
 
 def _grade_evento(horarios):
-    """Modo dia de evento: cada horário = um local com 2 duplas fixas."""
+    """Modo dia de evento: cada horário = um local com 2 grupos fixos.
+
+    O tamanho do grupo vem do próprio local (`pessoas_por_grupo`), então um
+    local pode trabalhar em duplas e outro em trios na mesma ronda.
+    """
     grade = []
     for h in horarios:
         escalas = list(h.escalas.all())
+        local = h.local
         grade.append({
-            'local': h.local,
-            'dupla1': [e for e in escalas if e.dupla == 1],
-            'dupla2': [e for e in escalas if e.dupla == 2],
+            'horario': h,
+            'local': local,
+            'rotulo': local.rotulo_grupo if local else 'Grupo',
+            'tamanho': local.pessoas_por_grupo if local else 2,
+            'grupos': [
+                {'numero': n, 'escalas': [e for e in escalas if e.dupla == n]}
+                for n in (1, 2)
+            ],
         })
     return grade
 
@@ -252,10 +262,13 @@ def configuracao_detalhe(request, pk):
     }
     ultima_ronda = _mapa_ultima_ronda()
 
-    total_linhas = cfg.horarios.filter(local__isnull=False).count()
     confirmados = _contar_confirmados(cfg.sabado)
-    por_linha = 4 if cfg.dia_de_evento else 2
-    necessarios = total_linhas * por_linha
+    linhas_com_local = [h for h in horarios if h.local_id]
+    if cfg.dia_de_evento:
+        # Cada local define o tamanho do grupo (duplas, trios…) e recebe 2 grupos.
+        necessarios = sum(h.local.total_evento for h in linhas_com_local)
+    else:
+        necessarios = len(linhas_com_local) * 2
 
     return render(request, 'detalhe_configuracao.html', {
         'cfg': cfg,
@@ -330,9 +343,6 @@ def escala_swap(request, pk):
         return redirect('ronda:configuracao_detalhe', pk=escala.horario.configuracao_id)
 
     cfg = escala.horario.configuracao
-    if cfg.dia_de_evento:
-        messages.error(request, 'Em dia de evento as duplas são fixas — re-sorteie se precisar mudar.')
-        return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
     if cfg.status not in ('SORTEADA', 'PENDENTE_SORTEIO'):
         messages.error(request, 'Só é possível trocar voluntários antes da aprovação.')
         return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
@@ -352,11 +362,19 @@ def escala_swap(request, pk):
         messages.error(request, f'Voluntários da área {novo_vol.area} não podem fazer rondas.')
         return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
 
-    ja_no_horario = EscalaRonda.objects.filter(
-        horario=escala.horario, voluntario=novo_vol
-    ).exclude(pk=escala.pk).exists()
-    if ja_no_horario:
-        messages.error(request, 'Este voluntário já está escalado neste horário.')
+    if cfg.dia_de_evento:
+        # Em dia de evento cada pessoa fica em um único local da ronda inteira.
+        ja_escalado = EscalaRonda.objects.filter(
+            horario__configuracao=cfg, voluntario=novo_vol
+        ).exclude(pk=escala.pk).exists()
+        conflito = 'Este voluntário já está escalado em outro local desta ronda.'
+    else:
+        ja_escalado = EscalaRonda.objects.filter(
+            horario=escala.horario, voluntario=novo_vol
+        ).exclude(pk=escala.pk).exists()
+        conflito = 'Este voluntário já está escalado neste horário.'
+    if ja_escalado:
+        messages.error(request, conflito)
         return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
 
     escala.voluntario_original = escala.voluntario_original or escala.voluntario

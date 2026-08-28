@@ -1,4 +1,4 @@
-{# Partial: grade de dia de evento (2 duplas fixas por local).                    #}
+{# Partial: grade de dia de evento (2 grupos fixos por local — duplas, trios…).   #}
 {# Usado dentro de ronda_publica.html — herda as classes .rp-* daquela tela.      #}
 {% for item in grade_evento %}
 <div class="rp-line" style="margin-top:.6rem">
@@ -9,10 +9,11 @@
     </span>
   </div>
   <div class="rp-duplas">
+    {% for grupo in item.grupos %}
     <div class="rp-dupla">
-      <span class="rp-dupla-lbl">Dupla 1</span>
+      <span class="rp-dupla-lbl">{{ item.rotulo }} {{ grupo.numero }}</span>
       <div class="rp-chips">
-        {% for escala in item.dupla1 %}
+        {% for escala in grupo.escalas %}
         <span class="rp-chip {% if escala.voluntario_id == user.id %}is-me{% endif %}">
           {{ escala.voluntario.get_full_name }}
           {% if escala.voluntario_id == user.id %}<span class="rp-youtag">você</span>{% endif %}
@@ -20,17 +21,7 @@
         {% empty %}<span class="rp-chip-empty">—</span>{% endfor %}
       </div>
     </div>
-    <div class="rp-dupla">
-      <span class="rp-dupla-lbl">Dupla 2</span>
-      <div class="rp-chips">
-        {% for escala in item.dupla2 %}
-        <span class="rp-chip {% if escala.voluntario_id == user.id %}is-me{% endif %}">
-          {{ escala.voluntario.get_full_name }}
-          {% if escala.voluntario_id == user.id %}<span class="rp-youtag">você</span>{% endif %}
-        </span>
-        {% empty %}<span class="rp-chip-empty">—</span>{% endfor %}
-      </div>
-    </div>
+    {% endfor %}
   </div>
 </div>
 {% endfor %}

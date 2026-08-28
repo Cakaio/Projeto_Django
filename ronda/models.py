@@ -17,6 +17,12 @@ class LocalRonda(models.Model):
     nome  = models.CharField(max_length=100)
     ativo = models.BooleanField(default=True)
     ordem = models.PositiveSmallIntegerField(default=0)
+    pessoas_por_grupo = models.PositiveSmallIntegerField(
+        default=2,
+        verbose_name='Pessoas por grupo',
+        help_text='Tamanho de cada grupo do rodízio (2 = duplas, 3 = trios). '
+                  'Em dia de evento o local recebe 2 grupos desse tamanho.',
+    )
 
     class Meta:
         ordering = ['ordem', 'nome']
@@ -26,11 +32,20 @@ class LocalRonda(models.Model):
     def __str__(self):
         return self.nome
 
+    @property
+    def rotulo_grupo(self):
+        return {2: 'Dupla', 3: 'Trio', 4: 'Quarteto'}.get(self.pessoas_por_grupo, 'Grupo')
+
+    @property
+    def total_evento(self):
+        """Pessoas necessárias no local em dia de evento (2 grupos fixos)."""
+        return (self.pessoas_por_grupo or 2) * 2
+
 
 class ConfiguracaoRondaSabado(models.Model):
     sabado      = models.OneToOneField('sabado.Sabado', on_delete=models.CASCADE, related_name='configuracao_ronda')
     status      = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDENTE_SORTEIO')
-    dia_de_evento = models.BooleanField(default=False, help_text='Ronda rotativa: 4 pessoas fixas por local (2 duplas), sem horários.')
+    dia_de_evento = models.BooleanField(default=False, help_text='Ronda rotativa: 2 grupos fixos por local (tamanho definido em cada local), sem horários.')
     criado_por  = models.ForeignKey('voluntario.Voluntario', on_delete=models.SET_NULL, null=True, related_name='configuracoes_ronda_criadas')
     criado_em   = models.DateTimeField(default=timezone.now)
     sorteado_em = models.DateTimeField(null=True, blank=True)
@@ -71,7 +86,7 @@ class EscalaRonda(models.Model):
     voluntario          = models.ForeignKey('voluntario.Voluntario', on_delete=models.CASCADE, related_name='escalas_ronda')
     is_substituto       = models.BooleanField(default=False)
     voluntario_original = models.ForeignKey('voluntario.Voluntario', on_delete=models.SET_NULL, null=True, blank=True, related_name='escalas_substituidas')
-    dupla               = models.PositiveSmallIntegerField(null=True, blank=True, help_text='Dupla fixa (1 ou 2) no modo dia de evento.')
+    dupla               = models.PositiveSmallIntegerField(null=True, blank=True, help_text='Grupo fixo (1 ou 2) no modo dia de evento.')
     criado_em           = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -80,7 +95,10 @@ class EscalaRonda(models.Model):
         verbose_name_plural = 'Escalas de Ronda'
 
     def clean(self):
-        limite = 4 if self.horario and self.horario.configuracao.dia_de_evento else 2
+        if self.horario_id and self.horario.configuracao.dia_de_evento:
+            limite = self.local.total_evento if self.local_id else 4
+        else:
+            limite = 2
         count = EscalaRonda.objects.filter(horario=self.horario, local=self.local).exclude(pk=self.pk).count()
         if count >= limite:
             raise ValidationError(f'Máximo de {limite} voluntários por local e horário.')

@@ -59,6 +59,7 @@
           <thead>
             <tr>
               <th>Local</th>
+              <th>Grupos</th>
               <th>Status</th>
               <th style="text-align:right">Ações</th>
             </tr>
@@ -73,6 +74,9 @@
                   </span>
                   <span class="lc-nome">{{ local.nome }}</span>
                 </div>
+              </td>
+              <td>
+                <span class="pcf-badge">2 × {{ local.rotulo_grupo|lower }} ({{ local.total_evento }} pessoas)</span>
               </td>
               <td>
                 {% if local.ativo %}
