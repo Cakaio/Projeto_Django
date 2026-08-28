@@ -6,7 +6,8 @@ from django.urls import reverse
 from sabado.models import Sabado
 
 from .models import (
-    Grupo, Voluntario, Ocorrencia, PresencaVoluntario, REGRA_FALTAS_CONSECUTIVAS,
+    Grupo, Voluntario, Ocorrencia, PresencaVoluntario, Regra,
+    REGRA_FALTAS_CONSECUTIVAS,
 )
 from .views import verificar_faltas_e_gerar_alertas
 
@@ -113,7 +114,7 @@ class AlertaAutomaticoDeFaltaTests(TestCase):
         self.assertEqual(alerta.regra, REGRA_FALTAS_CONSECUTIVAS)
         # O texto da regra tem que falar de 3 sábados seguidos, e não de
         # julgamento do líder — era exatamente esse o desencaixe reclamado.
-        self.assertIn('3 sábados consecutivos', Ocorrencia.REGRAS_DICT[alerta.regra])
+        self.assertIn('três sábados seguidos', Ocorrencia.REGRAS_DICT[alerta.regra])
 
     def test_tres_faltas_espalhadas_nao_geram_alerta(self):
         """Faltou, veio, faltou, veio... não é sumiço: não pode virar alerta."""
@@ -169,3 +170,13 @@ class AlertaAutomaticoDeFaltaTests(TestCase):
         call_command('sync_alertas_faltas', stdout=StringIO())
 
         self.assertEqual(self._alertas().get().regra, REGRA_FALTAS_CONSECUTIVAS)
+
+    def test_a_regra_esta_no_catalogo_e_disponivel_para_aplicar(self):
+        """Não basta o código existir na lista fixa: a regra tem que estar no
+        catálogo, senão não aparece no painel nem no admin da Tríade."""
+        regra = Regra.objects.get(codigo=REGRA_FALTAS_CONSECUTIVAS)
+        self.assertEqual(regra.tipo, 'ALERTA')
+        self.assertTrue(regra.ativo)
+        self.assertIn('três sábados seguidos', regra.descricao)
+        # O painel lista por `ativo=True` — é essa consulta que a torna aplicável.
+        self.assertIn(regra, Regra.objects.filter(ativo=True))

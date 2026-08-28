@@ -301,7 +301,7 @@ class Ocorrencia(models.Model):
             ('AL15', 'AL15 – Não respondeu o grupo da área por uma semana ou mais'),
             ('AL16', 'AL16 – Líder não cumpriu prazos estabelecidos pela gestão'),
             ('AL17', 'AL17 – Líder não compareceu às reuniões da Gestão sem justificar'),
-            ('AL18', 'AL18 – Faltou a 3 sábados consecutivos'),
+            ('AL18', 'AL18 – Faltou a três sábados seguidos sem justificativa'),
         )),
         ('Advertências', (
             ('AD1', 'AD1 – Estava sob influência de álcool ou substância psicoativa durante o projeto'),
