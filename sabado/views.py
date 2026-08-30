@@ -208,7 +208,7 @@ def resumo_sabado(request):
     # ====== 6) Talentos dos ajudantes (com nomes) ======
     # Pega voluntários que podem ajudar (ajudantes) + seus talentos
     voluntarios_ajudantes = (
-        Voluntario.objects
+        Voluntario.objects.ativos()
         .filter(
             disponibilidades__sabado=sabado,
             disponibilidades__vai_ao_projeto=True,

@@ -283,7 +283,7 @@ class ListaAtendido(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return (
-            Atendido.objects
+            Atendido.objects.ativos()
             .filter(sala__in=[c for c, _ in LISTA_SALAS])
             .prefetch_related('responsavel')
             .order_by('sala', 'nome')
@@ -334,13 +334,13 @@ def RegistrarPresencasAtendidos(request):
         return render(request, "presencas_atendidos.html", {"atendidos": [], "salas": LISTA_SALAS, "sabado_data": None, "hoje": hoje})
 
     # Todos os atendidos ainda sem registro neste sábado
-    atendidos = Atendido.objects.filter(sala__in=[c for c, _ in LISTA_SALAS]).exclude(
+    atendidos = Atendido.objects.ativos().filter(sala__in=[c for c, _ in LISTA_SALAS]).exclude(
         presencas__data=sabado_obj
     ).order_by("sala", "nome")
 
     if request.method == "POST":
         registros_criados = 0
-        for atendido in Atendido.objects.filter(sala__in=[c for c, _ in LISTA_SALAS]).exclude(presencas__data=sabado_obj):
+        for atendido in Atendido.objects.ativos().filter(sala__in=[c for c, _ in LISTA_SALAS]).exclude(presencas__data=sabado_obj):
             presenca = request.POST.get(f"presenca_{atendido.id}")
             if presenca in ("PRESENTE", "AUSENTE", "JUSTIFICADA"):
                 PresencaAtendido.objects.create(
@@ -389,7 +389,7 @@ def visualizar_presencas_atendidos(request):
         sabados.reverse()  # mais antigo -> mais recente
         sabados_selecionados = [s.id for s in sabados]
 
-    atendidos = Atendido.objects.all().order_by("nome")
+    atendidos = Atendido.objects.ativos().order_by("nome")
 
     if sala != "TODAS":
         atendidos = atendidos.filter(sala=sala)
@@ -398,7 +398,7 @@ def visualizar_presencas_atendidos(request):
 
     # Salas disponíveis para o filtro
     salas_disponiveis = (
-        Atendido.objects.exclude(sala__isnull=True)
+        Atendido.objects.ativos().exclude(sala__isnull=True)
         .exclude(sala__exact="")
         .values_list("sala", flat=True)
         .distinct()

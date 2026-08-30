@@ -32,8 +32,7 @@ def _contar_confirmados(sabado):
     """Voluntários elegíveis (ativos, não isentos) que confirmaram presença no sábado."""
     from voluntario.models import Voluntario
     return (
-        Voluntario.objects.filter(
-            data_saida__isnull=True,
+        Voluntario.objects.ativos().filter(
             disponibilidades__sabado=sabado,
             disponibilidades__vai_ao_projeto=True,
         )
@@ -251,7 +250,7 @@ def configuracao_detalhe(request, pk):
 
     from voluntario.models import Voluntario
     elegiveis = (
-        Voluntario.objects.filter(data_saida__isnull=True)
+        Voluntario.objects.ativos()
         .exclude(area__in=AREAS_ISENTAS_RONDA)
         .order_by('first_name', 'last_name')
     )
@@ -353,7 +352,7 @@ def escala_swap(request, pk):
         messages.error(request, 'Selecione um voluntário para a troca.')
         return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
     try:
-        novo_vol = Voluntario.objects.get(pk=novo_pk, data_saida__isnull=True)
+        novo_vol = Voluntario.objects.ativos().get(pk=novo_pk)
     except (Voluntario.DoesNotExist, ValueError):
         messages.error(request, 'Voluntário não encontrado ou inativo.')
         return redirect('ronda:configuracao_detalhe', pk=cfg.pk)
@@ -418,7 +417,7 @@ def ranking(request):
     area_filtro = request.GET.get('area', '')
 
     vols_qs = (
-        Voluntario.objects.filter(data_saida__isnull=True)
+        Voluntario.objects.ativos()
         .exclude(area__in=AREAS_ISENTAS_RONDA)
         .order_by('first_name', 'last_name')
     )

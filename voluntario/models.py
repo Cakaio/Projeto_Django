@@ -182,8 +182,8 @@ class Grupo(models.Model):
             if regra.get("cargos"):
                 parte &= Q(cargo__in=regra["cargos"])
             consulta |= parte
-        return Voluntario.objects.filter(
-            consulta, data_saida__isnull=True, is_active=True
+        return Voluntario.objects.ativos().filter(
+            consulta
         ).distinct().order_by("first_name", "last_name", "username")
 
 class PresencaVoluntario(models.Model):

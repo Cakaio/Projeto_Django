@@ -161,11 +161,10 @@ def busca(request):
                     continue
 
         atendidos = list(
-            Atendido.objects.filter(nome__icontains=q).order_by("nome")[:12]
+            Atendido.objects.ativos().filter(nome__icontains=q).order_by("nome")[:12]
         )
         voluntarios = list(
-            Voluntario.objects
-            .filter(data_saida__isnull=True)
+            Voluntario.objects.ativos()
             .filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) |
                     Q(username__icontains=q) | Q(apelido__icontains=q))
             .order_by("first_name")[:12]

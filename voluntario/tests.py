@@ -220,3 +220,40 @@ class AlertaAutomaticoDeFaltaTests(TestCase):
             self.voluntario, self.sabados[3], None, notificar=False,
         )
         self.assertEqual(self._alertas().count(), 1)  # virou 3
+
+
+class VoluntarioDesativadoSomeDasListagensTest(TestCase):
+    """"Desativar" tem dois significados no sistema, e os dois somem das telas.
+
+    Antes cada tela escolhia um critério: umas filtravam `is_active`, outras
+    `data_saida`, outras nada. Quem era desativado por um jeito continuava
+    aparecendo nas telas que olhavam o outro.
+    """
+
+    def setUp(self):
+        import datetime
+        self.ativo = Voluntario.objects.create_user(
+            username="ativo", password="x", area="VIOLETA", first_name="Ana",
+        )
+        self.sem_login = Voluntario.objects.create_user(
+            username="sem-login", password="x", area="VIOLETA", first_name="Bia",
+            is_active=False,
+        )
+        self.desligado = Voluntario.objects.create_user(
+            username="desligado", password="x", area="VIOLETA", first_name="Caio",
+            data_saida=datetime.date(2026, 1, 10),
+        )
+
+    def test_ativos_exclui_os_dois_jeitos_de_desativar(self):
+        self.assertQuerySetEqual(
+            Voluntario.objects.ativos(), [self.ativo], transform=lambda x: x,
+        )
+
+    def test_a_listagem_de_voluntarios_nao_traz_nenhum_dos_dois(self):
+        from .views import ListaVoluntario
+        self.assertQuerySetEqual(
+            ListaVoluntario().get_queryset(), [self.ativo], transform=lambda x: x,
+        )
+
+    def test_admin_continua_enxergando_todos(self):
+        self.assertEqual(Voluntario.objects.count(), 3)

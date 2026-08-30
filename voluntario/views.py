@@ -82,7 +82,7 @@ class VoluntarioView(LoginRequiredMixin, TemplateView):
 def _montar_organograma():
     """Monta a árvore de liderança (só voluntários ativos e conectados)."""
     vols = list(
-        Voluntario.objects.filter(data_saida__isnull=True)
+        Voluntario.objects.ativos()
         .select_related('lider')
         .order_by('first_name', 'last_name')
     )
@@ -157,7 +157,7 @@ class ListaVoluntario(LoginRequiredMixin, ListView):
     context_object_name = 'voluntarios'
 
     def get_queryset(self):
-        return Voluntario.objects.filter(is_active=True).order_by('first_name', 'last_name')
+        return Voluntario.objects.ativos().order_by('first_name', 'last_name')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -195,7 +195,7 @@ def RegistrarPresencasVoluntarios(request):
         messages.warning(request, "Não existe sábado cadastrado para hoje. O registro de presenças só é permitido no sábado cadastrado.")
         return render(request, "presencas_voluntarios.html", {"areas_com_voluntarios": [], "total_pendentes": 0, "hoje": hoje, "sabado_data": None})
 
-    voluntarios = Voluntario.objects.filter(is_active=True).exclude(
+    voluntarios = Voluntario.objects.ativos().exclude(
         presencas__data=sabado_obj
     ).order_by("first_name")
 
@@ -221,7 +221,7 @@ def RegistrarPresencasVoluntarios(request):
             messages.success(request, f"{registros_criados} presenças salvas com sucesso!")
         else:
             messages.warning(request, "Nenhuma presença selecionada.")
-        voluntarios = Voluntario.objects.filter(is_active=True).exclude(
+        voluntarios = Voluntario.objects.ativos().exclude(
             presencas__data=sabado_obj
         ).order_by("first_name")
 
@@ -300,7 +300,7 @@ def visualizar_presencas_voluntarios(request):
         sabados.reverse()
         sabados_selecionados = [s.id for s in sabados]
 
-    voluntarios = Voluntario.objects.all().order_by("username")
+    voluntarios = Voluntario.objects.ativos().order_by("username")
 
     if area != "TODAS":
         voluntarios = voluntarios.filter(area=area)
@@ -308,7 +308,7 @@ def visualizar_presencas_voluntarios(request):
     voluntarios = list(voluntarios)
 
     areas_disponiveis = (
-        Voluntario.objects.exclude(area__isnull=True)
+        Voluntario.objects.ativos().exclude(area__isnull=True)
         .exclude(area__exact="")
         .values_list("area", flat=True)
         .distinct()
@@ -421,8 +421,7 @@ def saas_view(request):
 
     ativas = Q(ocorrencias_recebidas__deleted_at__isnull=True)
     voluntarios = (
-        Voluntario.objects
-        .filter(is_active=True)
+        Voluntario.objects.ativos()
         .annotate(
             total_alertas=Count('ocorrencias_recebidas', filter=ativas & Q(ocorrencias_recebidas__tipo='ALERTA')),
             total_advertencias=Count('ocorrencias_recebidas', filter=ativas & Q(ocorrencias_recebidas__tipo='ADVERTENCIA')),

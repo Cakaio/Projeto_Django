@@ -12,8 +12,8 @@ AREAS_CARTEIRA = ('CR/RE', 'TRIADE')
 
 def _voluntarios_carteira():
     """Voluntários ativos que podem assumir uma carteira (CR/RE e Tríade)."""
-    return (Voluntario.objects
-            .filter(data_saida__isnull=True, area__in=AREAS_CARTEIRA)
+    return (Voluntario.objects.ativos()
+            .filter(area__in=AREAS_CARTEIRA)
             .order_by('first_name', 'username'))
 
 

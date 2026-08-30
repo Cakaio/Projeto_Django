@@ -52,7 +52,7 @@ def executar_sorteio(configuracao):
 
     def _base_qs(excluir_ids):
         return list(
-            Voluntario.objects.filter(data_saida__isnull=True, pk__in=confirmados_ids)
+            Voluntario.objects.ativos().filter(pk__in=confirmados_ids)
             .exclude(area__in=AREAS_ISENTAS_RONDA)
             .exclude(pk__in=excluir_ids)
         )
