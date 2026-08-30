@@ -98,6 +98,13 @@ class EnviarReembolsoView(LoginRequiredMixin, FormView):
     def form_valid(self, form):
         pedido = form.save(commit=False)
         pedido.solicitante = self.request.user
+        # A área sai de quem está pedindo — o formulário não pergunta de
+        # propósito. Sem isso o pedido chegava na fila da ADM como "sem área
+        # nem evento", e o gasto só era atribuído no momento do pagamento: até
+        # lá ninguém sabia de qual teto aquele dinheiro ia sair. A ADM continua
+        # podendo trocar na hora de pagar, que é quando se sabe se o gasto era
+        # de um evento e não da área da pessoa.
+        pedido.area = getattr(self.request.user, 'area', '') or ''
         pedido.status = 'PENDENTE'
         pedido.save()
         self._enviar_email(pedido)

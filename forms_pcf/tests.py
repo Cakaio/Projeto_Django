@@ -127,6 +127,64 @@ class EnviarReembolsoViewTest(TestCase):
         call_kwargs = mock_mail.call_args
         self.assertIn('adm@pcf.org', call_kwargs[1].get('recipient_list', call_kwargs[0][3] if len(call_kwargs[0]) > 3 else []))
 
+    @patch('forms_pcf.views.send_mail')
+    def test_pedido_ja_nasce_com_a_area_de_quem_pediu(self, mock_mail):
+        """O formulário não pergunta a área — ela sai do solicitante.
+
+        Sem isso o pedido chegava na fila da ADM como "sem área nem evento", e
+        só era atribuído no pagamento: até lá ninguém sabia de qual teto aquele
+        dinheiro sairia.
+        """
+        arquivo = SimpleUploadedFile('comp.jpg', b'fake', content_type='image/jpeg')
+        self.client.post(reverse('forms_pcf:reembolso'), {
+            'valor': '30.00',
+            'descricao': 'Gasolina',
+            'data_gasto': timezone.now().date().isoformat(),
+            'categoria': self.cat.pk,
+            'comprovante': arquivo,
+        })
+        pedido = PedidoReembolso.objects.get()
+        self.assertEqual(pedido.area, 'MARKETING')
+
+    @patch('forms_pcf.views.send_mail')
+    def test_a_area_preenchida_sobrevive_ao_pagamento(self, mock_mail):
+        """O caso comum: gasto da própria área, ninguém precisa escolher nada.
+
+        Antes a ADM tinha que escolher a área na mão em todo pagamento, porque
+        o campo chegava vazio.
+        """
+        from adm.models import Conta
+        from forms_pcf.forms import PagamentoReembolsoForm
+
+        arquivo = SimpleUploadedFile('comp.jpg', b'fake', content_type='image/jpeg')
+        self.client.post(reverse('forms_pcf:reembolso'), {
+            'valor': '30.00',
+            'descricao': 'Gasolina',
+            'data_gasto': timezone.now().date().isoformat(),
+            'categoria': self.cat.pk,
+            'comprovante': arquivo,
+        })
+        pedido = PedidoReembolso.objects.get()
+
+        conta = Conta.objects.create(nome='Banco do Brasil')
+        form = PagamentoReembolsoForm(
+            data={
+                'conta_pagamento': conta.pk,
+                'pago_em': timezone.now().date().isoformat(),
+                # A área já vem preenchida no formulário; a ADM só confirma.
+                'area': pedido.area,
+                'evento': '',
+            },
+            files={'comprovante_pagamento': SimpleUploadedFile(
+                'pago.jpg', b'fake', content_type='image/jpeg')},
+            instance=pedido,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        pago = form.save()
+
+        self.assertEqual(pago.area, 'MARKETING')
+        self.assertIsNone(pago.evento)
+
     def test_sem_comprovante_nao_cria(self):
         resp = self.client.post(reverse('forms_pcf:reembolso'), {
             'valor': '10.00',
