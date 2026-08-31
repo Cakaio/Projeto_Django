@@ -223,6 +223,65 @@ class AprovarReembolsoViewTest(TestCase):
         self.assertEqual(lan.valor, Decimal('120.00'))
         self.assertEqual(lan.tipo, 'DESPESA')
 
+    def _pedido_de_outra_pessoa(self, email='vol@pcf.org'):
+        solicitante = User.objects.create_user(
+            username='vol_aprov', password='pw', area='RECREACAO', email=email,
+        )
+        return PedidoReembolso.objects.create(
+            solicitante=solicitante,
+            valor=Decimal('80.00'),
+            descricao='Tinta',
+            data_gasto=timezone.now().date(),
+            categoria=self.cat,
+            comprovante='reembolsos/fake.jpg',
+            status='PENDENTE',
+        )
+
+    def test_aprovacao_avisa_o_solicitante_por_email(self):
+        """Antes a pessoa não sabia da aprovação: só descobria pelo e-mail de
+        pagamento, dias depois, ou não descobria."""
+        from django.core import mail
+
+        pedido = self._pedido_de_outra_pessoa()
+        self.client.post(reverse('forms_pcf:reembolso_aprovar', args=[pedido.pk]))
+
+        self.assertEqual(len(mail.outbox), 1)
+        enviado = mail.outbox[0]
+        self.assertEqual(enviado.to, ['vol@pcf.org'])
+        self.assertIn('aprovado', enviado.subject.lower())
+        self.assertIn('80.00', enviado.body)
+        self.assertIn('Tinta', enviado.body)
+
+    def test_o_email_deixa_claro_que_aprovado_ainda_nao_e_pago(self):
+        """Quem lê "aprovado" e entende "o dinheiro caiu" cobra a ADM por um
+        pagamento que ninguém prometeu para hoje."""
+        from django.core import mail
+
+        pedido = self._pedido_de_outra_pessoa()
+        self.client.post(reverse('forms_pcf:reembolso_aprovar', args=[pedido.pk]))
+
+        self.assertIn('ainda vai ser feito', mail.outbox[0].body)
+
+    def test_solicitante_sem_email_nao_impede_a_aprovacao(self):
+        from django.core import mail
+
+        pedido = self._pedido_de_outra_pessoa(email='')
+        self.client.post(reverse('forms_pcf:reembolso_aprovar', args=[pedido.pk]))
+
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.status, 'APROVADO')
+        self.assertEqual(len(mail.outbox), 0)
+
+    @patch('forms_pcf.views.send_mail', side_effect=Exception('SMTP fora do ar'))
+    def test_falha_no_envio_nao_desfaz_a_aprovacao(self, mock_mail):
+        """A aprovação já está no banco; e-mail que não sai não pode revogá-la."""
+        pedido = self._pedido_de_outra_pessoa()
+        self.client.post(reverse('forms_pcf:reembolso_aprovar', args=[pedido.pk]))
+
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.status, 'APROVADO')
+        self.assertIsNotNone(pedido.lancamento)
+
     def test_nao_adm_recebe_403(self):
         outro = User.objects.create_user(username='out', password='pw', area='MARKETING')
         c = Client()

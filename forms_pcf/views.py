@@ -164,6 +164,44 @@ class ReembolsoInboxView(LoginRequiredMixin, ListView):
         return ctx
 
 
+def avisar_solicitante_da_aprovacao(pedido):
+    """E-mail para quem pediu, no momento em que a ADM aprova.
+
+    Antes o solicitante não recebia nada na aprovação: descobria pelo e-mail de
+    pagamento, que pode vir dias depois, ou não descobria.
+
+    Aprovado não é pago, e o texto insiste nisso — quem lê "aprovado" e entende
+    "o dinheiro caiu" vai cobrar a ADM por um pagamento que ninguém prometeu
+    para hoje.
+
+    Devolve o endereço usado, ou '' se a pessoa não tem e-mail cadastrado. Não
+    engole falha de envio: quem chama precisa avisar na tela, sem desfazer a
+    aprovação, que já está gravada.
+    """
+    destino = (getattr(pedido.solicitante, 'email', '') or '').strip()
+    if not destino:
+        return ''
+
+    corpo = (
+        'Olá!\n\n'
+        'Seu pedido de reembolso foi aprovado pela ADM/Fin.\n\n'
+        f'Valor: R$ {pedido.valor}\n'
+        f'Referente a: {pedido.descricao}\n'
+        f'Data do gasto: {pedido.data_gasto:%d/%m/%Y}\n\n'
+        'O pagamento ainda vai ser feito — quando o dinheiro sair, você recebe '
+        'outro e-mail com a data e a conta usada.\n\n'
+        'Projeto Criança Feliz'
+    )
+    send_mail(
+        f'[PCF] Reembolso aprovado — R$ {pedido.valor}',
+        corpo,
+        settings.DEFAULT_FROM_EMAIL,
+        [destino],
+        fail_silently=False,   # falha vira aviso na tela, não silêncio
+    )
+    return destino
+
+
 class AprovarReembolsoView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -179,6 +217,27 @@ class AprovarReembolsoView(LoginRequiredMixin, View):
         pedido.aprovado_por = request.user
         pedido.aprovado_em = timezone.now()
         pedido.save()
+        messages.success(request, 'Reembolso aprovado.')
+
+        # A aprovação já está no banco: nenhum problema de e-mail pode desfazê-la.
+        # Por isso o except é largo — SMTP fora do ar, DNS, credencial expirada.
+        try:
+            destino = avisar_solicitante_da_aprovacao(pedido)
+        except Exception as erro:
+            messages.warning(
+                request,
+                'Reembolso aprovado, mas o e-mail de aviso não saiu '
+                f'({erro}). Avise o solicitante por outro caminho.'
+            )
+        else:
+            if destino:
+                messages.info(request, f'Aviso de aprovação enviado para {destino}.')
+            else:
+                messages.warning(
+                    request,
+                    'Reembolso aprovado, mas o solicitante não tem e-mail '
+                    'cadastrado — avise por outro caminho.'
+                )
         return redirect('forms_pcf:reembolso_inbox')
 
 
