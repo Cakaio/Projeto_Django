@@ -4,7 +4,7 @@ from django.views.generic import ListView, DetailView, TemplateView, UpdateView
 from .models import (
     Voluntario, PresencaVoluntario, Ocorrencia, Regra, HistoricoLideranca, Grupo,
     FALTAS_POR_ALERTA, ALERTAS_POR_ADVERTENCIA, REGRA_FALTAS_CONSECUTIVAS,
-    LISTA_AREAS as AREAS_DO_MODELO,
+    LISTA_AREAS as AREAS_DO_MODELO, cargo_canonico, ordem_do_cargo,
     ADVERTENCIAS_PARA_OBSERVACAO, MAX_ALERTAS_DISPLAY,
 )
 from .forms import GrupoForm, MeuPerfilForm
@@ -170,18 +170,34 @@ def historico_lideres(request):
             | Q(cargo__icontains=busca)
         )
 
+    # A seta significa "sucedeu no MESMO cargo". Agrupar só por área fazia o
+    # LEG passar o bastão para a Presidência na Tríade, que tem TRÊS cargos
+    # independentes — Presidente, Vice-Presidente e LEG. Por isso a cadeia é por
+    # área E cargo. Numa salinha, onde todos são "Líder de Sala", isso continua
+    # dando uma cadeia só, igual a antes.
     por_area = {}
     for registro in registros:
-        por_area.setdefault(registro.area or '', []).append(registro)
+        canonico = cargo_canonico(registro.cargo)
+        # O card repete o cargo só quando a grafia digitada difere do rótulo da
+        # cadeia — senão seria a mesma palavra duas vezes na mesma coluna.
+        registro.mostrar_cargo = ' '.join(registro.cargo.split()) != canonico
+        por_area.setdefault(registro.area or '', {}).setdefault(canonico, []).append(registro)
 
     rotulos = dict(AREAS_DO_MODELO)
-    grupos = [
-        {'codigo': codigo,
-         'nome': rotulos.get(codigo) or 'Geral / Diretoria',
-         'itens': itens}
-        for codigo, itens in sorted(por_area.items(),
-                                    key=lambda par: _ordem_do_grupo(par[0]))
-    ]
+    grupos = []
+    for codigo, por_cargo in sorted(por_area.items(),
+                                    key=lambda par: _ordem_do_grupo(par[0])):
+        cadeias = [
+            {'cargo': canonico, 'itens': itens}
+            for canonico, itens in sorted(por_cargo.items(),
+                                          key=lambda par: ordem_do_cargo(par[0]))
+        ]
+        grupos.append({
+            'codigo': codigo,
+            'nome': rotulos.get(codigo) or 'Geral / Diretoria',
+            'cadeias': cadeias,
+            'total': sum(len(cadeia['itens']) for cadeia in cadeias),
+        })
 
     # O select de áreas sai do acervo INTEIRO, não do filtrado: encolher a lista
     # conforme se filtra deixaria a pessoa sem como voltar para outra área.

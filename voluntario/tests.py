@@ -463,3 +463,132 @@ class OrdemEFiltrosDoHistoricoTest(TestCase):
         para outra área."""
         html = self._renderizar(area='VIOLETA')
         self.assertIn('value="TRIADE"', html)
+
+
+class CargoCanonicoTests(TestCase):
+    """`cargo` do histórico é texto livre — o help_text sugere "LEG" como
+    exemplo, então o banco tem grafias diferentes da mesma função."""
+
+    def test_junta_as_grafias_do_leg(self):
+        from .models import cargo_canonico
+        esperado = 'Líder Educacional Geral'
+        for escrito in ['LEG', 'leg', 'Líder Educacional Geral',
+                        'lider educacional geral', '  LEG  ']:
+            with self.subTest(escrito=escrito):
+                self.assertEqual(cargo_canonico(escrito), esperado)
+
+    def test_junta_as_grafias_do_vice(self):
+        from .models import cargo_canonico
+        for escrito in ['Vice', 'vice-presidente', 'Vice Presidente']:
+            with self.subTest(escrito=escrito):
+                self.assertEqual(cargo_canonico(escrito), 'Vice-Presidente')
+
+    def test_cargo_fora_da_tabela_volta_como_foi_digitado(self):
+        """"Líder de Sala Violeta" é legítimo e não deve ser achatado em nada."""
+        from .models import cargo_canonico
+        self.assertEqual(cargo_canonico('Líder de Sala Violeta'), 'Líder de Sala Violeta')
+
+    def test_cargo_vazio_nao_vira_cadeia_sem_nome(self):
+        from .models import SEM_CARGO, cargo_canonico
+        self.assertEqual(cargo_canonico(''), SEM_CARGO)
+        self.assertEqual(cargo_canonico('   '), SEM_CARGO)
+
+    def test_a_ordem_e_presidente_vice_leg(self):
+        from .models import ordem_do_cargo
+        cargos = ['Líder Educacional Geral', 'Presidente', 'Vice-Presidente']
+        self.assertEqual(sorted(cargos, key=ordem_do_cargo),
+                         ['Presidente', 'Vice-Presidente', 'Líder Educacional Geral'])
+
+    def test_cargo_de_sala_vem_depois_dos_tres_da_triade(self):
+        from .models import ordem_do_cargo
+        self.assertLess(ordem_do_cargo('Presidente'), ordem_do_cargo('Líder de Sala'))
+
+
+class SucessaoPorCargoTests(TestCase):
+    """A seta liga quem sucedeu quem NO MESMO cargo.
+
+    A Tríade tem TRÊS cargos independentes — Presidente, Vice-Presidente e LEG.
+    Agrupar a área inteira numa cadeia só fazia o LEG passar o bastão para a
+    Presidência, o que não acontece na vida real.
+    """
+
+    def setUp(self):
+        import datetime
+        from django.test import RequestFactory
+
+        self.fabrica = RequestFactory()
+        self.admin = Voluntario.objects.create_superuser(
+            username='chefe4', password='x', email='c4@pcf.org')
+
+        def registrar(nome, cargo, ano, fim=None, area='TRIADE'):
+            return HistoricoLideranca.objects.create(
+                nome_avulso=nome, cargo=cargo, area=area,
+                data_inicio=datetime.date(ano, 1, 1),
+                data_fim=None if fim is None else datetime.date(fim, 12, 1))
+
+        registrar('Gustavo Galvão', 'Presidente', 2024, 2024)
+        registrar('Raissa Fogaça', 'Presidente', 2025, 2025)
+        registrar('Rafaela Basile', 'Presidente', 2026)
+        registrar('Caio Marciano', 'LEG', 2026)
+
+    def _renderizar(self, **filtros):
+        from .views import historico_lideres
+        requisicao = self.fabrica.get('/voluntario/lideres/', filtros)
+        requisicao.user = self.admin
+        return historico_lideres(requisicao).content.decode()
+
+    def test_o_leg_nao_recebe_seta_da_presidencia(self):
+        """Quatro registros, mas só DUAS sucessões: 3 presidentes = 2 setas, e
+        o LEG sozinho = nenhuma. Antes saíam três setas em fila."""
+        html = self._renderizar()
+        self.assertEqual(html.count('class="hl-seta"'), 2)
+
+    def test_a_triade_mostra_uma_cadeia_por_cargo(self):
+        html = self._renderizar()
+        self.assertEqual(html.count('class="hl-cargo-titulo"'), 2)
+        self.assertIn('>Presidente<', html)
+        self.assertIn('>Líder Educacional Geral<', html)
+
+    def test_a_cadeia_do_presidente_vem_antes_da_do_leg(self):
+        html = self._renderizar()
+        self.assertLess(html.index('>Presidente<'), html.index('>Líder Educacional Geral<'))
+
+    def test_grafias_diferentes_do_leg_entram_na_mesma_cadeia(self):
+        """Sem juntar as grafias, a mesma função viraria duas cadeias."""
+        import datetime
+        HistoricoLideranca.objects.create(
+            nome_avulso='Alguém antes', cargo='Líder Educacional Geral', area='TRIADE',
+            data_inicio=datetime.date(2025, 1, 1), data_fim=datetime.date(2025, 12, 1))
+
+        html = self._renderizar()
+        self.assertEqual(html.count('class="hl-cargo-titulo"'), 2)
+        # Agora o LEG tem dois: uma seta a mais na cadeia dele.
+        self.assertEqual(html.count('class="hl-seta"'), 3)
+
+    def test_o_contador_do_grupo_soma_todas_as_cadeias(self):
+        self.assertIn('4 na história', self._renderizar())
+
+    def test_salinha_com_um_cargo_so_continua_uma_cadeia(self):
+        """A mudança não pode picar em pedaços a área que tem um cargo só."""
+        import datetime
+        for ano, nome in [(2023, 'Ana'), (2024, 'Bia'), (2025, 'Cida')]:
+            HistoricoLideranca.objects.create(
+                nome_avulso=nome, cargo='Líder de Sala', area='AZUL',
+                data_inicio=datetime.date(ano, 1, 1), data_fim=datetime.date(ano, 12, 1))
+
+        html = self._renderizar(area='AZUL')
+        self.assertEqual(html.count('class="hl-cargo-titulo"'), 1)
+        self.assertEqual(html.count('class="hl-seta"'), 2)
+
+    def test_o_card_repete_o_cargo_so_quando_a_grafia_difere(self):
+        """Rótulo da cadeia e cargo do card seriam a mesma palavra duas vezes na
+        mesma coluna. Mas quem digitou "LEG" precisa ver "LEG": a grafia que a
+        pessoa escolheu é informação, e o rótulo canônico não a mostra.
+
+        Neste cenário: três Presidentes com a grafia igual ao rótulo (não
+        repetem) e um LEG com grafia diferente (repete). Logo, exatamente um.
+        """
+        html = self._renderizar()
+        self.assertEqual(html.count('class="hl-cargo"'), 1)
+        self.assertIn('>LEG</div>', html)
+        self.assertIn('>Líder Educacional Geral<', html)

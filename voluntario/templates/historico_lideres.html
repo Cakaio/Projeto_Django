@@ -62,6 +62,14 @@
   .hl-group-nome { margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
   .hl-group-conta { font-size: .8rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 
+  .hl-cadeia { margin-top: .3rem; }
+  .hl-cadeia + .hl-cadeia { margin-top: 1.35rem; padding-top: 1.15rem; border-top: 1px dashed #f0dfd3; }
+  .hl-cargo-titulo { display: flex; align-items: center; justify-content: center; gap: .45rem;
+                     margin-bottom: .7rem; font-size: .74rem; font-weight: 800; letter-spacing: .06em;
+                     text-transform: uppercase; color: #b4470c; }
+  .hl-cargo-titulo::before,
+  .hl-cargo-titulo::after { content: ''; height: 1px; flex: 1 1 2rem; max-width: 4rem; background: #f0dfd3; }
+
   .hl-chain { display: flex; overflow-x: auto; }
   .hl-chain-inner { display: flex; align-items: stretch; gap: .5rem;
                     margin-inline: auto; padding-bottom: .5rem; }
@@ -217,12 +225,20 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </span>
           <h2 class="hl-group-nome">{{ grupo.nome }}</h2>
-          <span class="hl-group-conta">{{ grupo.itens|length }} na história</span>
+          <span class="hl-group-conta">{{ grupo.total }} na história</span>
         </div>
 
-        <div class="hl-chain">
-          <div class="hl-chain-inner">
-            {% for r in grupo.itens %}
+        {% comment %}
+          Uma cadeia por CARGO. A seta liga quem sucedeu quem no mesmo cargo —
+          a Tríade tem três cargos independentes (Presidente, Vice-Presidente e
+          LEG), e uma cadeia só fazia o LEG passar o bastão para a Presidência.
+        {% endcomment %}
+        {% for cadeia in grupo.cadeias %}
+        <div class="hl-cadeia">
+          <div class="hl-cargo-titulo">{{ cadeia.cargo }}</div>
+          <div class="hl-chain">
+            <div class="hl-chain-inner">
+              {% for r in cadeia.itens %}
               {% if not forloop.first %}
                 <div class="hl-seta" aria-hidden="true">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
@@ -263,7 +279,7 @@
 
                 <div>
                   <div class="hl-nome">{{ r.de_quem }}</div>
-                  <div class="hl-cargo">{{ r.cargo }}</div>
+                  {% if r.mostrar_cargo %}<div class="hl-cargo">{{ r.cargo }}</div>{% endif %}
                   {% if not r.tem_ficha %}
                     <div class="hl-sem-ficha">sem ficha no sistema</div>
                   {% endif %}
@@ -273,10 +289,12 @@
                   <p class="hl-desc">{{ r.descricao|linebreaksbr }}</p>
                 {% endif %}
 
-              {% if r.tem_ficha %}</a>{% else %}</div>{% endif %}
-            {% endfor %}
+                {% if r.tem_ficha %}</a>{% else %}</div>{% endif %}
+              {% endfor %}
+            </div>
           </div>
         </div>
+        {% endfor %}
       </section>
       {% empty %}
       <div class="hl-empty">

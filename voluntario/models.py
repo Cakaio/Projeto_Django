@@ -1,4 +1,6 @@
+import unicodedata
 import uuid
+
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, UserManager
@@ -67,6 +69,60 @@ CARGOS = (
     ('VICE', 'Vice-Presidente'),
     ('PRESIDENTE', 'Presidente'),
 )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cargos no histórico de liderança
+#
+# `HistoricoLideranca.cargo` é TEXTO LIVRE — o help_text do campo sugere "LEG"
+# como exemplo, então o banco tem "LEG" numa linha e "Líder Educacional Geral"
+# na outra, com e sem acento. A tela agrupa a sucessão por cargo (a seta liga
+# quem sucedeu quem NO MESMO cargo), e sem juntar as grafias a mesma função
+# viraria duas cadeias separadas.
+# ─────────────────────────────────────────────────────────────────────────────
+CARGOS_SINONIMOS = {
+    'presidente': 'Presidente',
+    'presidenta': 'Presidente',
+    'vice': 'Vice-Presidente',
+    'vice presidente': 'Vice-Presidente',
+    'vice-presidente': 'Vice-Presidente',
+    'leg': 'Líder Educacional Geral',
+    'lider educacional geral': 'Líder Educacional Geral',
+    'liderança educacional geral': 'Líder Educacional Geral',
+}
+
+# Ordem das cadeias dentro de uma área, da função mais alta para a mais baixa.
+# A Tríade tem TRÊS cargos independentes, e empilhá-los em qualquer ordem daria
+# a entender uma hierarquia que não é a real.
+ORDEM_DOS_CARGOS = ['Presidente', 'Vice-Presidente', 'Líder Educacional Geral']
+
+SEM_CARGO = 'Cargo não informado'
+
+
+def cargo_canonico(cargo):
+    """Nome único da função, para juntar grafias diferentes na mesma cadeia.
+
+    Normaliza caixa, acento e espaço antes de consultar os sinônimos. Cargo que
+    não está na tabela volta como foi digitado: "Líder de Sala Violeta" é
+    legítimo e não deve ser achatado em nada.
+    """
+    bruto = ' '.join((cargo or '').split())
+    if not bruto:
+        return SEM_CARGO
+    sem_acento = ''.join(
+        c for c in unicodedata.normalize('NFD', bruto.lower())
+        if unicodedata.category(c) != 'Mn'
+    )
+    return CARGOS_SINONIMOS.get(sem_acento, bruto)
+
+
+def ordem_do_cargo(canonico):
+    """Presidente, Vice, LEG, e depois o resto em ordem alfabética."""
+    if canonico in ORDEM_DOS_CARGOS:
+        return (0, ORDEM_DOS_CARGOS.index(canonico), '')
+    if canonico == SEM_CARGO:
+        return (2, 0, '')          # sem cargo vai para o fim
+    return (1, 0, canonico.lower())
 
 
 class VoluntarioManager(UserManager):
@@ -233,7 +289,12 @@ class HistoricoLideranca(models.Model):
         'foto', upload_to='lideres_historico', blank=True, null=True,
         help_text="Só é necessária para quem não tem ficha; com ficha, usamos a foto do perfil.",
     )
-    cargo = models.CharField(max_length=100, help_text="Cargo/posição liderada (ex.: Líder de Sala Violeta, LEG, Presidente).")
+    cargo = models.CharField(
+        max_length=100,
+        help_text="Cargo/posição liderada (ex.: Líder de Sala Violeta, LEG, Presidente). "
+                  "A tela liga a seta de sucessão entre quem teve o MESMO cargo, então "
+                  "escreva igual nos registros da mesma função.",
+    )
     area = models.CharField(max_length=30, choices=LISTA_AREAS, blank=True, null=True, help_text="Área liderada (opcional).")
     data_inicio = models.DateField()
     data_fim = models.DateField(null=True, blank=True, help_text="Deixe vazio se ainda está no cargo.")
