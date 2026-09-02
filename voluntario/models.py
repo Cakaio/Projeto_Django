@@ -220,15 +220,27 @@ class HistoricoLideranca(models.Model):
     area = models.CharField(max_length=30, choices=LISTA_AREAS, blank=True, null=True, help_text="Área liderada (opcional).")
     data_inicio = models.DateField()
     data_fim = models.DateField(null=True, blank=True, help_text="Deixe vazio se ainda está no cargo.")
+    descricao = models.TextField(
+        'como foi a passagem', blank=True,
+        help_text="Opcional: o que marcou essa gestão, o que foi deixado para a próxima. "
+                  "Aparece na linha de sucessão do histórico de líderes.",
+    )
 
     class Meta:
-        ordering = ['area', '-data_inicio']
+        # Sucessão se lê do mais antigo para o mais novo: é isso que a seta do
+        # histórico liga. Ordenar decrescente inverteria a passagem de liderança.
+        ordering = ['area', 'data_inicio']
         verbose_name = 'Histórico de Liderança'
         verbose_name_plural = 'Históricos de Liderança'
 
     @property
     def atual(self):
         return self.data_fim is None
+
+    @property
+    def mesmo_ano(self):
+        """Gestão que começou e acabou no mesmo ano mostra '2024', não '2024–2024'."""
+        return bool(self.data_fim) and self.data_fim.year == self.data_inicio.year
 
     def __str__(self):
         return f'{self.voluntario} — {self.cargo} ({self.data_inicio:%m/%Y}–{"atual" if self.atual else self.data_fim.strftime("%m/%Y")})'

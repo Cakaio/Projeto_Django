@@ -257,3 +257,72 @@ class VoluntarioDesativadoSomeDasListagensTest(TestCase):
 
     def test_admin_continua_enxergando_todos(self):
         self.assertEqual(Voluntario.objects.count(), 3)
+
+
+class HistoricoLideresTest(TestCase):
+    """A tela é uma cadeia de sucessão: foto, área, ano, descrição, com setas.
+
+    Renderiza pelo RequestFactory porque o test client quebra ao instrumentar
+    template no Python 3.14 (copy() de Context) — o defeito é do client, não da
+    view, e a página precisa ser exercida de verdade.
+    """
+
+    def setUp(self):
+        import datetime
+        from django.test import RequestFactory
+        from .models import HistoricoLideranca
+
+        self.fabrica = RequestFactory()
+        self.admin = Voluntario.objects.create_superuser(
+            username='chefe', password='x', email='c@pcf.org',
+        )
+        self.primeira = Voluntario.objects.create_user(
+            username='ana', password='x', area='VIOLETA',
+            first_name='Ana', last_name='Prado',
+        )
+        self.segunda = Voluntario.objects.create_user(
+            username='bruno', password='x', area='VIOLETA',
+            first_name='Bruno', last_name='Lima',
+        )
+        HistoricoLideranca.objects.create(
+            voluntario=self.segunda, cargo='Líder de Sala', area='VIOLETA',
+            data_inicio=datetime.date(2025, 2, 1),
+        )
+        HistoricoLideranca.objects.create(
+            voluntario=self.primeira, cargo='Líder de Sala', area='VIOLETA',
+            data_inicio=datetime.date(2023, 2, 1), data_fim=datetime.date(2024, 12, 1),
+            descricao='Montou a sala do zero.',
+        )
+
+    def _renderizar(self):
+        from .views import historico_lideres
+        requisicao = self.fabrica.get('/voluntario/lideres/')
+        requisicao.user = self.admin
+        return historico_lideres(requisicao).content.decode()
+
+    def test_a_sucessao_sai_do_mais_antigo_para_o_mais_novo(self):
+        """A seta liga quem veio antes a quem veio depois: inverter faz ela mentir."""
+        html = self._renderizar()
+        self.assertLess(html.index('Ana Prado'), html.index('Bruno Lima'))
+
+    def test_mostra_ano_foto_e_descricao_da_passagem(self):
+        html = self._renderizar()
+        self.assertIn('2023–2024', html)      # gestão encerrada
+        self.assertIn('2025 · atual', html)   # quem está no cargo
+        self.assertIn('Montou a sala do zero.', html)
+        self.assertIn('hl-foto-vazia', html)  # sem foto cadastrada, cai no placeholder
+
+    def test_tem_uma_seta_a_menos_que_lideres(self):
+        """Duas pessoas, uma seta. Seta sobrando apontaria para o vazio."""
+        html = self._renderizar()
+        self.assertEqual(html.count('class="hl-seta"'), 1)
+
+    def test_lider_desligado_do_projeto_continua_no_historico(self):
+        """Arquivar alguém não pode apagar que essa pessoa liderou uma área."""
+        import datetime
+        self.primeira.data_saida = datetime.date(2025, 1, 10)
+        self.primeira.is_active = False
+        self.primeira.save()
+
+        html = self._renderizar()
+        self.assertIn('Ana Prado', html)
