@@ -6,7 +6,7 @@ from django.urls import reverse
 from sabado.models import Sabado
 
 from .models import (
-    Grupo, Voluntario, Ocorrencia, PresencaVoluntario, Regra,
+    Grupo, Voluntario, Ocorrencia, PresencaVoluntario, Regra, HistoricoLideranca,
     REGRA_FALTAS_CONSECUTIVAS,
 )
 from .views import verificar_faltas_e_gerar_alertas
@@ -326,3 +326,140 @@ class HistoricoLideresTest(TestCase):
 
         html = self._renderizar()
         self.assertIn('Ana Prado', html)
+
+
+class LiderSemFichaTest(TestCase):
+    """Boa parte de quem liderou saiu antes de existir site e nunca terá login.
+
+    Exigir ficha deixaria essas gestões fora da história — que é exatamente o
+    que esta tela existe para contar.
+    """
+
+    def setUp(self):
+        import datetime
+        from django.test import RequestFactory
+        from .models import HistoricoLideranca
+
+        self.fabrica = RequestFactory()
+        self.admin = Voluntario.objects.create_superuser(
+            username='chefe2', password='x', email='c2@pcf.org')
+        self.registro = HistoricoLideranca.objects.create(
+            nome_avulso='Tia Zefa', cargo='Líder de Sala', area='VERDE',
+            data_inicio=datetime.date(2011, 3, 1), data_fim=datetime.date(2012, 12, 1),
+            descricao='Abriu a sala no salão da igreja.',
+        )
+
+    def _renderizar(self, **filtros):
+        from .views import historico_lideres
+        requisicao = self.fabrica.get('/voluntario/lideres/', filtros)
+        requisicao.user = self.admin
+        return historico_lideres(requisicao).content.decode()
+
+    def test_aparece_na_tela_sem_ter_conta(self):
+        html = self._renderizar()
+        self.assertIn('Tia Zefa', html)
+        self.assertIn('Abriu a sala no salão da igreja.', html)
+
+    def test_e_marcado_como_sem_ficha(self):
+        self.assertIn('sem ficha no sistema', self._renderizar())
+
+    def test_nao_vira_link_de_trajetoria(self):
+        """Link que não leva a nada é pior que texto: sem ficha não há trajetória."""
+        self.assertNotIn('?pessoa=None', self._renderizar())
+
+    def test_de_quem_usa_o_nome_digitado(self):
+        self.assertEqual(self.registro.de_quem, 'Tia Zefa')
+
+    def test_exige_ficha_ou_nome(self):
+        import datetime
+        from django.core.exceptions import ValidationError
+        from .models import HistoricoLideranca
+        registro = HistoricoLideranca(cargo='Líder', area='AZUL',
+                                      data_inicio=datetime.date(2020, 1, 1))
+        with self.assertRaises(ValidationError):
+            registro.full_clean()
+
+    def test_a_ficha_tem_prioridade_sobre_o_nome_digitado(self):
+        import datetime
+        from .models import HistoricoLideranca
+        pessoa = Voluntario.objects.create_user(
+            username='rita', password='x', area='AZUL',
+            first_name='Rita', last_name='Alves')
+        registro = HistoricoLideranca(
+            voluntario=pessoa, nome_avulso='errado', cargo='Líder',
+            data_inicio=datetime.date(2020, 1, 1))
+        self.assertEqual(registro.de_quem, 'Rita Alves')
+
+
+class OrdemEFiltrosDoHistoricoTest(TestCase):
+
+    def setUp(self):
+        import datetime
+        from django.test import RequestFactory
+        from .models import HistoricoLideranca
+
+        self.fabrica = RequestFactory()
+        self.admin = Voluntario.objects.create_superuser(
+            username='chefe3', password='x', email='c3@pcf.org')
+        self.presidente = Voluntario.objects.create_user(
+            username='duda', password='x', area='TRIADE',
+            first_name='Duda', last_name='Nunes')
+
+        HistoricoLideranca.objects.create(
+            voluntario=self.presidente, cargo='Presidente', area='TRIADE',
+            data_inicio=datetime.date(2026, 1, 1))
+        HistoricoLideranca.objects.create(
+            nome_avulso='Alguém do Violeta', cargo='Líder de Sala', area='VIOLETA',
+            data_inicio=datetime.date(2023, 1, 1), data_fim=datetime.date(2023, 12, 1))
+        HistoricoLideranca.objects.create(
+            voluntario=self.presidente, cargo='Líder de Sala', area='AZUL',
+            data_inicio=datetime.date(2024, 1, 1), data_fim=datetime.date(2024, 12, 1))
+
+    def _renderizar(self, **filtros):
+        from .views import historico_lideres
+        requisicao = self.fabrica.get('/voluntario/lideres/', filtros)
+        requisicao.user = self.admin
+        return historico_lideres(requisicao).content.decode()
+
+    def test_a_triade_vem_sempre_primeiro(self):
+        """No LISTA_AREAS a Tríade é a ÚLTIMA; ordenar por ela a jogaria para o
+        fim da página. A liderança pediu o contrário."""
+        html = self._renderizar()
+        self.assertLess(html.index('Tríade'), html.index('Violeta'))
+
+    def test_filtro_por_area_deixa_so_ela(self):
+        html = self._renderizar(area='VIOLETA')
+        self.assertIn('Alguém do Violeta', html)
+        self.assertNotIn('Presidente', html)
+
+    def test_busca_acha_por_nome_digitado(self):
+        html = self._renderizar(q='Violeta')
+        self.assertIn('Alguém do Violeta', html)
+
+    def test_busca_acha_por_cargo(self):
+        html = self._renderizar(q='Presidente')
+        self.assertIn('Duda Nunes', html)
+
+    def test_trajetoria_mostra_a_pessoa_atravessando_as_areas(self):
+        html = self._renderizar(pessoa=self.presidente.pk)
+        self.assertIn('hl-traj', html)
+        self.assertIn('2 gestões no projeto', html)
+
+    def test_trajetoria_ignora_o_filtro_de_area(self):
+        """Quem clica num nome quer a vida inteira daquela pessoa, não a
+        interseção com o filtro que estava na tela."""
+        html = self._renderizar(pessoa=self.presidente.pk, area='AZUL')
+        self.assertIn('2 gestões no projeto', html)
+
+    def test_pessoa_inexistente_nao_estoura(self):
+        self.assertIn('Histórico de Líderes', self._renderizar(pessoa='99999'))
+
+    def test_pessoa_nao_numerica_nao_estoura(self):
+        """`?pessoa=abc` chegaria no queryset como int() e viraria erro 500."""
+        self.assertIn('Histórico de Líderes', self._renderizar(pessoa='abc'))
+
+    def test_o_select_de_areas_nao_encolhe_com_o_filtro(self):
+        """Encolher a lista conforme se filtra deixaria a pessoa sem como voltar
+        para outra área."""
+        html = self._renderizar(area='VIOLETA')
+        self.assertIn('value="TRIADE"', html)

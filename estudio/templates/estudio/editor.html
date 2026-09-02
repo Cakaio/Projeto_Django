@@ -40,8 +40,13 @@
                           background: #fff; cursor: pointer; font-size: .7rem; color: var(--ink-muted); }
 
   /* ── folha ── */
-  .est-palco-area { display: flex; justify-content: center; }
-  .est-palco { position: relative; }
+  /* min-width:0 e obrigatorio: item de grid tem min-width:auto por padrao, e
+     sem isso a coluna 1fr nao encolhe abaixo da largura da folha. O JS mediria
+     um container cuja largura e ditada pela propria folha que ele tenta caber,
+     o fator nunca desceria, e em tela estreita a grade estouraria na horizontal
+     em vez de reduzir a folha. */
+  .est-palco-area { display: flex; justify-content: center; min-width: 0; overflow-x: auto; }
+  .est-palco { position: relative; max-width: 100%; }
   .est-folha { position: relative; overflow: hidden; transform-origin: top left;
                box-shadow: 0 6px 26px rgba(0,0,0,.14); }
   .est-el { position: absolute; transform-origin: center center; }
@@ -88,6 +93,17 @@
   .est-botoes button[data-acao="apagar"] { color: #b03636; border-color: #f2d0d0; }
   .est-vazio { font-size: .8rem; line-height: 1.5; color: var(--ink-soft); }
 
+  /* Aviso de editor que nao subiu. Nasce visivel e o JS o esconde — falha de
+     carregamento tem que se anunciar, nao virar palco vazio sem explicacao.
+     O !important e porque .est-alerta tem display:flex, que venceria o
+     atributo hidden. */
+  .est-alerta { display: flex; gap: .7rem; align-items: flex-start; margin: 0 clamp(.75rem, 2vw, 1.25rem) 1rem;
+                padding: .85rem 1rem; border-radius: 14px; background: #fdf0d5;
+                border: 1px solid #f0dca8; color: #7a5200; }
+  .est-alerta[hidden] { display: none !important; }
+  .est-alerta p { margin: 0; font-size: .84rem; line-height: 1.55; }
+  .est-alerta code { background: #fff; padding: .05rem .3rem; border-radius: 5px; font-size: .8rem; }
+
   /* ── seletor de imagem ── */
   .est-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center;
                justify-content: center; padding: 1rem; background: rgba(20,14,10,.55); }
@@ -130,6 +146,16 @@
     <button type="button" class="pcf-btn pcf-btn-primary pcf-btn-sm" data-salvar>Salvar</button>
   </div>
 
+  <div class="est-alerta" data-editor-caiu role="alert">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" style="flex-shrink:0;margin-top:.1rem"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <p>
+      <b>O editor não carregou.</b> A página abaixo está só para leitura — arrastar,
+      redimensionar e salvar não vão funcionar. Quase sempre é o arquivo
+      <code>/static/js/pcf-estudio.js</code> faltando no servidor: rode
+      <code>python manage.py collectstatic --noinput</code> e dê Reload.
+    </p>
+  </div>
+
   <div class="est-corpo">
 
     <div class="est-paginas" data-miniaturas>
@@ -163,7 +189,16 @@
     </div>
 
     <div class="est-palco-area">
-      <div class="est-palco" data-palco></div>
+      {% comment %}
+        O servidor desenha a primeira página aqui, e o JS troca por conta ao
+        subir (desenharPagina limpa o palco antes de montar). Nasce assim de
+        propósito: antes o palco vinha vazio e QUALQUER falha de JavaScript
+        deixava a tela em branco, sem dizer o que houve. Agora, no pior caso,
+        vê-se a página — só não se consegue editar.
+      {% endcomment %}
+      <div class="est-palco" data-palco>
+        {% for pagina in paginas %}{% if forloop.first %}{% include 'estudio/_pagina.html' %}{% endif %}{% endfor %}
+      </div>
     </div>
 
     <div class="est-painel" data-painel>

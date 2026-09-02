@@ -362,6 +362,33 @@ class TelasTests(TestCase):
         self.assertIn('id="estudio-estado"', html)
         self.assertIn('estudio-estado', html)
 
+    def test_o_palco_nao_nasce_vazio(self):
+        """O servidor desenha a primeira página no palco.
+
+        Antes o palco vinha vazio e a folha era montada SÓ por JavaScript —
+        então qualquer falha de carregamento do estático deixava a tela em
+        branco, sem dizer o que houve. Foi exatamente o que aconteceu em
+        produção quando o `collectstatic` não rodou: CSS antigo servido,
+        pcf-estudio.js em 404, palco vazio.
+        """
+        html = self.abrir('editor', pk=self.documento.pk)
+        self.assertIn('class="est-folha"', html)
+        self.assertIn('Pauta um', html)
+
+    def test_avisa_na_tela_quando_o_editor_nao_carrega(self):
+        """O aviso nasce visível e o JS o esconde ao subir. Falha de
+        carregamento tem que se anunciar, não virar tela vazia."""
+        html = self.abrir('editor', pk=self.documento.pk)
+        self.assertIn('data-editor-caiu', html)
+        self.assertIn('collectstatic', html)
+
+    def test_a_coluna_do_palco_pode_encolher(self):
+        """Item de grid tem min-width:auto: sem `min-width:0` a coluna 1fr não
+        encolhe abaixo da largura da folha, e o JS mede um container cuja
+        largura é ditada pela própria folha que ele tenta caber."""
+        html = self.abrir('editor', pk=self.documento.pk)
+        self.assertIn('min-width: 0', html)
+
     def test_visualizacao_desenha_o_texto_e_o_estilo(self):
         html = self.abrir('ver', pk=self.documento.pk)
         self.assertIn('Pauta um', html)

@@ -4,6 +4,7 @@ from django.views.generic import ListView, DetailView, TemplateView, UpdateView
 from .models import (
     Voluntario, PresencaVoluntario, Ocorrencia, Regra, HistoricoLideranca, Grupo,
     FALTAS_POR_ALERTA, ALERTAS_POR_ADVERTENCIA, REGRA_FALTAS_CONSECUTIVAS,
+    LISTA_AREAS as AREAS_DO_MODELO,
     ADVERTENCIAS_PARA_OBSERVACAO, MAX_ALERTAS_DISPLAY,
 )
 from .forms import GrupoForm, MeuPerfilForm
@@ -116,20 +117,97 @@ def organograma_fullscreen(request):
     return render(request, 'organograma_full.html', {'raizes': raizes, 'total': total})
 
 
+# Ordem dos grupos na tela do histórico. A Tríade vem PRIMEIRO por decisão da
+# liderança: é a gestão que dá contexto a todas as outras, e no `LISTA_AREAS` ela
+# é a última — ordenar pela lista do modelo a jogaria para o fim da página.
+_CODIGOS_DAS_AREAS = [codigo for codigo, _ in AREAS_DO_MODELO]
+
+
+def _ordem_do_grupo(codigo):
+    if codigo == 'TRIADE':
+        return (0, '')
+    if not codigo:
+        return (1, '')              # registro sem área: Geral / Diretoria
+    if codigo in _CODIGOS_DAS_AREAS:
+        return (2 + _CODIGOS_DAS_AREAS.index(codigo), '')
+    # Área que saiu do LISTA_AREAS mas ficou em registro antigo: vai para o fim
+    # em vez de sumir. Perder história por causa de renomeação seria pior.
+    return (99, codigo)
+
+
 @login_required(login_url="/")
 def historico_lideres(request):
-    """Histórico de quem já foi líder, agrupado por área/cargo."""
-    registros = HistoricoLideranca.objects.select_related('voluntario').all()
-    grupos = {}
-    ordem = []
-    for r in registros:
-        chave = r.get_area_display() if r.area else 'Geral / Diretoria'
-        if chave not in grupos:
-            grupos[chave] = []
-            ordem.append(chave)
-        grupos[chave].append(r)
-    grupos_lista = [{'nome': nome, 'itens': grupos[nome]} for nome in ordem]
-    return render(request, 'historico_lideres.html', {'grupos': grupos_lista})
+    """Cadeia de sucessão por área, com filtros e trajetória por pessoa.
+
+    Contexto: grupos, areas, area, q, pessoa, trajetoria, pessoas, total.
+    """
+    area = (request.GET.get('area') or '').strip()
+    busca = (request.GET.get('q') or '').strip()
+    pessoa_pk = (request.GET.get('pessoa') or '').strip()
+
+    base = HistoricoLideranca.objects.select_related('voluntario')
+
+    # Trajetória: a história de UMA pessoa, atravessando as áreas. Sai da base
+    # SEM os outros filtros — quem clica num nome quer a vida inteira daquela
+    # pessoa, não a interseção com o filtro de área que estava na tela.
+    pessoa = None
+    trajetoria = None
+    if pessoa_pk.isdigit():
+        pessoa = Voluntario.objects.filter(pk=int(pessoa_pk)).first()
+        if pessoa:
+            trajetoria = list(base.filter(voluntario=pessoa).order_by('data_inicio'))
+
+    registros = base
+    if area:
+        registros = registros.filter(area=area)
+    if busca:
+        registros = registros.filter(
+            Q(voluntario__first_name__icontains=busca)
+            | Q(voluntario__last_name__icontains=busca)
+            | Q(voluntario__username__icontains=busca)
+            | Q(voluntario__apelido__icontains=busca)
+            | Q(nome_avulso__icontains=busca)
+            | Q(cargo__icontains=busca)
+        )
+
+    por_area = {}
+    for registro in registros:
+        por_area.setdefault(registro.area or '', []).append(registro)
+
+    rotulos = dict(AREAS_DO_MODELO)
+    grupos = [
+        {'codigo': codigo,
+         'nome': rotulos.get(codigo) or 'Geral / Diretoria',
+         'itens': itens}
+        for codigo, itens in sorted(por_area.items(),
+                                    key=lambda par: _ordem_do_grupo(par[0]))
+    ]
+
+    # O select de áreas sai do acervo INTEIRO, não do filtrado: encolher a lista
+    # conforme se filtra deixaria a pessoa sem como voltar para outra área.
+    codigos_com_historico = set(
+        base.values_list('area', flat=True).distinct()
+    )
+    areas = [(codigo, rotulos.get(codigo) or 'Geral / Diretoria')
+             for codigo in sorted(codigos_com_historico, key=_ordem_do_grupo)]
+
+    # Quem tem história e ficha. Sem `ativos()` de propósito: ex-líder desligado
+    # é o caso mais comum aqui, e filtrar tiraria justamente a história antiga.
+    pessoas = (Voluntario.objects
+               .filter(historico_lideranca__isnull=False)
+               .distinct()
+               .order_by('first_name', 'last_name', 'username'))
+
+    return render(request, 'historico_lideres.html', {
+        'grupos': grupos,
+        'areas': areas,
+        'area': area,
+        'q': busca,
+        'pessoa': pessoa,
+        'pessoas': pessoas,
+        'trajetoria': trajetoria,
+        'total': base.count(),
+    })
 
 LISTA_AREAS = [
     ("VIOLETA", "Violeta"),

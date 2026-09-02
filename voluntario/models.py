@@ -212,9 +212,26 @@ class Talento(models.Model):
 
 
 class HistoricoLideranca(models.Model):
-    """Registro de quem já foi líder de uma área/cargo e por qual período."""
+    """Registro de quem já foi líder de uma área/cargo e por qual período.
+
+    A pessoa pode NÃO ter ficha no sistema. Boa parte de quem liderou o projeto
+    saiu antes de existir site, e não faz sentido criar login para alguém que
+    nunca vai entrar — exigir ficha deixaria essas gestões fora da história, que
+    é justamente o que esta tela existe para contar. Por isso há duas formas de
+    dizer de quem é o registro, e a ficha só tem prioridade quando existe.
+    """
     voluntario = models.ForeignKey(
-        'Voluntario', on_delete=models.CASCADE, related_name='historico_lideranca'
+        'Voluntario', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='historico_lideranca',
+        help_text="Quem liderou, se tiver ficha no sistema.",
+    )
+    nome_avulso = models.CharField(
+        'nome ou apelido', max_length=120, blank=True,
+        help_text="Use quando a pessoa não tem ficha — é como ela vai aparecer na história.",
+    )
+    foto = models.ImageField(
+        'foto', upload_to='lideres_historico', blank=True, null=True,
+        help_text="Só é necessária para quem não tem ficha; com ficha, usamos a foto do perfil.",
     )
     cargo = models.CharField(max_length=100, help_text="Cargo/posição liderada (ex.: Líder de Sala Violeta, LEG, Presidente).")
     area = models.CharField(max_length=30, choices=LISTA_AREAS, blank=True, null=True, help_text="Área liderada (opcional).")
@@ -242,8 +259,39 @@ class HistoricoLideranca(models.Model):
         """Gestão que começou e acabou no mesmo ano mostra '2024', não '2024–2024'."""
         return bool(self.data_fim) and self.data_fim.year == self.data_inicio.year
 
+    @property
+    def de_quem(self):
+        """Nome a mostrar. Ficha primeiro; nome digitado como reserva."""
+        if self.voluntario_id:
+            return self.voluntario.get_full_name() or self.voluntario.username
+        return self.nome_avulso or 'Sem nome'
+
+    @property
+    def retrato(self):
+        """A foto a exibir, ou None. Perfil primeiro, foto solta depois.
+
+        Devolve o campo de arquivo, não a URL: a URL de campo vazio estoura, e
+        o template precisa poder testar antes de chamar `.url`.
+        """
+        if self.voluntario_id and self.voluntario.foto:
+            return self.voluntario.foto
+        return self.foto or None
+
+    @property
+    def tem_ficha(self):
+        """Só quem tem ficha vira link para a trajetória por pessoa."""
+        return self.voluntario_id is not None
+
+    def clean(self):
+        super().clean()
+        if not self.voluntario_id and not self.nome_avulso.strip():
+            raise ValidationError({
+                'nome_avulso': 'Diga quem liderou: escolha a ficha ou digite o nome.',
+            })
+
     def __str__(self):
-        return f'{self.voluntario} — {self.cargo} ({self.data_inicio:%m/%Y}–{"atual" if self.atual else self.data_fim.strftime("%m/%Y")})'
+        fim = 'atual' if self.atual else self.data_fim.strftime('%m/%Y')
+        return f'{self.de_quem} — {self.cargo} ({self.data_inicio:%m/%Y}–{fim})'
 
 
 class Regra(models.Model):

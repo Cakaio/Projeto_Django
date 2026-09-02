@@ -55,9 +55,11 @@ class DocumentoForm(forms.ModelForm):
                 continue
             campo.widget.attrs.setdefault('class', 'pcf-input')
             # O combo de busca do projeto (static/js/pcf-combo.js) transforma
-            # select em campo que filtra ao digitar.
+            # select em campo que filtra ao digitar. O atributo é `data-busca`;
+            # sem ele o combo só entra em select com mais de 8 opções, e a
+            # coleção quase nunca chega lá.
             if nome in ('colecao', 'pessoa'):
-                campo.widget.attrs['data-combo'] = '1'
+                campo.widget.attrs['data-busca'] = 'on'
 
     def clean_arquivo(self):
         arquivo = self.cleaned_data.get('arquivo')

@@ -7,82 +7,207 @@
 
   A tela é uma cadeia de sucessão: uma linha por área, e a seta liga cada líder
   ao seguinte na ordem do tempo. A ordem cronológica vem do Meta do modelo — se
-  alguém inverter lá, a seta passa a mentir.
+  alguém inverter lá, a seta passa a mentir. A ordem dos GRUPOS vem da view,
+  com a Tríade sempre primeiro.
+
+  Sobre a centralização: a cadeia rola na horizontal quando a área teve muitos
+  líderes, e `justify-content: center` num container que rola corta o começo do
+  conteúdo em vários navegadores. Por isso quem centraliza é `margin-inline:
+  auto` no wrapper interno — centra quando cabe, rola quando não cabe.
 {% endcomment %}
 <style>
   .hl-page { background: hsl(var(--background)); }
-  .hl-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
+  .hl-wrap { max-width: 76rem; margin-inline: auto; padding-block: clamp(2rem, 5vw, 3.25rem) clamp(2.5rem, 6vw, 4rem); }
 
-  .hl-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
-  .hl-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
-  .hl-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
-  .hl-sub { margin: 0; max-width: 62ch; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .hl-head { text-align: center; margin-bottom: 1.5rem; }
+  .hl-title { margin: .55rem 0 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08;
+              font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .hl-sub { margin: .5rem auto 0; max-width: 60ch; font-size: .92rem; line-height: 1.55;
+            color: hsl(var(--muted-foreground)); }
+  .hl-head-actions { display: flex; gap: .5rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
 
+  /* ── filtros ── */
+  .hl-filtros { display: flex; gap: .6rem; flex-wrap: wrap; align-items: flex-end;
+                justify-content: center; margin-bottom: 1.5rem; padding: .9rem 1rem;
+                border: 1px solid #f0e2d8; border-radius: 16px; background: #fffaf6; }
+  .hl-campo { display: flex; flex-direction: column; gap: .28rem; min-width: 10rem; }
+  .hl-campo.cresce { flex: 1 1 14rem; max-width: 22rem; }
+  .hl-campo label { font-size: .72rem; font-weight: 700; letter-spacing: .05em;
+                    text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .hl-filtros-botoes { display: flex; gap: .4rem; }
+
+  /* ── trajetória de uma pessoa ── */
+  .hl-traj { margin-bottom: 1.75rem; }
+  .hl-traj-topo { display: flex; align-items: center; gap: .85rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .hl-traj-foto { width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
+                  border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+  .hl-traj-nome { margin: 0; font-size: 1.2rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .hl-traj-conta { margin: .15rem 0 0; font-size: .84rem; color: var(--ink-soft); }
+  .hl-traj-passos { display: flex; flex-direction: column; gap: .55rem; }
+  .hl-traj-passo { display: flex; align-items: flex-start; gap: .8rem; padding: .75rem .9rem;
+                   border-radius: 14px; border: 1px solid #f4e7de; background: #fffaf6; }
+  .hl-traj-passo.atual { border-color: #b8e0c8; background: #f0faf4; }
+  .hl-traj-ano { flex-shrink: 0; min-width: 5.5rem; font-size: .8rem; font-weight: 750;
+                 font-variant-numeric: tabular-nums; color: #b4470c; }
+  .hl-traj-passo.atual .hl-traj-ano { color: #1f6b41; }
+  .hl-traj-oque { min-width: 0; }
+  .hl-traj-cargo { font-weight: 700; font-size: .92rem; color: var(--ink); }
+  .hl-traj-area { font-size: .8rem; color: var(--ink-muted); }
+  .hl-traj-desc { margin: .35rem 0 0; font-size: .82rem; line-height: 1.5; color: var(--ink-soft); }
+
+  /* ── grupos por área ── */
   .hl-groups { display: flex; flex-direction: column; gap: 1.25rem; }
-  .hl-group-head { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.1rem; flex-wrap: wrap; }
+  .hl-group-head { display: flex; align-items: center; justify-content: center; gap: .7rem;
+                   flex-wrap: wrap; margin-bottom: 1.1rem; }
   .hl-group-nome { margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
   .hl-group-conta { font-size: .8rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 
-  /* A cadeia rola na horizontal quando a área teve muitos líderes. */
-  .hl-chain { display: flex; align-items: stretch; gap: .5rem; overflow-x: auto; padding-bottom: .5rem; }
+  .hl-chain { display: flex; overflow-x: auto; }
+  .hl-chain-inner { display: flex; align-items: stretch; gap: .5rem;
+                    margin-inline: auto; padding-bottom: .5rem; }
   .hl-chain::-webkit-scrollbar { height: 8px; }
   .hl-chain::-webkit-scrollbar-thumb { background: #f0dfd3; border-radius: 99px; }
 
-  .hl-card { flex: 0 0 auto; width: 15rem; display: flex; flex-direction: column; gap: .55rem;
-             padding: .95rem; border-radius: 18px; border: 1px solid #f4e7de; background: #fffaf6; }
+  .hl-card { flex: 0 0 auto; width: 14.5rem; display: flex; flex-direction: column;
+             align-items: center; text-align: center; gap: .5rem;
+             padding: 1rem .95rem; border-radius: 18px; border: 1px solid #f4e7de;
+             background: #fffaf6; text-decoration: none; }
   .hl-card.atual { border-color: #b8e0c8; background: #f0faf4; }
+  a.hl-card:hover { border-color: var(--brand); }
+  a.hl-card:hover .hl-nome { color: var(--brand); }
 
-  .hl-foto { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; display: block;
-             border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
-  .hl-foto-vazia { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center;
-                   justify-content: center; background: #fff0e6; color: #e8560f; border: 2px solid #fff; }
+  .hl-foto { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; display: block;
+             border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+  .hl-foto-vazia { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center;
+                   background: #fff0e6; color: #e8560f; border: 3px solid #fff; }
 
+  .hl-ano { display: inline-flex; align-items: center; gap: .3rem;
+            font-size: .78rem; font-weight: 750; font-variant-numeric: tabular-nums;
+            padding: .18rem .55rem; border-radius: 99px; background: #fff0e6; color: #b4470c; }
+  .hl-card.atual .hl-ano { background: #dcf3e6; color: #1f6b41; }
   .hl-nome { font-weight: 700; font-size: .95rem; line-height: 1.25; color: var(--ink); }
   .hl-cargo { font-size: .8rem; line-height: 1.35; color: var(--ink-muted); }
-  .hl-ano { display: inline-flex; align-items: center; gap: .35rem; align-self: flex-start;
-            font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums;
-            padding: .2rem .5rem; border-radius: 99px; background: #fff0e6; color: #b4470c; }
-  .hl-card.atual .hl-ano { background: #dcf3e6; color: #1f6b41; }
-  .hl-desc { margin: 0; font-size: .82rem; line-height: 1.5; color: var(--ink-soft);
-             padding-top: .5rem; border-top: 1px dashed #f0dfd3; }
+  .hl-desc { margin: .1rem 0 0; font-size: .81rem; line-height: 1.5; color: var(--ink-soft);
+             padding-top: .55rem; border-top: 1px dashed #f0dfd3; width: 100%; text-align: left; }
+  .hl-sem-ficha { font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+                  color: #9a8b80; }
 
   .hl-seta { flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
              width: 1.75rem; color: #d9b79c; }
 
-  .hl-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
-  .hl-empty-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; background: #fff0e6; color: #e8560f; }
+  .hl-empty { display: flex; flex-direction: column; align-items: center; justify-content: center;
+              gap: .6rem; text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem;
+              border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
+  .hl-empty-icon { display: grid; place-items: center; width: 58px; height: 58px;
+                   border-radius: 16px; background: #fff0e6; color: #e8560f; }
   .hl-empty-title { margin: .4rem 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
-  .hl-empty-sub { margin: 0; max-width: 42ch; font-size: .88rem; color: var(--ink-muted); }
+  .hl-empty-sub { margin: 0; max-width: 46ch; font-size: .88rem; color: var(--ink-muted); }
 
   /* No celular a cadeia vira vertical: seta na horizontal apontaria para fora da tela. */
   @media (max-width: 640px) {
-    .hl-chain { flex-direction: column; align-items: stretch; overflow-x: visible; gap: .35rem; }
+    .hl-chain-inner { flex-direction: column; align-items: stretch; gap: .35rem; }
+    .hl-chain { overflow-x: visible; }
     .hl-card { width: auto; }
     .hl-seta { width: auto; height: 1.6rem; transform: rotate(90deg); }
-    .hl-head-actions { width: 100%; }
-    .hl-head-actions .pcf-btn { flex: 1; }
+    .hl-filtros-botoes { width: 100%; }
+    .hl-filtros-botoes .pcf-btn { flex: 1; justify-content: center; }
   }
 </style>
 
 <div class="hl-page">
-  <div class="pcf-container hl-wrap">
+  <div class="hl-wrap">
 
     <header class="hl-head" data-reveal>
-      <div class="hl-head-text">
-        <span class="pcf-eyebrow">Liderança</span>
-        <h1 class="hl-title">Histórico de Líderes</h1>
-        <p class="hl-sub">
-          A passagem de liderança de cada área, do primeiro ao mais recente. A descrição
-          é opcional — quem cadastra escolhe se preenche.
-        </p>
-      </div>
+      <span class="pcf-eyebrow">Liderança</span>
+      <h1 class="hl-title">Histórico de Líderes</h1>
+      <p class="hl-sub">
+        A passagem de liderança de cada área, do primeiro ao mais recente.
+        {{ total }} gest{{ total|pluralize:"ão,ões" }} registrad{{ total|pluralize:"a,as" }} — clique num
+        nome para ver a trajetória daquela pessoa.
+      </p>
       <div class="hl-head-actions">
         <a href="{% url 'voluntario:organograma' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Organograma
+          Organograma de hoje
         </a>
       </div>
     </header>
+
+    <form method="get" class="hl-filtros" data-reveal>
+      <div class="hl-campo cresce">
+        <label for="hl-q">Buscar</label>
+        <input type="search" id="hl-q" name="q" value="{{ q }}" class="pcf-input"
+               placeholder="Nome, apelido ou cargo…">
+      </div>
+      <div class="hl-campo">
+        <label for="hl-area">Área</label>
+        <select id="hl-area" name="area" class="pcf-input" data-busca="on">
+          <option value="">Todas as áreas</option>
+          {% for codigo, rotulo in areas %}
+            <option value="{{ codigo }}" {% if area == codigo %}selected{% endif %}>{{ rotulo }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="hl-campo">
+        <label for="hl-pessoa">Trajetória de</label>
+        <select id="hl-pessoa" name="pessoa" class="pcf-input" data-busca="on">
+          <option value="">Ninguém em especial</option>
+          {% for p in pessoas %}
+            <option value="{{ p.pk }}" {% if pessoa and pessoa.pk == p.pk %}selected{% endif %}>
+              {{ p.get_full_name|default:p.username }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="hl-filtros-botoes">
+        <button type="submit" class="pcf-btn pcf-btn-outline">Filtrar</button>
+        {% if q or area or pessoa %}
+          <a href="{% url 'voluntario:historico_lideres' %}" class="pcf-btn pcf-btn-ghost">Limpar</a>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if trajetoria %}
+      <section class="pcf-card hl-traj" data-reveal>
+        <div class="hl-traj-topo">
+          {% if pessoa.foto %}
+            <img class="hl-traj-foto" src="{{ pessoa.foto.url }}"
+                 alt="Foto de {{ pessoa.get_full_name|default:pessoa.username }}">
+          {% else %}
+            <div class="hl-foto-vazia" aria-hidden="true">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+          {% endif %}
+          <div>
+            <h2 class="hl-traj-nome">{{ pessoa.get_full_name|default:pessoa.username }}</h2>
+            <p class="hl-traj-conta">
+              {{ trajetoria|length }} gest{{ trajetoria|length|pluralize:"ão,ões" }} no projeto
+            </p>
+          </div>
+        </div>
+
+        <div class="hl-traj-passos">
+          {% for r in trajetoria %}
+            <div class="hl-traj-passo{% if r.atual %} atual{% endif %}">
+              <span class="hl-traj-ano">
+                {% if r.atual %}
+                  {{ r.data_inicio|date:"Y" }} · atual
+                {% elif r.mesmo_ano %}
+                  {{ r.data_inicio|date:"Y" }}
+                {% else %}
+                  {{ r.data_inicio|date:"Y" }}–{{ r.data_fim|date:"Y" }}
+                {% endif %}
+              </span>
+              <div class="hl-traj-oque">
+                <div class="hl-traj-cargo">{{ r.cargo }}</div>
+                <div class="hl-traj-area">{% if r.area %}{{ r.get_area_display }}{% else %}Geral / Diretoria{% endif %}</div>
+                {% if r.descricao %}<p class="hl-traj-desc">{{ r.descricao|linebreaksbr }}</p>{% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
 
     <div class="hl-groups">
       {% for grupo in grupos %}
@@ -96,44 +221,61 @@
         </div>
 
         <div class="hl-chain">
-          {% for r in grupo.itens %}
-            {% if not forloop.first %}
-              <div class="hl-seta" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
-              </div>
-            {% endif %}
-
-            <article class="hl-card{% if r.atual %} atual{% endif %}">
-              {% if r.voluntario.foto %}
-                <img class="hl-foto" src="{{ r.voluntario.foto.url }}"
-                     alt="Foto de {{ r.voluntario.get_full_name|default:r.voluntario.username }}">
-              {% else %}
-                <div class="hl-foto-vazia" aria-hidden="true">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <div class="hl-chain-inner">
+            {% for r in grupo.itens %}
+              {% if not forloop.first %}
+                <div class="hl-seta" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
                 </div>
               {% endif %}
 
-              <span class="hl-ano">
-                {% if r.atual %}
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-                  {{ r.data_inicio|date:"Y" }} · atual
-                {% elif r.mesmo_ano %}
-                  {{ r.data_inicio|date:"Y" }}
-                {% else %}
-                  {{ r.data_inicio|date:"Y" }}–{{ r.data_fim|date:"Y" }}
-                {% endif %}
-              </span>
-
-              <div>
-                <div class="hl-nome">{{ r.voluntario.get_full_name|default:r.voluntario.username }}</div>
-                <div class="hl-cargo">{{ r.cargo }}</div>
-              </div>
-
-              {% if r.descricao %}
-                <p class="hl-desc">{{ r.descricao|linebreaksbr }}</p>
+              {% comment %}
+                Quem tem ficha vira link para a própria trajetória; quem não tem
+                é uma div, porque não há trajetória para abrir — link que não
+                leva a nada é pior que texto.
+              {% endcomment %}
+              {% if r.tem_ficha %}
+                <a class="hl-card{% if r.atual %} atual{% endif %}"
+                   href="?pessoa={{ r.voluntario_id }}"
+                   title="Ver a trajetória de {{ r.de_quem }}">
+              {% else %}
+                <div class="hl-card{% if r.atual %} atual{% endif %}">
               {% endif %}
-            </article>
-          {% endfor %}
+
+                {% if r.retrato %}
+                  <img class="hl-foto" src="{{ r.retrato.url }}" alt="Foto de {{ r.de_quem }}">
+                {% else %}
+                  <div class="hl-foto-vazia" aria-hidden="true">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </div>
+                {% endif %}
+
+                <span class="hl-ano">
+                  {% if r.atual %}
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                    {{ r.data_inicio|date:"Y" }} · atual
+                  {% elif r.mesmo_ano %}
+                    {{ r.data_inicio|date:"Y" }}
+                  {% else %}
+                    {{ r.data_inicio|date:"Y" }}–{{ r.data_fim|date:"Y" }}
+                  {% endif %}
+                </span>
+
+                <div>
+                  <div class="hl-nome">{{ r.de_quem }}</div>
+                  <div class="hl-cargo">{{ r.cargo }}</div>
+                  {% if not r.tem_ficha %}
+                    <div class="hl-sem-ficha">sem ficha no sistema</div>
+                  {% endif %}
+                </div>
+
+                {% if r.descricao %}
+                  <p class="hl-desc">{{ r.descricao|linebreaksbr }}</p>
+                {% endif %}
+
+              {% if r.tem_ficha %}</a>{% else %}</div>{% endif %}
+            {% endfor %}
+          </div>
         </div>
       </section>
       {% empty %}
@@ -141,8 +283,16 @@
         <div class="hl-empty-icon">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
-        <p class="hl-empty-title">Nenhum registro de liderança ainda</p>
-        <p class="hl-empty-sub">Cadastre no admin, em Histórico de Liderança.</p>
+        {% if q or area %}
+          <p class="hl-empty-title">Nenhum líder com esses filtros</p>
+          <p class="hl-empty-sub">Tente outro nome ou escolha outra área.</p>
+        {% else %}
+          <p class="hl-empty-title">Nenhum registro de liderança ainda</p>
+          <p class="hl-empty-sub">
+            Cadastre no admin, em Histórico de Liderança. Quem não tem login no site
+            entra por nome e foto.
+          </p>
+        {% endif %}
       </div>
       {% endfor %}
     </div>

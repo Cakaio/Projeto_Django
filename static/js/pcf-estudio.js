@@ -442,7 +442,11 @@
   /* ── painel: mudanças ─────────────────────────────────────────────── */
 
   if (painel) {
-    painel.addEventListener('input', function (evento) {
+    // 'input' E 'change': select nativo dispara os dois, mas o combo de busca
+    // do projeto (pcf-combo.js) dispara SO 'change'. Se um dia ele passar a
+    // envolver estes campos, ouvir apenas 'input' faria os controles de estilo
+    // pararem de funcionar sem nenhum aviso.
+    var aoMudar = function (evento) {
       var campo = evento.target.closest('[data-prop]');
       if (!campo || !selecionado) return;
       var pagina = paginaPorId(paginaAtual);
@@ -471,7 +475,9 @@
       aplicarNoDom(el);
       marcarSujo();
       if (chave === 'travado') marcarSelecionado(selecionado);
-    });
+    };
+    painel.addEventListener('input', aoMudar);
+    painel.addEventListener('change', aoMudar);
 
     painel.addEventListener('click', function (evento) {
       var acao = evento.target.closest('[data-acao]');
@@ -712,6 +718,12 @@
   });
 
   window.addEventListener('resize', ajustarEscala);
+
+  // O aviso "o editor não carregou" nasce visível no HTML. Chegar aqui prova
+  // que o JS subiu, então ele sai. Se este arquivo não for entregue, o aviso
+  // fica na tela e explica o que fazer — em vez de palco vazio sem motivo.
+  var alerta = raiz.querySelector('[data-editor-caiu]');
+  if (alerta) alerta.hidden = true;
 
   desenharPagina();
   marcarLimpo();
