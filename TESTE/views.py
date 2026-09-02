@@ -102,6 +102,7 @@ def _paginas_do_usuario(user):
          is_su or area in ("SUPPLY", "TRIADE")),
         ("Pedido de Reembolso", "forms_pcf:reembolso", "Solicitar reembolso", True),
         ("Dores & Sugestões", "forms_pcf:feedback", "Enviar feedback", True),
+        ("Acervo", "acervo:lista", "Documentos que o projeto guarda", True),
         ("Financeiro", "adm:painel", "Lançamentos, fluxo e DRE",
          is_su or area in ("ADM/FIN", "TRIADE")),
         ("Teto da Área", "adm:tetos", "Quanto sua área pode gastar no mês", True),

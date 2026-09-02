@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block titulo %}Acervo{% endblock %}
+
+{% block content %}
+{% comment %}
+  Layout desta tela (prefixo .acv-). O visual base vem das classes .pcf-*.
+  Contexto: colecoes (com `quantos`), pode_mexer, total.
+{% endcomment %}
+<style>
+  .acv-wrap { padding-block: clamp(2rem, 5vw, 3.25rem) clamp(2.5rem, 6vw, 4rem); }
+  .acv-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
+  .acv-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .acv-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .acv-sub { margin: 0; max-width: 60ch; font-size: .92rem; color: hsl(var(--muted-foreground)); }
+  .acv-acoes { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  .acv-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
+  .acv-card { display: flex; flex-direction: column; gap: .7rem; text-decoration: none; }
+  .acv-card:hover .acv-card-nome { color: var(--brand); }
+  .acv-card-topo { display: flex; align-items: center; gap: .7rem; }
+  .acv-card-nome { margin: 0; font-size: 1.05rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
+  .acv-card-desc { margin: 0; font-size: .85rem; line-height: 1.55; color: var(--ink-soft); }
+  .acv-card-pe { display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+                 padding-top: .6rem; border-top: 1px dashed #f0dfd3; }
+  .acv-conta { font-size: .82rem; font-weight: 700; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+  .acv-abrir { display: inline-flex; align-items: center; gap: .3rem; font-size: .82rem; font-weight: 700; color: var(--brand); }
+
+  .acv-nota { display: flex; gap: .6rem; align-items: flex-start; margin-bottom: 1.5rem;
+              padding: .85rem 1rem; border-radius: 14px; background: hsl(var(--accent)); border: 1px solid #fbe3d3; }
+  .acv-nota p { margin: 0; font-size: .84rem; line-height: 1.55; color: var(--ink-soft); }
+
+  .acv-empty { display: flex; flex-direction: column; align-items: center; gap: .6rem; text-align: center;
+               padding: clamp(2.5rem, 6vw, 4rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
+  .acv-empty-icon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 16px; background: #fff0e6; color: #e8560f; }
+  .acv-empty-title { margin: .4rem 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .acv-empty-sub { margin: 0; max-width: 46ch; font-size: .88rem; color: var(--ink-muted); }
+
+  @media (max-width: 560px) {
+    .acv-acoes { width: 100%; }
+    .acv-acoes .pcf-btn { flex: 1; justify-content: center; }
+  }
+</style>
+
+<div class="pcf-container acv-wrap">
+
+  <header class="acv-head" data-reveal>
+    <div class="acv-head-text">
+      <span class="pcf-eyebrow">Memória do projeto</span>
+      <h1 class="acv-title">Acervo</h1>
+      <p class="acv-sub">
+        O que o projeto guarda para consultar depois. {{ total }} documento{{ total|pluralize }}
+        em {{ colecoes|length }} coleç{{ colecoes|length|pluralize:"ão,ões" }}.
+      </p>
+    </div>
+    {% if pode_mexer %}
+      <div class="acv-acoes">
+        <a href="{% url 'acervo:documento_criar' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo documento
+        </a>
+        <a href="{% url 'acervo:colecao_criar' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Nova coleção</a>
+      </div>
+    {% endif %}
+  </header>
+
+  <div class="acv-nota" data-reveal>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9490a" stroke-width="1.9" aria-hidden="true" style="flex-shrink:0;margin-top:.1rem"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <p>
+      Todo voluntário logado consulta o acervo, e os arquivos exigem sessão para abrir —
+      link solto não funciona e buscador não indexa. Cadastrar e remover é da Tríade.
+    </p>
+  </div>
+
+  {% if colecoes %}
+    <div class="acv-grid">
+      {% for c in colecoes %}
+        <a class="pcf-card pcf-hoverable acv-card" href="{% url 'acervo:colecao' c.slug %}" data-reveal>
+          <div class="acv-card-topo">
+            <span class="pcf-icon-tile tint-orange" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H4z"/><path d="M6 8v12h12V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>
+            </span>
+            <h2 class="acv-card-nome">{{ c.nome }}</h2>
+          </div>
+          {% if c.descricao %}
+            <p class="acv-card-desc">{{ c.descricao|truncatechars:150 }}</p>
+          {% endif %}
+          <div class="acv-card-pe">
+            <span class="acv-conta">
+              {% if c.quantos %}
+                {{ c.quantos }} documento{{ c.quantos|pluralize }}
+              {% else %}
+                ainda vazia
+              {% endif %}
+            </span>
+            <span class="acv-abrir">
+              Abrir
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+            </span>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="acv-empty">
+      <div class="acv-empty-icon">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v4H4z"/><path d="M6 8v12h12V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>
+      </div>
+      <p class="acv-empty-title">Nenhuma coleção ainda</p>
+      <p class="acv-empty-sub">
+        {% if pode_mexer %}
+          Crie a primeira — a de postulações já vem cadastrada quando a migração roda.
+        {% else %}
+          A Tríade ainda não cadastrou nada aqui.
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

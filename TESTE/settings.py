@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'revista',
     'editais',
     'projetos',
+    'acervo',
 ]
 
 MIDDLEWARE = [

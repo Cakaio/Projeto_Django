@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block titulo %}Apagar {{ tipo }}{% endblock %}
+
+{% block content %}
+{% comment %}
+  Layout desta tela (prefixo .acx-). Contexto: tipo, nome, voltar, voltar_slug.
+{% endcomment %}
+<style>
+  .acx-wrap { max-width: 36rem; padding-block: clamp(2rem, 6vw, 3.5rem) clamp(2.5rem, 6vw, 4rem); }
+  .acx-card { text-align: center; }
+  .acx-icon { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto .95rem;
+              display: grid; place-items: center; background: #fdeaea; color: #b03636; }
+  .acx-title { margin: 0 0 .5rem; font-size: clamp(1.15rem, 3vw, 1.45rem); font-weight: 800;
+               letter-spacing: -.02em; color: var(--ink); overflow-wrap: anywhere; }
+  .acx-sub { margin: 0 auto; max-width: 46ch; font-size: .9rem; line-height: 1.6; color: var(--ink-soft); }
+  .acx-acoes { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; }
+  .acx-btn-danger { background: #d64545; color: #fff; }
+  .acx-btn-danger:hover { background: #c23a3a; color: #fff; transform: translateY(-1px); }
+
+  @media (max-width: 520px) {
+    .acx-acoes { flex-direction: column-reverse; }
+    .acx-acoes .pcf-btn { width: 100%; justify-content: center; }
+  }
+</style>
+
+<div class="pcf-container acx-wrap">
+  <div class="pcf-card acx-card">
+
+    <span class="acx-icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </span>
+
+    <h1 class="acx-title">Apagar “{{ nome }}”?</h1>
+    <p class="acx-sub">
+      O registro sai do acervo e o arquivo deixa de ser acessível pelo sistema.
+      Acervo existe para guardar — apague só o que entrou por engano.
+    </p>
+
+    <form method="post" action="">
+      {% csrf_token %}
+      <div class="acx-acoes">
+        <button type="submit" class="pcf-btn acx-btn-danger">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Sim, apagar
+        </button>
+        <a href="{% if voltar_slug %}{% url voltar voltar_slug %}{% else %}{% url 'acervo:lista' %}{% endif %}"
+           class="pcf-btn pcf-btn-outline">Cancelar</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
