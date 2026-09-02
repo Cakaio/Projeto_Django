@@ -176,7 +176,7 @@
       <div class="pcf-tile pcf-hoverable">
         <div class="pcf-kpi">
           <div class="pcf-kpi-top">
-            <span class="pcf-kpi-label">Prazo em até 7 dias</span>
+            <span class="pcf-kpi-label">Prazo em até {{ janela_dias }} dias</span>
             <span class="pcf-icon-tile tint-gold" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
             </span>
@@ -205,12 +205,12 @@
     <!-- ══════ Contadores por status (clicar filtra) ══════ -->
     <nav class="ed-chips" aria-label="Filtrar por status" data-reveal>
       <a class="ed-chip {% if not status %}is-active{% endif %}"
-         href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}{% if abertos %}abertos=1{% endif %}">
+         href="?{% if q %}q={{ q|urlencode }}{% endif %}">
         Todos <b>{{ total }}</b>
       </a>
       {% for contador in contadores %}
         <a class="ed-chip {% if status == contador.valor %}is-active{% endif %}"
-           href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}{% if abertos %}abertos=1&amp;{% endif %}status={{ contador.valor }}">
+           href="?{% if q %}q={{ q|urlencode }}&amp;{% endif %}status={{ contador.valor }}">
           {{ contador.rotulo }} <b>{{ contador.total }}</b>
         </a>
       {% endfor %}
@@ -234,14 +234,9 @@
         </select>
       </div>
 
-      <div class="ed-check">
-        <input type="checkbox" id="ed-abertos" name="abertos" value="1" {% if abertos %}checked{% endif %}>
-        <label for="ed-abertos">Só com prazo aberto</label>
-      </div>
-
       <div class="ed-filtros-botoes">
         <button type="submit" class="pcf-btn pcf-btn-outline">Filtrar</button>
-        {% if q or status or abertos %}
+        {% if q or status %}
           <a href="{% url 'editais:lista' %}" class="pcf-btn pcf-btn-ghost">Limpar</a>
         {% endif %}
       </div>
@@ -398,11 +393,12 @@
           <span class="pcf-icon-tile lg" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
           </span>
-          {% if q or status or abertos %}
+          {% if q or status %}
             <p class="ed-empty-title">Nenhum edital com esses filtros</p>
             <p class="ed-empty-sub">
-              Tente outra palavra na busca, escolha outro status ou desmarque “só com prazo aberto” —
-              edital vencido continua guardado aqui.
+              Tente outra palavra na busca ou escolha outro status. Lembre que a lista só
+              mostra edital com pelo menos {{ margem_dias }} dias de prazo — o que vence antes
+              disso fica guardado, mas fora da tela.
             </p>
             <div class="ed-empty-actions">
               <a href="{% url 'editais:lista' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Limpar filtros</a>
