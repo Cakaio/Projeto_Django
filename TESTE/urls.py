@@ -40,6 +40,7 @@ urlpatterns = [
     path('editais/', include('editais.urls', namespace='editais')),
     path('projetos/', include('projetos.urls', namespace='projetos')),
     path('acervo/', include('acervo.urls', namespace='acervo')),
+    path('estudio/', include('estudio.urls', namespace='estudio')),
     # A revista entra na RAIZ de propósito: o prefixo 'revista/' já está escrito
     # em cada rota dela, porque a página do doador mora em '/r/<token>/' — link
     # curto, para colar em e-mail e WhatsApp. Dois include com o mesmo namespace

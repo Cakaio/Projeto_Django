@@ -152,6 +152,26 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         Imprimir
       </button>
+      {% comment %}
+        Ponte com o estúdio: quando a revista ainda não tem layout livre, o
+        botão MONTA um a partir das seções (o texto vem dos semanários); quando
+        já tem, abre o editor. Dois botões diferentes confundiriam — é a mesma
+        intenção, "quero desenhar esta edição".
+      {% endcomment %}
+      {% if revista.documento %}
+        <a href="{% url 'estudio:editor' revista.documento.pk %}" class="pcf-btn pcf-btn-outline">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/></svg>
+          Abrir no estúdio
+        </a>
+      {% else %}
+        <form method="post" action="{% url 'estudio:gerar_da_revista' revista.pk %}" style="display:contents">
+          {% csrf_token %}
+          <button type="submit" class="pcf-btn pcf-btn-outline">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/></svg>
+            Gerar layout no estúdio
+          </button>
+        </form>
+      {% endif %}
       <a href="{% url 'revista:pdf' revista.pk %}" class="pcf-btn pcf-btn-outline">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Baixar PDF

@@ -1,0 +1,15 @@
+{% comment %}
+  Uma página inteira. A folha tem tamanho FIXO em px (A4 a 96 dpi) e quem
+  encolhe é o container, com transform: scale — assim o que se vê na tela é
+  exatamente a proporção do que sai impresso.
+
+  `overflow: hidden` é o que faz a foto de capa e a faixa de mãozinhas
+  "sangrarem": elas ficam maiores que a folha e o excesso é cortado na borda,
+  como na revista impressa.
+{% endcomment %}
+<div class="est-folha" data-pagina="{{ pagina.pk }}"
+     style="width:{{ documento.largura }}px;height:{{ documento.altura }}px;background:{{ pagina.css_de_fundo }}">
+  {% for el in pagina.elementos.all %}
+    {% include 'estudio/_elemento.html' %}
+  {% endfor %}
+</div>

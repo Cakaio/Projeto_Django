@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 # Só o que é compartilhado por todas as telas. Não vale varrer a pasta inteira:
 # seria I/O à toa e mudaria o carimbo por causa de uma imagem qualquer,
 # derrubando o cache de tudo sem motivo.
-ARQUIVOS_OBSERVADOS = ('css/pcf.css', 'js/pcf-fx.js')
+ARQUIVOS_OBSERVADOS = ('css/pcf.css', 'js/pcf-fx.js', 'js/pcf-estudio.js',
+                       'js/pcf-combo.js')
 
 _carimbo = None
 
