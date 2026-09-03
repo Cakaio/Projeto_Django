@@ -68,6 +68,32 @@ class OfflineTest(TestCase):
         self.assertEqual(resposta.status_code, 200)
 
 
+class ComentarioDeTemplateTest(TestCase):
+    """REGRESSAO: {# #} do Django e comentario de UMA LINHA so.
+
+    Escrito em varias linhas, o Django nao reconhece e o texto vaza para o HTML.
+    Como o bloco estava no <head> do base.html, o navegador jogava a sobra para
+    o topo de TODAS as telas do sistema. Para comentario multilinha o certo e
+    {% comment %} ... {% endcomment %}.
+    """
+
+    def setUp(self):
+        self.voluntario = Voluntario.objects.create_user(
+            username="ana", password="senha-de-teste-123", area="AZUL"
+        )
+
+    def test_pagina_que_estende_base_nao_vaza_comentario(self):
+        self.client.force_login(self.voluntario)
+        corpo = self.client.get(reverse("notificacoes:instalar")).content.decode()
+        self.assertNotIn("{#", corpo)
+        self.assertNotIn("#}", corpo)
+
+    def test_offline_nao_vaza_comentario(self):
+        corpo = self.client.get(reverse("notificacoes:offline")).content.decode()
+        self.assertNotIn("{#", corpo)
+        self.assertNotIn("#}", corpo)
+
+
 class InstalarTest(TestCase):
     def setUp(self):
         self.voluntario = Voluntario.objects.create_user(

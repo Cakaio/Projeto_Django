@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#e8560f">
   <title>PCF | Sem conexão</title>
-  {# Não estende base.html de propósito: o base puxa Bootstrap e fontes de CDN,
-     que não carregam justamente quando esta tela é necessária. #}
+  {% comment %}
+    Não estende base.html de propósito: o base puxa Bootstrap e fontes de CDN,
+    que não carregam justamente quando esta tela é necessária.
+  {% endcomment %}
   <style>
     body { margin:0; min-height:100vh; display:flex; flex-direction:column;
            align-items:center; justify-content:center; gap:1rem; padding:2rem;
