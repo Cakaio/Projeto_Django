@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+{% block titulo %}Contas e cartões{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .ct-). #}
+{# O visual base vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .ct-page { background: hsl(var(--background)); }
+  .ct-wrap { padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+
+  /* ── Cabeçalho ── */
+  .ct-head-acoes { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  /* ── KPIs ── */
+  .ct-kpis { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.15rem; }
+
+  /* ── Cabeçalho dos cards ── */
+  .ct-card-head { display: flex; align-items: flex-start; justify-content: space-between;
+                  gap: .75rem; flex-wrap: wrap; padding: 1.15rem 1.15rem .95rem; }
+  .ct-card-title { margin: 0; font-size: 1.02rem; font-weight: 750; letter-spacing: -.02em; color: var(--ink); }
+  .ct-card-sub { margin: .2rem 0 0; max-width: 62ch; font-size: .82rem; line-height: 1.5;
+                 color: hsl(var(--muted-foreground)); }
+
+  /* ── Tabelas ──
+     min-width própria em cada uma: sem ela as colunas de dinheiro espremem no
+     celular e "Recarregado" quebra em três linhas. Melhor rolar de lado dentro
+     do .pcf-scroll-x. */
+  .ct-table-saldo { min-width: 720px; }
+  .ct-table-contas { min-width: 780px; }
+
+  /* A primeira célula é <th scope="row"> por acessibilidade, mas não pode
+     herdar o visual de cabeçalho (caixa alta, fundo cinza) do .pcf-table th. */
+  .ct-table-saldo tbody th,
+  .ct-table-contas tbody th {
+    padding: .7rem .9rem; background: transparent; text-transform: none; letter-spacing: normal;
+    font-size: .875rem; white-space: normal; vertical-align: top;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  .ct-table-saldo tbody tr:last-child th,
+  .ct-table-contas tbody tr:last-child th { border-bottom: 0; }
+
+  .ct-nome { display: block; font-weight: 700; color: var(--ink); }
+  .ct-meta { display: block; margin-top: .12rem; font-size: .75rem; color: hsl(var(--muted-foreground)); }
+  .ct-valor { font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .ct-vazio { color: hsl(var(--muted-foreground)); }
+
+  /* ── Saldo negativo: destaque forte, e nunca só por cor ──
+     O badge "No vermelho" carrega o mesmo recado da cor, para quem não
+     distingue vermelho de verde e para quem imprime em preto e branco.
+     O :hover do .pcf-table é mais específico que uma classe só, por isso a
+     linha negativa repete o seletor com :hover — senão a cor sumia ao passar
+     o mouse justo na linha que mais precisa aparecer. */
+  .pcf-table tbody tr.ct-linha-neg,
+  .pcf-table tbody tr.ct-linha-neg:hover { background: #fdeaea; }
+  .ct-linha-neg th:first-child { box-shadow: inset 3px 0 0 #b03636; }
+  .ct-saldo-neg { font-weight: 800; color: #b03636; white-space: nowrap; }
+  .ct-saldo-pos { font-weight: 800; color: #1f7a49; white-space: nowrap; }
+  .ct-saldo-zero { font-weight: 800; color: var(--ink); white-space: nowrap; }
+
+  .ct-table-saldo tfoot td { border-top: 1.5px solid hsl(var(--border)); border-bottom: 0;
+                             background: hsl(var(--muted)); font-weight: 800; color: var(--ink); }
+
+  /* ── Estado vazio ── */
+  .ct-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem;
+              padding: clamp(2rem, 5vw, 3rem) 1.25rem; }
+  .ct-empty-title { margin: .35rem 0 0; font-size: 1.02rem; font-weight: 800; color: var(--ink); }
+  .ct-empty-sub { margin: 0; max-width: 46ch; font-size: .86rem; line-height: 1.55;
+                  color: hsl(var(--muted-foreground)); }
+
+  @media (max-width: 520px) {
+    .ct-head-acoes { width: 100%; }
+    .ct-head-acoes .pcf-btn { flex: 1; justify-content: center; }
+  }
+  @media (min-width: 640px) { .ct-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .ct-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+</style>
+
+<div class="ct-page">
+  <div class="pcf-container ct-wrap">
+
+    <!-- ══════ Cabeçalho ══════ -->
+    <header class="pcf-page-head" data-reveal>
+      <div>
+        <span class="pcf-eyebrow">Financeiro</span>
+        <h1 class="pcf-page-title" style="margin-top:.7rem">Contas e cartões</h1>
+        <p class="pcf-page-sub">
+          Onde o dinheiro do projeto está — banco, cartão pré-pago ou dinheiro físico — e quanto ainda sobra em cada cartão.
+        </p>
+      </div>
+      <div class="ct-head-acoes">
+        <a href="{% url 'adm:recargas' %}" class="pcf-btn pcf-btn-outline">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>
+          Recargas
+        </a>
+        {% comment %} O botão de escrita só aparece para quem tem escrita no
+           Financeiro (AREAS_ESCRITA): a TRIADE também abre esta tela em modo
+           leitura, e oferecer um caminho que termina em 403 é pior que não
+           oferecer caminho nenhum. {% endcomment %}
+        {% if user.is_superuser or user.area == 'ADM/FIN' %}
+          <a href="{% url 'adm:conta_criar' %}" class="pcf-btn pcf-btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nova conta
+          </a>
+        {% endif %}
+      </div>
+    </header>
+
+    {% if contas %}
+
+      {% comment %} Quantos cartões estão no vermelho, sem consulta nova: o
+         dictsort deixa negativo=True no fim da lista, então o ÚLTIMO grupo do
+         regroup é o dos negativos — ou, quando não há nenhum, é o dos
+         positivos e o grouper vem False. {% endcomment %}
+      {% regroup saldos|dictsort:"negativo" by negativo as grupos_de_saldo %}
+
+      <!-- ══════ KPIs ══════ -->
+      <div class="ct-kpis" data-reveal>
+
+        <div class="pcf-tile pcf-hoverable">
+          <div class="pcf-kpi">
+            <div class="pcf-kpi-top">
+              <span class="pcf-kpi-label">Saldo atual em cartões</span>
+              <span class="pcf-badge {% if total_saldo < 0 %}danger{% else %}ok{% endif %}">
+                {% if total_saldo < 0 %}Negativo{% else %}Positivo{% endif %}
+              </span>
+            </div>
+            <div class="pcf-kpi-value pcf-num {% if total_saldo < 0 %}ct-saldo-neg{% endif %}">R$ {{ total_saldo|floatformat:2 }}</div>
+            <div class="pcf-kpi-foot">
+              soma de {{ saldos|length }} conta{{ saldos|length|pluralize }} com saldo controlado
+            </div>
+          </div>
+        </div>
+
+        <div class="pcf-tile pcf-hoverable">
+          <div class="pcf-kpi">
+            <div class="pcf-kpi-top">
+              <span class="pcf-kpi-label">Cartões no vermelho</span>
+              <span class="pcf-icon-tile tint-orange" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </span>
+            </div>
+            {% with grupo_final=grupos_de_saldo|last %}
+              {% if grupo_final.grouper %}
+                <div class="pcf-kpi-value pcf-num ct-saldo-neg">{{ grupo_final.list|length }}</div>
+                <div class="pcf-kpi-foot">gastaram mais do que foi recarregado — confira as recargas</div>
+              {% else %}
+                <div class="pcf-kpi-value pcf-num">0</div>
+                <div class="pcf-kpi-foot">nenhum cartão com saldo negativo</div>
+              {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+
+        <div class="pcf-tile pcf-hoverable">
+          <div class="pcf-kpi">
+            <div class="pcf-kpi-top">
+              <span class="pcf-kpi-label">Total recarregado</span>
+              <span class="pcf-icon-tile tint-green" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+              </span>
+            </div>
+            <div class="pcf-kpi-value pcf-num">R$ {{ total_recarregado|floatformat:2 }}</div>
+            <div class="pcf-kpi-foot">todas as recargas já registradas</div>
+          </div>
+        </div>
+
+        <div class="pcf-tile pcf-hoverable">
+          <div class="pcf-kpi">
+            <div class="pcf-kpi-top">
+              <span class="pcf-kpi-label">Total gasto nos cartões</span>
+              <span class="pcf-icon-tile tint-blue" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+              </span>
+            </div>
+            <div class="pcf-kpi-value pcf-num">R$ {{ total_gasto|floatformat:2 }}</div>
+            <div class="pcf-kpi-foot">despesas pagas com estas contas</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ══════ Saldo das contas que controlam saldo ══════ -->
+      <section class="pcf-card" style="padding:0;overflow:hidden;margin-bottom:1.15rem" data-reveal data-reveal-delay="60">
+        <div class="ct-card-head">
+          <div>
+            <h2 class="ct-card-title">Saldo dos cartões</h2>
+            <p class="ct-card-sub">
+              Saldo atual = recarregado menos gasto. Entram aqui só as contas marcadas como
+              &ldquo;controlar saldo&rdquo;: em conta de banco quem manda é o extrato.
+            </p>
+          </div>
+          {% if user.is_superuser or user.area == 'ADM/FIN' %}
+            <a href="{% url 'adm:recarga_criar' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Registrar recarga</a>
+          {% endif %}
+        </div>
+
+        {% if saldos %}
+          <div class="pcf-scroll-x">
+            <table class="pcf-table ct-table-saldo">
+              <thead>
+                <tr>
+                  <th scope="col">Cartão / conta</th>
+                  <th scope="col">Com quem está</th>
+                  <th scope="col" class="num">Recarregado</th>
+                  <th scope="col" class="num">Gasto</th>
+                  <th scope="col" class="num">Saldo atual</th>
+                  <th scope="col">Situação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for linha in saldos %}
+                  <tr{% if linha.negativo %} class="ct-linha-neg"{% endif %}>
+                    <th scope="row">
+                      <span class="ct-nome">{{ linha.conta.nome }}</span>
+                      <span class="ct-meta">{{ linha.conta.get_tipo_display }}{% if not linha.conta.ativo %} · conta inativa{% endif %}</span>
+                    </th>
+                    <td>
+                      {% if linha.conta.responsavel %}
+                        {{ linha.conta.responsavel.get_full_name|default:linha.conta.responsavel.username }}
+                      {% else %}
+                        <span class="ct-vazio">Ninguém definido</span>
+                      {% endif %}
+                    </td>
+                    <td class="num"><span class="ct-valor">R$ {{ linha.recarregado|floatformat:2 }}</span></td>
+                    <td class="num"><span class="ct-valor">R$ {{ linha.gasto|floatformat:2 }}</span></td>
+                    <td class="num">
+                      <span class="{% if linha.negativo %}ct-saldo-neg{% elif linha.saldo %}ct-saldo-pos{% else %}ct-saldo-zero{% endif %}">R$ {{ linha.saldo|floatformat:2 }}</span>
+                    </td>
+                    <td>
+                      {% if linha.negativo %}
+                        <span class="pcf-badge danger"><span class="dot" aria-hidden="true"></span>No vermelho</span>
+                      {% elif linha.saldo %}
+                        <span class="pcf-badge ok">Com saldo</span>
+                      {% else %}
+                        <span class="pcf-badge warn">Zerado</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="2">Total das contas com saldo controlado</td>
+                  <td class="num">R$ {{ total_recarregado|floatformat:2 }}</td>
+                  <td class="num">R$ {{ total_gasto|floatformat:2 }}</td>
+                  <td class="num">R$ {{ total_saldo|floatformat:2 }}</td>
+                  <td>{{ saldos|length }} conta{{ saldos|length|pluralize }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        {% else %}
+          <div class="ct-empty">
+            <span class="pcf-icon-tile lg" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </span>
+            <p class="ct-empty-title">Nenhuma conta controlando saldo</p>
+            <p class="ct-empty-sub">
+              Para ver recarregado, gasto e saldo de um cartão pré-pago (o Caju, por exemplo),
+              abra a conta na lista abaixo e ligue &ldquo;controlar saldo desta conta&rdquo;.
+              {% if not user.is_superuser and user.area != 'ADM/FIN' %}Quem faz isso é a ADM/Fin.{% endif %}
+            </p>
+          </div>
+        {% endif %}
+      </section>
+
+      <!-- ══════ Todas as contas cadastradas ══════ -->
+      <section class="pcf-card" style="padding:0;overflow:hidden" data-reveal data-reveal-delay="120">
+        <div class="ct-card-head">
+          <div>
+            <h2 class="ct-card-title">Todas as contas</h2>
+            <p class="ct-card-sub">
+              É esta lista que aparece na hora de dizer de onde saiu — ou para onde entrou — o dinheiro de cada lançamento.
+            </p>
+          </div>
+        </div>
+
+        <div class="pcf-scroll-x">
+          <table class="pcf-table ct-table-contas">
+            <thead>
+              <tr>
+                <th scope="col">Conta</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Com quem está</th>
+                <th scope="col">Controla saldo</th>
+                <th scope="col">Situação</th>
+                {% if user.is_superuser or user.area == 'ADM/FIN' %}<th scope="col">Ação</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for conta in contas %}
+                <tr>
+                  <th scope="row">
+                    <span class="ct-nome">{{ conta.nome }}</span>
+                    {% if conta.observacao %}<span class="ct-meta">{{ conta.observacao }}</span>{% endif %}
+                  </th>
+                  <td>
+                    <span class="pcf-badge {% if conta.tipo == 'CARTAO' %}brand{% elif conta.tipo == 'BANCO' %}info{% else %}warn{% endif %}">{{ conta.get_tipo_display }}</span>
+                  </td>
+                  <td>
+                    {% if conta.responsavel %}
+                      {{ conta.responsavel.get_full_name|default:conta.responsavel.username }}
+                    {% else %}
+                      <span class="ct-vazio">Ninguém definido</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if conta.controla_saldo %}
+                      <span class="pcf-badge outline ok">Sim, mostra saldo</span>
+                    {% else %}
+                      <span class="pcf-badge outline">Não</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if conta.ativo %}
+                      <span class="pcf-badge ok">Ativa</span>
+                    {% else %}
+                      <span class="pcf-badge warn">Inativa</span>
+                    {% endif %}
+                  </td>
+                  {% if user.is_superuser or user.area == 'ADM/FIN' %}
+                    <td><a href="{% url 'adm:conta_editar' conta.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Editar</a></td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    {% else %}
+      <!-- ══════ Estado vazio: nada cadastrado ainda ══════ -->
+      <section class="pcf-card" data-reveal>
+        <div class="ct-empty">
+          <span class="pcf-icon-tile lg" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>
+          </span>
+          <p class="ct-empty-title">Nenhuma conta cadastrada ainda</p>
+          <p class="ct-empty-sub">
+            Cadastre o BB, o Mercado Pago, o Caju e o dinheiro físico. A partir daí cada entrada
+            e cada saída pode dizer de onde o dinheiro veio ou para onde foi, e os cartões
+            pré-pagos passam a mostrar saldo.
+          </p>
+          {% if user.is_superuser or user.area == 'ADM/FIN' %}
+            <a href="{% url 'adm:conta_criar' %}" class="pcf-btn pcf-btn-primary" style="margin-top:.4rem">Cadastrar a primeira conta</a>
+          {% else %}
+            <p class="ct-empty-sub">Quem cadastra conta é a ADM/Fin — peça a eles.</p>
+          {% endif %}
+        </div>
+      </section>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

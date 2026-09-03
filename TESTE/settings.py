@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     'revista',
     'editais',
     'projetos',
+    'acervo',
+    'estudio',
     'notificacoes',
 ]
 
@@ -81,7 +83,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'atendido.novos_context.atendidos_filtrados'
+                'atendido.novos_context.atendidos_filtrados',
+                'TESTE.versao_estatica.versao_estatica',
             ],
         },
     },

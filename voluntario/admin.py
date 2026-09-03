@@ -268,10 +268,23 @@ class OcorrenciaAdmin(admin.ModelAdmin):
 
 @admin.register(HistoricoLideranca)
 class HistoricoLiderancaAdmin(admin.ModelAdmin):
-    list_display = ['voluntario', 'cargo', 'area', 'data_inicio', 'data_fim', 'atual']
+    # `de_quem` e não `voluntario`: quem não tem ficha apareceria como "None" na
+    # listagem, e é justamente esse o caso que o campo `nome_avulso` atende.
+    list_display = ['de_quem', 'cargo', 'area', 'data_inicio', 'data_fim', 'atual']
     list_filter = ['area']
-    search_fields = ['voluntario__first_name', 'voluntario__last_name', 'cargo']
+    search_fields = ['voluntario__first_name', 'voluntario__last_name',
+                     'nome_avulso', 'cargo']
     autocomplete_fields = ['voluntario']
+    fieldsets = (
+        ('Quem liderou', {
+            'fields': ('voluntario', 'nome_avulso', 'foto'),
+            'description': 'Escolha a ficha OU digite o nome. Boa parte de quem '
+                           'liderou saiu antes de existir site e não tem login — '
+                           'para essas pessoas, use nome e foto.',
+        }),
+        ('O cargo', {'fields': ('cargo', 'area', 'data_inicio', 'data_fim')}),
+        ('A passagem', {'fields': ('descricao',)}),
+    )
 
     @admin.display(boolean=True, description='Atual')
     def atual(self, obj):

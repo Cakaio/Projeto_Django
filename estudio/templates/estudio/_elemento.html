@@ -1,0 +1,28 @@
+{% comment %}
+  Um elemento da página. Compartilhado por editor, visualização e impressão —
+  se cada tela desenhasse do seu jeito, o que se vê no editor não seria o que
+  sai no PDF.
+
+  `css_de_caixa` e `css_de_estilo` vêm do modelo já conferidos valor por valor.
+  O texto sai pelo escape normal do Django: elemento guarda TEXTO PURO, nunca
+  HTML, então não há `|safe` em lugar nenhum aqui.
+
+  O editor não lê estilo de atributo `data-`: o estado completo vai numa única
+  tag `json_script` na tela do editor, e o JS casa pelo `data-el`.
+{% endcomment %}
+<div class="est-el est-el-{{ el.tipo|lower }}"
+     style="{{ el.css_de_caixa }}"
+     data-el="{{ el.pk }}"
+     data-tipo="{{ el.tipo }}"
+     {% if el.travado %}data-travado="1"{% endif %}>
+  {% if el.tipo == 'TEXTO' %}
+    <div class="est-texto" style="{{ el.css_de_estilo }}">{{ el.texto }}</div>
+  {% elif el.tipo == 'IMAGEM' %}
+    {% if el.imagem %}
+      <img class="est-img" src="{{ el.imagem.arquivo.url }}"
+           alt="{{ el.imagem.nome }}" style="{{ el.css_de_estilo }}">
+    {% endif %}
+  {% else %}
+    <div class="est-forma" style="{{ el.css_de_estilo }}"></div>
+  {% endif %}
+</div>

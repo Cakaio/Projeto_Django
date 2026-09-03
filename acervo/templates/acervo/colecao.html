@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ colecao.nome }} — Acervo{% endblock %}
+
+{% block content %}
+{% comment %}
+  Layout desta tela (prefixo .acc-). O visual base vem das classes .pcf-*.
+  Contexto: colecao, documentos, anos, q, ano, resultado, resultados, pode_mexer.
+
+  A tabela precisa de min-width própria além do .pcf-scroll-x: sem ela as
+  colunas se esmagam em vez de rolar.
+{% endcomment %}
+<style>
+  .acc-wrap { padding-block: clamp(2rem, 5vw, 3.25rem) clamp(2.5rem, 6vw, 4rem); }
+  .acc-volta { display: inline-flex; align-items: center; gap: .35rem; font-size: .84rem; font-weight: 650;
+               color: var(--ink-muted); text-decoration: none; margin-bottom: .9rem; }
+  .acc-volta:hover { color: var(--brand); }
+
+  .acc-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .acc-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+  .acc-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; font-size: clamp(1.6rem, 3.2vw, 2.2rem); color: var(--ink); }
+  .acc-sub { margin: 0; max-width: 62ch; font-size: .9rem; line-height: 1.55; color: hsl(var(--muted-foreground)); }
+
+  .acc-filtros { display: flex; gap: .6rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1.25rem; }
+  .acc-campo { display: flex; flex-direction: column; gap: .3rem; min-width: 9rem; }
+  .acc-campo label { font-size: .74rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .acc-campo.cresce { flex: 1; min-width: 12rem; }
+  .acc-filtros-botoes { display: flex; gap: .45rem; }
+
+  .acc-tabela { width: 100%; min-width: 52rem; border-collapse: collapse; }
+  .acc-tabela th { text-align: left; font-size: .74rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+                   color: hsl(var(--muted-foreground)); padding: .5rem .7rem; border-bottom: 1px solid hsl(var(--border)); white-space: nowrap; }
+  .acc-tabela td { padding: .7rem; border-bottom: 1px solid #f6ece5; font-size: .88rem; vertical-align: top; }
+  .acc-tabela tbody tr:hover { background: #fffaf6; }
+  .acc-doc-titulo { font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+  .acc-doc-desc { margin: .2rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--ink-soft); }
+  .acc-ano { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .acc-selo { display: inline-flex; align-items: center; gap: .3rem; font-size: .72rem; font-weight: 750;
+              padding: .15rem .45rem; border-radius: 6px; background: #f2f0ee; color: #5b5350; }
+  .acc-acoes-linha { display: flex; gap: .35rem; flex-wrap: wrap; }
+
+  .acc-empty { display: flex; flex-direction: column; align-items: center; gap: .6rem; text-align: center;
+               padding: clamp(2.5rem, 6vw, 4rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
+  .acc-empty-icon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 16px; background: #fff0e6; color: #e8560f; }
+  .acc-empty-title { margin: .4rem 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .acc-empty-sub { margin: 0; max-width: 46ch; font-size: .88rem; color: var(--ink-muted); }
+
+  @media (max-width: 560px) {
+    .acc-filtros-botoes { width: 100%; }
+    .acc-filtros-botoes .pcf-btn { flex: 1; justify-content: center; }
+  }
+</style>
+
+<div class="pcf-container acc-wrap">
+
+  <a class="acc-volta" href="{% url 'acervo:lista' %}">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+    Acervo
+  </a>
+
+  <header class="acc-head" data-reveal>
+    <div class="acc-head-text">
+      <span class="pcf-eyebrow">Coleção</span>
+      <h1 class="acc-title">{{ colecao.nome }}</h1>
+      {% if colecao.descricao %}
+        <p class="acc-sub">{{ colecao.descricao }}</p>
+      {% endif %}
+    </div>
+    {% if pode_mexer %}
+      <div class="acc-filtros-botoes">
+        <a href="{% url 'acervo:documento_criar' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo documento
+        </a>
+        <a href="{% url 'acervo:colecao_editar' colecao.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Editar coleção</a>
+      </div>
+    {% endif %}
+  </header>
+
+  <form method="get" class="acc-filtros" data-reveal>
+    <div class="acc-campo cresce">
+      <label for="acc-q">Buscar</label>
+      <input type="search" id="acc-q" name="q" value="{{ q }}" class="pcf-input"
+             placeholder="Título, nome, cargo, descrição…">
+    </div>
+    <div class="acc-campo">
+      <label for="acc-ano">Ano</label>
+      <select id="acc-ano" name="ano" class="pcf-input">
+        <option value="">Todos</option>
+        {% for a in anos %}
+          <option value="{{ a }}" {% if ano == a|stringformat:"s" %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="acc-campo">
+      <label for="acc-resultado">Resultado</label>
+      <select id="acc-resultado" name="resultado" class="pcf-input">
+        <option value="">Todos</option>
+        {% for valor, rotulo in resultados %}
+          <option value="{{ valor }}" {% if resultado == valor %}selected{% endif %}>{{ rotulo }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="acc-filtros-botoes">
+      <button type="submit" class="pcf-btn pcf-btn-outline">Filtrar</button>
+      {% if q or ano or resultado %}
+        <a href="{% url 'acervo:colecao' colecao.slug %}" class="pcf-btn pcf-btn-ghost">Limpar</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if documentos %}
+    <div class="pcf-card" data-reveal>
+      <div class="pcf-scroll-x">
+        <table class="acc-tabela">
+          <thead>
+            <tr>
+              <th scope="col">Documento</th>
+              <th scope="col">Ano</th>
+              <th scope="col">De quem</th>
+              <th scope="col">Cargo</th>
+              <th scope="col">Resultado</th>
+              <th scope="col">Arquivo</th>
+              {% if pode_mexer %}<th scope="col">Ações</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in documentos %}
+              <tr>
+                <td>
+                  <div class="acc-doc-titulo">{{ d.titulo }}</div>
+                  {% if d.descricao %}<p class="acc-doc-desc">{{ d.descricao|truncatechars:130 }}</p>{% endif %}
+                </td>
+                <td class="acc-ano">{{ d.ano }}</td>
+                <td>{{ d.de_quem }}</td>
+                <td>{{ d.cargo_pretendido|default:"—" }}</td>
+                <td>
+                  {% if d.resultado == 'ELEITO' %}
+                    <span class="pcf-badge ok"><span class="dot" aria-hidden="true"></span>Eleito</span>
+                  {% elif d.resultado == 'NAO_ELEITO' %}
+                    <span class="pcf-badge outline">Não eleito</span>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                <td>
+                  {% if d.arquivo %}
+                    <a class="pcf-btn pcf-btn-outline pcf-btn-sm" href="{{ d.arquivo.url }}"
+                       target="_blank" rel="noopener noreferrer">
+                      <span class="acc-selo">{{ d.extensao }}</span>
+                      Abrir
+                    </a>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+                {% if pode_mexer %}
+                  <td>
+                    <div class="acc-acoes-linha">
+                      <a href="{% url 'acervo:documento_editar' d.pk %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Editar</a>
+                      <a href="{% url 'acervo:documento_deletar' d.pk %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Apagar</a>
+                    </div>
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="acc-empty">
+      <div class="acc-empty-icon">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </div>
+      {% if q or ano or resultado %}
+        <p class="acc-empty-title">Nenhum documento com esses filtros</p>
+        <p class="acc-empty-sub">Tente outra palavra, outro ano ou limpe os filtros.</p>
+      {% else %}
+        <p class="acc-empty-title">Esta coleção ainda está vazia</p>
+        <p class="acc-empty-sub">
+          {% if pode_mexer %}Cadastre o primeiro documento.{% else %}A Tríade ainda não subiu nada aqui.{% endif %}
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

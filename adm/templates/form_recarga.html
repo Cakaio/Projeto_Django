@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .frc-). #}
+{# O visual base vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .frc-page { background: hsl(var(--background)); }
+  .frc-wrap { max-width: 720px; padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+
+  /* ── Aviso "recarga não é despesa" ── */
+  /* Aparece também no formulário: é aqui que a pessoa hesita entre lançar a
+     recarga como saída e registrá-la como recarga. */
+  .frc-aviso { display: flex; gap: .9rem; align-items: flex-start;
+               background: hsl(var(--accent)); border: 1px solid hsl(var(--border));
+               border-radius: 16px; padding: 1.05rem 1.15rem; margin-bottom: 1.15rem; }
+  .frc-aviso-texto { min-width: 0; }
+  .frc-aviso-titulo { margin: 0 0 .25rem; font-size: .95rem; font-weight: 800; color: var(--ink); }
+  .frc-aviso-sub { margin: 0; font-size: .85rem; line-height: 1.55; color: var(--ink-soft); }
+
+  /* ── Campos ── */
+  .frc-grid { display: grid; grid-template-columns: 1fr; gap: 1.05rem; }
+  .frc-col-2 { grid-column: 1 / -1; }
+  .frc-ajuda { margin: 0; font-size: .78rem; line-height: 1.5; color: hsl(var(--muted-foreground)); }
+  .frc-erro { margin: 0; font-size: .78rem; font-weight: 650; color: #b03636; }
+  .frc-erro-geral { display: flex; flex-direction: column; gap: .3rem;
+                    background: #fdeaea; border: 1px solid #f7d4d4; border-radius: 14px;
+                    padding: .85rem 1rem; margin-bottom: 1.15rem; }
+  .frc-erro-geral p { margin: 0; font-size: .85rem; font-weight: 650; color: #b03636; }
+
+  /* Select/date/number nascem com .pcf-input pelo forms.py; só a largura falta. */
+  .frc-grid select.pcf-input, .frc-grid input.pcf-input { width: 100%; }
+
+  /* ── Ações ── */
+  .frc-acoes { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.4rem; }
+
+  /* ── Resumo de quem está sendo editado ── */
+  .frc-editando { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+                  font-size: .84rem; color: var(--ink-soft); margin-bottom: 1.15rem; }
+
+  @media (min-width: 620px) { .frc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) {
+    .frc-aviso { flex-direction: column; gap: .6rem; }
+    .frc-acoes { flex-direction: column; }
+    .frc-acoes .pcf-btn { width: 100%; }
+  }
+</style>
+
+<div class="frc-page">
+  <div class="pcf-container frc-wrap">
+
+    <!-- ══════ Cabeçalho ══════ -->
+    <header class="pcf-page-head" data-reveal>
+      <div>
+        <span class="pcf-eyebrow">Financeiro · Recargas de cartão</span>
+        <h1 class="pcf-page-title" style="margin-top:.7rem">{{ titulo }}</h1>
+        <p class="pcf-page-sub">
+          {% if objeto %}
+            Corrija os dados desta recarga. O saldo do cartão é recalculado sozinho.
+          {% else %}
+            Registre uma carga feita num cartão. Sem esse registro, o saldo do cartão fica menor do que o real.
+          {% endif %}
+        </p>
+      </div>
+      <a href="{% url 'adm:recargas' %}" class="pcf-btn pcf-btn-ghost">Voltar às recargas</a>
+    </header>
+
+    {% if objeto %}
+      <p class="frc-editando" data-reveal>
+        <span class="pcf-badge info">Editando</span>
+        {{ objeto.conta.nome }} — R$ {{ objeto.valor|floatformat:2 }} em {{ objeto.data|date:"d/m/Y" }}
+      </p>
+    {% endif %}
+
+    <!-- ══════ Recarga não é despesa ══════ -->
+    <div class="frc-aviso" data-reveal>
+      <span class="pcf-icon-tile" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      </span>
+      <div class="frc-aviso-texto">
+        <p class="frc-aviso-titulo">Isto não é um lançamento de despesa</p>
+        <p class="frc-aviso-sub">
+          Recarga é transferência entre contas: o dinheiro só mudou de lugar.
+          Nada daqui entra no fluxo de caixa nem no DRE — <strong>não lance a recarga também como saída</strong>,
+          senão o mesmo real conta duas vezes. A despesa é registrada depois, quando o cartão for usado.
+        </p>
+      </div>
+    </div>
+
+    <!-- ══════ Formulário ══════ -->
+    <section class="pcf-card" data-reveal data-reveal-delay="60">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="frc-erro-geral" role="alert">
+            {% for erro in form.non_field_errors %}<p>{{ erro }}</p>{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="frc-grid">
+
+          <div class="pcf-field frc-col-2">
+            <label class="pcf-label" for="{{ form.conta.id_for_label }}">{{ form.conta.label }}</label>
+            {{ form.conta }}
+            {% if form.conta.help_text %}<p class="frc-ajuda">{{ form.conta.help_text }}</p>{% endif %}
+            {% if form.conta.errors %}<p class="frc-erro">{{ form.conta.errors|join:" " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.data.id_for_label }}">{{ form.data.label }}</label>
+            {{ form.data }}
+            <p class="frc-ajuda">O dia em que o dinheiro entrou no cartão.</p>
+            {% if form.data.errors %}<p class="frc-erro">{{ form.data.errors|join:" " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.valor.id_for_label }}">{{ form.valor.label }}</label>
+            {{ form.valor }}
+            <p class="frc-ajuda">Quanto foi carregado, em reais.</p>
+            {% if form.valor.errors %}<p class="frc-erro">{{ form.valor.errors|join:" " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.area.id_for_label }}">Para qual área foi</label>
+            {{ form.area }}
+            <p class="frc-ajuda">Opcional, mas é o que permite saber qual área consumiu o cartão.</p>
+            {% if form.area.errors %}<p class="frc-erro">{{ form.area.errors|join:" " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field">
+            <label class="pcf-label" for="{{ form.carregado_por.id_for_label }}">{{ form.carregado_por.label }}</label>
+            {{ form.carregado_por }}
+            <p class="frc-ajuda">Se ficar em branco, entra quem está salvando esta tela.</p>
+            {% if form.carregado_por.errors %}<p class="frc-erro">{{ form.carregado_por.errors|join:" " }}</p>{% endif %}
+          </div>
+
+          <div class="pcf-field frc-col-2">
+            <label class="pcf-label" for="{{ form.motivo.id_for_label }}">{{ form.motivo.label }}</label>
+            {{ form.motivo }}
+            <p class="frc-ajuda">Por que o cartão foi carregado. Ajuda a conferir depois: “compras do sábado 12/04”, “festa junina”.</p>
+            {% if form.motivo.errors %}<p class="frc-erro">{{ form.motivo.errors|join:" " }}</p>{% endif %}
+          </div>
+
+        </div>
+
+        <div class="frc-acoes">
+          <button type="submit" class="pcf-btn pcf-btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            {% if objeto %}Salvar alterações{% else %}Registrar recarga{% endif %}
+          </button>
+          <a href="{% url 'adm:recargas' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+        </div>
+      </form>
+    </section>
+
+  </div>
+</div>
+{% endblock %}

@@ -173,39 +173,46 @@
 
     <!-- Grade -->
     {% if cfg.dia_de_evento %}
-    <p class="rd-none" style="margin-bottom:.75rem;">Cada local tem 4 pessoas fixas em 2 duplas. O revezamento 2×2 (30 em 30 min) é combinado entre elas no dia.</p>
+    <p class="rd-none" style="margin-bottom:.75rem;">Cada local tem 2 grupos fixos, no tamanho definido no cadastro do local (duplas, trios…). O revezamento (30 em 30 min) é combinado entre eles no dia.</p>
     <div style="display:flex;flex-direction:column;gap:.9rem;">
       {% for item in grade_evento %}
       <div class="pcf-card">
         <div class="rd-local">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8560f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           <span class="rd-local-nome">{{ item.local.nome|default:"— sem local —" }}</span>
+          <span class="pcf-badge">2 × {{ item.rotulo|lower }}</span>
         </div>
         <div class="grid sm:grid-cols-2 gap-3" style="display:grid;gap:.75rem;">
+          {% for grupo in item.grupos %}
           <div class="rd-sub-box">
-            <div class="rd-dupla-lbl">Dupla 1</div>
+            <div class="rd-dupla-lbl">{{ item.rotulo }} {{ grupo.numero }}</div>
             <div class="rd-pills">
-              {% for escala in item.dupla1 %}
+              {% for escala in grupo.escalas %}
               <div class="rd-pill">
                 <span class="rd-pill-nome">{{ escala.voluntario.get_full_name }}</span>
                 <span class="rd-pill-pts">{{ scores|get_item:escala.voluntario_id|default:0 }} pt</span>
                 {% with u=ultima_ronda|get_item:escala.voluntario_id %}{% if u %}<span class="rd-pill-ult">últ. {{ u|date:"d/m" }}</span>{% else %}<span class="rd-pill-never">nunca fez</span>{% endif %}{% endwith %}
+                {% if escala.is_substituto %}<span class="rd-pill-sub">sub</span>{% endif %}
               </div>
               {% empty %}<span class="rd-none">—</span>{% endfor %}
             </div>
+
+            {% if cfg.status == 'SORTEADA' %}
+            {% for escala in grupo.escalas %}
+            <form method="post" action="{% url 'ronda:escala_swap' escala.pk %}" class="rd-swap">{% csrf_token %}
+              <label for="swap-{{ escala.pk }}" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Trocar {{ escala.voluntario.get_full_name }} por outro voluntário</label>
+              <select id="swap-{{ escala.pk }}" name="voluntario_novo_pk">
+                <option value="">↔ Trocar {{ escala.voluntario.get_full_name }} por…</option>
+                {% for vol in elegiveis %}{% if vol != escala.voluntario %}
+                <option value="{{ vol.pk }}">{{ vol.get_full_name }} ({{ scores|get_item:vol.pk|default:0 }}pt)</option>
+                {% endif %}{% endfor %}
+              </select>
+              <button type="submit" class="pcf-btn pcf-btn-outline pcf-btn-sm">Trocar</button>
+            </form>
+            {% endfor %}
+            {% endif %}
           </div>
-          <div class="rd-sub-box">
-            <div class="rd-dupla-lbl">Dupla 2</div>
-            <div class="rd-pills">
-              {% for escala in item.dupla2 %}
-              <div class="rd-pill">
-                <span class="rd-pill-nome">{{ escala.voluntario.get_full_name }}</span>
-                <span class="rd-pill-pts">{{ scores|get_item:escala.voluntario_id|default:0 }} pt</span>
-                {% with u=ultima_ronda|get_item:escala.voluntario_id %}{% if u %}<span class="rd-pill-ult">últ. {{ u|date:"d/m" }}</span>{% else %}<span class="rd-pill-never">nunca fez</span>{% endif %}{% endwith %}
-              </div>
-              {% empty %}<span class="rd-none">—</span>{% endfor %}
-            </div>
-          </div>
+          {% endfor %}
         </div>
       </div>
       {% empty %}

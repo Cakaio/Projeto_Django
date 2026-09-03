@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+{% block titulo %}Reembolsos — Financeiro{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .rbs-). #}
+{# O visual base vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .rbs-page { background: hsl(var(--background)); }
+  .rbs-wrap { padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+  .rbs-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  /* ── KPIs: 1 coluna no celular, 2 no tablet, 4 no desktop ── */
+  .rbs-kpis { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.15rem; }
+
+  /* ── Contadores por situação: cada um também é o filtro da lista ── */
+  .rbs-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.15rem; }
+  .rbs-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .4rem .75rem; border-radius: 999px;
+              border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: var(--ink-soft);
+              font-size: .8rem; font-weight: 650; text-decoration: none; line-height: 1.25;
+              transition: border-color .15s, background .15s, color .15s; }
+  .rbs-chip:hover { border-color: #e8d5c6; background: #fffaf6; color: var(--ink); text-decoration: none; }
+  .rbs-chip.is-active { background: hsl(var(--accent)); border-color: #fbe3d3; color: #c9490a; }
+  .rbs-chip b { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  /* ── Cabeçalho do card da lista ── */
+  .rbs-card-head { display: flex; align-items: flex-start; justify-content: space-between;
+                   gap: .75rem; flex-wrap: wrap; padding: 1.15rem 1.15rem .95rem; }
+  .rbs-card-title { margin: 0; font-size: 1.02rem; font-weight: 750; letter-spacing: -.02em; color: var(--ink); }
+  .rbs-card-sub { margin: .2rem 0 0; max-width: 62ch; font-size: .82rem; color: hsl(var(--muted-foreground)); }
+
+  /* ── Tabela ── */
+  /* min-width própria: sem ela as colunas espremem no celular e o nome do
+     solicitante vira torre de letras. Melhor rolar de lado dentro do card. */
+  .rbs-table { min-width: 940px; }
+  /* A lista de pagos tem três colunas a mais (conta, data e comprovante do
+     pagamento), por isso precisa de mais largura antes de rolar. */
+  .rbs-table.is-pago { min-width: 1180px; }
+  .rbs-table th, .rbs-table td { vertical-align: top; }
+  .rbs-quem { font-weight: 700; color: var(--ink); }
+  .rbs-desc { display: block; margin-top: .3rem; max-width: 34ch; font-size: .74rem; line-height: 1.45;
+              color: hsl(var(--muted-foreground)); }
+  .rbs-valor { font-weight: 800; color: var(--ink); white-space: nowrap; }
+  .rbs-data { white-space: nowrap; font-weight: 650; color: var(--ink); }
+  .rbs-nota { display: block; margin-top: .3rem; font-size: .73rem; line-height: 1.4;
+              color: hsl(var(--muted-foreground)); }
+  .rbs-dim { color: hsl(var(--muted-foreground)); }
+  .rbs-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .rbs-table tfoot td { border-top: 1.5px solid hsl(var(--border)); border-bottom: 0;
+                        background: hsl(var(--muted)); font-weight: 800; color: var(--ink); }
+
+  /* ── Estado vazio ── */
+  .rbs-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .5rem;
+               padding: clamp(2.25rem, 6vw, 3.25rem) 1.25rem; }
+  .rbs-empty-title { margin: .35rem 0 0; font-size: 1.02rem; font-weight: 800; color: var(--ink); }
+  .rbs-empty-sub { margin: 0; max-width: 46ch; font-size: .86rem; color: hsl(var(--muted-foreground)); }
+  .rbs-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-top: .5rem; }
+
+  @media (min-width: 560px) { .rbs-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (min-width: 1000px) { .rbs-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (max-width: 560px) {
+    .rbs-actions { width: 100%; }
+    .rbs-actions .pcf-btn { flex: 1 1 100%; justify-content: center; }
+  }
+</style>
+
+<div class="rbs-page">
+  <div class="pcf-container rbs-wrap">
+
+    <!-- ══════ Cabeçalho ══════ -->
+    <header class="pcf-page-head" data-reveal>
+      <div>
+        <span class="pcf-eyebrow">Financeiro</span>
+        <h1 class="pcf-page-title" style="margin-top:.7rem">Reembolsos</h1>
+        <p class="pcf-page-sub">
+          Quem já recebeu o dinheiro de volta e quem ainda está esperando. Reembolso aprovado só sai
+          desta fila quando o pagamento é registrado com comprovante e conta.
+        </p>
+      </div>
+      <div class="rbs-actions">
+        {% comment %} A view abre para ADM/FIN e TRIADE, mas aprovar e pagar são só de ADM/FIN:
+           mostrar o botão para quem levaria um 403 ao clicar seria promessa falsa. {% endcomment %}
+        {% if user.is_superuser or user.area == 'ADM/FIN' %}
+          <a href="{% url 'forms_pcf:reembolso_inbox' %}" class="pcf-btn pcf-btn-outline">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            Aprovar pedidos
+          </a>
+        {% endif %}
+        <a href="{% url 'adm:painel' %}" class="pcf-btn pcf-btn-ghost">Voltar ao Financeiro</a>
+      </div>
+    </header>
+
+    <!-- ══════ Números do topo ══════ -->
+    <div class="rbs-kpis" data-reveal>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Aguardando pagamento</span>
+            <span class="pcf-icon-tile tint-gold" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ contagem_aprovado }}</div>
+          <div class="pcf-kpi-foot">
+            reembolso{{ contagem_aprovado|pluralize }} aprovado{{ contagem_aprovado|pluralize }} com o dinheiro ainda no caixa
+          </div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Dinheiro a pagar</span>
+            <span class="pcf-icon-tile tint-orange" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">R$ {{ total_a_pagar|floatformat:2 }}</div>
+          <div class="pcf-kpi-foot">soma dos aprovados que estão na fila</div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Já pagos</span>
+            <span class="pcf-icon-tile tint-green" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">{{ contagem_pago }}</div>
+          <div class="pcf-kpi-foot">
+            <a href="?status=PAGO" style="color:var(--brand);font-weight:650;text-decoration:none">Ver os pagos →</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="pcf-tile pcf-hoverable">
+        <div class="pcf-kpi">
+          <div class="pcf-kpi-top">
+            <span class="pcf-kpi-label">Total desta lista</span>
+            <span class="pcf-icon-tile tint-blue" style="width:32px;height:32px;border-radius:9px" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </span>
+          </div>
+          <div class="pcf-kpi-value pcf-num">R$ {{ total_do_filtro|floatformat:2 }}</div>
+          <div class="pcf-kpi-foot">soma do que está na tela com o filtro de agora</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══════ Filtro por situação (clicar troca a lista) ══════ -->
+    <nav class="rbs-chips" aria-label="Filtrar reembolsos por situação" data-reveal>
+      <a class="rbs-chip {% if status_ativo == 'APROVADO' %}is-active{% endif %}" href="?status=APROVADO">
+        Aguardando pagamento <b>{{ contagem_aprovado }}</b>
+      </a>
+      <a class="rbs-chip {% if status_ativo == 'PAGO' %}is-active{% endif %}" href="?status=PAGO">
+        Já pagos <b>{{ contagem_pago }}</b>
+      </a>
+      <a class="rbs-chip {% if status_ativo == 'PENDENTE' %}is-active{% endif %}" href="?status=PENDENTE">
+        Esperando aprovação <b>{{ contagem_pendente }}</b>
+      </a>
+      <a class="rbs-chip {% if status_ativo == 'REJEITADO' %}is-active{% endif %}" href="?status=REJEITADO">
+        Rejeitados <b>{{ contagem_rejeitado }}</b>
+      </a>
+    </nav>
+
+    <!-- ══════ Lista ══════ -->
+    <section class="pcf-card pcf-tile-pad-0" data-reveal data-reveal-delay="60">
+      <div class="rbs-card-head">
+        <div>
+          <h2 class="rbs-card-title">
+            {% if status_ativo == 'PAGO' %}Reembolsos já pagos
+            {% elif status_ativo == 'PENDENTE' %}Pedidos esperando aprovação
+            {% elif status_ativo == 'REJEITADO' %}Pedidos rejeitados
+            {% else %}Aguardando pagamento{% endif %}
+          </h2>
+          <p class="rbs-card-sub">
+            {% if status_ativo == 'PAGO' %}
+              O que já saiu do caixa: de qual conta saiu, em que dia e com qual comprovante de pagamento.
+            {% elif status_ativo == 'PENDENTE' %}
+              Ainda não foram decididos. A aprovação acontece na caixa de reembolsos; só depois dela o pagamento fica liberado.
+            {% elif status_ativo == 'REJEITADO' %}
+              Pedidos que não foram aprovados. Ficam registrados aqui, mas não geram pagamento nenhum.
+            {% else %}
+              Aprovados, com o dinheiro ainda no caixa. Cada linha traz o comprovante do gasto que o voluntário enviou.
+            {% endif %}
+          </p>
+        </div>
+        <span class="pcf-badge outline">{{ pedidos|length }} na lista</span>
+      </div>
+
+      {% if pedidos %}
+        <div class="pcf-scroll-x">
+          <table class="pcf-table rbs-table {% if status_ativo == 'PAGO' %}is-pago{% endif %}">
+            <thead>
+              <tr>
+                <th scope="col">Solicitante</th>
+                <th scope="col" class="num">Valor</th>
+                <th scope="col">Data do gasto</th>
+                <th scope="col">Área ou evento</th>
+                <th scope="col">Comprovante do gasto</th>
+                {% if status_ativo == 'PAGO' %}
+                  <th scope="col">Saiu de qual conta</th>
+                  <th scope="col">Data do pagamento</th>
+                  <th scope="col">Comprovante do pagamento</th>
+                {% endif %}
+                <th scope="col">Situação</th>
+                {% if status_ativo == 'APROVADO' %}
+                  <th scope="col">Ação</th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for pedido in pedidos %}
+                <tr>
+                  <!-- Solicitante -->
+                  <td>
+                    {% if pedido.solicitante %}
+                      <span class="rbs-quem">{{ pedido.solicitante.get_full_name|default:pedido.solicitante.username }}</span>
+                    {% else %}
+                      <span class="rbs-dim">Voluntário removido do sistema</span>
+                    {% endif %}
+                    <span class="rbs-desc">{{ pedido.descricao|truncatechars:120 }}</span>
+                  </td>
+
+                  <!-- Valor -->
+                  <td class="num"><span class="rbs-valor">R$ {{ pedido.valor|floatformat:2 }}</span></td>
+
+                  <!-- Data do gasto -->
+                  <td>
+                    <span class="rbs-data">{{ pedido.data_gasto|date:"d/m/Y" }}</span>
+                    <span class="rbs-nota">pedido feito em {{ pedido.criado_em|date:"d/m/Y" }}</span>
+                  </td>
+
+                  <!-- Área ou evento: é o que faz o gasto contar no teto certo -->
+                  <td>
+                    {% if pedido.evento %}
+                      <span class="pcf-badge brand">Evento: {{ pedido.evento.nome }}</span>
+                    {% elif pedido.area %}
+                      <span class="pcf-badge info">{{ pedido.get_area_display }}</span>
+                    {% else %}
+                      <span class="rbs-dim">Sem área nem evento</span>
+                      <span class="rbs-nota">escolha a área ao registrar o pagamento, senão o gasto não entra em teto nenhum</span>
+                    {% endif %}
+                    {% if pedido.categoria %}
+                      <span class="rbs-nota">categoria: {{ pedido.categoria.nome }}</span>
+                    {% endif %}
+                  </td>
+
+                  <!-- Comprovante do gasto: o arquivo que o voluntário enviou -->
+                  <td>
+                    {% if pedido.comprovante %}
+                      <a class="pcf-btn pcf-btn-outline pcf-btn-sm" href="{{ pedido.comprovante.url }}"
+                         target="_blank" rel="noopener noreferrer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        Ver gasto<span class="rbs-sr"> — comprovante enviado pelo solicitante, abre em nova aba</span>
+                      </a>
+                    {% else %}
+                      <span class="rbs-dim">Sem arquivo anexado</span>
+                    {% endif %}
+                  </td>
+
+                  {% if status_ativo == 'PAGO' %}
+                    <!-- De onde saiu o dinheiro -->
+                    <td>
+                      {% if pedido.conta_pagamento %}
+                        <span class="rbs-quem">{{ pedido.conta_pagamento.nome }}</span>
+                        <span class="rbs-nota">{{ pedido.conta_pagamento.get_tipo_display }}</span>
+                      {% else %}
+                        <span class="rbs-dim">Conta não registrada</span>
+                      {% endif %}
+                    </td>
+
+                    <!-- Quando e por quem -->
+                    <td>
+                      {% if pedido.pago_em %}
+                        <span class="rbs-data">{{ pedido.pago_em|date:"d/m/Y" }}</span>
+                      {% else %}
+                        <span class="rbs-dim">Data não registrada</span>
+                      {% endif %}
+                      {% if pedido.pago_por %}
+                        <span class="rbs-nota">por {{ pedido.pago_por.get_full_name|default:pedido.pago_por.username }}</span>
+                      {% endif %}
+                    </td>
+
+                    <!-- Comprovante do pagamento: o arquivo que a ADM anexou -->
+                    <td>
+                      {% if pedido.comprovante_pagamento %}
+                        <a class="pcf-btn pcf-btn-outline pcf-btn-sm" href="{{ pedido.comprovante_pagamento.url }}"
+                           target="_blank" rel="noopener noreferrer">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                          Ver pagamento<span class="rbs-sr"> — comprovante anexado pela ADM, abre em nova aba</span>
+                        </a>
+                      {% else %}
+                        <span class="rbs-dim">Sem comprovante de pagamento</span>
+                        <span class="rbs-nota">pagamento registrado antes deste campo existir</span>
+                      {% endif %}
+                    </td>
+                  {% endif %}
+
+                  <!-- Situação: badge sempre com texto, nunca só a cor -->
+                  <td>
+                    {% if pedido.status == 'PAGO' %}
+                      <span class="pcf-badge ok"><span class="dot" aria-hidden="true"></span>Pago</span>
+                    {% elif pedido.status == 'APROVADO' %}
+                      <span class="pcf-badge warn"><span class="dot" aria-hidden="true"></span>Aguardando pagamento</span>
+                    {% elif pedido.status == 'PENDENTE' %}
+                      <span class="pcf-badge info"><span class="dot" aria-hidden="true"></span>Esperando aprovação</span>
+                    {% else %}
+                      <span class="pcf-badge danger"><span class="dot" aria-hidden="true"></span>Rejeitado</span>
+                    {% endif %}
+                    {% if pedido.aprovado_por %}
+                      <span class="rbs-nota">aprovado por {{ pedido.aprovado_por.get_full_name|default:pedido.aprovado_por.username }}</span>
+                    {% endif %}
+                  </td>
+
+                  {% if status_ativo == 'APROVADO' %}
+                    <!-- Ação: registrar o pagamento -->
+                    <td>
+                      {% if user.is_superuser or user.area == 'ADM/FIN' %}
+                        <a class="pcf-btn pcf-btn-primary pcf-btn-sm" href="{% url 'adm:reembolso_pagar' pedido.pk %}">
+                          Marcar como pago<span class="rbs-sr"> o reembolso de R$ {{ pedido.valor|floatformat:2 }}</span>
+                        </a>
+                      {% else %}
+                        <span class="rbs-dim">Só a ADM/Fin registra pagamento</span>
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total desta lista</td>
+                <td class="num">R$ {{ total_do_filtro|floatformat:2 }}</td>
+                {% comment %} O colspan fecha o rodapé nas colunas que sobram depois de
+                   "Total desta lista" e do valor: a lista de pagos tem três colunas a
+                   mais e a de aprovados tem a coluna de ação. {% endcomment %}
+                <td colspan="{% if status_ativo == 'PAGO' %}7{% elif status_ativo == 'APROVADO' %}5{% else %}4{% endif %}">
+                  {{ pedidos|length }} reembolso{{ pedidos|length|pluralize }} nesta situação
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      {% else %}
+        <div class="rbs-empty">
+          <span class="pcf-icon-tile lg" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+          </span>
+
+          {% if status_ativo == 'PAGO' %}
+            <p class="rbs-empty-title">Nenhum reembolso pago até agora</p>
+            <p class="rbs-empty-sub">
+              A lista enche sozinha: abra “Aguardando pagamento”, registre o pagamento de um reembolso
+              com o comprovante e a conta, e ele passa a aparecer aqui.
+            </p>
+            <div class="rbs-empty-actions">
+              <a href="?status=APROVADO" class="pcf-btn pcf-btn-primary pcf-btn-sm">Ver quem está esperando</a>
+            </div>
+          {% elif status_ativo == 'PENDENTE' %}
+            <p class="rbs-empty-title">Nenhum pedido esperando aprovação</p>
+            <p class="rbs-empty-sub">
+              Tudo que chegou já foi decidido. Pedido novo aparece aqui assim que um voluntário envia
+              o formulário de reembolso.
+            </p>
+            <div class="rbs-empty-actions">
+              <a href="?status=APROVADO" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver aguardando pagamento</a>
+            </div>
+          {% elif status_ativo == 'REJEITADO' %}
+            <p class="rbs-empty-title">Nenhum pedido rejeitado</p>
+            <p class="rbs-empty-sub">
+              Nada foi recusado até agora. Se um pedido for rejeitado na caixa de reembolsos, ele fica
+              guardado aqui para consulta.
+            </p>
+            <div class="rbs-empty-actions">
+              <a href="?status=APROVADO" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver aguardando pagamento</a>
+            </div>
+          {% else %}
+            <p class="rbs-empty-title">Nenhum reembolso esperando pagamento</p>
+            <p class="rbs-empty-sub">
+              A fila está zerada: tudo que foi aprovado já foi pago. Um pedido só chega aqui depois de
+              a ADM aprovar na caixa de reembolsos.
+            </p>
+            <div class="rbs-empty-actions">
+              <a href="?status=PAGO" class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver os já pagos</a>
+              {% if user.is_superuser or user.area == 'ADM/FIN' %}
+                <a href="{% url 'forms_pcf:reembolso_inbox' %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Abrir caixa de pedidos</a>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    </section>
+
+  </div>
+</div>
+{% endblock %}

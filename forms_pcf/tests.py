@@ -127,6 +127,64 @@ class EnviarReembolsoViewTest(TestCase):
         call_kwargs = mock_mail.call_args
         self.assertIn('adm@pcf.org', call_kwargs[1].get('recipient_list', call_kwargs[0][3] if len(call_kwargs[0]) > 3 else []))
 
+    @patch('forms_pcf.views.send_mail')
+    def test_pedido_ja_nasce_com_a_area_de_quem_pediu(self, mock_mail):
+        """O formulário não pergunta a área — ela sai do solicitante.
+
+        Sem isso o pedido chegava na fila da ADM como "sem área nem evento", e
+        só era atribuído no pagamento: até lá ninguém sabia de qual teto aquele
+        dinheiro sairia.
+        """
+        arquivo = SimpleUploadedFile('comp.jpg', b'fake', content_type='image/jpeg')
+        self.client.post(reverse('forms_pcf:reembolso'), {
+            'valor': '30.00',
+            'descricao': 'Gasolina',
+            'data_gasto': timezone.now().date().isoformat(),
+            'categoria': self.cat.pk,
+            'comprovante': arquivo,
+        })
+        pedido = PedidoReembolso.objects.get()
+        self.assertEqual(pedido.area, 'MARKETING')
+
+    @patch('forms_pcf.views.send_mail')
+    def test_a_area_preenchida_sobrevive_ao_pagamento(self, mock_mail):
+        """O caso comum: gasto da própria área, ninguém precisa escolher nada.
+
+        Antes a ADM tinha que escolher a área na mão em todo pagamento, porque
+        o campo chegava vazio.
+        """
+        from adm.models import Conta
+        from forms_pcf.forms import PagamentoReembolsoForm
+
+        arquivo = SimpleUploadedFile('comp.jpg', b'fake', content_type='image/jpeg')
+        self.client.post(reverse('forms_pcf:reembolso'), {
+            'valor': '30.00',
+            'descricao': 'Gasolina',
+            'data_gasto': timezone.now().date().isoformat(),
+            'categoria': self.cat.pk,
+            'comprovante': arquivo,
+        })
+        pedido = PedidoReembolso.objects.get()
+
+        conta = Conta.objects.create(nome='Banco do Brasil')
+        form = PagamentoReembolsoForm(
+            data={
+                'conta_pagamento': conta.pk,
+                'pago_em': timezone.now().date().isoformat(),
+                # A área já vem preenchida no formulário; a ADM só confirma.
+                'area': pedido.area,
+                'evento': '',
+            },
+            files={'comprovante_pagamento': SimpleUploadedFile(
+                'pago.jpg', b'fake', content_type='image/jpeg')},
+            instance=pedido,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        pago = form.save()
+
+        self.assertEqual(pago.area, 'MARKETING')
+        self.assertIsNone(pago.evento)
+
     def test_sem_comprovante_nao_cria(self):
         resp = self.client.post(reverse('forms_pcf:reembolso'), {
             'valor': '10.00',
@@ -164,6 +222,65 @@ class AprovarReembolsoViewTest(TestCase):
         self.assertEqual(lan.origem, 'REEMBOLSO')
         self.assertEqual(lan.valor, Decimal('120.00'))
         self.assertEqual(lan.tipo, 'DESPESA')
+
+    def _pedido_de_outra_pessoa(self, email='vol@pcf.org'):
+        solicitante = User.objects.create_user(
+            username='vol_aprov', password='pw', area='RECREACAO', email=email,
+        )
+        return PedidoReembolso.objects.create(
+            solicitante=solicitante,
+            valor=Decimal('80.00'),
+            descricao='Tinta',
+            data_gasto=timezone.now().date(),
+            categoria=self.cat,
+            comprovante='reembolsos/fake.jpg',
+            status='PENDENTE',
+        )
+
+    def test_aprovacao_avisa_o_solicitante_por_email(self):
+        """Antes a pessoa não sabia da aprovação: só descobria pelo e-mail de
+        pagamento, dias depois, ou não descobria."""
+        from django.core import mail
+
+        pedido = self._pedido_de_outra_pessoa()
+        self.client.post(reverse('forms_pcf:reembolso_aprovar', args=[pedido.pk]))
+
+        self.assertEqual(len(mail.outbox), 1)
+        enviado = mail.outbox[0]
+        self.assertEqual(enviado.to, ['vol@pcf.org'])
+        self.assertIn('aprovado', enviado.subject.lower())
+        self.assertIn('80.00', enviado.body)
+        self.assertIn('Tinta', enviado.body)
+
+    def test_o_email_deixa_claro_que_aprovado_ainda_nao_e_pago(self):
+        """Quem lê "aprovado" e entende "o dinheiro caiu" cobra a ADM por um
+        pagamento que ninguém prometeu para hoje."""
+        from django.core import mail
+
+        pedido = self._pedido_de_outra_pessoa()
+        self.client.post(reverse('forms_pcf:reembolso_aprovar', args=[pedido.pk]))
+
+        self.assertIn('ainda vai ser feito', mail.outbox[0].body)
+
+    def test_solicitante_sem_email_nao_impede_a_aprovacao(self):
+        from django.core import mail
+
+        pedido = self._pedido_de_outra_pessoa(email='')
+        self.client.post(reverse('forms_pcf:reembolso_aprovar', args=[pedido.pk]))
+
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.status, 'APROVADO')
+        self.assertEqual(len(mail.outbox), 0)
+
+    @patch('forms_pcf.views.send_mail', side_effect=Exception('SMTP fora do ar'))
+    def test_falha_no_envio_nao_desfaz_a_aprovacao(self, mock_mail):
+        """A aprovação já está no banco; e-mail que não sai não pode revogá-la."""
+        pedido = self._pedido_de_outra_pessoa()
+        self.client.post(reverse('forms_pcf:reembolso_aprovar', args=[pedido.pk]))
+
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.status, 'APROVADO')
+        self.assertIsNotNone(pedido.lancamento)
 
     def test_nao_adm_recebe_403(self):
         outro = User.objects.create_user(username='out', password='pw', area='MARKETING')

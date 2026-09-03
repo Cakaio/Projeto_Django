@@ -1,0 +1,67 @@
+{% comment %}
+  Página de impressão: sem navbar, sem sidebar, sem nada de interface. É esta
+  tela que vira PDF pelo "Imprimir" do navegador.
+
+  NÃO estende base.html de propósito — o layout do sistema entraria no papel.
+
+  @page com o tamanho da folha e margin 0 é o que faz a arte sangrar até a
+  borda; com margem, o navegador reduziria a página para caber e a faixa de
+  mãozinhas ficaria com uma tarja branca em volta.
+{% endcomment %}<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ documento.titulo }}</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #d8d3ce; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+    .imp-barra { position: sticky; top: 0; z-index: 10; display: flex; gap: .6rem;
+                 align-items: center; padding: .7rem 1rem; background: #fff;
+                 border-bottom: 1px solid #e6dcd3; font-size: .85rem; }
+    .imp-barra button { padding: .4rem .8rem; border: 0; border-radius: 8px;
+                        background: #e8560f; color: #fff; font-weight: 700; cursor: pointer; }
+    .imp-dica { color: #6b615c; }
+
+    .imp-folhas { display: flex; flex-direction: column; align-items: center;
+                  gap: 1.5rem; padding: 1.5rem; }
+
+    .est-folha { position: relative; overflow: hidden; background: #fff;
+                 box-shadow: 0 6px 26px rgba(0,0,0,.16); }
+    .est-el { position: absolute; transform-origin: center center; }
+    .est-el-texto .est-texto { width: 100%; height: 100%; white-space: pre-wrap;
+                               overflow-wrap: anywhere; overflow: hidden; }
+    .est-el-imagem .est-img,
+    .est-el-forma .est-forma { width: 100%; height: 100%; display: block; }
+
+    @page { size: {{ documento.largura }}px {{ documento.altura }}px; margin: 0; }
+    @media print {
+      body { background: #fff; }
+      .imp-barra { display: none; }
+      .imp-folhas { gap: 0; padding: 0; }
+      .est-folha { box-shadow: none; break-after: page; page-break-after: always; }
+      .est-folha:last-child { break-after: auto; page-break-after: auto; }
+      /* Sem isto o navegador descarta os fundos coloridos e a revista sai branca. */
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="imp-barra">
+  <button type="button" onclick="window.print()">Imprimir / salvar em PDF</button>
+  <span class="imp-dica">
+    Na janela de impressão, deixe as margens em “nenhuma” e marque “gráficos de plano de fundo”.
+  </span>
+</div>
+
+<div class="imp-folhas">
+  {% for pagina in paginas %}
+    {% include 'estudio/_pagina.html' %}
+  {% endfor %}
+</div>
+
+</body>
+</html>

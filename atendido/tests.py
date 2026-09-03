@@ -81,3 +81,48 @@ class ListaEsperaTest(TestCase):
             key=lambda item: item.chave_prioridade(),
         )
         self.assertEqual(ordenados, [menor_per_capita, mais_antigo, mesma_renda_mais_novo])
+
+
+class AtendidoDesativadoSomeDasListagensTest(TestCase):
+    """Desativar é arquivar: some das telas, continua inteiro no admin.
+
+    O campo `ativo` existia desde o começo, com o help_text mandando desmarcar
+    em vez de excluir — mas nenhuma tela olhava para ele. Quem desmarcava
+    continuava vendo a criança em tudo.
+    """
+
+    def setUp(self):
+        from .models import Atendido
+        self.ativa = Atendido.objects.create(
+            nome="Ana Ativa", data_nascimento=date(2016, 5, 2), sala="AZUL",
+        )
+        self.desativada = Atendido.objects.create(
+            nome="Bia Desativada", data_nascimento=date(2016, 6, 3), sala="AZUL",
+            ativo=False,
+        )
+
+    def test_ativos_exclui_quem_foi_desativado(self):
+        from .models import Atendido
+        self.assertQuerySetEqual(
+            Atendido.objects.ativos(), [self.ativa], transform=lambda x: x,
+        )
+
+    def test_admin_continua_enxergando_os_dois(self):
+        """O gerenciador padrão não filtra nada — é por ele que o admin lista."""
+        from .models import Atendido
+        self.assertEqual(Atendido.objects.count(), 2)
+        self.assertIn(self.desativada, Atendido.objects.all())
+
+    def test_contagem_das_salas_na_navbar_ignora_desativados(self):
+        """Esse contexto entra em TODOS os templates: errar aqui erra em tudo."""
+        from .novos_context import atendidos_filtrados
+        azul = atendidos_filtrados(request=None)["atendidos_azul"]
+        self.assertQuerySetEqual(azul, [self.ativa], transform=lambda x: x)
+
+    def test_a_listagem_de_atendidos_nao_traz_desativados(self):
+        """Chamando o get_queryset direto: o test client quebra no Python 3.14
+        ao renderizar template, e o que importa aqui é a consulta."""
+        from .views import ListaAtendido
+        self.assertQuerySetEqual(
+            ListaAtendido().get_queryset(), [self.ativa], transform=lambda x: x,
+        )

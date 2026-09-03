@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{% block content %}
+{% comment %}
+  Layout desta tela (prefixo .acf-). Serve para documento E para coleção — a
+  view manda `form` e `titulo`, e só o formulário muda.
+
+  enctype="multipart/form-data" é obrigatório: sem isso o arquivo não sobe e o
+  formulário volta dizendo que o campo está vazio, sem explicar por quê.
+{% endcomment %}
+<style>
+  .acf-wrap { max-width: 40rem; padding-block: clamp(2rem, 5vw, 3.25rem) clamp(2.5rem, 6vw, 4rem); }
+  .acf-title { margin: .7rem 0 0; font-weight: 800; letter-spacing: -.02em; font-size: clamp(1.5rem, 3vw, 2rem); color: var(--ink); }
+  .acf-form { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; }
+  .acf-campo { display: flex; flex-direction: column; gap: .35rem; }
+  .acf-label { font-size: .8rem; font-weight: 700; color: var(--ink); }
+  .acf-label .opcional { font-weight: 500; color: hsl(var(--muted-foreground)); }
+  .acf-help { margin: 0; font-size: .78rem; line-height: 1.45; color: hsl(var(--muted-foreground)); }
+  .acf-err { margin: 0; font-size: .8rem; font-weight: 600; color: #b03636; }
+  .acf-check { display: flex; align-items: center; gap: .5rem; }
+  .acf-check .acf-label { margin: 0; }
+  .acf-acoes { display: flex; gap: .5rem; flex-wrap: wrap; padding-top: .4rem; }
+  .acf-acoes .pcf-btn { flex: 1; justify-content: center; }
+</style>
+
+<div class="pcf-container acf-wrap">
+
+  <span class="pcf-eyebrow">Acervo</span>
+  <h1 class="acf-title">{{ titulo }}</h1>
+
+  <form method="post" enctype="multipart/form-data" class="acf-form">
+    {% csrf_token %}
+
+    {% for erro in form.non_field_errors %}
+      <p class="acf-err">{{ erro }}</p>
+    {% endfor %}
+
+    {% for campo in form %}
+      <div class="acf-campo {% if campo.field.widget.input_type == 'checkbox' %}acf-check{% endif %}">
+        {% if campo.field.widget.input_type == 'checkbox' %}
+          {{ campo }}
+          <label class="acf-label" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+        {% else %}
+          <label class="acf-label" for="{{ campo.id_for_label }}">
+            {{ campo.label }}{% if not campo.field.required %} <span class="opcional">(opcional)</span>{% endif %}
+          </label>
+          {{ campo }}
+        {% endif %}
+        {% if campo.help_text %}<p class="acf-help">{{ campo.help_text }}</p>{% endif %}
+        {% for erro in campo.errors %}<p class="acf-err">{{ erro }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+
+    <div class="acf-acoes">
+      <a href="{% url 'acervo:lista' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+      <button type="submit" class="pcf-btn pcf-btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Salvar
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

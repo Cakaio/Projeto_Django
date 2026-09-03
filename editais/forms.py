@@ -35,8 +35,8 @@ class EditalForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['prazo'].input_formats = ['%Y-%m-%d']
         self.fields['responsavel'].queryset = (
-            Voluntario.objects
-            .filter(data_saida__isnull=True, area__in=AREAS_RESPONSAVEL)
+            Voluntario.objects.ativos()
+            .filter(area__in=AREAS_RESPONSAVEL)
             .order_by('first_name', 'username'))
         self.fields['responsavel'].empty_label = 'Sem responsável'
         self.fields['fonte'].empty_label = 'Cadastro manual'

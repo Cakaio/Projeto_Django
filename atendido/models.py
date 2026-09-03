@@ -186,7 +186,22 @@ class Mudanca(models.Model):
     def __str__(self):
         return self.mudanca
 
+class AtendidoManager(models.Manager):
+    """Espelha `Voluntario.objects.ativos()`: um critério só, num lugar só.
+
+    O campo `ativo` existia desde sempre, mas só o admin olhava para ele —
+    nenhuma tela do sistema filtrava. Quem desmarcava a caixa esperando
+    "arquivar" a criança continuava vendo ela na contagem das salas, na
+    listagem, na chamada e na busca.
+    """
+
+    def ativos(self):
+        return self.filter(ativo=True)
+
+
 class Atendido(models.Model):
+    objects = AtendidoManager()
+
     familia = models.ForeignKey("Familia", on_delete=models.SET_NULL, null=True, blank=True, related_name="atendidos", help_text="Família que o atendido pertence, caso não tenha, cadastre uma nova família.")
     responsavel = models.ManyToManyField("ResponsavelAtendido", blank=True, related_name="atendidos", help_text="Responsável(s) pelo atendido, caso não tenha, cadastre um novo responsável.")
     nome = models.CharField(max_length=50, help_text="Nome completo do atendido")

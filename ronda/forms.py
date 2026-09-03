@@ -7,12 +7,27 @@ from .models import LocalRonda, ConfiguracaoRondaSabado, HorarioRonda, ScoreRond
 class LocalRondaForm(forms.ModelForm):
     class Meta:
         model = LocalRonda
-        fields = ['nome', 'ativo']
+        fields = ['nome', 'pessoas_por_grupo', 'ativo']
         widgets = {
             'nome':  forms.TextInput(attrs={'placeholder': 'Ex: Quadra'}),
+            'pessoas_por_grupo': forms.NumberInput(attrs={'min': '1', 'max': '6', 'step': '1'}),
             'ativo': forms.CheckboxInput(),
         }
-        labels = {'nome': 'Nome do local', 'ativo': 'Local ativo'}
+        labels = {
+            'nome': 'Nome do local',
+            'pessoas_por_grupo': 'Pessoas por grupo',
+            'ativo': 'Local ativo',
+        }
+        help_texts = {
+            'pessoas_por_grupo': 'Em dia de evento o local recebe 2 grupos desse tamanho '
+                                 '(2 = duas duplas, 3 = dois trios).',
+        }
+
+    def clean_pessoas_por_grupo(self):
+        valor = self.cleaned_data['pessoas_por_grupo']
+        if not 1 <= valor <= 6:
+            raise forms.ValidationError('Informe um valor entre 1 e 6.')
+        return valor
 
 
 class ConfiguracaoRondaForm(forms.ModelForm):

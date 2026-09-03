@@ -4,7 +4,9 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponse
-from django.db.models import Sum
+from django.conf import settings
+from django.core.mail import send_mail
+from django.db.models import Count, Sum
 from django.db.models.deletion import ProtectedError
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -13,9 +15,14 @@ from functools import wraps
 from decimal import Decimal
 from datetime import date
 import csv
-from .models import Categoria, Lancamento, ORIGENS_AUTOMATICAS
-from .forms import CategoriaForm, LancamentoForm
-from .servicos import despesas_por_categoria
+from .models import (
+    Categoria, Conta, Lancamento, RecargaCartao, TetoArea, ORIGENS_AUTOMATICAS,
+)
+from .forms import CompletarLancamentoForm, CategoriaForm, ContaForm, LancamentoForm, RecargaCartaoForm, TetoAreaForm
+from .servicos import (despesas_por_categoria, limites_do_semestre,
+                       rotulo_do_semestre, saldo_das_contas, situacao_dos_tetos)
+from forms_pcf.forms import PagamentoReembolsoForm
+from forms_pcf.views import sincronizar_lancamento_do_reembolso
 
 AREAS_LEITURA = {'ADM/FIN', 'TRIADE'}
 AREAS_ESCRITA = {'ADM/FIN'}
@@ -143,6 +150,30 @@ def editar_lancamento(request, pk):
         messages.success(request, 'Lançamento atualizado!')
         return redirect('adm:lista_lancamentos')
     return render(request, 'form_lancamento.html', {'form': form, 'titulo': 'Editar Lançamento', 'objeto': lan})
+
+
+@adm_escrita_required
+def completar_lancamento(request, pk):
+    """Preenche conta e área de um lançamento gerado por outro app.
+
+    O resto segue trancado (ver `CompletarLancamentoForm`): aqui não se muda
+    valor nem data, só se responde "de onde saiu esse dinheiro" — pergunta que
+    o pedido do Supply não tem como responder sozinho.
+    """
+    lan = get_object_or_404(Lancamento, pk=pk)
+    if lan.origem not in ORIGENS_AUTOMATICAS:
+        messages.info(request, 'Este lançamento é manual: edite normalmente.')
+        return redirect('adm:editar_lancamento', pk=lan.pk)
+
+    form = CompletarLancamentoForm(request.POST or None, instance=lan)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Conta e área atualizadas.')
+        return redirect('adm:lista_lancamentos')
+
+    return render(request, 'form_completar_lancamento.html',
+                  {'form': form, 'lancamento': lan,
+                   'titulo': 'Completar lançamento automático'})
 
 
 @adm_escrita_required
@@ -400,3 +431,296 @@ def onde_investimos(request):
     })
 
 
+# ─── Contas, cartões e recargas ───
+
+@adm_acesso_required
+def contas(request):
+    """Painel das contas: onde o dinheiro está e quanto sobra em cada cartão."""
+    saldos = saldo_das_contas()
+    return render(request, 'lista_contas.html', {
+        'contas': Conta.objects.select_related('responsavel'),
+        'saldos': saldos,
+        'total_recarregado': sum((linha['recarregado'] for linha in saldos), Decimal('0')),
+        'total_gasto': sum((linha['gasto'] for linha in saldos), Decimal('0')),
+        'total_saldo': sum((linha['saldo'] for linha in saldos), Decimal('0')),
+    })
+
+
+@adm_escrita_required
+def conta_form(request, pk=None):
+    conta = get_object_or_404(Conta, pk=pk) if pk else None
+    form = ContaForm(request.POST or None, instance=conta)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Conta salva!' if conta else 'Conta cadastrada!')
+        return redirect('adm:contas')
+    return render(request, 'form_conta.html', {
+        'form': form,
+        'titulo': 'Editar Conta' if conta else 'Nova Conta',
+        'objeto': conta,
+    })
+
+
+@adm_acesso_required
+def recargas(request):
+    """Histórico de recargas de cartão.
+
+    Recarga não é despesa: nenhuma linha daqui vira lançamento, senão o mesmo
+    real apareceria duas vezes no fluxo de caixa — uma na recarga e outra
+    quando o cartão fosse usado.
+    """
+    lista = RecargaCartao.objects.select_related('conta', 'carregado_por')
+
+    conta_id = request.GET.get('conta')
+    if conta_id:
+        lista = lista.filter(conta_id=conta_id)
+
+    return render(request, 'lista_recargas.html', {
+        'recargas': lista,
+        'contas': Conta.objects.all(),
+        'filtro_conta': conta_id,
+        'total': lista.aggregate(t=Sum('valor'))['t'] or Decimal('0'),
+    })
+
+
+@adm_escrita_required
+def recarga_form(request, pk=None):
+    recarga = get_object_or_404(RecargaCartao, pk=pk) if pk else None
+    form = RecargaCartaoForm(request.POST or None, instance=recarga)
+    if request.method == 'POST' and form.is_valid():
+        nova = form.save(commit=False)
+        # Quem está cadastrando é o palpite mais provável de quem carregou —
+        # mas se o formulário disse outra pessoa, ela manda.
+        if not nova.carregado_por_id:
+            nova.carregado_por = request.user
+        nova.save()
+        messages.success(request, 'Recarga salva!' if recarga else 'Recarga registrada!')
+        return redirect('adm:recargas')
+    return render(request, 'form_recarga.html', {
+        'form': form,
+        'titulo': 'Editar Recarga' if recarga else 'Nova Recarga',
+        'objeto': recarga,
+    })
+
+
+# ─── Tetos por área ───
+
+def _semestre_escolhido(bruto):
+    """Lê ?semestre=YYYY-N da querystring. Valor torto cai no semestre atual —
+    filtro que não dá para entender não derruba a página."""
+    hoje = timezone.localdate()
+    if not bruto:
+        return hoje
+    try:
+        ano, numero = bruto.split('-')
+        ano, numero = int(ano), int(numero)
+    except (ValueError, TypeError):
+        return hoje
+    if numero not in (1, 2) or not (2000 <= ano <= 2100):
+        return hoje
+    return date(ano, 1 if numero == 1 else 7, 1)
+
+
+def _semestres_para_escolher(quantos=6):
+    """Os últimos semestres, do mais recente para o mais antigo.
+
+    Lista fechada em vez de campo de data livre: semestre não é data, e um
+    seletor de mês faria o usuário achar que o teto é mensal.
+    """
+    hoje = timezone.localdate()
+    ano, numero = hoje.year, 1 if hoje.month <= 6 else 2
+    opcoes = []
+    for _ in range(quantos):
+        opcoes.append({'valor': f'{ano}-{numero}', 'rotulo': f'{numero}º semestre de {ano}'})
+        numero -= 1
+        if numero == 0:
+            numero, ano = 2, ano - 1
+    return opcoes
+
+
+@login_required
+def tetos(request):
+    """Teto x gasto de cada área no semestre.
+
+    Gate escrito à mão de propósito: é a única tela do Financeiro aberta a
+    qualquer voluntário logado, porque o pedido é que cada um veja a situação
+    do teto da sua área sem depender do ADM. Somente leitura, e só teto x
+    gasto — nenhum lançamento individual aparece aqui.
+
+    O teto é um só por área e vale até alguém alterar; o que muda de período é
+    o gasto, medido no semestre escolhido.
+    """
+    referencia = _semestre_escolhido(request.GET.get('semestre'))
+    inicio, fim = limites_do_semestre(referencia)
+    linhas = situacao_dos_tetos(referencia)
+
+    area_do_usuario = getattr(request.user, 'area', '') or ''
+    minha_linha = next((linha for linha in linhas if linha['area'] == area_do_usuario), None)
+
+    return render(request, 'tetos.html', {
+        'linhas': linhas,
+        'referencia': referencia,
+        'semestre_rotulo': rotulo_do_semestre(referencia),
+        'semestre': f'{referencia.year}-{1 if referencia.month <= 6 else 2}',
+        'semestres': _semestres_para_escolher(),
+        'inicio': inicio,
+        'fim': fim,
+        'minha_linha': minha_linha,
+        'area_do_usuario': area_do_usuario,
+        'total_teto': sum((linha['teto'] for linha in linhas if linha['teto'] is not None), Decimal('0')),
+        'total_gasto': sum((linha['gasto'] for linha in linhas), Decimal('0')),
+        'estouros': sum(1 for linha in linhas if linha['estourou']),
+        'gastos_sem_teto': sum(1 for linha in linhas if linha['sem_teto']),
+        # A tela é de leitura para todos; o botão de editar só faz sentido para
+        # quem tem escrita no Financeiro.
+        'pode_editar': (request.user.is_superuser
+                        or getattr(request.user, 'area', None) in AREAS_ESCRITA),
+    })
+
+
+@adm_escrita_required
+def teto_form(request, pk=None):
+    teto = get_object_or_404(TetoArea, pk=pk) if pk else None
+    form = TetoAreaForm(request.POST or None, instance=teto)
+    if request.method == 'POST' and form.is_valid():
+        novo = form.save(commit=False)
+        novo.definido_por = request.user
+        novo.save()
+        messages.success(request, 'Teto salvo!' if teto else 'Teto definido!')
+        return redirect('adm:tetos')
+    return render(request, 'form_teto.html', {
+        'form': form,
+        'titulo': 'Editar Teto' if teto else 'Novo Teto',
+        'objeto': teto,
+    })
+
+
+# ─── Reembolsos pagos ───
+
+STATUS_REEMBOLSO_PAINEL = ('APROVADO', 'PAGO', 'PENDENTE', 'REJEITADO')
+
+
+@adm_acesso_required
+def reembolsos(request):
+    """Painel dos reembolsos: quem já foi pago e quem está esperando dinheiro."""
+    PedidoReembolso = apps.get_model('forms_pcf', 'PedidoReembolso')
+
+    status = request.GET.get('status', 'APROVADO')
+    if status not in STATUS_REEMBOLSO_PAINEL:
+        status = 'APROVADO'
+
+    pedidos = (PedidoReembolso.objects
+               .filter(status=status)
+               .select_related('solicitante', 'categoria', 'conta_pagamento',
+                               'evento', 'pago_por', 'aprovado_por'))
+
+    # Uma consulta para todas as contagens, em vez de um count() por status.
+    contagens = {
+        linha['status']: linha['quantidade']
+        for linha in PedidoReembolso.objects.values('status').annotate(quantidade=Count('id'))
+    }
+
+    return render(request, 'lista_reembolsos.html', {
+        'pedidos': pedidos,
+        'status_ativo': status,
+        'contagem_aprovado': contagens.get('APROVADO', 0),
+        'contagem_pago': contagens.get('PAGO', 0),
+        'contagem_pendente': contagens.get('PENDENTE', 0),
+        'contagem_rejeitado': contagens.get('REJEITADO', 0),
+        'total_do_filtro': pedidos.aggregate(t=Sum('valor'))['t'] or Decimal('0'),
+        'total_a_pagar': (PedidoReembolso.objects.filter(status='APROVADO')
+                          .aggregate(t=Sum('valor'))['t'] or Decimal('0')),
+    })
+
+
+def _avisar_solicitante_do_pagamento(pedido):
+    """E-mail de confirmação para quem pediu o reembolso.
+
+    Devolve o endereço usado, ou '' se o solicitante não tem e-mail. Não engole
+    falha de envio: quem chama precisa saber para avisar na tela — mas sem
+    desfazer o pagamento, que já aconteceu no banco de verdade.
+    """
+    destino = (getattr(pedido.solicitante, 'email', '') or '').strip()
+    if not destino:
+        return ''
+
+    conta = pedido.conta_pagamento.nome if pedido.conta_pagamento else 'não informada'
+    data_pagamento = pedido.pago_em or timezone.localdate()
+    corpo = (
+        'Olá!\n\n'
+        'Seu reembolso foi pago.\n\n'
+        f'Valor: R$ {pedido.valor}\n'
+        f'Data do pagamento: {data_pagamento:%d/%m/%Y}\n'
+        f'Conta usada: {conta}\n'
+        f'Referente a: {pedido.descricao}\n\n'
+        'Se o valor não tiver caído, fale com a ADM/Fin.\n\n'
+        'Projeto Criança Feliz'
+    )
+    send_mail(
+        f'[PCF] Reembolso pago — R$ {pedido.valor}',
+        corpo,
+        settings.DEFAULT_FROM_EMAIL,
+        [destino],
+        fail_silently=False,   # falha precisa virar aviso na tela, não silêncio
+    )
+    return destino
+
+
+@adm_escrita_required
+def reembolso_pagar(request, pk):
+    """Marca o reembolso como PAGO: comprovante, conta, quem pagou e quando."""
+    PedidoReembolso = apps.get_model('forms_pcf', 'PedidoReembolso')
+    pedido = get_object_or_404(
+        PedidoReembolso.objects.select_related('solicitante', 'categoria', 'lancamento'),
+        pk=pk,
+    )
+
+    if pedido.status != 'APROVADO':
+        # PENDENTE ainda não foi decidido; PAGO já saiu do caixa, e pagar de
+        # novo geraria despesa em dobro.
+        messages.error(
+            request,
+            'Só reembolso aprovado pode ser marcado como pago. '
+            f'Este está como "{pedido.get_status_display()}".'
+        )
+        return redirect('adm:reembolsos')
+
+    form = PagamentoReembolsoForm(request.POST or None, request.FILES or None, instance=pedido)
+
+    if request.method == 'POST' and form.is_valid():
+        pago = form.save(commit=False)
+        pago.status = 'PAGO'
+        pago.pago_por = request.user
+        pago.pago_em = pago.pago_em or timezone.localdate()
+        # O lançamento leva área, evento e conta do pedido: sem isso o gasto
+        # não conta no teto da área nem no evento.
+        sincronizar_lancamento_do_reembolso(pago, request.user)
+        pago.save()
+        messages.success(request, 'Reembolso marcado como pago.')
+
+        # O dinheiro já saiu: nenhum problema de e-mail pode desfazer isso. Por
+        # isso o except é largo — SMTP fora do ar, DNS, credencial expirada.
+        try:
+            destino = _avisar_solicitante_do_pagamento(pago)
+        except Exception as erro:
+            messages.warning(
+                request,
+                'Pagamento registrado, mas o e-mail de confirmação não saiu '
+                f'({erro}). Avise o solicitante por outro caminho.'
+            )
+        else:
+            if destino:
+                messages.info(request, f'Confirmação enviada para {destino}.')
+            else:
+                messages.warning(
+                    request,
+                    'Pagamento registrado, mas o solicitante não tem e-mail '
+                    'cadastrado — avise por outro caminho.'
+                )
+        return redirect('adm:reembolsos')
+
+    return render(request, 'form_reembolso_pagar.html', {
+        'form': form,
+        'pedido': pedido,
+        'titulo': 'Registrar Pagamento',
+    })

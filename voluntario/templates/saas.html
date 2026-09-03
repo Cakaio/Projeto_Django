@@ -219,7 +219,14 @@
 {% csrf_token %}
 
 <!-- Modal Foto -->
-<div id="fotoModal" class="saas-modal-overlay saas-foto-overlay" style="display:none">
+{% comment %}
+  NÃO ponha style="display:none" nestes overlays: estilo inline vence
+  classe de folha de estilo, então o `classList.add('open')` do JS não
+  conseguia mostrar o modal — ele abria e nada aparecia. Quem esconde é
+  a regra .saas-modal-overlay { display:none }; quem mostra é
+  .saas-modal-overlay.open { display:flex }.
+{% endcomment %}
+<div id="fotoModal" class="saas-modal-overlay saas-foto-overlay">
   <div class="saas-foto-box">
     <button onclick="fecharFoto()" class="saas-foto-close" aria-label="Fechar">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -230,7 +237,7 @@
 </div>
 
 <!-- Modal Histórico -->
-<div id="historicoModal" class="saas-modal-overlay" style="display:none">
+<div id="historicoModal" class="saas-modal-overlay">
   <div class="saas-dialog">
     <div class="saas-dialog-head">
       <span id="histNome" class="saas-dialog-title">Histórico de Ocorrências</span>
@@ -264,7 +271,7 @@
 </template>
 
 <!-- Modal Aplicar Ocorrência -->
-<div id="ocorrenciaModal" class="saas-modal-overlay" style="display:none">
+<div id="ocorrenciaModal" class="saas-modal-overlay">
   <div class="saas-dialog saas-dialog-lg">
     <div class="saas-dialog-head">
       <div>

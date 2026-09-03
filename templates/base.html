@@ -30,7 +30,8 @@
     <!-- Design system PCF (Tailwind compilado + tokens shadcn quentes + componentes .pcf-*).
          Carregado por último para vencer o Bootstrap onde houver sobreposição.
          Rebuild:  cd tailwindcss && npm run build -->
-    <link rel="stylesheet" href="{% static 'css/pcf.css' %}">
+    {# ?v= força o navegador a rebuscar quando o arquivo muda (ver TESTE/versao_estatica.py). #}
+    <link rel="stylesheet" href="{% static 'css/pcf.css' %}?v={{ ESTATICO_V }}">
 
     {% block head %}{% endblock %}
 </head>
@@ -133,7 +134,8 @@
       }
     </style>
 
-    <script src="{% static 'js/pcf-fx.js' %}" defer></script>
+    <script src="{% static 'js/pcf-fx.js' %}?v={{ ESTATICO_V }}" defer></script>
+    <script src="{% static 'js/pcf-combo.js' %}?v={{ ESTATICO_V }}" defer></script>
 
     <script>
       /* Registra o service worker da PWA. Falha aqui não pode virar erro

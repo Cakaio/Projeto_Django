@@ -17,6 +17,7 @@ from bs4 import BeautifulSoup
 from django.utils import timezone
 
 from .models import PalavraChave
+from .prazos import extrair_prazo
 
 logger = logging.getLogger(__name__)
 
@@ -268,6 +269,7 @@ def registrar_item(item, palavras, minimo, fonte=None, consulta=None,
 
     chave = chave_do_link(item['link'])
     encontrados = ', '.join(termos)[:250]
+    prazo_lido = extrair_prazo(item['titulo'], item['descricao'])
 
     if simular:
         from .models import Edital
@@ -286,13 +288,23 @@ def registrar_item(item, palavras, minimo, fonte=None, consulta=None,
             'origem': origem,
             'relevancia': nota,
             'termos_encontrados': encontrados,
+            'prazo': prazo_lido,
         },
     )
     if criado:
         return 'novo', edital
+
+    campos = []
     if (edital.relevancia, edital.termos_encontrados) != (nota, encontrados):
         edital.relevancia = nota
         edital.termos_encontrados = encontrados
-        edital.save(update_fields=['relevancia', 'termos_encontrados'])
+        campos += ['relevancia', 'termos_encontrados']
+    # Prazo só entra em campo VAZIO. Data digitada por gente vale mais que data
+    # lida de texto: quem preencheu abriu o edital e conferiu.
+    if prazo_lido and not edital.prazo:
+        edital.prazo = prazo_lido
+        campos.append('prazo')
+    if campos:
+        edital.save(update_fields=campos)
         return 'renotado', edital
     return 'existente', edital

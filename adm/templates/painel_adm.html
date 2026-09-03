@@ -22,8 +22,8 @@
     <section class="fin-kpis" data-reveal>
 
       <!-- Saldo -->
-      <div class="pcf-card fin-kpi {% if saldo >= 0 %}fin-kpi-pos{% else %}fin-kpi-neg{% endif %}">
-        <div class="fin-kpi-top">
+      <div class="pcf-card pcf-kpi fin-kpi {% if saldo >= 0 %}fin-kpi-pos{% else %}fin-kpi-neg{% endif %}">
+        <div class="pcf-kpi-top">
           <span class="pcf-icon-tile {% if saldo >= 0 %}tint-green{% else %}tint-orange{% endif %}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
           </span>
@@ -31,39 +31,33 @@
             {% if saldo >= 0 %}Positivo{% else %}Negativo{% endif %}
           </span>
         </div>
-        <div class="pcf-stat">
-          <span class="lbl">Saldo Total</span>
-          <span class="num {% if saldo >= 0 %}fin-color-pos{% else %}fin-color-neg{% endif %}">R$ {{ saldo|floatformat:2 }}</span>
-        </div>
-        <p class="fin-kpi-help">Receitas menos despesas</p>
+        <span class="pcf-kpi-label">Saldo total</span>
+        <span class="pcf-kpi-value {% if saldo >= 0 %}fin-color-pos{% else %}fin-color-neg{% endif %}">R$ {{ saldo|floatformat:2 }}</span>
+        <p class="pcf-kpi-foot">Receitas menos despesas</p>
       </div>
 
       <!-- Receitas -->
-      <div class="pcf-card fin-kpi">
-        <div class="fin-kpi-top">
+      <div class="pcf-card pcf-kpi fin-kpi">
+        <div class="pcf-kpi-top">
           <span class="pcf-icon-tile tint-green">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
           </span>
         </div>
-        <div class="pcf-stat">
-          <span class="lbl">Total Receitas</span>
-          <span class="num fin-color-pos">R$ {{ total_receitas|floatformat:2 }}</span>
-        </div>
-        <p class="fin-kpi-help">Todas as entradas registradas</p>
+        <span class="pcf-kpi-label">Total de receitas</span>
+        <span class="pcf-kpi-value fin-color-pos">R$ {{ total_receitas|floatformat:2 }}</span>
+        <p class="pcf-kpi-foot">Todas as entradas registradas</p>
       </div>
 
       <!-- Despesas -->
-      <div class="pcf-card fin-kpi">
-        <div class="fin-kpi-top">
+      <div class="pcf-card pcf-kpi fin-kpi">
+        <div class="pcf-kpi-top">
           <span class="pcf-icon-tile tint-orange">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
           </span>
         </div>
-        <div class="pcf-stat">
-          <span class="lbl">Total Despesas</span>
-          <span class="num fin-color-neg">R$ {{ total_despesas|floatformat:2 }}</span>
-        </div>
-        <p class="fin-kpi-help">Todas as saídas registradas</p>
+        <span class="pcf-kpi-label">Total de despesas</span>
+        <span class="pcf-kpi-value fin-color-neg">R$ {{ total_despesas|floatformat:2 }}</span>
+        <p class="pcf-kpi-foot">Todas as saídas registradas</p>
       </div>
 
     </section>
@@ -230,12 +224,13 @@
 
   /* ── KPIs ── */
   .fin-kpis { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 2.5rem; }
-  .fin-kpi { display: flex; flex-direction: column; gap: .65rem; }
-  .fin-kpi-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  /* O layout dos KPI vem do design system (.pcf-kpi / -top / -label / -value /
+     -foot). Antes esta tela usava .pcf-stat, uma classe que NAO existe no
+     CSS — sem regra nenhuma os dois spans ficavam lado a lado e o card saia
+     com o rotulo colado no valor. Aqui fica so o que e especifico do
+     Financeiro: a listra de cor no topo do saldo. */
   .fin-kpi-pos { border-top: 2px solid #7fc9a3; }
   .fin-kpi-neg { border-top: 2px solid #f7b98e; }
-  .fin-kpi .pcf-stat .num { font-size: clamp(1.5rem, 3vw, 1.9rem); }
-  .fin-kpi-help { margin: 0; font-size: .75rem; color: hsl(var(--muted-foreground)); }
   .fin-color-pos { color: #2e8b57; }
   .fin-color-neg { color: #d1500f; }
 

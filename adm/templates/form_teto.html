@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }} — Financeiro{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .fte-). #}
+{# O visual base vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .fte-page { background: hsl(var(--background)); }
+  .fte-wrap { max-width: 620px; padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+
+  /* ── Trilha + cabeçalho ── */
+  .fte-crumb { display: inline-flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+               font-size: .78rem; font-weight: 600; color: hsl(var(--muted-foreground)); margin-bottom: .6rem; }
+  .fte-crumb a { color: hsl(var(--muted-foreground)); text-decoration: none; }
+  .fte-crumb a:hover { color: var(--brand); text-decoration: none; }
+  .fte-crumb span { color: var(--ink); }
+
+  /* ── Formulário ── */
+  .fte-form { display: grid; gap: 1.1rem; }
+  /* .pcf-input zera o appearance, o que apaga a setinha nativa do select:
+     sem esta seta desenhada o campo de área parece uma caixa de texto. */
+  .fte-form select.pcf-input {
+    padding-right: 2.4rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23b6ada4' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right .85rem center;
+  }
+  .fte-help { margin: 0; font-size: .78rem; line-height: 1.5; color: hsl(var(--muted-foreground)); }
+  .fte-erro { margin: 0; font-size: .78rem; font-weight: 650; color: #b03636; }
+  .fte-erro-geral { border: 1px solid #f7d4d4; background: #fdeaea; border-radius: 12px;
+                    padding: .8rem .95rem; margin: 0 0 1.1rem; font-size: .84rem;
+                    line-height: 1.5; color: #b03636; }
+  .fte-acoes { display: flex; gap: .6rem; flex-wrap: wrap; padding-top: .25rem; }
+
+  /* ── Cartão de contexto ── */
+  .fte-info { display: flex; align-items: flex-start; gap: .8rem; margin-bottom: 1.15rem;
+              border-left: 4px solid var(--brand); }
+  .fte-info-t { margin: 0; font-size: .9rem; font-weight: 800; color: var(--ink); }
+  .fte-info-s { margin: .25rem 0 0; font-size: .83rem; line-height: 1.55; color: var(--ink-soft); }
+  .fte-meta { margin: 1.1rem 0 0; padding-top: .9rem; border-top: 1px solid hsl(var(--border));
+              font-size: .78rem; line-height: 1.6; color: hsl(var(--muted-foreground)); }
+
+  @media (max-width: 520px) {
+    .fte-acoes { flex-direction: column; }
+    .fte-acoes .pcf-btn { width: 100%; }
+  }
+</style>
+
+<div class="fte-page">
+  <div class="pcf-container fte-wrap">
+
+    <!-- ══════ Cabeçalho ══════ -->
+    <header class="pcf-page-head" data-reveal>
+      <div>
+        <nav class="fte-crumb" aria-label="Trilha de navegação">
+          <a href="{% url 'adm:painel' %}">Financeiro</a>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          <a href="{% url 'adm:tetos' %}">Tetos por área</a>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          <span>{{ titulo }}</span>
+        </nav>
+        <h1 class="pcf-page-title">{{ titulo }}</h1>
+        <p class="pcf-page-sub">
+          {% if objeto %}
+            Teto de {{ objeto.get_area_display }} para {{ objeto.competencia|date:"m/Y" }}.
+          {% else %}
+            Quanto uma área pode gastar num mês. Um teto por área por mês.
+          {% endif %}
+        </p>
+      </div>
+    </header>
+
+    <!-- ══════ O que este teto faz ══════ -->
+    <div class="pcf-card fte-info" data-reveal data-reveal-delay="40">
+      <span class="pcf-icon-tile tint-orange" style="width:34px;height:34px;border-radius:10px;flex-shrink:0" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15h3v4H7z"/><path d="M14 9h3v10h-3z"/></svg>
+      </span>
+      <div>
+        <p class="fte-info-t">O teto é mensal e zera todo dia 1º</p>
+        <p class="fte-info-s">
+          O gasto que conta contra ele são as despesas do mês marcadas com esta área — incluindo
+          reembolso pago. Quem é da área vê a situação sozinho na tela de tetos.
+        </p>
+      </div>
+    </div>
+
+    <!-- ══════ Formulário ══════ -->
+    <div class="pcf-card" data-reveal data-reveal-delay="80">
+      {% if form.non_field_errors %}
+        <p class="fte-erro-geral" role="alert">{{ form.non_field_errors|join:" " }}</p>
+      {% endif %}
+
+      <form method="post" class="fte-form">
+        {% csrf_token %}
+
+        <div class="pcf-field">
+          <label class="pcf-label" for="{{ form.area.id_for_label }}">{{ form.area.label }}</label>
+          {{ form.area }}
+          {% if form.area.errors %}
+            <p class="fte-erro">{{ form.area.errors|join:" " }}</p>
+          {% else %}
+            <p class="fte-help">A área que vai gastar: supply, recreação, uma salinha, eventos.</p>
+          {% endif %}
+        </div>
+
+        <div class="pcf-field">
+          <label class="pcf-label" for="{{ form.competencia.id_for_label }}">{{ form.competencia.label }}</label>
+          {{ form.competencia }}
+          {% if form.competencia.errors %}
+            <p class="fte-erro">{{ form.competencia.errors|join:" " }}</p>
+          {% elif form.competencia.help_text %}
+            <p class="fte-help">{{ form.competencia.help_text }}</p>
+          {% endif %}
+        </div>
+
+        <div class="pcf-field">
+          <label class="pcf-label" for="{{ form.valor.id_for_label }}">{{ form.valor.label }}</label>
+          {{ form.valor }}
+          {% if form.valor.errors %}
+            <p class="fte-erro">{{ form.valor.errors|join:" " }}</p>
+          {% else %}
+            <p class="fte-help">Valor em reais que a área pode gastar no mês inteiro. Zero significa que a área não pode gastar.</p>
+          {% endif %}
+        </div>
+
+        <div class="pcf-field">
+          <label class="pcf-label" for="{{ form.observacao.id_for_label }}">{{ form.observacao.label }}</label>
+          {{ form.observacao }}
+          {% if form.observacao.errors %}
+            <p class="fte-erro">{{ form.observacao.errors|join:" " }}</p>
+          {% else %}
+            <p class="fte-help">Opcional. Serve para lembrar depois por que este mês teve teto diferente.</p>
+          {% endif %}
+        </div>
+
+        <div class="fte-acoes">
+          <button type="submit" class="pcf-btn pcf-btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            {% if objeto %}Salvar teto{% else %}Definir teto{% endif %}
+          </button>
+          <a href="{% url 'adm:tetos' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+        </div>
+      </form>
+
+      {% if objeto %}
+        <p class="fte-meta">
+          Última alteração em {{ objeto.atualizado_em|date:"d/m/Y H:i" }}{% if objeto.definido_por %},
+          por {{ objeto.definido_por.get_full_name|default:objeto.definido_por.username }}{% endif %}.
+          {% comment %} Salvar grava você como responsável pelo teto: quem vê a tela precisa
+             saber a quem perguntar sobre o valor. {% endcomment %}
+          Ao salvar, o teto passa a constar como definido por você.
+        </p>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

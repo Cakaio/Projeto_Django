@@ -122,7 +122,7 @@ def backlog(request):
         'status_choices': STATUS_DEMANDA,
         'retorno_choices': RETORNO_AREA,
         'prioridades': PRIORIDADES,
-        'responsaveis': (Voluntario.objects
+        'responsaveis': (Voluntario.objects.ativos()
                          .filter(demandas__isnull=False)
                          .distinct()
                          .order_by('first_name', 'username')),

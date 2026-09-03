@@ -1,10 +1,14 @@
-"""Ponto de partida do robô: o dicionário de palavras-chave e algumas fontes.
+"""Ponto de partida do robô: as fontes conferidas e as consultas de busca.
 
 Uso:
     python manage.py seed_editais
 
-Idempotente: pode rodar de novo sem duplicar nada. Palavras que já existem não
-têm o peso alterado — se o CR ajustou o peso pela tela, foi por um motivo.
+As palavras-chave NÃO moram mais aqui: elas entram sozinhas pela migração
+`editais/0002_dicionario_de_palavras_chave.py`, para o robô já pontuar certo no
+deploy sem ninguém precisar lembrar de rodar comando. Manter as duas listas era
+garantir que uma hora divergiriam.
+
+Idempotente: pode rodar de novo sem duplicar nada.
 
 As sete fontes RSS aqui foram testadas uma a uma e entram LIGADAS — o robô já
 serve no primeiro dia. As reprovadas (Prosas, que bloqueia robô, e o Mapa das
@@ -13,47 +17,7 @@ ninguém gastar tempo redescobrindo o problema.
 """
 from django.core.management.base import BaseCommand
 
-from editais.models import ConsultaBusca, FonteEdital, PalavraChave
-
-# Peso 3 = é a cara do PCF; 2 = combina; 1 = pode servir.
-PALAVRAS_POSITIVAS = [
-    ('criança', 3),
-    ('infância', 3),
-    ('primeira infância', 3),
-    ('adolescente', 3),
-    ('juventude', 2),
-    ('educação', 2),
-    ('contraturno', 3),
-    ('socioeducativo', 3),
-    ('terceiro setor', 2),
-    ('OSC', 2),
-    ('OSCIP', 2),
-    ('sociedade civil', 2),
-    ('filantropia', 2),
-    ('voluntariado', 2),
-    ('assistência social', 2),
-    ('vulnerabilidade social', 3),
-    ('esporte', 1),
-    ('cultura', 1),
-    ('doação', 1),
-    ('incentivo fiscal', 2),
-    ('FIA', 2),
-    ('CMDCA', 3),
-    ('comunidade', 1),
-]
-
-# Termos que aparecem em chamada de pesquisa, empresa ou pós-graduação: não é
-# do que o projeto precisa, e sem eles a lista enche de ruído.
-PALAVRAS_NEGATIVAS = [
-    ('mestrado', -3),
-    ('doutorado', -3),
-    ('pós-graduação', -3),
-    ('bolsa de pesquisa', -3),
-    ('startup', -2),
-    ('pesquisa científica', -2),
-    ('inovação tecnológica', -2),
-    ('exportação', -3),
-]
+from editais.models import ConsultaBusca, FonteEdital
 
 # Fontes RSS testadas em 12/08/2026: todas responderam com itens de verdade.
 # Entram LIGADAS porque foram conferidas uma a uma — o robô já funciona no
@@ -142,16 +106,9 @@ CONSULTAS = [
 
 
 class Command(BaseCommand):
-    help = 'Cria as palavras-chave, as fontes conferidas e as consultas de busca.'
+    help = 'Cria as fontes conferidas e as consultas de busca do robô.'
 
     def handle(self, *args, **opcoes):
-        criadas = existentes = 0
-        for termo, peso in PALAVRAS_POSITIVAS + PALAVRAS_NEGATIVAS:
-            _, criada = PalavraChave.objects.get_or_create(
-                termo=termo, defaults={'peso': peso, 'ativo': True})
-            criadas += criada
-            existentes += not criada
-
         fontes_criadas = fontes_existentes = 0
         for dados in FONTES:
             # `ativo` vem de cada fonte: as sete conferidas entram ligadas, as
@@ -169,8 +126,6 @@ class Command(BaseCommand):
             consultas_criadas += criada
             consultas_existentes += not criada
 
-        self.stdout.write(self.style.SUCCESS(
-            f'{criadas} palavra(s)-chave criada(s); {existentes} já existiam (peso preservado).'))
         self.stdout.write(self.style.SUCCESS(
             f'{fontes_criadas} fonte(s) criada(s); {fontes_existentes} já existiam.'))
         self.stdout.write(self.style.SUCCESS(

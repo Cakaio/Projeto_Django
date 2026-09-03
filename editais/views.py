@@ -21,8 +21,8 @@ from django.utils import timezone
 
 from .forms import (ConsultaBuscaForm, EditalForm, FonteEditalForm,
                     PalavraChaveForm)
-from .models import (STATUS_EDITAL, ConsultaBusca, Edital, FonteEdital,
-                     PalavraChave)
+from .models import (JANELA_ATENCAO_DIAS, MARGEM_MINIMA_DIAS, STATUS_EDITAL,
+                     ConsultaBusca, Edital, FonteEdital, PalavraChave)
 
 AREAS_CRRE = {'CR/RE', 'TRIADE'}
 
@@ -41,23 +41,30 @@ def crre_required(view):
 @crre_required
 def lista(request):
     """A caixa de entrada do CR: o que o robô trouxe, do mais relevante para o
-    menos. Contexto: editais, contadores, q, status, abertos, hoje, kpis."""
+    menos.
+
+    A margem de prazo não é opção de filtro: edital sem tempo de inscrição não
+    aparece, ponto. Antes havia um checkbox "só com prazo aberto" desligado por
+    padrão, então a tela abria mostrando chamada vencida como se fosse
+    oportunidade.
+
+    Contexto: editais, contadores, q, status, hoje, margem_dias, janela_dias, kpis.
+    """
     busca = (request.GET.get('q') or '').strip()
     status = request.GET.get('status') or ''
-    so_abertos = request.GET.get('abertos') == '1'
     hoje = timezone.localdate()
 
-    editais = Edital.objects.select_related('fonte', 'responsavel')
+    # Um universo só para lista e contadores: se os números viessem de
+    # `Edital.objects` cru, o contador diria 40 e a tabela mostraria 12.
+    visiveis = Edital.objects.com_prazo_util()
+
+    editais = visiveis.select_related('fonte', 'responsavel')
     if busca:
         editais = editais.filter(Q(titulo__icontains=busca) | Q(descricao__icontains=busca))
     if status:
         editais = editais.filter(status=status)
-    if so_abertos:
-        # Edital sem prazo informado continua na lista: não dá para afirmar que
-        # fechou, e sumir com ele esconderia oportunidade.
-        editais = editais.filter(Q(prazo__isnull=True) | Q(prazo__gte=hoje))
 
-    por_status = dict(Edital.objects.values_list('status').annotate(total=Count('id')))
+    por_status = dict(visiveis.values_list('status').annotate(total=Count('id')))
     contadores = [{'valor': valor, 'rotulo': rotulo, 'total': por_status.get(valor, 0)}
                   for valor, rotulo in STATUS_EDITAL]
 
@@ -68,13 +75,14 @@ def lista(request):
         'status_choices': STATUS_EDITAL,
         'q': busca,
         'status': status,
-        'abertos': so_abertos,
         'hoje': hoje,
+        'margem_dias': MARGEM_MINIMA_DIAS,
+        'janela_dias': JANELA_ATENCAO_DIAS,
         'total': sum(por_status.values()),
         'novos': por_status.get('NOVO', 0),
-        'vencendo': Edital.objects.filter(
+        'vencendo': visiveis.filter(
             status__in=em_analise, prazo__gte=hoje,
-            prazo__lte=hoje + timedelta(days=7)).count(),
+            prazo__lte=hoje + timedelta(days=JANELA_ATENCAO_DIAS)).count(),
         'fontes_com_erro': FonteEdital.objects.filter(ativo=True).exclude(ultimo_erro='').count(),
     })
 

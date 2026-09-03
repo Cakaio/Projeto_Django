@@ -1,4 +1,6 @@
+import unicodedata
 import uuid
+
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, UserManager
@@ -67,6 +69,60 @@ CARGOS = (
     ('VICE', 'Vice-Presidente'),
     ('PRESIDENTE', 'Presidente'),
 )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cargos no histórico de liderança
+#
+# `HistoricoLideranca.cargo` é TEXTO LIVRE — o help_text do campo sugere "LEG"
+# como exemplo, então o banco tem "LEG" numa linha e "Líder Educacional Geral"
+# na outra, com e sem acento. A tela agrupa a sucessão por cargo (a seta liga
+# quem sucedeu quem NO MESMO cargo), e sem juntar as grafias a mesma função
+# viraria duas cadeias separadas.
+# ─────────────────────────────────────────────────────────────────────────────
+CARGOS_SINONIMOS = {
+    'presidente': 'Presidente',
+    'presidenta': 'Presidente',
+    'vice': 'Vice-Presidente',
+    'vice presidente': 'Vice-Presidente',
+    'vice-presidente': 'Vice-Presidente',
+    'leg': 'Líder Educacional Geral',
+    'lider educacional geral': 'Líder Educacional Geral',
+    'liderança educacional geral': 'Líder Educacional Geral',
+}
+
+# Ordem das cadeias dentro de uma área, da função mais alta para a mais baixa.
+# A Tríade tem TRÊS cargos independentes, e empilhá-los em qualquer ordem daria
+# a entender uma hierarquia que não é a real.
+ORDEM_DOS_CARGOS = ['Presidente', 'Vice-Presidente', 'Líder Educacional Geral']
+
+SEM_CARGO = 'Cargo não informado'
+
+
+def cargo_canonico(cargo):
+    """Nome único da função, para juntar grafias diferentes na mesma cadeia.
+
+    Normaliza caixa, acento e espaço antes de consultar os sinônimos. Cargo que
+    não está na tabela volta como foi digitado: "Líder de Sala Violeta" é
+    legítimo e não deve ser achatado em nada.
+    """
+    bruto = ' '.join((cargo or '').split())
+    if not bruto:
+        return SEM_CARGO
+    sem_acento = ''.join(
+        c for c in unicodedata.normalize('NFD', bruto.lower())
+        if unicodedata.category(c) != 'Mn'
+    )
+    return CARGOS_SINONIMOS.get(sem_acento, bruto)
+
+
+def ordem_do_cargo(canonico):
+    """Presidente, Vice, LEG, e depois o resto em ordem alfabética."""
+    if canonico in ORDEM_DOS_CARGOS:
+        return (0, ORDEM_DOS_CARGOS.index(canonico), '')
+    if canonico == SEM_CARGO:
+        return (2, 0, '')          # sem cargo vai para o fim
+    return (1, 0, canonico.lower())
 
 
 class VoluntarioManager(UserManager):
@@ -182,8 +238,8 @@ class Grupo(models.Model):
             if regra.get("cargos"):
                 parte &= Q(cargo__in=regra["cargos"])
             consulta |= parte
-        return Voluntario.objects.filter(
-            consulta, data_saida__isnull=True, is_active=True
+        return Voluntario.objects.ativos().filter(
+            consulta
         ).distinct().order_by("first_name", "last_name", "username")
 
 class PresencaVoluntario(models.Model):
@@ -212,17 +268,46 @@ class Talento(models.Model):
 
 
 class HistoricoLideranca(models.Model):
-    """Registro de quem já foi líder de uma área/cargo e por qual período."""
+    """Registro de quem já foi líder de uma área/cargo e por qual período.
+
+    A pessoa pode NÃO ter ficha no sistema. Boa parte de quem liderou o projeto
+    saiu antes de existir site, e não faz sentido criar login para alguém que
+    nunca vai entrar — exigir ficha deixaria essas gestões fora da história, que
+    é justamente o que esta tela existe para contar. Por isso há duas formas de
+    dizer de quem é o registro, e a ficha só tem prioridade quando existe.
+    """
     voluntario = models.ForeignKey(
-        'Voluntario', on_delete=models.CASCADE, related_name='historico_lideranca'
+        'Voluntario', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='historico_lideranca',
+        help_text="Quem liderou, se tiver ficha no sistema.",
     )
-    cargo = models.CharField(max_length=100, help_text="Cargo/posição liderada (ex.: Líder de Sala Violeta, LEG, Presidente).")
+    nome_avulso = models.CharField(
+        'nome ou apelido', max_length=120, blank=True,
+        help_text="Use quando a pessoa não tem ficha — é como ela vai aparecer na história.",
+    )
+    foto = models.ImageField(
+        'foto', upload_to='lideres_historico', blank=True, null=True,
+        help_text="Só é necessária para quem não tem ficha; com ficha, usamos a foto do perfil.",
+    )
+    cargo = models.CharField(
+        max_length=100,
+        help_text="Cargo/posição liderada (ex.: Líder de Sala Violeta, LEG, Presidente). "
+                  "A tela liga a seta de sucessão entre quem teve o MESMO cargo, então "
+                  "escreva igual nos registros da mesma função.",
+    )
     area = models.CharField(max_length=30, choices=LISTA_AREAS, blank=True, null=True, help_text="Área liderada (opcional).")
     data_inicio = models.DateField()
     data_fim = models.DateField(null=True, blank=True, help_text="Deixe vazio se ainda está no cargo.")
+    descricao = models.TextField(
+        'como foi a passagem', blank=True,
+        help_text="Opcional: o que marcou essa gestão, o que foi deixado para a próxima. "
+                  "Aparece na linha de sucessão do histórico de líderes.",
+    )
 
     class Meta:
-        ordering = ['area', '-data_inicio']
+        # Sucessão se lê do mais antigo para o mais novo: é isso que a seta do
+        # histórico liga. Ordenar decrescente inverteria a passagem de liderança.
+        ordering = ['area', 'data_inicio']
         verbose_name = 'Histórico de Liderança'
         verbose_name_plural = 'Históricos de Liderança'
 
@@ -230,8 +315,44 @@ class HistoricoLideranca(models.Model):
     def atual(self):
         return self.data_fim is None
 
+    @property
+    def mesmo_ano(self):
+        """Gestão que começou e acabou no mesmo ano mostra '2024', não '2024–2024'."""
+        return bool(self.data_fim) and self.data_fim.year == self.data_inicio.year
+
+    @property
+    def de_quem(self):
+        """Nome a mostrar. Ficha primeiro; nome digitado como reserva."""
+        if self.voluntario_id:
+            return self.voluntario.get_full_name() or self.voluntario.username
+        return self.nome_avulso or 'Sem nome'
+
+    @property
+    def retrato(self):
+        """A foto a exibir, ou None. Perfil primeiro, foto solta depois.
+
+        Devolve o campo de arquivo, não a URL: a URL de campo vazio estoura, e
+        o template precisa poder testar antes de chamar `.url`.
+        """
+        if self.voluntario_id and self.voluntario.foto:
+            return self.voluntario.foto
+        return self.foto or None
+
+    @property
+    def tem_ficha(self):
+        """Só quem tem ficha vira link para a trajetória por pessoa."""
+        return self.voluntario_id is not None
+
+    def clean(self):
+        super().clean()
+        if not self.voluntario_id and not self.nome_avulso.strip():
+            raise ValidationError({
+                'nome_avulso': 'Diga quem liderou: escolha a ficha ou digite o nome.',
+            })
+
     def __str__(self):
-        return f'{self.voluntario} — {self.cargo} ({self.data_inicio:%m/%Y}–{"atual" if self.atual else self.data_fim.strftime("%m/%Y")})'
+        fim = 'atual' if self.atual else self.data_fim.strftime('%m/%Y')
+        return f'{self.de_quem} — {self.cargo} ({self.data_inicio:%m/%Y}–{fim})'
 
 
 class Regra(models.Model):
@@ -261,6 +382,14 @@ class Regra(models.Model):
 # templates via contexto). Não espalhar esses números pelo código.
 # ─────────────────────────────────────────────────────────────────────────────
 FALTAS_POR_ALERTA = 3          # faltas consecutivas necessárias para 1 alerta automático
+
+# A ÚNICA regra que o alerta automático de faltas pode usar. Antes cada gerador
+# escolhia uma: o registro de presença gravava AL13 ("faltou a um sábado sem
+# avisar e o líder julgou pertinente") e o comando retroativo gravava AL2
+# ("confirmou presença e não compareceu") — duas regras que descrevem
+# julgamento humano, não contagem. O voluntário recebia um alerta cujo texto não
+# tinha nada a ver com o motivo real.
+REGRA_FALTAS_CONSECUTIVAS = 'AL18'
 ALERTAS_POR_ADVERTENCIA = 3    # alertas ativos acumulados que geram 1 advertência automática
 ADVERTENCIAS_PARA_OBSERVACAO = 3   # advertências ativas que disparam Período de Observação
 # Teto visual de alertas: ao atingir, há 3 advertências → Período de Observação
@@ -293,6 +422,7 @@ class Ocorrencia(models.Model):
             ('AL15', 'AL15 – Não respondeu o grupo da área por uma semana ou mais'),
             ('AL16', 'AL16 – Líder não cumpriu prazos estabelecidos pela gestão'),
             ('AL17', 'AL17 – Líder não compareceu às reuniões da Gestão sem justificar'),
+            ('AL18', 'AL18 – Faltou a três sábados seguidos sem justificativa'),
         )),
         ('Advertências', (
             ('AD1', 'AD1 – Estava sob influência de álcool ou substância psicoativa durante o projeto'),

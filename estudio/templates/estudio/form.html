@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block titulo %}Novo documento — Estúdio{% endblock %}
+
+{% block content %}
+{% comment %}
+  Criação do documento. O preset escolhido aqui monta a PRIMEIRA página — o
+  documento nasce com página, porque abrir num editor em branco não explica a
+  ninguém o que fazer em seguida.
+{% endcomment %}
+<style>
+  .nst-wrap { max-width: 34rem; padding-block: clamp(2rem, 5vw, 3.25rem) clamp(2.5rem, 6vw, 4rem); }
+  .nst-title { margin: .7rem 0 0; font-weight: 800; letter-spacing: -.02em;
+               font-size: clamp(1.5rem, 3vw, 2rem); color: var(--ink); }
+  .nst-form { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; }
+  .nst-campo { display: flex; flex-direction: column; gap: .35rem; }
+  .nst-label { font-size: .8rem; font-weight: 700; color: var(--ink); }
+  .nst-help { margin: 0; font-size: .78rem; line-height: 1.45; color: hsl(var(--muted-foreground)); }
+  .nst-err { margin: 0; font-size: .8rem; font-weight: 600; color: #b03636; }
+  .nst-acoes { display: flex; gap: .5rem; flex-wrap: wrap; padding-top: .4rem; }
+  .nst-acoes .pcf-btn { flex: 1; justify-content: center; }
+</style>
+
+<div class="pcf-container nst-wrap">
+
+  <span class="pcf-eyebrow">Estúdio</span>
+  <h1 class="nst-title">Novo documento</h1>
+
+  <form method="post" class="nst-form">
+    {% csrf_token %}
+    {% for erro in form.non_field_errors %}<p class="nst-err">{{ erro }}</p>{% endfor %}
+
+    {% for campo in form %}
+      <div class="nst-campo">
+        <label class="nst-label" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+        {{ campo }}
+        {% if campo.help_text %}<p class="nst-help">{{ campo.help_text }}</p>{% endif %}
+        {% for erro in campo.errors %}<p class="nst-err">{{ erro }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+
+    <div class="nst-campo">
+      <label class="nst-label" for="preset">Primeira página</label>
+      <select id="preset" name="preset" class="pcf-input">
+        {% for nome, rotulo in presets %}<option value="{{ nome }}">{{ rotulo }}</option>{% endfor %}
+      </select>
+      <p class="nst-help">
+        Ponto de partida — dá para mexer em tudo depois, e trocar de modelo página por página.
+      </p>
+    </div>
+
+    <div class="nst-acoes">
+      <a href="{% url 'estudio:lista' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+      <button type="submit" class="pcf-btn pcf-btn-primary">Criar e abrir</button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}

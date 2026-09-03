@@ -1,24 +1,19 @@
 from .models import Atendido
 
+# Sala -> nome da variável no template. A contagem que aparece na navbar sai
+# daqui, então uma criança desativada inflava o número de todas as telas.
+SALAS = (
+    ("VIOLETA", "atendidos_violeta"),
+    ("ANIL", "atendidos_anil"),
+    ("AZUL", "atendidos_azul"),
+    ("VERDE", "atendidos_verde"),
+    ("AMARELO", "atendidos_amarelo"),
+    ("LARANJA", "atendidos_laranja"),
+    ("VERMELHO", "atendidos_vermelho"),
+    ("FAMILIA_FELIZ", "atendidos_ff"),
+)
+
+
 def atendidos_filtrados(request):
-    violeta = Atendido.objects.filter(sala="VIOLETA")
-    anil = Atendido.objects.filter(sala="ANIL")
-    azul = Atendido.objects.filter(sala="AZUL")
-    verde = Atendido.objects.filter(sala="VERDE")
-    amarelo = Atendido.objects.filter(sala="AMARELO")
-    laranja = Atendido.objects.filter(sala="LARANJA")
-    vermelho = Atendido.objects.filter(sala="VERMELHO")
-    ff = Atendido.objects.filter(sala="FAMILIA_FELIZ")
-    
-    context = {
-        "atendidos_violeta": violeta,
-        "atendidos_anil": anil,
-        "atendidos_azul": azul,
-        "atendidos_verde": verde,
-        "atendidos_amarelo": amarelo,
-        "atendidos_laranja": laranja,
-        "atendidos_vermelho": vermelho,
-        "atendidos_ff": ff,
-    }
-    
-    return context
+    ativos = Atendido.objects.ativos()
+    return {chave: ativos.filter(sala=sala) for sala, chave in SALAS}

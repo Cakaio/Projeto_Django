@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block titulo %}Geral — Estúdio{% endblock %}
+
+{% block content %}
+{% comment %}
+  A área Geral: todo documento do estúdio. Contexto: documentos, tipo, tipos.
+{% endcomment %}
+<style>
+  .gst-wrap { padding-block: clamp(2rem, 5vw, 3.25rem) clamp(2.5rem, 6vw, 4rem); }
+  .gst-head { display: flex; align-items: flex-end; justify-content: space-between;
+              gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .gst-title { margin: 0; font-weight: 800; letter-spacing: -.02em;
+               font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
+  .gst-sub { margin: .4rem 0 0; max-width: 62ch; font-size: .92rem; line-height: 1.55;
+             color: hsl(var(--muted-foreground)); }
+
+  .gst-chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .gst-chip { padding: .3rem .7rem; border: 1px solid #e6dcd3; border-radius: 99px;
+              background: #fff; font-size: .8rem; font-weight: 650; color: var(--ink);
+              text-decoration: none; }
+  .gst-chip.is-active { border-color: var(--brand); background: #fff4ec; color: #b4470c; }
+
+  .gst-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+  .gst-card { display: flex; flex-direction: column; gap: .55rem; text-decoration: none; }
+  .gst-card:hover .gst-card-nome { color: var(--brand); }
+  .gst-card-nome { margin: 0; font-size: 1rem; font-weight: 800; letter-spacing: -.01em;
+                   color: var(--ink); overflow-wrap: anywhere; }
+  .gst-meta { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+              font-size: .78rem; color: var(--ink-soft); }
+  .gst-pe { display: flex; justify-content: space-between; align-items: center; gap: .5rem;
+            padding-top: .55rem; border-top: 1px dashed #f0dfd3; font-size: .8rem;
+            font-weight: 700; color: var(--brand); }
+
+  .gst-empty { text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem;
+               border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
+  .gst-empty-title { margin: 0 0 .35rem; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .gst-empty-sub { margin: 0 auto; max-width: 48ch; font-size: .88rem; line-height: 1.55; color: var(--ink-muted); }
+
+  @media (max-width: 560px) {
+    .gst-acoes { width: 100%; }
+    .gst-acoes .pcf-btn { flex: 1; justify-content: center; }
+  }
+</style>
+
+<div class="pcf-container gst-wrap">
+
+  <header class="gst-head" data-reveal>
+    <div>
+      <span class="pcf-eyebrow">Geral</span>
+      <h1 class="gst-title">Estúdio</h1>
+      <p class="gst-sub">
+        Editor de página com posicionamento livre: arraste, redimensione e gire texto,
+        foto e forma. Serve para a revistinha, para Ata e para o que mais precisar de papel.
+      </p>
+    </div>
+    <div class="gst-acoes">
+      <a href="{% url 'estudio:criar' %}" class="pcf-btn pcf-btn-primary pcf-btn-sm">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo documento
+      </a>
+    </div>
+  </header>
+
+  <nav class="gst-chips" aria-label="Filtrar por tipo">
+    <a class="gst-chip {% if not tipo %}is-active{% endif %}" href="{% url 'estudio:lista' %}">Todos</a>
+    {% for valor, rotulo in tipos %}
+      <a class="gst-chip {% if tipo == valor %}is-active{% endif %}"
+         href="?tipo={{ valor }}">{{ rotulo }}</a>
+    {% endfor %}
+  </nav>
+
+  {% if documentos %}
+    <div class="gst-grid">
+      {% for d in documentos %}
+        <a class="pcf-card pcf-hoverable gst-card" href="{% url 'estudio:editor' d.pk %}" data-reveal>
+          <div class="gst-meta">
+            <span class="pcf-badge {% if d.tipo == 'REVISTA' %}brand{% else %}outline{% endif %}">
+              {{ d.get_tipo_display }}
+            </span>
+            <span>{{ d.total_paginas }} página{{ d.total_paginas|pluralize }}</span>
+          </div>
+          <h2 class="gst-card-nome">{{ d.titulo }}</h2>
+          <div class="gst-meta">
+            {% if d.criado_por %}{{ d.criado_por.get_full_name|default:d.criado_por.username }} ·{% endif %}
+            mexido em {{ d.atualizado_em|date:"d/m/Y H:i" }}
+          </div>
+          <div class="gst-pe">
+            <span>Abrir no editor</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="gst-empty">
+      <p class="gst-empty-title">
+        {% if tipo %}Nenhum documento desse tipo{% else %}Nenhum documento ainda{% endif %}
+      </p>
+      <p class="gst-empty-sub">
+        Crie um em branco, ou abra uma revistinha e clique em “gerar layout” — as páginas
+        das salinhas já vêm montadas com o texto que veio dos semanários.
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block titulo %}{{ documento.titulo }} — Estúdio{% endblock %}
+
+{% block content %}
+{% comment %}
+  Editor de página (prefixo .est-). Três colunas: páginas | folha | propriedades.
+
+  O estado vai para o JS por `json_script` — forma do Django de entregar dado a
+  JavaScript sem virar HTML. O `hidden` do modal leva `!important` de propósito:
+  neste projeto já houve modal que abria por classe enquanto um `display` do CSS
+  vencia o atributo, e a janela simplesmente não aparecia.
+{% endcomment %}
+<style>
+  .est-page { background: #f4f1ee; min-height: calc(100vh - 60px); }
+  .est-topo { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+              padding: .7rem clamp(.75rem, 2vw, 1.25rem); background: #fff;
+              border-bottom: 1px solid hsl(var(--border)); position: sticky; top: 0; z-index: 60; }
+  .est-topo h1 { margin: 0; font-size: 1rem; font-weight: 800; letter-spacing: -.01em;
+                 color: var(--ink); margin-right: auto; overflow-wrap: anywhere; }
+  .est-aviso { font-size: .78rem; font-weight: 700; padding: .2rem .55rem; border-radius: 99px; }
+  .est-aviso[data-estado="limpo"] { background: #dcf3e6; color: #1f6b41; }
+  .est-aviso[data-estado="sujo"] { background: #fdf0d5; color: #8a5a00; }
+  .est-aviso[data-estado="erro"] { background: #fdeaea; color: #b03636; }
+
+  .est-corpo { display: grid; grid-template-columns: 11rem 1fr 16rem; gap: 1rem;
+               align-items: start; padding: 1rem clamp(.75rem, 2vw, 1.25rem) 3rem; }
+
+  /* ── coluna das páginas ── */
+  .est-paginas { display: flex; flex-direction: column; gap: .5rem; position: sticky; top: 4.5rem; }
+  .est-pag-botao { display: flex; align-items: center; gap: .5rem; width: 100%;
+                   padding: .45rem .55rem; border: 1px solid #e6dcd3; border-radius: 10px;
+                   background: #fff; font-size: .8rem; font-weight: 650; color: var(--ink);
+                   cursor: pointer; text-align: left; }
+  .est-pag-botao.is-ativa { border-color: var(--brand); background: #fff4ec; }
+  .est-pag-num { display: grid; place-items: center; width: 1.4rem; height: 1.4rem;
+                 border-radius: 6px; background: #f0e6dd; font-size: .72rem; flex-shrink: 0; }
+  .est-pag-acoes { display: flex; gap: .25rem; }
+  .est-pag-acoes button { flex: 1; padding: .2rem; border: 1px solid #e6dcd3; border-radius: 7px;
+                          background: #fff; cursor: pointer; font-size: .7rem; color: var(--ink-muted); }
+
+  /* ── folha ── */
+  /* min-width:0 e obrigatorio: item de grid tem min-width:auto por padrao, e
+     sem isso a coluna 1fr nao encolhe abaixo da largura da folha. O JS mediria
+     um container cuja largura e ditada pela propria folha que ele tenta caber,
+     o fator nunca desceria, e em tela estreita a grade estouraria na horizontal
+     em vez de reduzir a folha. */
+  .est-palco-area { display: flex; justify-content: center; min-width: 0; overflow-x: auto; }
+  .est-palco { position: relative; max-width: 100%; }
+  .est-folha { position: relative; overflow: hidden; transform-origin: top left;
+               box-shadow: 0 6px 26px rgba(0,0,0,.14); }
+  .est-el { position: absolute; transform-origin: center center; }
+  .est-el-texto .est-texto { width: 100%; height: 100%; white-space: pre-wrap;
+                             overflow-wrap: anywhere; overflow: hidden; }
+  .est-el-imagem .est-img,
+  .est-el-forma .est-forma { width: 100%; height: 100%; display: block; }
+  .est-el.is-sel { outline: 2px solid #2f7de1; outline-offset: 1px; }
+  .est-el[data-travado="1"] { cursor: default; }
+
+  .est-alcas { position: absolute; inset: 0; pointer-events: none; }
+  .est-alca { position: absolute; width: 11px; height: 11px; background: #fff;
+              border: 2px solid #2f7de1; border-radius: 3px; pointer-events: auto; }
+  .est-alca-nw { left: -6px; top: -6px; cursor: nwse-resize; }
+  .est-alca-n  { left: calc(50% - 5px); top: -6px; cursor: ns-resize; }
+  .est-alca-ne { right: -6px; top: -6px; cursor: nesw-resize; }
+  .est-alca-e  { right: -6px; top: calc(50% - 5px); cursor: ew-resize; }
+  .est-alca-se { right: -6px; bottom: -6px; cursor: nwse-resize; }
+  .est-alca-s  { left: calc(50% - 5px); bottom: -6px; cursor: ns-resize; }
+  .est-alca-sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
+  .est-alca-w  { left: -6px; top: calc(50% - 5px); cursor: ew-resize; }
+  .est-girar { position: absolute; left: calc(50% - 7px); top: -30px; width: 14px; height: 14px;
+               border-radius: 50%; background: #2f7de1; border: 2px solid #fff;
+               pointer-events: auto; cursor: grab; }
+
+  /* ── painel ── */
+  .est-painel { position: sticky; top: 4.5rem; display: flex; flex-direction: column; gap: .8rem;
+                background: #fff; border: 1px solid #e6dcd3; border-radius: 14px; padding: .85rem; }
+  .est-grupo { display: flex; flex-direction: column; gap: .45rem; }
+  .est-grupo-titulo { font-size: .7rem; font-weight: 800; letter-spacing: .07em;
+                      text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .est-linha { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+  .est-campo { display: flex; flex-direction: column; gap: .18rem; }
+  .est-campo label { font-size: .68rem; font-weight: 700; color: var(--ink-muted); }
+  .est-campo input, .est-campo select, .est-campo textarea {
+      width: 100%; padding: .3rem .4rem; border: 1px solid #e6dcd3; border-radius: 8px;
+      font-size: .8rem; font-family: inherit; background: #fff; color: var(--ink); box-sizing: border-box; }
+  .est-campo input[type="color"] { padding: 0; height: 1.9rem; }
+  .est-check { display: flex; align-items: center; gap: .4rem; font-size: .78rem; color: var(--ink); }
+  .est-botoes { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
+  .est-botoes button { padding: .35rem; border: 1px solid #e6dcd3; border-radius: 8px;
+                       background: #fff; font-size: .75rem; font-weight: 650; cursor: pointer;
+                       color: var(--ink); }
+  .est-botoes button[data-acao="apagar"] { color: #b03636; border-color: #f2d0d0; }
+  .est-vazio { font-size: .8rem; line-height: 1.5; color: var(--ink-soft); }
+
+  /* Aviso de editor que nao subiu. Nasce visivel e o JS o esconde — falha de
+     carregamento tem que se anunciar, nao virar palco vazio sem explicacao.
+     O !important e porque .est-alerta tem display:flex, que venceria o
+     atributo hidden. */
+  .est-alerta { display: flex; gap: .7rem; align-items: flex-start; margin: 0 clamp(.75rem, 2vw, 1.25rem) 1rem;
+                padding: .85rem 1rem; border-radius: 14px; background: #fdf0d5;
+                border: 1px solid #f0dca8; color: #7a5200; }
+  .est-alerta[hidden] { display: none !important; }
+  .est-alerta p { margin: 0; font-size: .84rem; line-height: 1.55; }
+  .est-alerta code { background: #fff; padding: .05rem .3rem; border-radius: 5px; font-size: .8rem; }
+
+  /* ── seletor de imagem ── */
+  .est-modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center;
+               justify-content: center; padding: 1rem; background: rgba(20,14,10,.55); }
+  .est-modal[hidden] { display: none !important; }
+  .est-modal-caixa { background: #fff; border-radius: 16px; padding: 1.1rem; width: min(46rem, 100%);
+                     max-height: 85vh; overflow: auto; }
+  .est-galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+                 gap: .6rem; margin-top: .9rem; }
+  .est-asset { display: flex; flex-direction: column; gap: .3rem; padding: .4rem; cursor: pointer;
+               border: 1px solid #e6dcd3; border-radius: 10px; background: #fff;
+               font-size: .7rem; color: var(--ink); overflow-wrap: anywhere; text-align: center; }
+  .est-asset img { width: 100%; height: 4.5rem; object-fit: contain; }
+  .est-form-asset { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+                    gap: .5rem; align-items: end; padding-top: .9rem; border-top: 1px dashed #e6dcd3; }
+
+  @media (max-width: 1100px) {
+    .est-corpo { grid-template-columns: 1fr; }
+    .est-paginas, .est-painel { position: static; }
+    .est-paginas { flex-direction: row; overflow-x: auto; }
+    .est-pag-botao { min-width: 8rem; }
+  }
+</style>
+
+<div class="est-page" id="estudio"
+     data-limite="{{ limite_coordenada }}"
+     {% comment %}Molde: o JS troca /pagina/0/ pelo id da página aberta.{% endcomment %}
+     data-rota-salvar="{% url 'estudio:salvar_pagina' documento.pk 0 %}">
+  {% csrf_token %}
+  {{ estado|json_script:"estudio-estado" }}
+
+  <div class="est-topo">
+    <a href="{% url 'estudio:lista' %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Geral</a>
+    <h1>{{ documento.titulo }}</h1>
+    <span class="est-aviso" data-aviso-salvar data-estado="limpo">Tudo salvo</span>
+    <button type="button" class="pcf-btn pcf-btn-outline pcf-btn-sm" data-adicionar="texto">+ Texto</button>
+    <button type="button" class="pcf-btn pcf-btn-outline pcf-btn-sm" data-adicionar="forma">+ Forma</button>
+    <button type="button" class="pcf-btn pcf-btn-outline pcf-btn-sm" data-adicionar="imagem">+ Imagem</button>
+    <a href="{% url 'estudio:imprimir' documento.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm"
+       target="_blank" rel="noopener">Imprimir / PDF</a>
+    <button type="button" class="pcf-btn pcf-btn-primary pcf-btn-sm" data-salvar>Salvar</button>
+  </div>
+
+  <div class="est-alerta" data-editor-caiu role="alert">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" style="flex-shrink:0;margin-top:.1rem"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <p>
+      <b>O editor não carregou.</b> A página abaixo está só para leitura — arrastar,
+      redimensionar e salvar não vão funcionar. Quase sempre é o arquivo
+      <code>/static/js/pcf-estudio.js</code> faltando no servidor: rode
+      <code>python manage.py collectstatic --noinput</code> e dê Reload.
+    </p>
+  </div>
+
+  <div class="est-corpo">
+
+    <div class="est-paginas" data-miniaturas>
+      {% for pagina in paginas %}
+        <button type="button" class="est-pag-botao" data-ir-pagina="{{ pagina.pk }}">
+          <span class="est-pag-num">{{ forloop.counter }}</span>
+          <span>{% if pagina.preset %}{{ pagina.preset }}{% else %}página{% endif %}</span>
+        </button>
+        <div class="est-pag-acoes">
+          <form method="post" action="{% url 'estudio:pagina_mover' documento.pk pagina.pk %}">
+            {% csrf_token %}<input type="hidden" name="direcao" value="cima">
+            <button type="submit" title="Subir">↑</button>
+          </form>
+          <form method="post" action="{% url 'estudio:pagina_mover' documento.pk pagina.pk %}">
+            {% csrf_token %}<input type="hidden" name="direcao" value="baixo">
+            <button type="submit" title="Descer">↓</button>
+          </form>
+          <form method="post" action="{% url 'estudio:pagina_apagar' documento.pk pagina.pk %}">
+            {% csrf_token %}<button type="submit" title="Apagar página">✕</button>
+          </form>
+        </div>
+      {% endfor %}
+
+      <form method="post" action="{% url 'estudio:pagina_nova' documento.pk %}" class="est-grupo">
+        {% csrf_token %}
+        <select name="preset" class="est-campo" aria-label="Modelo da nova página">
+          {% for nome, rotulo in presets %}<option value="{{ nome }}">{{ rotulo }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="pcf-btn pcf-btn-outline pcf-btn-sm">+ Página</button>
+      </form>
+    </div>
+
+    <div class="est-palco-area">
+      {% comment %}
+        O servidor desenha a primeira página aqui, e o JS troca por conta ao
+        subir (desenharPagina limpa o palco antes de montar). Nasce assim de
+        propósito: antes o palco vinha vazio e QUALQUER falha de JavaScript
+        deixava a tela em branco, sem dizer o que houve. Agora, no pior caso,
+        vê-se a página — só não se consegue editar.
+      {% endcomment %}
+      <div class="est-palco" data-palco>
+        {% for pagina in paginas %}{% if forloop.first %}{% include 'estudio/_pagina.html' %}{% endif %}{% endfor %}
+      </div>
+    </div>
+
+    <div class="est-painel" data-painel>
+      <div data-quando="nada">
+        <p class="est-vazio">
+          Clique num elemento da folha para editar. Duplo clique num texto edita ali mesmo.
+          Setas movem 1px, com Shift movem 10px. Ctrl+S salva.
+        </p>
+      </div>
+
+      <div class="est-grupo" data-quando="algo" hidden>
+        <span class="est-grupo-titulo">Posição</span>
+        <div class="est-linha">
+          <div class="est-campo"><label for="p-x">X</label><input id="p-x" type="number" data-prop="x"></div>
+          <div class="est-campo"><label for="p-y">Y</label><input id="p-y" type="number" data-prop="y"></div>
+          <div class="est-campo"><label for="p-l">Largura</label><input id="p-l" type="number" data-prop="largura"></div>
+          <div class="est-campo"><label for="p-a">Altura</label><input id="p-a" type="number" data-prop="altura"></div>
+          <div class="est-campo"><label for="p-r">Rotação</label><input id="p-r" type="number" data-prop="rotacao"></div>
+          <div class="est-campo"><label for="p-z">Camada</label><input id="p-z" type="number" data-prop="z"></div>
+        </div>
+        <label class="est-check"><input type="checkbox" data-prop="travado"> Travado</label>
+      </div>
+
+      <div class="est-grupo" data-quando="texto" hidden>
+        <span class="est-grupo-titulo">Texto</span>
+        <div class="est-campo">
+          <label for="p-texto">Conteúdo</label>
+          <textarea id="p-texto" rows="4" data-prop="texto"></textarea>
+        </div>
+        <div class="est-linha">
+          <div class="est-campo">
+            <label for="p-fonte">Fonte</label>
+            <select id="p-fonte" data-prop="fonte">
+              <option value="">Padrão</option>
+              <option value="display">Display (títulos)</option>
+              <option value="corpo">Corpo</option>
+              <option value="serif">Serif</option>
+              <option value="mono">Mono</option>
+            </select>
+          </div>
+          <div class="est-campo"><label for="p-tam">Tamanho</label><input id="p-tam" type="number" data-prop="tamanho"></div>
+          <div class="est-campo">
+            <label for="p-peso">Peso</label>
+            <select id="p-peso" data-prop="peso">
+              <option value="">Padrão</option><option value="400">Normal</option>
+              <option value="600">Semi</option><option value="800">Negrito</option>
+            </select>
+          </div>
+          <div class="est-campo">
+            <label for="p-alin">Alinhar</label>
+            <select id="p-alin" data-prop="alinhamento">
+              <option value="">Padrão</option><option value="left">Esquerda</option>
+              <option value="center">Centro</option><option value="right">Direita</option>
+              <option value="justify">Justificado</option>
+            </select>
+          </div>
+          <div class="est-campo"><label for="p-entre">Entrelinha</label><input id="p-entre" type="number" step="0.05" data-prop="entrelinha"></div>
+          <div class="est-campo"><label for="p-esp">Espaço</label><input id="p-esp" type="number" step="0.5" data-prop="letra_espaco"></div>
+        </div>
+        <label class="est-check"><input type="checkbox" data-prop="maiusculas"> Tudo em maiúsculas</label>
+        <div class="est-linha">
+          <div class="est-campo"><label for="p-cor">Cor</label><input id="p-cor" type="color" data-prop="cor"></div>
+          <div class="est-campo"><label for="p-ctc">Contorno</label><input id="p-ctc" type="color" data-prop="contorno_cor"></div>
+        </div>
+        <div class="est-campo"><label for="p-ctl">Espessura do contorno</label><input id="p-ctl" type="number" step="0.5" data-prop="contorno_largura"></div>
+      </div>
+
+      <div class="est-grupo" data-quando="forma" hidden>
+        <span class="est-grupo-titulo">Forma</span>
+        <div class="est-campo">
+          <label for="p-forma">Tipo</label>
+          <select id="p-forma" data-prop="forma">
+            <option value="retangulo">Retângulo</option>
+            <option value="elipse">Elipse</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="est-grupo" data-quando="imagem" hidden>
+        <span class="est-grupo-titulo">Imagem</span>
+        <div class="est-campo">
+          <label for="p-ajuste">Encaixe</label>
+          <select id="p-ajuste" data-prop="ajuste">
+            <option value="cover">Preencher (corta)</option>
+            <option value="contain">Caber inteira</option>
+            <option value="fill">Esticar</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="est-grupo" data-quando="algo" hidden>
+        <span class="est-grupo-titulo">Aparência</span>
+        <div class="est-linha">
+          <div class="est-campo"><label for="p-fundo">Fundo</label><input id="p-fundo" type="color" data-prop="fundo"></div>
+          <div class="est-campo"><label for="p-bc">Borda</label><input id="p-bc" type="color" data-prop="borda_cor"></div>
+          <div class="est-campo"><label for="p-bl">Espessura</label><input id="p-bl" type="number" data-prop="borda_largura"></div>
+          <div class="est-campo"><label for="p-raio">Canto</label><input id="p-raio" type="number" data-prop="raio"></div>
+        </div>
+        <label class="est-check"><input type="checkbox" data-prop="sombra"> Sombra</label>
+      </div>
+
+      <div class="est-grupo" data-quando="algo" hidden>
+        <span class="est-grupo-titulo">Ações</span>
+        <div class="est-botoes">
+          <button type="button" data-acao="frente">Trazer à frente</button>
+          <button type="button" data-acao="tras">Enviar atrás</button>
+          <button type="button" data-acao="duplicar">Duplicar</button>
+          <button type="button" data-acao="apagar">Apagar</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="est-modal" data-seletor-imagem hidden>
+    <div class="est-modal-caixa">
+      <h2 style="margin:0 0 .3rem;font-size:1.05rem;font-weight:800">Escolher imagem</h2>
+      <p class="est-vazio" style="margin:0">
+        Suba aqui as artes exportadas do Canva. Use o apelido para os modelos de página
+        acharem a arte certa: <code>maozinhas-topo</code>, <code>maozinhas-pe</code>,
+        <code>ondas-agua</code>, <code>faixa-obrigado</code>, <code>sala-violeta</code>…
+      </p>
+
+      <div class="est-galeria" data-galeria>
+        {% for asset in assets %}
+          <button type="button" class="est-asset" data-asset="{{ asset.pk }}">
+            <img src="{{ asset.arquivo.url }}" alt="">
+            {{ asset.nome }}{% if asset.apelido %} ({{ asset.apelido }}){% endif %}
+          </button>
+        {% empty %}
+          <p class="est-vazio">Nenhuma imagem no acervo ainda.</p>
+        {% endfor %}
+      </div>
+
+      <form class="est-form-asset" method="post" data-form-asset
+            action="{% url 'estudio:asset_novo' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% for campo in form_asset %}
+          <div class="est-campo">
+            <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+            {{ campo }}
+          </div>
+        {% endfor %}
+        <button type="submit" class="pcf-btn pcf-btn-primary pcf-btn-sm">Subir imagem</button>
+      </form>
+
+      <div style="margin-top:.9rem;text-align:right">
+        <button type="button" class="pcf-btn pcf-btn-outline pcf-btn-sm" data-fechar>Fechar</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="{% static 'js/pcf-estudio.js' %}?v={{ ESTATICO_V }}" defer></script>
+{% endblock %}

@@ -167,11 +167,22 @@ class LocalRondaCRUDTest(TestCase):
 
     def test_criar_local(self):
         resp = self.client.post(reverse('ronda:local_criar'), {
-            'nome': 'Quadra', 'ativo': True, 'ordem': 4
+            'nome': 'Quadra', 'ativo': True, 'ordem': 4, 'pessoas_por_grupo': 2
         })
         self.assertRedirects(resp, reverse('ronda:locais'))
         from ronda.models import LocalRonda
         self.assertTrue(LocalRonda.objects.filter(nome='Quadra').exists())
+
+    def test_criar_local_com_trios(self):
+        resp = self.client.post(reverse('ronda:local_criar'), {
+            'nome': 'Portaria', 'ativo': True, 'ordem': 5, 'pessoas_por_grupo': 3
+        })
+        self.assertRedirects(resp, reverse('ronda:locais'))
+        from ronda.models import LocalRonda
+        local = LocalRonda.objects.get(nome='Portaria')
+        self.assertEqual(local.pessoas_por_grupo, 3)
+        self.assertEqual(local.total_evento, 6)
+        self.assertEqual(local.rotulo_grupo, 'Trio')
 
 
 class ConfiguracaoCriarTest(TestCase):
@@ -268,6 +279,95 @@ class DetalheConfiguracaoTest(TestCase):
         escala.refresh_from_db()
         self.assertEqual(escala.voluntario, novo_vol)
         self.assertTrue(escala.is_substituto)
+
+
+class DiaDeEventoTest(TestCase):
+    """Dia de evento: 2 grupos por local, tamanho definido no próprio local."""
+
+    def setUp(self):
+        from ronda.models import LocalRonda, ConfiguracaoRondaSabado, HorarioRonda
+        from sabado.models import Sabado, DisponibilidadeVoluntario
+        import datetime
+
+        self.sabado = Sabado.objects.create(data=datetime.date(2099, 6, 6), tema='T', descricao='D')
+        self.cfg = ConfiguracaoRondaSabado.objects.create(sabado=self.sabado, dia_de_evento=True)
+
+        self.campus = LocalRonda.objects.get(nome='Campus')
+        self.brinquedoteca = LocalRonda.objects.get(nome='Brinquedoteca')
+        self.h_campus = HorarioRonda.objects.create(configuracao=self.cfg, local=self.campus, ordem=0)
+        self.h_brinq = HorarioRonda.objects.create(configuracao=self.cfg, local=self.brinquedoteca, ordem=1)
+
+        self.vols = [_vol(f'ev{i}') for i in range(20)]
+        for v in self.vols:
+            DisponibilidadeVoluntario.objects.create(sabado=self.sabado, voluntario=v, vai_ao_projeto=True)
+
+        self.client = Client()
+        self.client.force_login(_vol('triade_evento', area='TRIADE'))
+
+    def test_campus_vem_em_trios(self):
+        self.assertEqual(self.campus.pessoas_por_grupo, 3)
+        self.assertEqual(self.campus.total_evento, 6)
+
+    def test_sorteio_respeita_tamanho_do_grupo(self):
+        from ronda.models import EscalaRonda
+        from ronda.sorteio import executar_sorteio
+        executar_sorteio(self.cfg)
+
+        campus = EscalaRonda.objects.filter(horario=self.h_campus)
+        self.assertEqual(campus.count(), 6)
+        self.assertEqual(campus.filter(dupla=1).count(), 3)
+        self.assertEqual(campus.filter(dupla=2).count(), 3)
+
+        brinq = EscalaRonda.objects.filter(horario=self.h_brinq)
+        self.assertEqual(brinq.count(), 4)
+        self.assertEqual(brinq.filter(dupla=1).count(), 2)
+        self.assertEqual(brinq.filter(dupla=2).count(), 2)
+
+    def test_necessarios_soma_tamanhos_por_local(self):
+        resp = self.client.get(reverse('ronda:configuracao_detalhe', args=[self.cfg.pk]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['necessarios'], 10)  # 6 (Campus) + 4 (Brinquedoteca)
+
+    def test_clean_permite_ate_o_total_do_local(self):
+        from ronda.models import EscalaRonda
+        for i, vol in enumerate(self.vols[:6]):
+            EscalaRonda.objects.create(
+                horario=self.h_campus, local=self.campus, voluntario=vol, dupla=1 if i < 3 else 2,
+            )
+        excedente = EscalaRonda(horario=self.h_campus, local=self.campus, voluntario=self.vols[6], dupla=2)
+        with self.assertRaises(ValidationError):
+            excedente.clean()
+
+    def test_swap_permitido_em_dia_de_evento(self):
+        from ronda.models import EscalaRonda
+        from ronda.sorteio import executar_sorteio
+        executar_sorteio(self.cfg)
+        escala = EscalaRonda.objects.filter(horario=self.h_campus).first()
+        escalados = set(
+            EscalaRonda.objects.filter(horario__configuracao=self.cfg).values_list('voluntario_id', flat=True)
+        )
+        novo_vol = next(v for v in self.vols if v.pk not in escalados)
+
+        resp = self.client.post(
+            reverse('ronda:escala_swap', args=[escala.pk]), {'voluntario_novo_pk': novo_vol.pk}
+        )
+        self.assertEqual(resp.status_code, 302)
+        escala.refresh_from_db()
+        self.assertEqual(escala.voluntario, novo_vol)
+        self.assertTrue(escala.is_substituto)
+
+    def test_swap_recusa_quem_ja_esta_em_outro_local(self):
+        from ronda.models import EscalaRonda
+        from ronda.sorteio import executar_sorteio
+        executar_sorteio(self.cfg)
+        escala = EscalaRonda.objects.filter(horario=self.h_campus).first()
+        ja_escalado = EscalaRonda.objects.filter(horario=self.h_brinq).first().voluntario
+
+        self.client.post(
+            reverse('ronda:escala_swap', args=[escala.pk]), {'voluntario_novo_pk': ja_escalado.pk}
+        )
+        escala.refresh_from_db()
+        self.assertNotEqual(escala.voluntario, ja_escalado)
 
 
 class RankingRondaTest(TestCase):

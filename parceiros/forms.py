@@ -1,6 +1,7 @@
 from django import forms
 from django.utils import timezone
 
+from adm.models import Conta
 from voluntario.models import Voluntario
 
 from .models import Contribuicao, Interacao, Parceiro
@@ -11,8 +12,8 @@ AREAS_CARTEIRA = ('CR/RE', 'TRIADE')
 
 def _voluntarios_carteira():
     """Voluntários ativos que podem assumir uma carteira (CR/RE e Tríade)."""
-    return (Voluntario.objects
-            .filter(data_saida__isnull=True, area__in=AREAS_CARTEIRA)
+    return (Voluntario.objects.ativos()
+            .filter(area__in=AREAS_CARTEIRA)
             .order_by('first_name', 'username'))
 
 
@@ -45,7 +46,8 @@ class ContribuicaoForm(forms.ModelForm):
 
     class Meta:
         model = Contribuicao
-        fields = ['parceiro', 'competencia', 'valor', 'data_recebimento', 'forma', 'observacao']
+        fields = ['parceiro', 'competencia', 'valor', 'data_recebimento', 'forma',
+                  'conta', 'observacao']
         widgets = {
             'data_recebimento': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
         }
@@ -53,6 +55,10 @@ class ContribuicaoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['parceiro'].queryset = Parceiro.objects.exclude(status='ENCERRADO')
+        # Conta desativada continua no histórico, mas não deve ser oferecida
+        # para uma doação nova.
+        self.fields['conta'].queryset = Conta.objects.filter(ativo=True)
+        self.fields['conta'].empty_label = 'Não informado'
         self.fields['data_recebimento'].input_formats = ['%Y-%m-%d']
         self.fields['data_recebimento'].initial = timezone.localdate()
         self.fields['data_recebimento'].help_text = (

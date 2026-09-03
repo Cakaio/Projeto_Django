@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block titulo %}Apagar documento{% endblock %}
+
+{% block content %}
+{% comment %}Confirmação de exclusão do documento (prefixo .dst-).{% endcomment %}
+<style>
+  .dst-wrap { max-width: 36rem; padding-block: clamp(2rem, 6vw, 3.5rem) clamp(2.5rem, 6vw, 4rem); }
+  .dst-card { text-align: center; }
+  .dst-icon { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto .95rem;
+              display: grid; place-items: center; background: #fdeaea; color: #b03636; }
+  .dst-title { margin: 0 0 .5rem; font-size: clamp(1.15rem, 3vw, 1.45rem); font-weight: 800;
+               letter-spacing: -.02em; color: var(--ink); overflow-wrap: anywhere; }
+  .dst-sub { margin: 0 auto; max-width: 46ch; font-size: .9rem; line-height: 1.6; color: var(--ink-soft); }
+  .dst-acoes { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; }
+  .dst-btn-danger { background: #d64545; color: #fff; }
+  .dst-btn-danger:hover { background: #c23a3a; color: #fff; transform: translateY(-1px); }
+
+  @media (max-width: 520px) {
+    .dst-acoes { flex-direction: column-reverse; }
+    .dst-acoes .pcf-btn { width: 100%; justify-content: center; }
+  }
+</style>
+
+<div class="pcf-container dst-wrap">
+  <div class="pcf-card dst-card">
+
+    <span class="dst-icon" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </span>
+
+    <h1 class="dst-title">Apagar “{{ documento.titulo }}”?</h1>
+    <p class="dst-sub">
+      Somem as {{ documento.total_paginas }} página{{ documento.total_paginas|pluralize }} e todo o
+      layout. As imagens do acervo continuam lá — só este documento é apagado.
+      {% if documento.revista %}
+        Este é o layout da revistinha “{{ documento.revista.titulo }}”; a revista em si não é afetada.
+      {% endif %}
+      Esta ação não pode ser desfeita.
+    </p>
+
+    <form method="post" action="">
+      {% csrf_token %}
+      <div class="dst-acoes">
+        <button type="submit" class="pcf-btn dst-btn-danger">Sim, apagar</button>
+        <a href="{% url 'estudio:editor' documento.pk %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

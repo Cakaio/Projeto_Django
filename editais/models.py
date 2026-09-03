@@ -6,10 +6,28 @@ moram no banco porque quem entende de captação é o CR, não o código — e s
 edital muda de layout sem avisar.
 """
 import hashlib
+from datetime import timedelta
+
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 TIPO_FONTE = (('RSS', 'RSS / Atom'), ('HTML', 'Página HTML'))
+
+# Margem mínima para um edital valer a pena aparecer. Montar inscrição de
+# projeto social não é preencher formulário: é juntar estatuto, ata, certidão,
+# orçamento e conseguir assinatura de quem responde pelo projeto. Edital que
+# vence antes disso é notícia velha ocupando o lugar de oportunidade.
+MARGEM_MINIMA_DIAS = 15
+
+# Status em que o CR já decidiu algo. Esconder edital vencido da DESCOBERTA é o
+# que se quer; esconder aquele em que a pessoa já se inscreveu apagaria o
+# próprio pipeline dela da tela.
+STATUS_EM_ANDAMENTO = ('VAMOS_CONCORRER', 'INSCRITO')
+
+# Janela do KPI "prazo apertado". Não pode ser menor que a margem: com a lista
+# já filtrada, um alerta de "7 dias" nunca acenderia.
+JANELA_ATENCAO_DIAS = 30
 STATUS_EDITAL = (
     ('NOVO', 'Novo'),
     ('AVALIANDO', 'Avaliando'),
@@ -94,7 +112,29 @@ class ConsultaBusca(models.Model):
         return self.ativo and not self.ultimo_erro
 
 
+class EditalManager(models.Manager):
+    def com_prazo_util(self):
+        """O que ainda dá tempo de tentar.
+
+        Três casos entram:
+          - prazo com pelo menos MARGEM_MINIMA_DIAS de folga;
+          - prazo não informado, porque a maioria dos itens de RSS não traz data
+            e não dá para afirmar que fecharam — sumir com eles esconderia
+            oportunidade de verdade;
+          - qualquer um que o CR já marcou como "vamos concorrer" ou
+            "inscrito", mesmo vencido: é o pipeline dele.
+        """
+        limite = timezone.localdate() + timedelta(days=MARGEM_MINIMA_DIAS)
+        return self.filter(
+            Q(prazo__isnull=True)
+            | Q(prazo__gte=limite)
+            | Q(status__in=STATUS_EM_ANDAMENTO)
+        )
+
+
 class Edital(models.Model):
+    objects = EditalManager()
+
     titulo = models.CharField('título', max_length=250)
     descricao = models.TextField('descrição', blank=True)
     requisitos = models.TextField('o que precisamos', blank=True)
@@ -145,10 +185,15 @@ class Edital(models.Model):
 
     @property
     def prazo_proximo(self):
-        """True se falta uma semana ou menos — a tela destaca isso."""
+        """True se o prazo está dentro da margem mínima — a tela destaca isso.
+
+        Acompanha MARGEM_MINIMA_DIAS em vez de uma semana fixa: com a lista já
+        filtrada por essa margem, quem aparece destacado aqui é justamente o
+        que o CR só está vendo porque já se inscreveu.
+        """
         if not self.prazo:
             return False
-        return 0 <= (self.prazo - timezone.localdate()).days <= 7
+        return 0 <= (self.prazo - timezone.localdate()).days <= MARGEM_MINIMA_DIAS
 
     @property
     def vencido(self):

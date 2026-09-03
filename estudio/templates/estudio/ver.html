@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ documento.titulo }}{% endblock %}
+
+{% block content %}
+{% comment %}
+  Leitura: as folhas empilhadas, sem alça nem painel. O desenho vem dos mesmos
+  partials do editor, então o que se vê aqui é o que sai no PDF.
+
+  As folhas encolhem por `transform: scale` num container de largura fixa em
+  proporção — não por CSS responsivo em cada elemento, que quebraria o layout
+  justamente onde ele importa.
+{% endcomment %}
+<style>
+  .vst-page { background: #f4f1ee; }
+  .vst-wrap { padding-block: clamp(1.5rem, 4vw, 2.5rem) clamp(2.5rem, 6vw, 4rem); }
+  .vst-head { display: flex; align-items: flex-end; justify-content: space-between;
+              gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .vst-title { margin: 0; font-weight: 800; letter-spacing: -.02em;
+               font-size: clamp(1.5rem, 3vw, 2.1rem); color: var(--ink); }
+  .vst-sub { margin: .3rem 0 0; font-size: .88rem; color: hsl(var(--muted-foreground)); }
+  .vst-acoes { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  .vst-folhas { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+  .vst-caixa { overflow: hidden; border-radius: 6px; box-shadow: 0 6px 26px rgba(0,0,0,.14); }
+
+  .est-folha { position: relative; overflow: hidden; transform-origin: top left; background: #fff; }
+  .est-el { position: absolute; transform-origin: center center; }
+  .est-el-texto .est-texto { width: 100%; height: 100%; white-space: pre-wrap;
+                             overflow-wrap: anywhere; overflow: hidden; }
+  .est-el-imagem .est-img,
+  .est-el-forma .est-forma { width: 100%; height: 100%; display: block; }
+
+  .vst-empty { text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem;
+               border: 1.5px dashed #e0d3c8; border-radius: 24px; background: #fff;
+               color: var(--ink-muted); font-size: .9rem; }
+</style>
+
+<div class="vst-page">
+  <div class="pcf-container vst-wrap">
+
+    <header class="vst-head" data-reveal>
+      <div>
+        <span class="pcf-eyebrow">Estúdio</span>
+        <h1 class="vst-title">{{ documento.titulo }}</h1>
+        <p class="vst-sub">
+          {{ documento.get_tipo_display }} · {{ documento.total_paginas }} página{{ documento.total_paginas|pluralize }}
+        </p>
+      </div>
+      <div class="vst-acoes">
+        <a href="{% url 'estudio:editor' documento.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Editar</a>
+        <a href="{% url 'estudio:imprimir' documento.pk %}" class="pcf-btn pcf-btn-primary pcf-btn-sm"
+           target="_blank" rel="noopener">Imprimir / PDF</a>
+      </div>
+    </header>
+
+    {% if paginas %}
+      <div class="vst-folhas" id="vst-folhas"
+           data-largura="{{ documento.largura }}" data-altura="{{ documento.altura }}">
+        {% for pagina in paginas %}
+          <div class="vst-caixa">
+            {% include 'estudio/_pagina.html' %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="vst-empty">Este documento ainda não tem página nenhuma.</p>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+  // Encolhe as folhas para caber na largura disponível, mantendo a proporção
+  // do papel. Roda também no resize porque a barra lateral do sistema abre e
+  // fecha, e a largura muda sem a janela mudar de tamanho.
+  (function () {
+    var area = document.getElementById('vst-folhas');
+    if (!area) return;
+    var largura = parseInt(area.dataset.largura, 10) || 794;
+    var altura = parseInt(area.dataset.altura, 10) || 1123;
+
+    function ajustar() {
+      var disponivel = area.clientWidth;
+      var fator = Math.min(1, disponivel / largura);
+      area.querySelectorAll('.vst-caixa').forEach(function (caixa) {
+        var folha = caixa.querySelector('.est-folha');
+        if (!folha) return;
+        folha.style.transform = 'scale(' + fator + ')';
+        caixa.style.width = (largura * fator) + 'px';
+        caixa.style.height = (altura * fator) + 'px';
+      });
+    }
+
+    ajustar();
+    window.addEventListener('resize', ajustar);
+  })();
+</script>
+{% endblock %}

@@ -12,6 +12,7 @@ Os templates de verdade são escritos à parte, então as views são exercitadas
 com um jogo de templates de mentira (`TEMPLATES_DE_TESTE`): o que está sob
 teste aqui é a permissão e o contexto, não o HTML.
 """
+from datetime import date, timedelta
 from io import StringIO
 from unittest import mock
 
@@ -19,8 +20,10 @@ import requests
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.exceptions import PermissionDenied
 from django.core.management import call_command
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import (RequestFactory, SimpleTestCase, TestCase,
+                         override_settings)
 from django.urls import reverse
+from django.utils import timezone
 
 from editais import coleta, views
 from editais.models import ConsultaBusca, Edital, FonteEdital, PalavraChave
@@ -164,7 +167,11 @@ class PontuacaoTests(TestCase):
     """A nota é a única coisa que separa 'edital que serve' de ruído."""
 
     def palavra(self, termo, peso=3, ativo=True):
-        return PalavraChave.objects.create(termo=termo, peso=peso, ativo=ativo)
+        # update_or_create porque a migração 0002 já semeia parte destes termos:
+        # o teste quer o termo com ESTE peso, exista ele ou não.
+        obj, _ = PalavraChave.objects.update_or_create(
+            termo=termo, defaults={'peso': peso, 'ativo': ativo})
+        return obj
 
     def test_acento_e_caixa_nao_atrapalham(self):
         palavras = [self.palavra('criança', 3)]
@@ -319,6 +326,9 @@ class BuscarEditaisTests(TestCase):
     def setUp(self):
         self.fonte = FonteEdital.objects.create(
             nome='Fonte RSS', url='https://fonte.org/feed', tipo='RSS', ativo=True)
+        # Dicionário controlado: a migração 0002 semeia dezenas de termos, e com
+        # eles no banco a nota destes casos deixaria de ser previsível.
+        PalavraChave.objects.all().delete()
         PalavraChave.objects.create(termo='criança', peso=3)
         PalavraChave.objects.create(termo='mestrado', peso=-3)
 
@@ -431,10 +441,10 @@ class BuscarEditaisTests(TestCase):
 
 class SeedEditaisTests(TestCase):
 
-    def test_cria_palavras_fontes_e_consultas(self):
+    def test_cria_fontes_e_consultas(self):
+        """Palavra-chave saiu daqui: agora vem da migração 0002, para o robô
+        pontuar certo no deploy sem ninguém lembrar de rodar comando."""
         call_command('seed_editais', stdout=StringIO())
-        self.assertTrue(PalavraChave.objects.filter(termo='criança', peso=3).exists())
-        self.assertTrue(PalavraChave.objects.filter(termo='mestrado', peso__lt=0).exists())
         # As fontes RSS foram testadas uma a uma antes de entrar no seed, por
         # isso nascem LIGADAS: o robô precisa servir no primeiro dia, sem
         # ninguém ter de descobrir onde procurar.
@@ -447,15 +457,15 @@ class SeedEditaisTests(TestCase):
         # edital em site que ninguém mapeou.
         self.assertTrue(ConsultaBusca.objects.filter(ativo=True).exists())
 
-    def test_rodar_de_novo_nao_duplica_nem_mexe_no_peso(self):
+    def test_rodar_de_novo_nao_duplica(self):
         call_command('seed_editais', stdout=StringIO())
-        PalavraChave.objects.filter(termo='esporte').update(peso=3)
-        quantas = PalavraChave.objects.count()
+        fontes = FonteEdital.objects.count()
+        consultas = ConsultaBusca.objects.count()
 
         call_command('seed_editais', stdout=StringIO())
 
-        self.assertEqual(PalavraChave.objects.count(), quantas)
-        self.assertEqual(PalavraChave.objects.get(termo='esporte').peso, 3)
+        self.assertEqual(FonteEdital.objects.count(), fontes)
+        self.assertEqual(ConsultaBusca.objects.count(), consultas)
 
 
 # ────────────────────────────── Telas ──────────────────────────────
@@ -530,6 +540,8 @@ class VarreduraTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.consulta = ConsultaBusca.objects.create(termo='edital criança 2026')
+        # Dicionário controlado — ver comentário em BuscarEditaisTests.
+        PalavraChave.objects.all().delete()
         PalavraChave.objects.create(termo='criança', peso=3)
         PalavraChave.objects.create(termo='edital', peso=2)
         PalavraChave.objects.create(termo='mestrado', peso=-5)
@@ -636,7 +648,9 @@ class PluralTests(TestCase):
     editais bons ficavam abaixo da nota de corte."""
 
     def palavra(self, termo, peso=3):
-        return PalavraChave.objects.create(termo=termo, peso=peso, ativo=True)
+        obj, _ = PalavraChave.objects.update_or_create(
+            termo=termo, defaults={'peso': peso, 'ativo': True})
+        return obj
 
     def test_plural_de_cao(self):
         for termo, texto in [('doação', 'edital de doacoes'),
@@ -731,3 +745,170 @@ class ConsultasTelaTests(TestCase):
         self.consulta.save(update_fields=['ultimo_erro'])
         resposta = views.consultas(requisicao('get', reverse('editais:consultas'), self.cr))
         self.assertIn('com_erro=1', resposta.content.decode())
+
+
+class ExtrairPrazoTests(SimpleTestCase):
+    """O robô nunca preenchia `prazo`, então a regra de prazo não mordia nada.
+
+    O extrator é melhor-esforço declarado: na dúvida devolve None e o edital
+    continua aparecendo. Esconder edital vivo custa mais caro ao projeto do que
+    mostrar um vencido.
+    """
+
+    HOJE = date(2026, 9, 2)
+
+    def extrair(self, texto, titulo=''):
+        from editais.prazos import extrair_prazo
+        return extrair_prazo(titulo, texto, hoje=self.HOJE)
+
+    def test_le_data_numerica_depois_do_gatilho(self):
+        self.assertEqual(
+            self.extrair('Inscrições até 30/11/2026 pelo site.'), date(2026, 11, 30))
+
+    def test_le_data_escrita_em_portugues(self):
+        self.assertEqual(
+            self.extrair('O prazo vai até 30 de novembro de 2026.'), date(2026, 11, 30))
+
+    def test_data_sem_gatilho_nao_e_prazo(self):
+        """Edital tem data de publicação, de resultado, de início do projeto.
+        Sem palavra que marque prazo, pegar a primeira data seria chute."""
+        self.assertIsNone(self.extrair('Publicado em 02/09/2026 pelo instituto.'))
+
+    def test_intervalo_fica_com_a_data_final(self):
+        self.assertEqual(
+            self.extrair('Inscrições de 01/10/2026 até 30/11/2026.'), date(2026, 11, 30))
+
+    def test_ano_de_dois_digitos_ancora_no_seculo_de_hoje(self):
+        self.assertEqual(self.extrair('Prazo: 30/11/26'), date(2026, 11, 30))
+
+    def test_data_impossivel_e_descartada(self):
+        self.assertIsNone(self.extrair('Inscrições até 31/02/2026.'))
+
+    def test_data_fora_da_faixa_e_ruido_nao_prazo(self):
+        self.assertIsNone(self.extrair('Entidade atuante até 30/11/1998.'))
+
+    def test_sem_ano_assume_o_proximo_que_ainda_nao_passou(self):
+        """Assumir o ano corrente venceria o edital sozinho em janeiro."""
+        from editais.prazos import extrair_prazo
+        self.assertEqual(
+            extrair_prazo('', 'Inscrições até 30 de novembro.', hoje=date(2026, 9, 2)),
+            date(2026, 11, 30))
+        self.assertEqual(
+            extrair_prazo('', 'Inscrições até 30 de novembro.', hoje=date(2026, 12, 15)),
+            date(2027, 11, 30))
+
+    def test_gatilho_longe_da_data_nao_conta(self):
+        """Janela curta de propósito: 'inscrições' a três frases de distância
+        colaria a palavra numa data que não tem nada a ver."""
+        texto = ('As inscrições foram um sucesso. ' + 'Texto de enchimento. ' * 5
+                 + 'O evento ocorreu em 30/11/2026.')
+        self.assertIsNone(self.extrair(texto))
+
+
+class PrazoUtilTests(TestCase):
+    """Só aparece edital que ainda dá tempo de tentar."""
+
+    def criar(self, titulo, dias=None, status='NOVO'):
+        prazo = None if dias is None else timezone.localdate() + timedelta(days=dias)
+        return Edital.objects.create(
+            titulo=titulo, link=f'https://a.org/{titulo}', prazo=prazo, status=status)
+
+    def test_prazo_com_folga_aparece(self):
+        edital = self.criar('folgado', dias=30)
+        self.assertIn(edital, Edital.objects.com_prazo_util())
+
+    def test_prazo_apertado_nao_aparece(self):
+        """Montar inscrição leva dias: juntar estatuto, ata, certidão, orçamento."""
+        edital = self.criar('apertado', dias=5)
+        self.assertNotIn(edital, Edital.objects.com_prazo_util())
+
+    def test_prazo_vencido_nao_aparece(self):
+        edital = self.criar('vencido', dias=-1)
+        self.assertNotIn(edital, Edital.objects.com_prazo_util())
+
+    def test_sem_prazo_continua_aparecendo(self):
+        """A maioria do que vem de RSS não traz data. Sumir com eles esconderia
+        oportunidade de verdade."""
+        edital = self.criar('sem data')
+        self.assertIn(edital, Edital.objects.com_prazo_util())
+
+    def test_a_fronteira_exata_da_margem_entra(self):
+        from editais.models import MARGEM_MINIMA_DIAS
+        edital = self.criar('na margem', dias=MARGEM_MINIMA_DIAS)
+        self.assertIn(edital, Edital.objects.com_prazo_util())
+
+    def test_um_dia_antes_da_margem_fica_fora(self):
+        from editais.models import MARGEM_MINIMA_DIAS
+        edital = self.criar('quase', dias=MARGEM_MINIMA_DIAS - 1)
+        self.assertNotIn(edital, Edital.objects.com_prazo_util())
+
+    def test_o_que_o_cr_ja_decidiu_concorrer_nunca_desaparece(self):
+        """Esconder edital vencido da descoberta é o objetivo; esconder aquele em
+        que a pessoa já se inscreveu apagaria o pipeline dela da tela."""
+        inscrito = self.criar('inscrito', dias=-10, status='INSCRITO')
+        vamos = self.criar('vamos', dias=2, status='VAMOS_CONCORRER')
+        visiveis = Edital.objects.com_prazo_util()
+        self.assertIn(inscrito, visiveis)
+        self.assertIn(vamos, visiveis)
+
+
+@override_settings(TEMPLATES=TEMPLATES_DE_TESTE)
+class ListaRespeitaOPrazoTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.cr = criar_voluntario('livia', area='CR/RE')
+        hoje = timezone.localdate()
+        Edital.objects.create(titulo='Vivo', link='https://a.org/vivo',
+                              prazo=hoje + timedelta(days=40), status='NOVO')
+        Edital.objects.create(titulo='Vencido', link='https://a.org/velho',
+                              prazo=hoje - timedelta(days=3), status='NOVO')
+
+    def abrir(self, **filtros):
+        pedido = requisicao('get', reverse('editais:lista'), self.cr, filtros)
+        return views.lista(pedido).content.decode()
+
+    def test_edital_vencido_nao_abre_na_tela(self):
+        """Antes o filtro era um checkbox desligado por padrão, então a tela
+        abria mostrando chamada vencida como se fosse oportunidade."""
+        html = self.abrir()
+        self.assertIn('[Vivo]', html)
+        self.assertNotIn('[Vencido]', html)
+
+    def test_o_contador_conta_o_mesmo_que_a_tabela_mostra(self):
+        """Se os números viessem de `Edital.objects` cru, o contador diria 2 e a
+        tabela mostraria 1."""
+        html = self.abrir()
+        self.assertIn('total=1', html)
+        self.assertIn('novos=1', html)
+
+
+class DicionarioSemeadoPelaMigracaoTests(TestCase):
+    """As palavras-chave entram pelo deploy, não por comando que alguém lembra.
+
+    Estes testes não criam nada: exercitam o que a migração 0002 deixou no
+    banco de teste.
+    """
+
+    def test_a_migracao_deixou_termos_positivos_e_negativos(self):
+        self.assertTrue(
+            PalavraChave.objects.filter(termo='criança', ativo=True, peso__gt=0).exists())
+        self.assertTrue(
+            PalavraChave.objects.filter(termo='licitação', peso__lt=0).exists())
+
+    def test_nenhum_termo_casa_com_palavra_comum_do_portugues(self):
+        """'SUAS' (o Sistema Único de Assistência Social) foi deixado de fora de
+        propósito: a pontuação casa palavra inteira sem acento, então ela
+        casaria com o pronome "suas" e daria nota a edital nenhum a ver.
+
+        O teste vale por qualquer termo curto que alguém adicione depois sem
+        pensar nisso.
+        """
+        armadilhas = {'suas', 'seus', 'nossa', 'nossas', 'para', 'como', 'onde', 'mais'}
+        termos = {coleta.normalizar(p.termo) for p in PalavraChave.objects.all()}
+        self.assertEqual(termos & armadilhas, set())
+
+    def test_termo_de_uma_letra_ou_duas_nao_entra(self):
+        """Sigla de duas letras casa com preposição e artigo em qualquer texto."""
+        curtos = [p.termo for p in PalavraChave.objects.all() if len(p.termo.strip()) < 3]
+        self.assertEqual(curtos, [])

@@ -3,7 +3,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView, TemplateView, UpdateView
 from .models import (
     Voluntario, PresencaVoluntario, Ocorrencia, Regra, HistoricoLideranca, Grupo,
-    FALTAS_POR_ALERTA, ALERTAS_POR_ADVERTENCIA,
+    FALTAS_POR_ALERTA, ALERTAS_POR_ADVERTENCIA, REGRA_FALTAS_CONSECUTIVAS,
+    LISTA_AREAS as AREAS_DO_MODELO, cargo_canonico, ordem_do_cargo,
     ADVERTENCIAS_PARA_OBSERVACAO, MAX_ALERTAS_DISPLAY,
 )
 from .forms import GrupoForm, MeuPerfilForm
@@ -82,7 +83,7 @@ class VoluntarioView(LoginRequiredMixin, TemplateView):
 def _montar_organograma():
     """Monta a árvore de liderança (só voluntários ativos e conectados)."""
     vols = list(
-        Voluntario.objects.filter(data_saida__isnull=True)
+        Voluntario.objects.ativos()
         .select_related('lider')
         .order_by('first_name', 'last_name')
     )
@@ -116,20 +117,113 @@ def organograma_fullscreen(request):
     return render(request, 'organograma_full.html', {'raizes': raizes, 'total': total})
 
 
+# Ordem dos grupos na tela do histórico. A Tríade vem PRIMEIRO por decisão da
+# liderança: é a gestão que dá contexto a todas as outras, e no `LISTA_AREAS` ela
+# é a última — ordenar pela lista do modelo a jogaria para o fim da página.
+_CODIGOS_DAS_AREAS = [codigo for codigo, _ in AREAS_DO_MODELO]
+
+
+def _ordem_do_grupo(codigo):
+    if codigo == 'TRIADE':
+        return (0, '')
+    if not codigo:
+        return (1, '')              # registro sem área: Geral / Diretoria
+    if codigo in _CODIGOS_DAS_AREAS:
+        return (2 + _CODIGOS_DAS_AREAS.index(codigo), '')
+    # Área que saiu do LISTA_AREAS mas ficou em registro antigo: vai para o fim
+    # em vez de sumir. Perder história por causa de renomeação seria pior.
+    return (99, codigo)
+
+
 @login_required(login_url="/")
 def historico_lideres(request):
-    """Histórico de quem já foi líder, agrupado por área/cargo."""
-    registros = HistoricoLideranca.objects.select_related('voluntario').all()
-    grupos = {}
-    ordem = []
-    for r in registros:
-        chave = r.get_area_display() if r.area else 'Geral / Diretoria'
-        if chave not in grupos:
-            grupos[chave] = []
-            ordem.append(chave)
-        grupos[chave].append(r)
-    grupos_lista = [{'nome': nome, 'itens': grupos[nome]} for nome in ordem]
-    return render(request, 'historico_lideres.html', {'grupos': grupos_lista})
+    """Cadeia de sucessão por área, com filtros e trajetória por pessoa.
+
+    Contexto: grupos, areas, area, q, pessoa, trajetoria, pessoas, total.
+    """
+    area = (request.GET.get('area') or '').strip()
+    busca = (request.GET.get('q') or '').strip()
+    pessoa_pk = (request.GET.get('pessoa') or '').strip()
+
+    base = HistoricoLideranca.objects.select_related('voluntario')
+
+    # Trajetória: a história de UMA pessoa, atravessando as áreas. Sai da base
+    # SEM os outros filtros — quem clica num nome quer a vida inteira daquela
+    # pessoa, não a interseção com o filtro de área que estava na tela.
+    pessoa = None
+    trajetoria = None
+    if pessoa_pk.isdigit():
+        pessoa = Voluntario.objects.filter(pk=int(pessoa_pk)).first()
+        if pessoa:
+            trajetoria = list(base.filter(voluntario=pessoa).order_by('data_inicio'))
+
+    registros = base
+    if area:
+        registros = registros.filter(area=area)
+    if busca:
+        registros = registros.filter(
+            Q(voluntario__first_name__icontains=busca)
+            | Q(voluntario__last_name__icontains=busca)
+            | Q(voluntario__username__icontains=busca)
+            | Q(voluntario__apelido__icontains=busca)
+            | Q(nome_avulso__icontains=busca)
+            | Q(cargo__icontains=busca)
+        )
+
+    # A seta significa "sucedeu no MESMO cargo". Agrupar só por área fazia o
+    # LEG passar o bastão para a Presidência na Tríade, que tem TRÊS cargos
+    # independentes — Presidente, Vice-Presidente e LEG. Por isso a cadeia é por
+    # área E cargo. Numa salinha, onde todos são "Líder de Sala", isso continua
+    # dando uma cadeia só, igual a antes.
+    por_area = {}
+    for registro in registros:
+        canonico = cargo_canonico(registro.cargo)
+        # O card repete o cargo só quando a grafia digitada difere do rótulo da
+        # cadeia — senão seria a mesma palavra duas vezes na mesma coluna.
+        registro.mostrar_cargo = ' '.join(registro.cargo.split()) != canonico
+        por_area.setdefault(registro.area or '', {}).setdefault(canonico, []).append(registro)
+
+    rotulos = dict(AREAS_DO_MODELO)
+    grupos = []
+    for codigo, por_cargo in sorted(por_area.items(),
+                                    key=lambda par: _ordem_do_grupo(par[0])):
+        cadeias = [
+            {'cargo': canonico, 'itens': itens}
+            for canonico, itens in sorted(por_cargo.items(),
+                                          key=lambda par: ordem_do_cargo(par[0]))
+        ]
+        grupos.append({
+            'codigo': codigo,
+            'nome': rotulos.get(codigo) or 'Geral / Diretoria',
+            'cadeias': cadeias,
+            'total': sum(len(cadeia['itens']) for cadeia in cadeias),
+        })
+
+    # O select de áreas sai do acervo INTEIRO, não do filtrado: encolher a lista
+    # conforme se filtra deixaria a pessoa sem como voltar para outra área.
+    codigos_com_historico = set(
+        base.values_list('area', flat=True).distinct()
+    )
+    areas = [(codigo, rotulos.get(codigo) or 'Geral / Diretoria')
+             for codigo in sorted(codigos_com_historico, key=_ordem_do_grupo)]
+
+    # Quem tem história e ficha. Sem `ativos()` de propósito: ex-líder desligado
+    # é o caso mais comum aqui, e filtrar tiraria justamente a história antiga.
+    pessoas = (Voluntario.objects
+               .filter(historico_lideranca__isnull=False)
+               .distinct()
+               .order_by('first_name', 'last_name', 'username'))
+
+    return render(request, 'historico_lideres.html', {
+        'grupos': grupos,
+        'areas': areas,
+        'area': area,
+        'q': busca,
+        'pessoa': pessoa,
+        'pessoas': pessoas,
+        'trajetoria': trajetoria,
+        'total': base.count(),
+    })
 
 LISTA_AREAS = [
     ("VIOLETA", "Violeta"),
@@ -157,7 +251,7 @@ class ListaVoluntario(LoginRequiredMixin, ListView):
     context_object_name = 'voluntarios'
 
     def get_queryset(self):
-        return Voluntario.objects.filter(is_active=True).order_by('first_name', 'last_name')
+        return Voluntario.objects.ativos().order_by('first_name', 'last_name')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -195,7 +289,7 @@ def RegistrarPresencasVoluntarios(request):
         messages.warning(request, "Não existe sábado cadastrado para hoje. O registro de presenças só é permitido no sábado cadastrado.")
         return render(request, "presencas_voluntarios.html", {"areas_com_voluntarios": [], "total_pendentes": 0, "hoje": hoje, "sabado_data": None})
 
-    voluntarios = Voluntario.objects.filter(is_active=True).exclude(
+    voluntarios = Voluntario.objects.ativos().exclude(
         presencas__data=sabado_obj
     ).order_by("first_name")
 
@@ -221,7 +315,7 @@ def RegistrarPresencasVoluntarios(request):
             messages.success(request, f"{registros_criados} presenças salvas com sucesso!")
         else:
             messages.warning(request, "Nenhuma presença selecionada.")
-        voluntarios = Voluntario.objects.filter(is_active=True).exclude(
+        voluntarios = Voluntario.objects.ativos().exclude(
             presencas__data=sabado_obj
         ).order_by("first_name")
 
@@ -300,7 +394,7 @@ def visualizar_presencas_voluntarios(request):
         sabados.reverse()
         sabados_selecionados = [s.id for s in sabados]
 
-    voluntarios = Voluntario.objects.all().order_by("username")
+    voluntarios = Voluntario.objects.ativos().order_by("username")
 
     if area != "TODAS":
         voluntarios = voluntarios.filter(area=area)
@@ -308,7 +402,7 @@ def visualizar_presencas_voluntarios(request):
     voluntarios = list(voluntarios)
 
     areas_disponiveis = (
-        Voluntario.objects.exclude(area__isnull=True)
+        Voluntario.objects.ativos().exclude(area__isnull=True)
         .exclude(area__exact="")
         .values_list("area", flat=True)
         .distinct()
@@ -421,8 +515,7 @@ def saas_view(request):
 
     ativas = Q(ocorrencias_recebidas__deleted_at__isnull=True)
     voluntarios = (
-        Voluntario.objects
-        .filter(is_active=True)
+        Voluntario.objects.ativos()
         .annotate(
             total_alertas=Count('ocorrencias_recebidas', filter=ativas & Q(ocorrencias_recebidas__tipo='ALERTA')),
             total_advertencias=Count('ocorrencias_recebidas', filter=ativas & Q(ocorrencias_recebidas__tipo='ADVERTENCIA')),
@@ -760,7 +853,33 @@ def _enviar_email_ocorrencia(advertido, notificacoes, regra=None):
         logger.error(f'[SAAs] Falha ao enviar para {email_dest}: {e}')
 
 
-def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
+def contar_faltas_consecutivas(voluntario, sabado):
+    """Faltas seguidas do voluntário até `sabado`, e a data em que a sequência começou.
+
+    Esta é a ÚNICA contagem de faltas que pode gerar alerta automático. Antes o
+    comando retroativo somava faltas do ano inteiro — quem faltou 3 sábados
+    espalhados recebia alerta como se tivesse sumido três semanas seguidas.
+
+    Sábado sem registro de presença quebra a sequência de propósito: ausência de
+    dado não é prova de falta, e é melhor deixar de gerar um alerta do que gerar
+    um errado.
+    """
+    from voluntario.models import PresencaVoluntario
+
+    consecutivas = 0
+    streak_inicio = None  # data do primeiro sábado ausente da sequência atual
+    for s in Sabado.objects.filter(data__lte=sabado.data).order_by('-data'):
+        presenca = PresencaVoluntario.objects.filter(voluntario=voluntario, data=s).first()
+        if presenca and presenca.presenca == 'AUSENTE':
+            consecutivas += 1
+            streak_inicio = s.data  # avança para o mais antigo da sequência
+        else:
+            break  # sequência quebrada — para
+
+    return consecutivas, streak_inicio
+
+
+def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por, notificar=True):
     """
     Dispara alertas automáticos por faltas CONSECUTIVAS nos sábados:
       3 consecutivas → 1º alerta
@@ -769,21 +888,12 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
       (e assim por diante a cada múltiplo de 3)
 
     A sequência é reiniciada sempre que a pessoa comparecer (Presente ou Justificada).
+
+    O alerta sempre sai com a regra de 3 faltas consecutivas — nunca outra. Use
+    `notificar=False` numa varredura retroativa, para não mandar e-mail de falta
+    antiga para meio projeto de uma vez.
     """
-    from voluntario.models import PresencaVoluntario
-
-    # Percorre os sábados do mais recente ao mais antigo e conta a sequência atual de ausências
-    sabados_ordenados = Sabado.objects.filter(data__lte=sabado.data).order_by('-data')
-
-    consecutivas = 0
-    streak_inicio = None  # data do primeiro sábado ausente da sequência atual
-    for s in sabados_ordenados:
-        presenca = PresencaVoluntario.objects.filter(voluntario=voluntario, data=s).first()
-        if presenca and presenca.presenca == 'AUSENTE':
-            consecutivas += 1
-            streak_inicio = s.data  # avança para o mais antigo da sequência
-        else:
-            break  # sequência quebrada — para
+    consecutivas, streak_inicio = contar_faltas_consecutivas(voluntario, sabado)
 
     alertas_esperados = consecutivas // FALTAS_POR_ALERTA
     if alertas_esperados == 0:
@@ -805,7 +915,7 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
     Ocorrencia.objects.create(
         advertido=voluntario,
         tipo='ALERTA',
-        regra='AL13',
+        regra=REGRA_FALTAS_CONSECUTIVAS,
         razao=f'Alerta automático: {consecutivas} faltas consecutivas nos sábados.',
         aplicado_por=None,
         automatico=True,
@@ -820,7 +930,7 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
         advertido=voluntario, tipo='ADVERTENCIA', automatico=True, deleted_at__isnull=True
     ).count()
 
-    notificacoes = [('ALERTA', 'AL13')]
+    notificacoes = [('ALERTA', REGRA_FALTAS_CONSECUTIVAS)]
     if adv_esperadas > adv_existentes:
         Ocorrencia.objects.create(
             advertido=voluntario,
@@ -831,21 +941,23 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
         )
         notificacoes.append('ADVERTENCIA_AUTO')
 
-    threading.Thread(
-        target=_enviar_email_ocorrencia,
-        args=(voluntario, notificacoes),
-        daemon=True,
-    ).start()
+    if notificar:
+        threading.Thread(
+            target=_enviar_email_ocorrencia,
+            args=(voluntario, notificacoes),
+            daemon=True,
+        ).start()
 
-    # Mesmo push do fluxo manual: alerta automático de faltas (AL13) também
-    # avisa o voluntário no celular, com o mesmo título genérico.
-    # Import local pelo mesmo motivo do outro ponto de disparo.
-    from notificacoes.services import enviar_push_async
+        # O push entra DENTRO do `if notificar` junto com o e-mail: numa
+        # varredura retroativa (sync_alertas_faltas) avisar no celular sobre
+        # falta antiga é exatamente o que a flag existe para evitar.
+        # Import local pelo mesmo motivo do outro ponto de disparo.
+        from notificacoes.services import enviar_push_async
 
-    enviar_push_async(
-        [voluntario],
-        "Você recebeu um comunicado",
-        "Abra o app para ver os detalhes.",
-        url="/voluntario/saas/",
-        tag=f"ocorrencia-{voluntario.pk}",
-    )
+        enviar_push_async(
+            [voluntario],
+            "Você recebeu um comunicado",
+            "Abra o app para ver os detalhes.",
+            url="/voluntario/saas/",
+            tag=f"ocorrencia-{voluntario.pk}",
+        )

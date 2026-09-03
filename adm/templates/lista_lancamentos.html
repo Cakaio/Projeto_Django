@@ -156,7 +156,19 @@
                   </form>
                 </span>
                 {% else %}
-                <span class="pcf-badge" title="Lançamentos automáticos não são editáveis">Automático</span>
+                {% comment %}
+                  Automático não se edita — valor, data e categoria vêm da
+                  origem. Mas quem sabe de qual cartão saiu o dinheiro é o ADM,
+                  não o voluntário que pediu o material: sem este atalho o gasto
+                  do Supply ficava para sempre sem banco.
+                {% endcomment %}
+                <span class="lan-actions">
+                  <a href="{% url 'adm:completar_lancamento' lan.pk %}"
+                     class="pcf-btn pcf-btn-outline pcf-btn-sm"
+                     title="Dizer de onde saiu o dinheiro e para qual área foi">
+                    {% if lan.conta %}Conta: {{ lan.conta.nome|truncatechars:14 }}{% else %}Definir conta{% endif %}
+                  </a>
+                </span>
                 {% endif %}
               </td>
             </tr>

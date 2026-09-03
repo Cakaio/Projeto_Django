@@ -102,7 +102,16 @@ def _paginas_do_usuario(user):
          is_su or area in ("SUPPLY", "TRIADE")),
         ("Pedido de Reembolso", "forms_pcf:reembolso", "Solicitar reembolso", True),
         ("Dores & Sugestões", "forms_pcf:feedback", "Enviar feedback", True),
+        ("Acervo", "acervo:lista", "Documentos que o projeto guarda", True),
+        ("Estúdio", "estudio:lista", "Editor de página: revistinha, ata, cartaz", True),
         ("Financeiro", "adm:painel", "Lançamentos, fluxo e DRE",
+         is_su or area in ("ADM/FIN", "TRIADE")),
+        ("Teto da Área", "adm:tetos", "Quanto sua área pode gastar no mês", True),
+        ("Contas & Cartões", "adm:contas", "Saldo dos cartões e das contas",
+         is_su or area in ("ADM/FIN", "TRIADE")),
+        ("Recargas de Cartão", "adm:recargas", "Histórico de recargas",
+         is_su or area in ("ADM/FIN", "TRIADE")),
+        ("Reembolsos", "adm:reembolsos", "A pagar e pagos, com comprovante",
          is_su or area in ("ADM/FIN", "TRIADE")),
         ("SAAS", "voluntario:saas", "Ocorrências disciplinares",
          is_su or area in ("GESTAO_DE_TALENTOS", "TRIADE")),
@@ -154,11 +163,10 @@ def busca(request):
                     continue
 
         atendidos = list(
-            Atendido.objects.filter(nome__icontains=q).order_by("nome")[:12]
+            Atendido.objects.ativos().filter(nome__icontains=q).order_by("nome")[:12]
         )
         voluntarios = list(
-            Voluntario.objects
-            .filter(data_saida__isnull=True)
+            Voluntario.objects.ativos()
             .filter(Q(first_name__icontains=q) | Q(last_name__icontains=q) |
                     Q(username__icontains=q) | Q(apelido__icontains=q))
             .order_by("first_name")[:12]

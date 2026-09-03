@@ -98,7 +98,7 @@ class Command(BaseCommand):
             raise CommandError('Cabeçalho sem coluna de doador ou sem colunas de mês.')
 
         # Voluntários ativos, para casar o responsável pelo primeiro nome.
-        voluntarios = list(Voluntario.objects.filter(data_saida__isnull=True))
+        voluntarios = list(Voluntario.objects.ativos())
 
         def achar_voluntario(nome):
             if not nome:
