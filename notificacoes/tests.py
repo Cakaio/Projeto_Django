@@ -237,6 +237,17 @@ class EnviarPushTest(TestCase):
             self.assertEqual(self.enviar_push([self.ana], "Oi", "Corpo"), 0)
         mock_webpush.assert_not_called()
 
+    @patch("notificacoes.services.webpush", None)
+    def test_sem_pywebpush_instalado_desliga_o_push_sem_estourar(self):
+        """REGRESSAO: o URLconf importa este modulo (urls -> views -> services).
+
+        Um ImportError do pywebpush derrubava TODAS as rotas do site, nao so o
+        push — foi o que quebrou o primeiro deploy. Com a dependencia faltando,
+        o push tem que se desligar sozinho e deixar o resto do PCF de pe.
+        """
+        self._inscrever("a")
+        self.assertEqual(self.enviar_push([self.ana], "Oi", "Corpo"), 0)
+
     @patch("notificacoes.services.webpush")
     def test_nao_envia_para_quem_nao_esta_na_lista(self, mock_webpush):
         bruno = Voluntario.objects.create_user(

@@ -9,9 +9,21 @@ import threading
 
 from django.conf import settings
 from django.utils import timezone
-from pywebpush import WebPushException, webpush
 
 from .models import InscricaoPush
+
+# Import protegido de proposito. Este modulo e alcancado pelo URLconf
+# (TESTE/urls.py -> notificacoes.urls -> views -> services), entao um
+# ImportError aqui derruba TODAS as rotas do site, nao so o push — foi o que
+# aconteceu no primeiro deploy, com o pywebpush ainda nao instalado. Faltando a
+# dependencia, o push desliga e grava no log; o resto do PCF continua de pe.
+try:
+    from pywebpush import WebPushException, webpush
+except ImportError:  # pragma: no cover - so acontece em ambiente mal instalado
+    webpush = None
+
+    class WebPushException(Exception):
+        """Substituto para quando o pywebpush nao esta instalado."""
 
 logger = logging.getLogger("notificacoes")
 
@@ -29,6 +41,13 @@ def enviar_push(voluntarios, titulo, corpo, url="/inicio/", tag=None) -> int:
     Retorna quantos aparelhos receberam. Nunca levanta exceção: falha de push
     não pode derrubar a request nem o comando que chamou.
     """
+    if webpush is None:
+        logger.error(
+            "pywebpush não instalado — push desativado. "
+            "Rode: pip install -r requirements.txt"
+        )
+        return 0
+
     if not settings.VAPID_PRIVATE_KEY:
         logger.warning("VAPID_PRIVATE_KEY não configurada — push não enviado.")
         return 0
