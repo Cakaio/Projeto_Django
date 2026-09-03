@@ -29,7 +29,9 @@ urlpatterns = [
     # instalaria.
     path('sw.js', TemplateView.as_view(
         template_name='sw.js',
-        content_type='application/javascript',
+        # charset explicito: sem ele o navegador le o UTF-8 como latin-1
+        # e os acentos dos comentarios viram mojibake.
+        content_type='application/javascript; charset=utf-8',
     ), name='service_worker'),
     path('', LandingView.as_view(), name='landing'),
     path('buscar/', busca, name='busca'),

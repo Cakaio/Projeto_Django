@@ -11,9 +11,13 @@
     <link rel="icon" href="{% static 'images/Logo_PCF.png' %}">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/icons/apple-touch-icon-180.png' %}">
 
-    {# PWA: permite instalar na tela de início e abrir em tela cheia.
-       apple-mobile-web-app-capable é formalmente obsoleto em favor do "display"
-       do manifest, mas versões de iOS ainda em uso o respeitam — ficam os dois. #}
+    {% comment %}
+      PWA: permite instalar na tela de início e abrir em tela cheia.
+      apple-mobile-web-app-capable é formalmente obsoleto em favor do "display"
+      do manifest, mas versões de iOS ainda em uso o respeitam — ficam os dois.
+      Use {% comment %} e não {# #}: o {# #} do Django é de UMA linha só, e em
+      várias linhas o texto vaza para o HTML.
+    {% endcomment %}
     <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
