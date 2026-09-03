@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% block titulo %}Instalar no celular{% endblock %}
+
+{% block content %}
+<div class="pcf-container" style="max-width:640px;padding-top:2rem;padding-bottom:3rem">
+
+  <h1 style="font-size:1.5rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.4rem">
+    Instalar o PCF no celular
+  </h1>
+  <p style="color:hsl(var(--muted-foreground));margin-bottom:1.5rem">
+    O PCF vira um app com ícone próprio e abre em tela cheia. Não precisa baixar
+    nada de loja nenhuma.
+  </p>
+
+  {# Cada bloco corresponde a um aparelho; o script no fim revela só um deles. #}
+
+  <div data-bloco="instalado" hidden class="pcf-card" style="padding:1.25rem">
+    <p style="margin:0;font-weight:600">✅ O app já está instalado neste aparelho.</p>
+  </div>
+
+  {% if push_disponivel %}
+  <div data-bloco="push" hidden class="pcf-card"
+       style="padding:1.25rem;margin-top:1rem"
+       data-chave="{{ vapid_public_key }}" data-csrf="{{ csrf_token }}">
+
+    <p style="margin-top:0;font-weight:600">Notificações</p>
+
+    <div data-push="pedir">
+      <p style="color:hsl(var(--muted-foreground));margin:.4rem 0 1rem">
+        Receba aviso de enquete do sábado, comunicados e recados da gestão.
+      </p>
+      <button data-acao="ativar-push" class="pcf-btn pcf-btn-primary">
+        Ativar notificações
+      </button>
+    </div>
+
+    <div data-push="ativo" hidden>
+      <p style="margin:.4rem 0 1rem">✅ Notificações ativas neste aparelho.</p>
+      <button data-acao="testar-push" class="pcf-btn pcf-btn-primary">
+        Enviar notificação de teste
+      </button>
+      <p data-push="resultado-teste" style="margin:.75rem 0 0;font-size:.9rem"></p>
+    </div>
+
+    <div data-push="negado" hidden>
+      <p style="margin:.4rem 0 0">
+        As notificações estão <b>bloqueadas</b> neste aparelho. Para reverter, abra
+        as configurações do site no navegador (o cadeado ou o ⓘ na barra de
+        endereço), encontre <b>Notificações</b> e mude para <b>Permitir</b>.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+  <div data-bloco="android" hidden class="pcf-card" style="padding:1.25rem">
+    <p style="margin-top:0;font-weight:600">No Android</p>
+    <button data-acao="instalar-android" class="pcf-btn pcf-btn-primary" hidden
+            style="margin-bottom:1rem">Instalar app</button>
+    <ol style="margin:0;padding-left:1.2rem;line-height:1.9">
+      <li>Toque no menu <b>⋮</b> do Chrome, no canto superior direito.</li>
+      <li>Escolha <b>Adicionar à tela inicial</b>.</li>
+      <li>Confirme em <b>Instalar</b>.</li>
+    </ol>
+  </div>
+
+  <div data-bloco="ios-safari" hidden class="pcf-card" style="padding:1.25rem">
+    <p style="margin-top:0;font-weight:600">No iPhone ou iPad</p>
+    <ol style="margin:0;padding-left:1.2rem;line-height:1.9">
+      <li>Toque em <b>Compartilhar</b> — o quadrado com a seta para cima, na barra de baixo.</li>
+      <li>Role a lista e toque em <b>Adicionar à Tela de Início</b>.</li>
+      <li>Toque em <b>Adicionar</b>, no canto superior direito.</li>
+      <li><b>Feche o Safari e abra o PCF pelo ícone novo.</b> Este passo não é
+          opcional: o iPhone só entrega notificação para app aberto pelo ícone.</li>
+    </ol>
+  </div>
+
+  <div data-bloco="ios-outro" hidden class="pcf-card" style="padding:1.25rem">
+    <p style="margin:0;font-weight:600">Abra esta página no Safari</p>
+    <p style="margin:.5rem 0 0;color:hsl(var(--muted-foreground))">
+      No iPhone, só o Safari consegue instalar o app na tela de início.
+      Chrome, Firefox e Edge não têm essa opção.
+    </p>
+  </div>
+
+  <div data-bloco="desktop" hidden class="pcf-card" style="padding:1.25rem">
+    <p style="margin:0">
+      Você está no computador. A instalação vale a pena mesmo é no celular —
+      abra <b>pcf.pythonanywhere.com</b> no seu telefone para instalar lá.
+    </p>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  const mostrar = (nome) => {
+    const el = document.querySelector(`[data-bloco="${nome}"]`);
+    if (el) el.hidden = false;
+  };
+
+  // window.navigator.standalone é específico do iOS e é o único sinal confiável
+  // lá; display-mode cobre Android e desktop.
+  const instalado = window.matchMedia('(display-mode: standalone)').matches
+                 || window.navigator.standalone === true;
+  const ua = navigator.userAgent;
+  const iOS = /iP(hone|ad|od)/.test(ua)
+           || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const safari = iOS && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  const android = /Android/.test(ua);
+
+  if (instalado)          mostrar('instalado');
+  else if (android)       mostrar('android');
+  else if (iOS && safari) mostrar('ios-safari');
+  else if (iOS)           mostrar('ios-outro');
+  else                    mostrar('desktop');
+
+  // No Android o Chrome oferece instalação de 1 toque. O evento precisa ser
+  // guardado porque só pode ser usado dentro de um gesto do usuário.
+  let promptInstalacao = null;
+  const botao = document.querySelector('[data-acao="instalar-android"]');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    promptInstalacao = e;
+    if (botao) botao.hidden = false;
+  });
+
+  if (botao) {
+    botao.addEventListener('click', async () => {
+      if (!promptInstalacao) return;
+      promptInstalacao.prompt();
+      await promptInstalacao.userChoice;
+      promptInstalacao = null;
+      botao.hidden = true;
+    });
+  }
+
+  // ── Notificações push ──
+  const blocoPush = document.querySelector('[data-bloco="push"]');
+
+  // No Android o push funciona sem instalar, direto na aba do Chrome.
+  // No iOS NÃO: a API de notificação nem existe fora da PWA instalada — então
+  // num iPhone que ainda não instalou, o botão não pode aparecer, senão
+  // mostraríamos um botão que estoura erro.
+  const podePedirPush = blocoPush
+    && 'serviceWorker' in navigator
+    && 'PushManager' in window
+    && (!iOS || instalado);
+
+  if (!podePedirPush) return;
+
+  const mostrarEstadoPush = (estado) => {
+    ['pedir', 'ativo', 'negado'].forEach((nome) => {
+      const el = blocoPush.querySelector(`[data-push="${nome}"]`);
+      if (el) el.hidden = (nome !== estado);
+    });
+  };
+
+  const base64UrlParaUint8Array = (base64) => {
+    const preenchimento = '='.repeat((4 - base64.length % 4) % 4);
+    const normalizado = (base64 + preenchimento).replace(/-/g, '+').replace(/_/g, '/');
+    const bruto = atob(normalizado);
+    return Uint8Array.from([...bruto].map((c) => c.charCodeAt(0)));
+  };
+
+  const enviarInscricao = (inscricao) =>
+    fetch('{% url "notificacoes:inscrever" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': blocoPush.dataset.csrf,
+      },
+      body: JSON.stringify(inscricao.toJSON()),
+    });
+
+  blocoPush.hidden = false;
+
+  navigator.serviceWorker.ready.then(async (registro) => {
+    const jaInscrito = await registro.pushManager.getSubscription();
+    if (Notification.permission === 'denied') {
+      mostrarEstadoPush('negado');
+    } else if (jaInscrito) {
+      await enviarInscricao(jaInscrito);   // idempotente pelo update_or_create
+      mostrarEstadoPush('ativo');
+    } else {
+      mostrarEstadoPush('pedir');
+    }
+  });
+
+  blocoPush.querySelector('[data-acao="ativar-push"]')
+    .addEventListener('click', async () => {
+      // requestPermission SÓ dentro do gesto do usuário: o navegador pune
+      // pedido no carregamento, e quem nega uma vez nega para sempre.
+      const permissao = await Notification.requestPermission();
+      if (permissao !== 'granted') { mostrarEstadoPush('negado'); return; }
+
+      const registro = await navigator.serviceWorker.ready;
+      const inscricao = await registro.pushManager.subscribe({
+        userVisibleOnly: true,   // obrigatório: sem isso o navegador recusa
+        applicationServerKey: base64UrlParaUint8Array(blocoPush.dataset.chave),
+      });
+      await enviarInscricao(inscricao);
+      mostrarEstadoPush('ativo');
+    });
+
+  blocoPush.querySelector('[data-acao="testar-push"]')
+    .addEventListener('click', async () => {
+      const saida = blocoPush.querySelector('[data-push="resultado-teste"]');
+      saida.textContent = 'Enviando…';
+      const r = await fetch('{% url "notificacoes:testar" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': blocoPush.dataset.csrf },
+      });
+      const dados = await r.json();
+      saida.textContent = dados.enviados
+        ? `Enviado para ${dados.enviados} aparelho(s). Deve chegar em segundos.`
+        : 'Não foi possível enviar. Tente ativar as notificações de novo.';
+    });
+})();
+</script>
+{% endblock %}

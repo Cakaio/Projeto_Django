@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'revista',
     'editais',
     'projetos',
+    'notificacoes',
 ]
 
 MIDDLEWARE = [
@@ -195,6 +196,16 @@ EMAIL_USE_TLS = config("EMAIL_USE_TLS")
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 
+# ─── Notificações push (Web Push / VAPID) ───
+# Gerar UMA VEZ SÓ com: python manage.py gerar_chaves_vapid
+# Trocar a chave pública invalida TODAS as inscrições existentes e obriga cada
+# voluntário a reativar as notificações no aparelho dele.
+# O default="" é de propósito: sem ele, o projeto quebra em qualquer máquina que
+# não tenha as chaves — incluindo a suíte de testes.
+VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
+VAPID_PRIVATE_KEY = config("VAPID_PRIVATE_KEY", default="")
+VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="")
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -205,6 +216,11 @@ LOGGING = {
         'voluntario.views': {
             'handlers': ['console'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        'notificacoes': {
+            'handlers': ['console'],
+            'level': 'INFO',
             'propagate': False,
         },
     },

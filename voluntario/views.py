@@ -565,6 +565,23 @@ def criar_ocorrencia(request):
         daemon=True,
     ).start()
 
+    # Push além do e-mail. Título genérico de propósito: a notificação aparece
+    # na tela de bloqueio, às vezes com outra pessoa olhando o celular.
+    #
+    # Import LOCAL de propósito: supply/models.py importa deste módulo, então um
+    # import no topo entraria na cadeia de carregamento dos apps e faria o site
+    # inteiro depender do pywebpush estar instalado. Aqui, uma dependência
+    # faltando quebra só o push.
+    from notificacoes.services import enviar_push_async
+
+    enviar_push_async(
+        [advertido],
+        "Você recebeu um comunicado",
+        "Abra o app para ver os detalhes.",
+        url="/voluntario/saas/",
+        tag=f"ocorrencia-{advertido.pk}",
+    )
+
     n = len(regras_validas)
     nome = advertido.get_full_name() or advertido.username
     messages.success(request, f"{n} ocorrência(s) registrada(s) para {nome}.")
@@ -819,3 +836,16 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por):
         args=(voluntario, notificacoes),
         daemon=True,
     ).start()
+
+    # Mesmo push do fluxo manual: alerta automático de faltas (AL13) também
+    # avisa o voluntário no celular, com o mesmo título genérico.
+    # Import local pelo mesmo motivo do outro ponto de disparo.
+    from notificacoes.services import enviar_push_async
+
+    enviar_push_async(
+        [voluntario],
+        "Você recebeu um comunicado",
+        "Abra o app para ver os detalhes.",
+        url="/voluntario/saas/",
+        tag=f"ocorrencia-{voluntario.pk}",
+    )

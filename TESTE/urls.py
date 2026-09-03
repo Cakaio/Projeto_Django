@@ -19,9 +19,18 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from .views import inicio, LandingView, busca, midia
 from django.contrib.auth import views as auth_view
+from django.views.generic import TemplateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # O service worker TEM que ser servido na raiz: o escopo dele é limitado ao
+    # próprio caminho, então em /static/ ele não controlaria o site e a PWA não
+    # instalaria.
+    path('sw.js', TemplateView.as_view(
+        template_name='sw.js',
+        content_type='application/javascript',
+    ), name='service_worker'),
     path('', LandingView.as_view(), name='landing'),
     path('buscar/', busca, name='busca'),
     path('login/', auth_view.LoginView.as_view(template_name='login.html', redirect_authenticated_user=True), name='login'),
@@ -39,6 +48,7 @@ urlpatterns = [
     path('parceiros/', include('parceiros.urls', namespace='parceiros')),
     path('editais/', include('editais.urls', namespace='editais')),
     path('projetos/', include('projetos.urls', namespace='projetos')),
+    path('notificacoes/', include('notificacoes.urls', namespace='notificacoes')),
     # A revista entra na RAIZ de propósito: o prefixo 'revista/' já está escrito
     # em cada rota dela, porque a página do doador mora em '/r/<token>/' — link
     # curto, para colar em e-mail e WhatsApp. Dois include com o mesmo namespace
