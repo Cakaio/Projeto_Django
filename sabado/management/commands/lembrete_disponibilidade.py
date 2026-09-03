@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from sabado.models import Sabado, DisponibilidadeVoluntario
 from voluntario.models import Voluntario
+from notificacoes.services import enviar_push
 from django.conf import settings
 from datetime import timedelta
 
@@ -30,3 +31,17 @@ class Command(BaseCommand):
                             fail_silently=False,
                         )
                         self.stdout.write(self.style.SUCCESS(f"Email enviado para {voluntario.email}"))
+
+                # Push para todo mundo que não respondeu — inclusive quem não
+                # tem e-mail cadastrado, que hoje não recebe lembrete nenhum.
+                # Comando agendado usa enviar_push SÍNCRONO: thread daemon
+                # morreria junto com o processo e a notificação sumiria.
+                data_fmt = sabado.data.strftime('%d/%m/%Y')
+                enviados = enviar_push(
+                    voluntarios,
+                    "Responda sua disponibilidade",
+                    f"A enquete do sábado {data_fmt} fecha amanhã.",
+                    url=f"/sabado/responder/{sabado.pk}/",
+                    tag=f"enquete-{sabado.pk}",
+                )
+                self.stdout.write(self.style.SUCCESS(f"{enviados} push enviado(s)"))

@@ -9,7 +9,15 @@
     <title>PCF | {% block titulo %}{% block title %}Início{% endblock %}{% endblock %}</title>
 
     <link rel="icon" href="{% static 'images/Logo_PCF.png' %}">
-    <link rel="apple-touch-icon" href="{% static 'images/Logo_PCF.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/icons/apple-touch-icon-180.png' %}">
+
+    {# PWA: permite instalar na tela de início e abrir em tela cheia.
+       apple-mobile-web-app-capable é formalmente obsoleto em favor do "display"
+       do manifest, mas versões de iOS ainda em uso o respeitam — ficam os dois. #}
+    <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PCF">
 
     <!-- Fonte da marca -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -128,5 +136,15 @@
 
     <script src="{% static 'js/pcf-fx.js' %}?v={{ ESTATICO_V }}" defer></script>
     <script src="{% static 'js/pcf-combo.js' %}?v={{ ESTATICO_V }}" defer></script>
+
+    <script>
+      /* Registra o service worker da PWA. Falha aqui não pode virar erro
+         visível para o voluntário — o site funciona sem ele. */
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+      }
+    </script>
 </body>
 </html>
