@@ -74,7 +74,13 @@
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   Ver
                 </a>
-                {% else %}—{% endif %}
+                {% else %}
+                  <span class="rmb-sem-comprovante"
+                        title="O solicitante não anexou comprovante. Enviar é opcional — quem decide se o pedido vale assim é você.">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    sem comprovante
+                  </span>
+                {% endif %}
               </td>
               {% if status_ativo == 'PENDENTE' %}
               <td class="rmb-td-actions">
@@ -179,6 +185,12 @@ function toggleRejeitar(id) {
   .rmb-area { white-space: nowrap; }
   .rmb-link { display: inline-flex; align-items: center; gap: .3rem; color: #2f5296; font-weight: 600; font-size: .82rem; text-decoration: none; }
   .rmb-link:hover { text-decoration: underline; }
+  /* Comprovante virou opcional, e esta é a tela onde a ADM decide aprovar. Um
+     traço era discreto demais para uma ausência que muda a decisão. */
+  .rmb-sem-comprovante { display: inline-flex; align-items: center; gap: .3rem;
+                         font-size: .74rem; font-weight: 700; padding: .15rem .45rem;
+                         border-radius: 6px; background: #fdf0d5; color: #8a5a00;
+                         white-space: nowrap; }
 
   /* ── Ações ── */
   .rmb-td-actions { white-space: nowrap; min-width: 180px; }

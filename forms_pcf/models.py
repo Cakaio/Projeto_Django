@@ -42,7 +42,11 @@ class PedidoReembolso(models.Model):
     # O comprovante do gasto, enviado pelo voluntário. Nada a ver com
     # `comprovante_pagamento`, que é o do ADM: reaproveitar um campo para os
     # dois apagaria a prova de um dos lados.
-    comprovante = models.FileField(upload_to='reembolsos/')
+    comprovante = models.FileField(
+        upload_to='reembolsos/', blank=True,
+        help_text="Opcional. Quem decide se o pedido vale sem comprovante é a "
+                  "ADM/Fin, na hora de aprovar.",
+    )
     area = models.CharField('área', max_length=30, choices=LISTA_AREAS, blank=True)
     evento = models.ForeignKey('adm.Evento', on_delete=models.SET_NULL, null=True,
                                blank=True, related_name='reembolsos')

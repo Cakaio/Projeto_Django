@@ -185,15 +185,41 @@ class EnviarReembolsoViewTest(TestCase):
         self.assertEqual(pago.area, 'MARKETING')
         self.assertIsNone(pago.evento)
 
-    def test_sem_comprovante_nao_cria(self):
-        resp = self.client.post(reverse('forms_pcf:reembolso'), {
+    @patch('forms_pcf.views.send_mail')
+    def test_sem_comprovante_o_pedido_entra_do_mesmo_jeito(self, mock_mail):
+        """Anexar é opcional: quem decide se o pedido vale sem comprovante é a
+        ADM/Fin, na aprovação.
+
+        Antes o formulário barrava, e gasto sem nota — estacionamento, feira,
+        troco de ônibus — simplesmente não era pedido.
+        """
+        self.client.post(reverse('forms_pcf:reembolso'), {
             'valor': '10.00',
-            'descricao': 'Sem comp',
+            'descricao': 'Estacionamento, sem nota',
             'data_gasto': timezone.now().date().isoformat(),
             'categoria': self.cat.pk,
         })
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(PedidoReembolso.objects.count(), 0)
+        pedido = PedidoReembolso.objects.get()
+        self.assertEqual(pedido.status, 'PENDENTE')
+        self.assertFalse(pedido.comprovante)
+
+    def test_valor_continua_obrigatorio(self):
+        """Opcional é o comprovante, não o resto: pedido sem valor não é pedido.
+
+        Exercita o FORMULÁRIO, não a view: um POST inválido faz a view
+        re-renderizar a página, e o test client quebra ao instrumentar template
+        no Python 3.14. A regra sob teste é do formulário de qualquer forma.
+        """
+        from forms_pcf.forms import PedidoReembolsoForm
+
+        form = PedidoReembolsoForm({
+            'descricao': 'Sem valor',
+            'data_gasto': timezone.now().date().isoformat(),
+            'categoria': self.cat.pk,
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('valor', form.errors)
+        self.assertNotIn('comprovante', form.errors)
 
 
 class AprovarReembolsoViewTest(TestCase):
@@ -372,3 +398,56 @@ class FeedbackInboxPermissionTest(TestCase):
     def test_outros_recebem_403(self):
         resp = self._login('MARKETING').get(reverse('forms_pcf:feedback_inbox'))
         self.assertEqual(resp.status_code, 403)
+
+
+class ReembolsoSemComprovanteTest(TestCase):
+    """Comprovante opcional muda o que a ADM precisa VER para decidir."""
+
+    def setUp(self):
+        from django.test import RequestFactory
+        self.fabrica = RequestFactory()
+        self.adm = User.objects.create_user(
+            username='fin', password='pw', area='ADM/FIN')
+        self.solicitante = User.objects.create_user(
+            username='vol', password='pw', area='RECREACAO', first_name='Ana')
+        self.cat = Categoria.objects.create(nome='Transporte', tipo='DESPESA')
+        self.pedido = PedidoReembolso.objects.create(
+            solicitante=self.solicitante, valor=Decimal('18.00'),
+            descricao='Estacionamento, sem nota',
+            data_gasto=timezone.now().date(), categoria=self.cat,
+            status='PENDENTE',
+        )
+
+    def _inbox(self):
+        from forms_pcf.views import ReembolsoInboxView
+        pedido = self.fabrica.get(reverse('forms_pcf:reembolso_inbox'))
+        pedido.user = self.adm
+        return ReembolsoInboxView.as_view()(pedido).render().content.decode()
+
+    def test_o_pedido_existe_sem_arquivo(self):
+        self.assertFalse(self.pedido.comprovante)
+
+    def test_a_caixa_de_entrada_avisa_que_falta_comprovante(self):
+        """Antes aparecia só um traço. Discreto demais para uma ausência que
+        muda a decisão de aprovar."""
+        html = self._inbox()
+        self.assertIn('sem comprovante', html)
+
+    def test_a_adm_consegue_aprovar_sem_comprovante(self):
+        """É o ponto do pedido: a ADM aceita tendo ou não tendo o arquivo."""
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from forms_pcf.views import AprovarReembolsoView
+
+        requisicao = self.fabrica.post(
+            reverse('forms_pcf:reembolso_aprovar', args=[self.pedido.pk]))
+        requisicao.user = self.adm
+        requisicao.session = {}
+        requisicao._messages = FallbackStorage(requisicao)
+
+        with patch('forms_pcf.views.send_mail'):
+            resposta = AprovarReembolsoView.as_view()(requisicao, pk=self.pedido.pk)
+
+        self.assertEqual(resposta.status_code, 302)
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.status, 'APROVADO')
+        self.assertIsNotNone(self.pedido.lancamento)

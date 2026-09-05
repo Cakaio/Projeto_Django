@@ -58,12 +58,20 @@ class PedidoReembolsoForm(forms.ModelForm):
             'descricao': 'Descrição do gasto',
             'data_gasto': 'Data do gasto',
             'categoria': 'Categoria',
-            'comprovante': 'Comprovante (foto ou PDF)',
+            'comprovante': 'Comprovante (foto ou PDF) — opcional',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['categoria'].queryset = Categoria.objects.filter(tipo='DESPESA', ativo=True)
+        # Sem comprovante o pedido entra do mesmo jeito: quem decide se vale é a
+        # ADM/Fin, na aprovação. Antes o formulário barrava, e gasto sem nota
+        # (estacionamento, feira, troco de ônibus) simplesmente não era pedido.
+        self.fields['comprovante'].required = False
+        self.fields['comprovante'].help_text = (
+            'Se tiver, anexe — acelera a aprovação. Se não tiver, mande assim '
+            'mesmo e explique na descrição.'
+        )
 
 
 class ReceptorNotificacaoReembolsoForm(forms.ModelForm):
