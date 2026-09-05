@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block titulo %}Avisos{% endblock %}
+
+{% block content %}
+<div class="pcf-container" style="max-width:640px;padding-top:2rem;padding-bottom:3rem">
+
+  <h1 style="font-size:1.5rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.4rem">
+    Enviar aviso
+  </h1>
+  <p style="color:hsl(var(--muted-foreground));margin-bottom:1.5rem">
+    Chega como notificação no celular de quem instalou o app. Quem não instalou
+    não recebe — este canal não substitui o e-mail.
+  </p>
+
+  <form method="post" class="pcf-card" style="padding:1.25rem;margin-bottom:2rem">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="pcf-btn pcf-btn-primary">Enviar</button>
+  </form>
+
+  <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem">Últimos avisos</h2>
+  {% for aviso in avisos %}
+    <div class="pcf-card" style="padding:.9rem 1.1rem;margin-bottom:.6rem">
+      <b>{{ aviso.titulo }}</b>
+      <p style="margin:.25rem 0;color:hsl(var(--muted-foreground))">{{ aviso.mensagem }}</p>
+      <small style="color:hsl(var(--muted-foreground))">
+        {{ aviso.criado_em|date:"d/m/Y H:i" }} · {{ aviso.autor|default:"—" }} ·
+        {% if aviso.destino == 'AREA' %}{{ aviso.alvo }}{% else %}todos{% endif %} ·
+        {{ aviso.total_enviado }} aparelho(s)
+      </small>
+    </div>
+  {% empty %}
+    <p style="color:hsl(var(--muted-foreground))">Nenhum aviso enviado ainda.</p>
+  {% endfor %}
+
+</div>
+{% endblock %}

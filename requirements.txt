@@ -30,3 +30,8 @@ beautifulsoup4==4.15.0
 # o robô continua rodando com as fontes fixas: cada consulta que falha grava o
 # motivo e segue, sem derrubar a coleta.
 ddgs==9.14.4
+
+# Notificações push da PWA (Web Push / VAPID). Traz junto py-vapid, http-ece e
+# cryptography. Exige Python 3.10+ — o Dockerfile usa 3.11, mas CONFIRA a versão
+# da web app no PythonAnywhere antes de subir.
+pywebpush==2.4.0

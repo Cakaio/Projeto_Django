@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#e8560f">
+  <title>PCF | Sem conexão</title>
+  {% comment %}
+    Não estende base.html de propósito: o base puxa Bootstrap e fontes de CDN,
+    que não carregam justamente quando esta tela é necessária.
+  {% endcomment %}
+  <style>
+    body { margin:0; min-height:100vh; display:flex; flex-direction:column;
+           align-items:center; justify-content:center; gap:1rem; padding:2rem;
+           font-family:system-ui,-apple-system,sans-serif; color:#111110;
+           text-align:center; background:#faf9f7; }
+    img { width:88px; height:88px; }
+    h1 { font-size:1.25rem; margin:0; }
+    p  { color:#57534e; margin:0; max-width:30ch; line-height:1.5; }
+    button { margin-top:.5rem; padding:.7rem 1.4rem; border:0; border-radius:.75rem;
+             background:#e8560f; color:#fff; font-size:.95rem; font-weight:600;
+             font-family:inherit; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <img src="/static/images/icons/icon-192.png" alt="PCF">
+  <h1>Sem conexão</h1>
+  <p>Não foi possível carregar esta tela. Verifique sua internet e tente de novo.</p>
+  <button onclick="location.reload()">Tentar de novo</button>
+</body>
+</html>

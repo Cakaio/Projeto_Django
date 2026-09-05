@@ -131,6 +131,18 @@ class EnviarReembolsoView(LoginRequiredMixin, FormView):
         )
         send_mail(assunto, corpo, settings.DEFAULT_FROM_EMAIL, receptores, fail_silently=True)
 
+        # Push além do e-mail, para quem cuida de dinheiro no projeto.
+        from notificacoes.services import enviar_push_async
+        from voluntario.models import Voluntario
+
+        enviar_push_async(
+            Voluntario.objects.ativos().filter(area__in=["SUPPLY", "ADM/FIN"]),
+            "Novo pedido de reembolso",
+            f"R$ {pedido.valor} — {nome}",
+            url="/forms/reembolso/inbox/",
+            tag="reembolso",
+        )
+
 
 class ReembolsoSucessoView(LoginRequiredMixin, TemplateView):
     template_name = 'reembolso_sucesso.html'

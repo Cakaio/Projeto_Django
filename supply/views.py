@@ -551,6 +551,21 @@ def adicionar_pedidos(request):
                     for pedido in pedidos_para_salvar:
                         pedido.save()
                 logger.info("Pedidos salvos com sucesso!")
+
+                # Avisa quem cuida do estoque. Assíncrono para não segurar a
+                # resposta: quem pediu não precisa esperar o push sair.
+                from notificacoes.services import enviar_push_async
+                from voluntario.models import Voluntario
+
+                quem_pediu = request.user.get_full_name() or request.user.username
+                enviar_push_async(
+                    Voluntario.objects.ativos().filter(area="SUPPLY"),
+                    "Novo pedido de material",
+                    f"{len(pedidos_para_salvar)} item(ns) pedido(s) por {quem_pediu}.",
+                    url="/supply/",
+                    tag="pedido-material",
+                )
+
                 messages.success(request, "Pedidos cadastrados com sucesso.")
                 return redirect("supply:adicionar_pedidos")
         else:
