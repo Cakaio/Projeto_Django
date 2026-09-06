@@ -118,6 +118,21 @@ def _listar(servico, consulta):
             return itens
 
 
+def metadados(servico, arquivo_id):
+    """Dados da própria pasta/arquivo — nome, dono, e se está num Drive compartilhado.
+
+    Serve ao diagnóstico. `files.list` com um pai que a conta de serviço não
+    enxerga devolve lista VAZIA em vez de erro, então listar não distingue "não
+    tenho acesso" de "a pasta está vazia". Já `files.get` no próprio ID levanta
+    404 quando não há acesso — é a pergunta que separa os dois casos.
+    """
+    return servico.files().get(
+        fileId=arquivo_id,
+        fields='id, name, mimeType, driveId, owners(emailAddress)',
+        supportsAllDrives=True,
+    ).execute()
+
+
 def subpastas(servico, pasta_id):
     """Pastas filhas diretas. Cada uma vira uma coleção do Acervo."""
     return _listar(

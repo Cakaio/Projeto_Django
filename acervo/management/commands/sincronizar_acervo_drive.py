@@ -76,25 +76,46 @@ class Command(BaseCommand):
                 'Confira se o caminho do JSON existe e se a Google Drive API '
                 'está ATIVADA no projeto do Google Cloud.')
 
+        # Pergunta pela PRÓPRIA pasta antes de listar o conteúdo. `files.list`
+        # com um pai invisível devolve lista vazia sem erro; `files.get` no ID
+        # levanta 404. É o que separa "não tenho acesso" de "não tem subpasta".
+        try:
+            pasta = drive.metadados(servico, settings.ACERVO_DRIVE_PASTA_ID)
+        except Exception as erro:
+            raise CommandError(
+                f'A conta de serviço NÃO enxerga essa pasta.\n\n'
+                f'Resposta do Google: {erro}\n\n'
+                'O compartilhamento não chegou até ela. Causas, em ordem:\n'
+                '  1. A organização do Workspace bloqueia compartilhar para fora\n'
+                '     do domínio. Uma conta de serviço termina em\n'
+                '     .iam.gserviceaccount.com, que é um domínio EXTERNO — o\n'
+                '     Google aceita digitar o e-mail e depois não aplica.\n'
+                '     Confira em Compartilhar se a conta aparece na LISTA de\n'
+                '     pessoas com acesso. Se não aparecer, foi isso.\n'
+                '  2. A pasta está num Drive compartilhado que não aceita\n'
+                '     membros externos.\n'
+                '  3. O ID da pasta está errado.')
+
+        dono = (pasta.get('owners') or [{}])[0].get('emailAddress', '—')
+        self.stdout.write(self.style.SUCCESS(
+            f"\nEnxergo a pasta: {pasta.get('name')} (dono: {dono})"))
+        if pasta.get('driveId'):
+            self.stdout.write(
+                'Ela está num Drive compartilhado — o acesso vem da participação '
+                'no Drive, não do compartilhamento da pasta.')
+
         try:
             pastas = drive.subpastas(servico, settings.ACERVO_DRIVE_PASTA_ID)
         except Exception as erro:
-            raise CommandError(
-                f'Autenticou, mas não consegui ler a pasta: {erro}\n\n'
-                'O erro 404 aqui quase sempre significa que a pasta NÃO foi '
-                'compartilhada com o e-mail da conta de serviço.')
+            raise CommandError(f'Não consegui listar o conteúdo: {erro}')
 
         if not pastas:
             self.stdout.write(self.style.ERROR(
-                '\nA conta de serviço não enxerga NENHUMA subpasta.\n\n'
-                'Três causas, em ordem de probabilidade:\n'
-                '  1. A pasta não foi compartilhada com o e-mail da conta de '
-                'serviço (o que termina em .iam.gserviceaccount.com).\n'
-                '  2. O ID da pasta está errado — é o trecho depois de '
-                '/folders/ na URL, sem o ?usp=... do final.\n'
-                '  3. A pasta existe mas não tem subpastas: cada subpasta do '
-                'primeiro nível é que vira uma coleção. Arquivo solto na raiz '
-                'não é importado.'))
+                '\nEnxergo a pasta, mas ela não tem NENHUMA subpasta visível.\n\n'
+                'Cada subpasta do primeiro nível é que vira uma coleção — '
+                'arquivo solto na raiz não é importado. Se você vê subpastas '
+                'no navegador e elas não aparecem aqui, o compartilhamento '
+                'pode ter sido feito só na pasta de cima, sem herança.'))
             return
 
         self.stdout.write(self.style.SUCCESS(
