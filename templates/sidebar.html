@@ -312,12 +312,24 @@
     </a>
     {% endif %}
 
+    {% comment %}
+      ESTÚDIO DESLIGADO DO MENU (a pedido, set/2026) — o time não vai usar por
+      enquanto. O app continua instalado, as rotas registradas e os documentos
+      no banco: isto aqui é só a porta de entrada.
+
+      Para religar: tirar este bloco de comentário, o de TESTE/views.py (busca
+      global) e o de revista/templates/revista/ver.html (botão da revistinha).
+
+      O markup abaixo está inteiro e pronto para voltar — o Django não interpreta
+      nada dentro de um comment, então o {% url %} aqui dentro é inofensivo.
+
     <hr class="pcf-navsep">
     <div class="pcf-navgroup">Geral</div>
     <a class="pcf-navitem" href="{% url 'estudio:lista' %}" title="Editor de página: revistinha, ata, cartaz">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/></svg>
       <span>Estúdio</span>
     </a>
+    {% endcomment %}
 
     <div class="pcf-navgroup">Acervo</div>
     <a class="pcf-navitem" href="{% url 'acervo:lista' %}" title="Documentos que o projeto guarda">

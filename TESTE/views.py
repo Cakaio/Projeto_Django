@@ -105,7 +105,10 @@ def _paginas_do_usuario(user):
         ("Pedido de Reembolso", "forms_pcf:reembolso", "Solicitar reembolso", True),
         ("Dores & Sugestões", "forms_pcf:feedback", "Enviar feedback", True),
         ("Acervo", "acervo:lista", "Documentos que o projeto guarda", True),
-        ("Estúdio", "estudio:lista", "Editor de página: revistinha, ata, cartaz", True),
+        # ESTÚDIO DESLIGADO (a pedido, set/2026): o time não vai usar por
+        # enquanto. O app segue instalado e as rotas registradas — some só
+        # da busca e do menu. Descomentar aqui e na sidebar religa.
+        # ("Estúdio", "estudio:lista", "Editor de página: revistinha, ata, cartaz", True),
         ("Financeiro", "adm:painel", "Lançamentos, fluxo e DRE",
          is_su or area in ("ADM/FIN", "TRIADE")),
         ("Teto da Área", "adm:tetos", "Quanto sua área pode gastar no mês", True),
