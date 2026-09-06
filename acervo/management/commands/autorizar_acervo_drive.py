@@ -13,6 +13,8 @@ fim imprime três linhas para colar no .env do PythonAnywhere.
 O refresh token impresso é SEGREDO, do mesmo peso de uma senha. Não cole em
 chat, não suba para o repositório.
 """
+from pathlib import Path
+
 from django.core.management.base import BaseCommand, CommandError
 
 from acervo.drive import ESCOPOS
@@ -39,8 +41,19 @@ class Command(BaseCommand):
                 'Falta a biblioteca do fluxo OAuth. Rode:\n'
                 '  pip install google-auth-oauthlib')
 
+        # expanduser: nem o Python nem o PowerShell expandem "~" num argumento
+        # que vai direto para o programa, e o erro que sai (FileNotFoundError
+        # com o "~" literal no caminho) não sugere a causa.
+        caminho = Path(opcoes['client_secret']).expanduser()
+        if not caminho.is_file():
+            raise CommandError(
+                f'Não achei o arquivo: {caminho}\n\n'
+                'É o JSON do OAuth client baixado do Google Cloud Console — o '
+                'nome costuma começar com "client_secret_". Passe o caminho '
+                'completo se o atalho "~" não funcionar no seu terminal.')
+
         fluxo = InstalledAppFlow.from_client_secrets_file(
-            opcoes['client_secret'], scopes=ESCOPOS)
+            str(caminho), scopes=ESCOPOS)
 
         self.stdout.write(
             'Vai abrir o navegador. Entre com a conta que enxerga a pasta do '
