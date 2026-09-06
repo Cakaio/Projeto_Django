@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.messages import get_messages
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
@@ -9,7 +10,7 @@ from semanario.models import Atividade, Material, Semanario
 from voluntario.models import Voluntario
 
 from .models import Item, Local, Pedido
-from .forms import PedidoForm
+from .forms import ItemForm, LocalForm, PedidoForm
 
 
 class LocalTests(SimpleTestCase):
@@ -46,6 +47,93 @@ class PedidoLinkTests(SimpleTestCase):
 
     def test_formulario_disponibiliza_campo_especificar(self):
         self.assertIn("especificar", PedidoForm().fields)
+
+
+class CadastroFormsTests(SimpleTestCase):
+    def test_item_form_aplica_classes_do_design_system(self):
+        form = ItemForm()
+
+        self.assertEqual(form.fields["nome"].widget.attrs["class"], "pcf-input")
+        self.assertEqual(form.fields["categoria"].widget.attrs["class"], "pcf-input")
+
+    def test_local_form_aplica_classes_do_design_system(self):
+        form = LocalForm()
+
+        self.assertEqual(form.fields["nome"].widget.attrs["class"], "pcf-input")
+        self.assertEqual(form.fields["site"].widget.attrs["class"], "pcf-input")
+
+
+class CadastroSupplyViewTests(TestCase):
+    def setUp(self):
+        self.usuario = Voluntario.objects.create_user(
+            username="cadastro-supply",
+            password="teste",
+            area="SUPPLY",
+        )
+        self.client.force_login(self.usuario)
+
+    def test_painel_exibe_cards_de_cadastro(self):
+        resposta = self.client.get(reverse("supply:supply_view"))
+
+        self.assertContains(resposta, reverse("supply:cadastrar_item"))
+        self.assertContains(resposta, "Cadastro de Item")
+        self.assertContains(resposta, reverse("supply:cadastrar_local"))
+        self.assertContains(resposta, "Cadastro de Locais")
+
+    def test_paginas_de_cadastro_renderizam_os_formularios(self):
+        casos = (
+            ("supply:cadastrar_item", "supply/cadastro_item.html", "Salvar item"),
+            ("supply:cadastrar_local", "supply/cadastro_local.html", "Salvar local"),
+        )
+
+        for rota, template, texto_botao in casos:
+            with self.subTest(rota=rota):
+                resposta = self.client.get(reverse(rota))
+                self.assertEqual(resposta.status_code, 200)
+                self.assertTemplateUsed(resposta, template)
+                self.assertContains(resposta, texto_botao)
+
+    def test_cadastra_item_e_exibe_mensagem_de_sucesso(self):
+        resposta = self.client.post(reverse("supply:cadastrar_item"), {
+            "nome": "Cartolina colorida",
+            "descricao": "Pacote com cores variadas",
+            "categoria": "PAPELARIA",
+            "unidade": "PAC",
+            "quantidade_minima": "5.00",
+            "ativo": "on",
+        })
+
+        self.assertRedirects(
+            resposta,
+            reverse("supply:supply_view"),
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(Item.objects.filter(nome="Cartolina colorida").exists())
+        mensagens = [str(message) for message in get_messages(resposta.wsgi_request)]
+        self.assertIn('Item "Cartolina colorida" cadastrado com sucesso.', mensagens)
+
+    def test_cadastra_local_e_exibe_mensagem_de_sucesso(self):
+        resposta = self.client.post(reverse("supply:cadastrar_local"), {
+            "nome": "Papelaria Central",
+            "tipo": "PAPELARIA",
+            "localizacao": "Rua das Flores, 100",
+            "cidade": "São Paulo",
+            "numero_contato": "(11) 99999-0000",
+            "whatsapp": "on",
+            "email": "contato@papelaria.example",
+            "site": "https://papelaria.example",
+            "observacoes": "Entrega aos sábados",
+            "ativo": "on",
+        })
+
+        self.assertRedirects(
+            resposta,
+            reverse("supply:supply_view"),
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(Local.objects.filter(nome="Papelaria Central").exists())
+        mensagens = [str(message) for message in get_messages(resposta.wsgi_request)]
+        self.assertIn('Local "Papelaria Central" cadastrado com sucesso.', mensagens)
 
 
 class GerenciarMaterialPainelTests(TestCase):

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from django.shortcuts import render, redirect
 from django.views.generic import TemplateView
@@ -95,6 +96,7 @@ def _paginas_do_usuario(user):
         ("Pautas Recebidas", "gerenciamento:pautas", "Pautas dos seus grupos", True),
         ("Minhas Pautas", "gerenciamento:minhas_pautas", "Pautas que você criou", True),
         ("Nova Pauta", "gerenciamento:criar_pauta", "Criar pauta", True),
+        ("Montar Reunião", "gerenciamento:criar_reuniao", "Organizar pautas para apresentação", True),
         ("Supply", "supply:supply_view", "Estoque e materiais", True),
         ("Meus Pedidos", "supply:meus_pedidos", "Seus pedidos de material", True),
         ("Novo Pedido", "supply:adicionar_pedidos", "Solicitar material", True),
@@ -184,8 +186,9 @@ def busca(request):
     })
 
 
-class inicio(TemplateView):
+class inicio(LoginRequiredMixin, TemplateView):
     template_name = "inicio.html"
+    login_url = "/login/"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -237,5 +240,27 @@ class inicio(TemplateView):
             .order_by('sabado__data')
             .first()
         )
+
+        request = getattr(self, "request", None)
+        usuario = getattr(request, "user", None)
+        if usuario is not None and usuario.is_authenticated:
+            # Import local evita acoplar a inicialização das views do projeto ao
+            # app de pautas e mantém uma única regra de visibilidade/pendência.
+            from gerenciamento.services import pautas_pendentes_de_ciencia
+
+            pendentes = (
+                pautas_pendentes_de_ciencia(usuario)
+                .select_related("grupo", "reuniao")
+                .prefetch_related("responsaveis")
+                .order_by("prazo_ddl")
+            )
+            total_pendentes = pendentes.count()
+            context["total_pautas_pendentes_ciencia"] = total_pendentes
+            context["total_pautas_pendentes_extras"] = max(0, total_pendentes - 5)
+            context["pautas_pendentes_ciencia"] = list(pendentes[:5])
+        else:
+            context["total_pautas_pendentes_ciencia"] = 0
+            context["total_pautas_pendentes_extras"] = 0
+            context["pautas_pendentes_ciencia"] = []
 
         return context

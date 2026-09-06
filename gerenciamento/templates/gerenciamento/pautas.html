@@ -1,193 +1,640 @@
 {% extends "base.html" %}
-{% block titulo %}Minhas pautas{% endblock %}
+{% block titulo %}Quadro de pautas{% endblock %}
 
-{% block content %}
-{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .pta-). O visual base vem das classes .pcf-*. #}
+{% block head %}
 <style>
-  .pta-page { background: hsl(var(--background)); }
-  .pta-wrap { padding-block: clamp(2rem, 5vw, 3.25rem); }
-
-  /* Cabeçalho leve */
-  .pta-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
-  .pta-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
-  .pta-title { margin: 0; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--ink); }
-  .pta-sub { margin: 0; font-size: .92rem; color: hsl(var(--muted-foreground)); }
-  .pta-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
-
-  /* Chips de grupos */
-  .pta-groups { display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: 1.75rem; }
-
-  /* Grid de cards */
-  .pta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 1.25rem; }
-  .pta-card { display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden; }
-  .pta-card-body { padding: 1.35rem 1.35rem 1.1rem; display: flex; flex-direction: column; gap: .55rem; }
-  .pta-card-top { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; }
-  .pta-area { font-size: .68rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #c9490a; }
-  .pta-status { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; font-weight: 700; color: var(--ink); }
-  .pta-status .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .pta-for { font-size: .74rem; color: var(--ink-muted); }
-  .pta-card-title { margin: .1rem 0 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
-  .pta-desc { margin: 0; font-size: .88rem; line-height: 1.6; color: var(--ink-soft); white-space: pre-line; }
-
-  .pta-meta { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-top: .5rem; padding-top: .9rem; border-top: 1px solid #f4e7de; }
-  .pta-meta-item { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
-  .pta-meta-label { font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
-  .pta-meta-value { font-size: .82rem; font-weight: 700; color: var(--ink); }
-
-  /* Barra de ciência */
-  .pta-ack { padding: 0 1.35rem 1.1rem; }
-  .pta-ack form { margin: 0; }
-
-  /* Comentários */
-  .pta-comments { padding: 1.1rem 1.35rem 1.35rem; background: #fffaf6; border-top: 1px solid #f4e7de; margin-top: auto; }
-  .pta-comments-head { font-size: .66rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 .8rem; }
-  .pta-comment { display: flex; gap: .6rem; margin-bottom: .8rem; }
-  .pta-avatar { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; background: var(--brand-grad); color: #fff; display: flex; align-items: center; justify-content: center; font-size: .64rem; font-weight: 800; overflow: hidden; text-transform: uppercase; }
-  .pta-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .pta-comment-who { font-size: .74rem; font-weight: 700; color: var(--ink); }
-  .pta-comment-when { font-size: .66rem; color: var(--ink-muted); }
-  .pta-comment-text { margin: .15rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--ink-soft); white-space: pre-line; }
-
-  /* Campo de comentário (widget forms.py: class="comment-input") */
-  .comment-input {
-    width: 100%; padding: .6rem .8rem; border-radius: 12px; background: #fff;
-    border: 1px solid #f0dfd3; color: var(--ink); font-size: .88rem; font-family: inherit; resize: vertical;
-    transition: border-color .15s, box-shadow .15s;
+  .pta-page {
+    min-height: 75vh;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 10% 0, rgba(242, 107, 33, .08), transparent 29rem),
+      linear-gradient(180deg, #fffaf6 0, hsl(var(--background)) 15rem);
   }
-  .comment-input:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
-  .pta-comment-form { margin: 0; display: flex; flex-direction: column; gap: .5rem; align-items: flex-start; }
+  .pta-shell { width: min(100%, 1800px); margin-inline: auto; padding: clamp(1.5rem, 3vw, 2.6rem) clamp(1rem, 2.5vw, 2.25rem) 3rem; }
+  .pta-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .pta-head-copy { min-width: 0; }
+  .pta-title { margin: .55rem 0 .3rem; font-size: clamp(1.8rem, 3.5vw, 2.75rem); font-weight: 900; letter-spacing: -.045em; line-height: 1; }
+  .pta-sub { margin: 0; color: var(--ink-muted); font-size: .9rem; }
+  .pta-head-actions { display: flex; gap: .55rem; flex-wrap: wrap; }
+  .pta-context { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; margin: 0 0 1.25rem; }
+  .pta-context-label { margin-right: .15rem; color: var(--ink-muted); font-size: .72rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
 
-  /* Estado vazio */
-  .pta-empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 1.5rem; border: 1.5px dashed #f2d3bd; border-radius: 24px; background: #fffaf6; }
-  .pta-empty-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; background: #fff0e6; color: #e8560f; }
-  .pta-empty-title { margin: .4rem 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
-  .pta-empty-sub { margin: 0; max-width: 40ch; font-size: .88rem; color: var(--ink-muted); }
-  .pta-empty .pcf-btn { margin-top: .4rem; }
+  .pta-board-scroll {
+    overflow-x: auto;
+    padding: .25rem .15rem 1rem;
+    scrollbar-color: #d8b9a3 transparent;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+  }
+  .pta-board {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(280px, 1fr));
+    align-items: start;
+    gap: .85rem;
+    min-width: 880px;
+  }
+  .pta-column {
+    --column-color: #64748b;
+    overflow: hidden;
+    border: 1px solid rgba(91, 68, 54, .12);
+    border-radius: 18px;
+    background: rgba(241, 235, 230, .86);
+    box-shadow: 0 12px 30px rgba(58, 36, 23, .055);
+    scroll-snap-align: start;
+    transition: border-color .18s, box-shadow .18s, background .18s;
+  }
+  .pta-column::before { content: ""; display: block; height: 4px; background: var(--column-color); }
+  .pta-column.is-dragover { border-color: var(--column-color); background: rgba(255, 255, 255, .96); box-shadow: 0 0 0 3px color-mix(in srgb, var(--column-color) 16%, transparent); }
+  .pta-column-head { display: flex; align-items: center; justify-content: space-between; gap: .7rem; padding: .9rem .9rem .7rem; }
+  .pta-column-name { display: inline-flex; align-items: center; gap: .5rem; margin: 0; font-size: .77rem; font-weight: 850; letter-spacing: .055em; text-transform: uppercase; }
+  .pta-column-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--column-color); box-shadow: 0 0 0 4px color-mix(in srgb, var(--column-color) 12%, transparent); }
+  .pta-column-count { min-width: 1.65rem; padding: .16rem .42rem; border: 1px solid rgba(91, 68, 54, .1); border-radius: 999px; background: rgba(255, 255, 255, .75); color: var(--ink-muted); font-size: .68rem; font-weight: 800; text-align: center; }
+  .pta-column-list { display: flex; flex-direction: column; gap: .68rem; min-height: 8rem; max-height: clamp(14rem, calc(100vh - 18rem), 46rem); overflow-y: auto; padding: .15rem .68rem .75rem; scrollbar-gutter: stable; overscroll-behavior: contain; }
+  .pta-column-empty { padding: 1.4rem .8rem; border: 1px dashed rgba(91, 68, 54, .18); border-radius: 13px; color: var(--ink-muted); font-size: .76rem; line-height: 1.45; text-align: center; }
 
-  @media (max-width: 560px) {
+  .pta-card {
+    --status-color: #64748b;
+    position: relative;
+    overflow: hidden;
+    flex: 0 0 auto;
+    border: 1px solid rgba(84, 57, 41, .12);
+    border-radius: 15px;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(66, 43, 29, .06), 0 8px 20px rgba(66, 43, 29, .045);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, opacity .18s;
+  }
+  .pta-card:hover { transform: translateY(-2px); border-color: rgba(232, 86, 15, .3); box-shadow: 0 12px 28px rgba(66, 43, 29, .11); }
+  .pta-card[draggable="true"] { cursor: grab; }
+  .pta-card[draggable="true"]:active { cursor: grabbing; }
+  .pta-card.is-dragging { opacity: .42; transform: rotate(1.2deg) scale(.985); }
+  .pta-card.is-pending { border-left: 4px solid #e8560f; }
+  .pta-card.is-acknowledged { border-left: 4px solid #16845b; }
+  .pta-card-open { display: block; width: 100%; padding: .86rem .85rem .75rem; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; }
+  .pta-card-open:focus-visible { outline: 3px solid rgba(232, 86, 15, .28); outline-offset: -3px; border-radius: inherit; }
+  .pta-labels { display: flex; gap: .3rem; flex-wrap: wrap; min-height: .25rem; margin-bottom: .55rem; }
+  .pta-label { overflow: hidden; max-width: 100%; padding: .16rem .48rem; border-radius: 5px; background: #fff0e5; color: #a83b08; font-size: .61rem; font-weight: 800; letter-spacing: .02em; text-overflow: ellipsis; white-space: nowrap; }
+  .pta-label:nth-child(3n + 2) { background: #e9f2ff; color: #1d5da8; }
+  .pta-label:nth-child(3n) { background: #eee9ff; color: #6542a4; }
+  .pta-card-line { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .42rem; }
+  .pta-priority { display: inline-flex; align-items: center; gap: .32rem; color: var(--priority-color); font-size: .64rem; font-weight: 850; letter-spacing: .065em; text-transform: uppercase; }
+  .pta-priority::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: currentColor; }
+  .pta-card-group { overflow: hidden; color: var(--ink-muted); font-size: .66rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+  .pta-card-title { display: block; margin: 0; font-size: 1rem; font-weight: 800; letter-spacing: -.022em; line-height: 1.3; }
+  .pta-meeting { display: flex; align-items: center; gap: .35rem; margin: .5rem 0 0; color: #795846; font-size: .69rem; line-height: 1.35; }
+  .pta-card-meta { display: flex; align-items: center; gap: .42rem; flex-wrap: wrap; margin-top: .72rem; padding-top: .65rem; border-top: 1px solid #f2e8e1; }
+  .pta-meta-pill { display: inline-flex; align-items: center; gap: .28rem; color: var(--ink-muted); font-size: .66rem; font-weight: 650; }
+  .pta-meta-pill.is-overdue { padding: .18rem .4rem; border-radius: 6px; background: #fff0f0; color: #b42323; }
+  .pta-card-owner { display: flex; align-items: center; gap: .35rem; min-width: 0; margin-left: auto; color: var(--ink-soft); font-size: .65rem; font-weight: 700; }
+  .pta-owner-stack { display: flex; flex-direction: row-reverse; justify-content: flex-end; padding-left: .35rem; }
+  .pta-owner-stack .pta-mini-avatar { margin-left: -.35rem; border: 2px solid #fff; }
+  .pta-owner-more { display: grid; place-items: center; width: 23px; height: 23px; margin-left: -.35rem; border: 2px solid #fff; border-radius: 50%; background: #5f5149; color: #fff; font-size: .52rem; font-weight: 850; }
+  .pta-mini-avatar, .pta-avatar { display: grid; flex: 0 0 auto; place-items: center; overflow: hidden; border-radius: 50%; color: #fff; background: linear-gradient(145deg, #e8560f, #ff9b54); font-weight: 850; text-transform: uppercase; }
+  .pta-mini-avatar { width: 23px; height: 23px; font-size: .55rem; }
+  .pta-avatar { width: 34px; height: 34px; font-size: .65rem; }
+  .pta-mini-avatar img, .pta-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .pta-ack-state { display: flex; align-items: center; gap: .42rem; min-height: 2rem; padding: .48rem .8rem; border-top: 1px solid; font-size: .66rem; font-weight: 800; letter-spacing: .025em; }
+  .pta-ack-state.pending { border-color: #fed7aa; color: #a93e08; background: #fff7ed; }
+  .pta-ack-state.done { border-color: #bbf0d5; color: #126744; background: #effcf5; }
+  .pta-ack-state svg { flex: 0 0 auto; }
+  .pta-drag-hint { margin-left: auto; opacity: .5; }
+
+  .pta-empty-board { min-width: min(100%, 38rem); padding: 3rem 1.5rem; border: 1.5px dashed #e8cbb8; border-radius: 20px; background: rgba(255,255,255,.7); text-align: center; }
+  .pta-empty-board h2 { margin: .75rem 0 .3rem; font-size: 1.08rem; font-weight: 850; }
+  .pta-empty-board p { margin: 0 0 1rem; color: var(--ink-muted); font-size: .86rem; }
+
+  .pta-modal .modal-dialog { max-width: min(1040px, calc(100vw - 1.25rem)); }
+  .pta-modal .modal-content { overflow: hidden; border: 0; border-radius: 22px; background: #fffdfb; box-shadow: 0 30px 90px rgba(43, 27, 17, .25); }
+  .pta-modal .modal-header { align-items: flex-start; padding: 1.25rem 1.35rem; border-bottom: 1px solid #f0e2d8; background: #fffaf6; }
+  .pta-modal-kicker { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; margin: 0 0 .35rem; color: var(--ink-muted); font-size: .67rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+  .pta-modal-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--status-color); }
+  .pta-modal-title { margin: 0; font-size: clamp(1.25rem, 3vw, 1.75rem); font-weight: 880; letter-spacing: -.035em; line-height: 1.15; }
+  .pta-modal .modal-body { padding: 0; }
+  .pta-modal-grid { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(300px, .88fr); }
+  .pta-detail-pane { padding: 1.35rem; border-right: 1px solid #f0e2d8; }
+  .pta-comment-pane { display: flex; min-height: 31rem; flex-direction: column; padding: 1.35rem; background: #fffaf7; }
+  .pta-section-label { margin: 0 0 .55rem; color: var(--ink-muted); font-size: .65rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+  .pta-description { margin: 0 0 1.25rem; color: var(--ink-soft); font-size: .88rem; line-height: 1.65; white-space: pre-wrap; }
+  .pta-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin-bottom: 1.1rem; }
+  .pta-detail { min-width: 0; padding: .7rem .75rem; border: 1px solid #f0e2d8; border-radius: 12px; background: #fff; }
+  .pta-detail dt { margin: 0 0 .18rem; color: var(--ink-muted); font-size: .6rem; font-weight: 800; letter-spacing: .075em; text-transform: uppercase; }
+  .pta-detail dd { overflow: hidden; margin: 0; color: var(--ink); font-size: .78rem; font-weight: 720; text-overflow: ellipsis; }
+  .pta-meeting-link { color: #b4430d; text-decoration: none; }
+  .pta-meeting-link:hover { color: #7f2d08; text-decoration: underline; }
+  .pta-ack-box { padding: .85rem; border: 1px solid #efd8c9; border-radius: 14px; background: linear-gradient(135deg, #fff8f2, #fff); }
+  .pta-ack-box.done { border-color: #bde8d2; background: linear-gradient(135deg, #f0fbf5, #fff); }
+  .pta-ack-copy { display: flex; align-items: flex-start; gap: .55rem; margin-bottom: .7rem; }
+  .pta-ack-copy strong { display: block; font-size: .8rem; }
+  .pta-ack-copy span { display: block; margin-top: .12rem; color: var(--ink-muted); font-size: .7rem; line-height: 1.4; }
+  .pta-actions-row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .pta-move-form { display: flex; align-items: center; gap: .4rem; flex: 1 1 18rem; }
+  .pta-move-select { min-width: 0; flex: 1; padding: .48rem .65rem; border: 1px solid #e8d8cd; border-radius: 10px; background: #fff; color: var(--ink); font: inherit; font-size: .75rem; }
+  .pta-comment-head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .75rem; }
+  .pta-comment-count { color: var(--ink-muted); font-size: .68rem; font-weight: 700; }
+  .pta-comment-scroll { max-height: clamp(13rem, 35vh, 22rem); overflow-y: auto; padding: .1rem .35rem .1rem 0; scrollbar-gutter: stable; overscroll-behavior: contain; }
+  .pta-comment { display: flex; gap: .6rem; padding: .65rem 0; border-bottom: 1px solid #f0e2d8; }
+  .pta-comment:first-child { padding-top: 0; }
+  .pta-comment-body { min-width: 0; }
+  .pta-comment-by { font-size: .72rem; font-weight: 800; }
+  .pta-comment-time { color: var(--ink-muted); font-size: .62rem; }
+  .pta-comment-text { margin: .22rem 0 0; color: var(--ink-soft); font-size: .77rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .pta-mention-mark { padding: .05rem .15rem; border-radius: 4px; color: #b33f08; background: #fff0e5; font-weight: 750; }
+  .pta-no-comments { display: grid; min-height: 8rem; place-items: center; padding: 1rem; border: 1px dashed #e8d8cd; border-radius: 12px; color: var(--ink-muted); font-size: .76rem; text-align: center; }
+  .pta-comment-form { margin-top: auto; padding-top: 1rem; }
+  .pta-mention-wrap { position: relative; }
+  .comment-input { width: 100%; min-height: 5.4rem; padding: .68rem .75rem; border: 1px solid #e6d6cb; border-radius: 12px; background: #fff; color: var(--ink); font: inherit; font-size: .8rem; line-height: 1.45; resize: vertical; transition: border-color .15s, box-shadow .15s; }
+  .comment-input:focus { outline: none; border-color: #ef9a66; box-shadow: 0 0 0 3px rgba(232, 86, 15, .12); }
+  .pta-mention-menu { position: absolute; z-index: 1080; right: 0; bottom: calc(100% + .35rem); left: 0; max-height: 12rem; overflow-y: auto; padding: .3rem; border: 1px solid #e6d6cb; border-radius: 12px; background: #fff; box-shadow: 0 14px 35px rgba(48, 28, 16, .17); }
+  .pta-mention-option { display: flex; align-items: center; justify-content: space-between; gap: .7rem; width: 100%; padding: .5rem .6rem; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: inherit; text-align: left; }
+  .pta-mention-option:hover, .pta-mention-option.is-active { background: #fff1e8; }
+  .pta-mention-name { overflow: hidden; font-size: .75rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+  .pta-mention-user { color: var(--ink-muted); font-size: .68rem; }
+  .pta-comment-help { display: flex; justify-content: space-between; gap: .7rem; margin: .35rem 0 .55rem; color: var(--ink-muted); font-size: .64rem; }
+
+  @media (max-width: 800px) {
+    .pta-modal-grid { grid-template-columns: 1fr; }
+    .pta-detail-pane { border-right: 0; border-bottom: 1px solid #f0e2d8; }
+    .pta-comment-pane { min-height: 29rem; }
+  }
+  @media (max-width: 600px) {
+    .pta-shell { padding-inline: .75rem; }
     .pta-head-actions { width: 100%; }
     .pta-head-actions .pcf-btn { flex: 1; justify-content: center; }
+    .pta-board { grid-template-columns: repeat(3, minmax(84vw, 84vw)); min-width: max-content; }
+    .pta-column-list { max-height: none; }
+    .pta-detail-grid { grid-template-columns: 1fr; }
+    .pta-modal .modal-dialog { margin: .4rem; max-width: calc(100vw - .8rem); }
+    .pta-modal .modal-content { border-radius: 18px; }
+    .pta-detail-pane, .pta-comment-pane { padding: 1rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pta-card, .pta-column { transition: none; }
+    .pta-card:hover { transform: none; }
   }
 </style>
+{% endblock %}
 
+{% block content %}
 <div class="pta-page">
-  <div class="pcf-container pta-wrap">
-
-    <!-- Cabeçalho leve -->
+  <div class="pta-shell">
     <header class="pta-head">
-      <div class="pta-head-text">
-        <span class="pcf-eyebrow">Quadro pessoal</span>
-        <h1 class="pta-title">Pautas na mesa</h1>
-        <p class="pta-sub">Somente o que foi direcionado aos seus grupos atuais.</p>
+      <div class="pta-head-copy">
+        <span class="pcf-eyebrow">Fluxo de decisões</span>
+        <h1 class="pta-title">Quadro de pautas</h1>
+        <p class="pta-sub">Organize o que ainda será discutido, o que está na mesa e o que já foi concluído.</p>
       </div>
       <div class="pta-head-actions">
+        <a href="{% url 'gerenciamento:criar_reuniao' %}" class="pcf-btn pcf-btn-outline">Montar reunião</a>
         <a href="{% url 'gerenciamento:minhas_pautas' %}" class="pcf-btn pcf-btn-outline">Pautas da minha área</a>
         <a href="{% url 'gerenciamento:criar_pauta' %}" class="pcf-btn pcf-btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
           Nova pauta
         </a>
       </div>
     </header>
 
-    <!-- Grupos do usuário + alternância de ocultas -->
-    <div class="pta-groups">
+    <div class="pta-context" aria-label="Filtros e grupos do quadro">
+      <span class="pta-context-label">Seus grupos</span>
       {% for grupo in grupos_do_usuario %}
         <span class="pcf-badge brand">{{ grupo.nome }}</span>
       {% empty %}
-        <span class="pcf-badge">Você ainda não pertence a nenhum grupo</span>
+        <span class="pcf-badge">Nenhum grupo atual</span>
       {% endfor %}
-      <a class="pcf-badge info" style="text-decoration:none" href="{% if mostrar_ocultas %}{% url 'gerenciamento:pautas' %}{% else %}?ocultas=1{% endif %}">
-        {% if mostrar_ocultas %}← Ver ativas{% else %}Ocultadas ({{ total_ocultas }}){% endif %}
-      </a>
     </div>
 
-    <!-- Cards de pautas -->
-    <div class="pta-grid">
-      {% for pauta in pautas %}
-        <article class="pcf-card pta-card">
-          <div class="pta-card-body">
-            <div class="pta-card-top">
-              <span class="pta-area">{{ pauta.get_emitido_por_area_display }}</span>
-              <span class="pta-status">
-                <span class="dot" style="background:{{ pauta.status_cor }}" aria-hidden="true"></span>
-                {{ pauta.get_status_display }}
-              </span>
-            </div>
-            <div class="pta-for">Para {{ pauta.grupo.nome }}</div>
-            <h2 class="pta-card-title">{{ pauta.titulo }}</h2>
-            <p class="pta-desc">{{ pauta.descricao }}</p>
-            <div class="pta-meta">
-              <div class="pta-meta-item">
-                <span class="pta-meta-label">Emitido por</span>
-                <span class="pta-meta-value">{{ pauta.criado_por.get_full_name|default:pauta.criado_por.username }}</span>
+    {% if pautas %}
+      <div class="pta-board-scroll" role="region" aria-label="Quadro Kanban de pautas" tabindex="0">
+        <div class="pta-board">
+          {% for coluna in colunas %}
+            <section class="pta-column" data-kanban-column data-status="{{ coluna.codigo }}" style="--column-color:{{ coluna.cor }}" aria-labelledby="coluna-{{ coluna.codigo }}">
+              <header class="pta-column-head">
+                <h2 class="pta-column-name" id="coluna-{{ coluna.codigo }}">
+                  <span class="pta-column-dot" aria-hidden="true"></span>{{ coluna.titulo }}
+                </h2>
+                <span class="pta-column-count" data-column-count aria-label="{{ coluna.pautas|length }} cards">{{ coluna.pautas|length }}</span>
+              </header>
+              <div class="pta-column-list" data-column-list>
+                {% for pauta in coluna.pautas %}
+                  <article class="pta-card {% if pauta.usuario_ciente %}is-acknowledged{% else %}is-pending{% endif %}"
+                           data-kanban-card data-pauta-id="{{ pauta.pk }}" data-current-status="{{ pauta.status }}"
+                           data-status-url="{% url 'gerenciamento:atualizar_status' pauta.pk %}"
+                           style="--status-color:{{ pauta.status_cor }};--priority-color:{{ pauta.prioridade_cor }}"
+                           {% if pauta.pode_mover %}draggable="true"{% endif %}>
+                    <button type="button" class="pta-card-open" data-bs-toggle="modal" data-bs-target="#pautaModal{{ pauta.pk }}" aria-haspopup="dialog" aria-label="Abrir detalhes de {{ pauta.titulo }}">
+                      {% if pauta.etiquetas %}
+                        <span class="pta-labels">
+                          {% for etiqueta in pauta.etiquetas %}<span class="pta-label">{{ etiqueta }}</span>{% endfor %}
+                        </span>
+                      {% endif %}
+                      <span class="pta-card-line">
+                        <span class="pta-priority">{{ pauta.get_prioridade_display }}</span>
+                        <span class="pta-card-group">{{ pauta.grupo.nome }}</span>
+                      </span>
+                      <span class="pta-card-title">{{ pauta.titulo }}</span>
+                      {% if pauta.reuniao %}
+                        <span class="pta-meeting">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4m8-4v4M3 10h18"/></svg>
+                          {{ pauta.reuniao.titulo }} · {{ pauta.reuniao.data_reuniao|date:"d/m" }}
+                        </span>
+                      {% endif %}
+                      <span class="pta-card-meta">
+                        <time class="pta-meta-pill {% if pauta.atrasada %}is-overdue{% endif %}" datetime="{{ pauta.prazo_ddl|date:'c' }}" data-card-deadline data-deadline-label="{{ pauta.prazo_ddl|date:'d/m H:i' }}">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                          <span data-deadline-text>{% if pauta.atrasada %}Atrasada · {% endif %}{{ pauta.prazo_ddl|date:"d/m H:i" }}</span>
+                        </time>
+                        <span class="pta-meta-pill">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3v-7a4 4 0 0 1-1-2.6V7a4 4 0 0 1 4-4h11a4 4 0 0 1 4 4z"/></svg>
+                          {{ pauta.comentarios.count }}
+                        </span>
+                        {% if pauta.responsaveis.all %}
+                          <span class="pta-card-owner" title="{{ pauta.responsaveis.all|length }} responsável{{ pauta.responsaveis.all|length|pluralize }}">
+                            <span class="pta-owner-stack" aria-label="Responsáveis">
+                              {% for responsavel in pauta.responsaveis.all|slice:":3" %}
+                                <span class="pta-mini-avatar" title="{{ responsavel.get_full_name|default:responsavel.username }}">
+                                  {% if responsavel.foto %}<img src="{{ responsavel.foto.url }}" alt="">{% elif responsavel.first_name %}{{ responsavel.first_name|first }}{{ responsavel.last_name|first }}{% else %}{{ responsavel.username|first }}{% endif %}
+                                </span>
+                              {% endfor %}
+                              {% if pauta.responsaveis.all|length > 3 %}<span class="pta-owner-more">+{{ pauta.responsaveis.all|length|add:"-3" }}</span>{% endif %}
+                            </span>
+                          </span>
+                        {% endif %}
+                      </span>
+                    </button>
+                    {% if pauta.usuario_ciente %}
+                      <div class="pta-ack-state done">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+                        Sua ciência está registrada
+                        {% if pauta.pode_mover %}<span class="pta-drag-hint" title="Você pode arrastar este card">⋮⋮</span>{% endif %}
+                      </div>
+                    {% else %}
+                      <div class="pta-ack-state pending">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3h.01"/></svg>
+                        Sua ciência está pendente
+                        {% if pauta.pode_mover %}<span class="pta-drag-hint" title="Você pode arrastar este card">⋮⋮</span>{% endif %}
+                      </div>
+                    {% endif %}
+                  </article>
+                {% endfor %}
+                <div class="pta-column-empty" data-column-empty {% if coluna.pautas %}hidden{% endif %}>Nenhuma pauta nesta etapa.</div>
               </div>
-              <div class="pta-meta-item">
-                <span class="pta-meta-label">Prazo</span>
-                <span class="pta-meta-value">{{ pauta.ddl|date:"d/m/Y · H:i" }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Ciência / ocultar -->
-          <div class="pta-ack">
-            <form method="post" action="{% url 'gerenciamento:alternar_ciencia' pauta.pk %}">
-              {% csrf_token %}
-              {% if mostrar_ocultas %}
-                <input type="hidden" name="acao" value="restaurar">
-                <input type="hidden" name="origem" value="ocultas">
-                <button class="pcf-btn pcf-btn-outline pcf-btn-sm pcf-btn-block" type="submit">Restaurar no quadro</button>
-              {% else %}
-                <input type="hidden" name="acao" value="ocultar">
-                <button class="pcf-btn {% if pauta.usuario_ciente %}pcf-btn-outline{% else %}pcf-btn-primary{% endif %} pcf-btn-sm pcf-btn-block" type="submit">
-                  {% if pauta.usuario_ciente %}
-                    Ciente · ocultar
-                  {% else %}
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-                    Ciente e ocultar
-                  {% endif %}
-                </button>
-              {% endif %}
-            </form>
-          </div>
-
-          <!-- Comentários -->
-          <section class="pta-comments">
-            <p class="pta-comments-head">{{ pauta.comentarios.count }} comentário{{ pauta.comentarios.count|pluralize }}</p>
-            {% for comentario in pauta.comentarios.all %}
-              <div class="pta-comment">
-                <span class="pta-avatar" aria-hidden="true">
-                  {% if comentario.autor.foto %}
-                    <img src="{{ comentario.autor.foto.url }}" alt="">
-                  {% else %}
-                    {{ comentario.autor.first_name|first|upper }}{{ comentario.autor.last_name|first|upper }}
-                  {% endif %}
-                </span>
-                <div>
-                  <span class="pta-comment-who">{{ comentario.autor.get_full_name|default:comentario.autor.username }}</span>
-                  <span class="pta-comment-when"> · {{ comentario.criado_em|date:"d/m H:i" }}</span>
-                  <p class="pta-comment-text">{{ comentario.texto }}</p>
-                </div>
-              </div>
-            {% endfor %}
-            <form class="pta-comment-form" method="post" action="{% url 'gerenciamento:comentar_pauta' pauta.pk %}">
-              {% csrf_token %}
-              {{ comentario_form.texto }}
-              <button class="pcf-btn pcf-btn-dark pcf-btn-sm" type="submit">Comentar</button>
-            </form>
-          </section>
-        </article>
-      {% empty %}
-        <div class="pta-empty">
-          <div class="pta-empty-icon">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <p class="pta-empty-title">Mesa vazia</p>
-          <p class="pta-empty-sub">Nenhuma pauta foi direcionada aos seus grupos atuais.</p>
-          <a href="{% url 'gerenciamento:criar_pauta' %}" class="pcf-btn pcf-btn-primary">Criar uma pauta</a>
+            </section>
+          {% endfor %}
         </div>
-      {% endfor %}
-    </div>
-
+      </div>
+    {% else %}
+      <div class="pta-empty-board">
+        <span class="pcf-icon-tile lg" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 4h6v16H4zM14 4h6v9h-6z"/></svg>
+        </span>
+        <h2>Seu quadro está livre</h2>
+        <p>Nenhuma pauta foi direcionada a você ou aos seus grupos atuais.</p>
+        <a href="{% url 'gerenciamento:criar_pauta' %}" class="pcf-btn pcf-btn-primary">Criar uma pauta</a>
+      </div>
+    {% endif %}
+    <p class="sr-only" aria-live="polite" data-board-live></p>
   </div>
 </div>
+
+{% for pauta in pautas %}
+  <div class="modal fade pta-modal" id="pautaModal{{ pauta.pk }}" tabindex="-1" aria-labelledby="pautaModalTitulo{{ pauta.pk }}" aria-describedby="pautaModalDescricao{{ pauta.pk }}" data-pauta-modal="{{ pauta.pk }}">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <section class="modal-content" style="--status-color:{{ pauta.status_cor }}">
+        <header class="modal-header">
+          <div>
+            <p class="pta-modal-kicker">
+              <span class="pta-modal-status-dot" aria-hidden="true"></span>
+              <span data-modal-status>{{ pauta.get_status_display }}</span> · {{ pauta.grupo.nome }}
+            </p>
+            <h2 class="pta-modal-title" id="pautaModalTitulo{{ pauta.pk }}">{{ pauta.titulo }}</h2>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </header>
+        <div class="modal-body">
+          <div class="pta-modal-grid">
+            <div class="pta-detail-pane">
+              {% if pauta.etiquetas %}
+                <div class="pta-labels" aria-label="Etiquetas">
+                  {% for etiqueta in pauta.etiquetas %}<span class="pta-label">{{ etiqueta }}</span>{% endfor %}
+                </div>
+              {% endif %}
+              <p class="pta-section-label">Descrição</p>
+              <p class="pta-description" id="pautaModalDescricao{{ pauta.pk }}">{{ pauta.descricao }}</p>
+
+              <dl class="pta-detail-grid">
+                <div class="pta-detail"><dt>Prazo limite</dt><dd><time datetime="{{ pauta.prazo_ddl|date:'c' }}">{{ pauta.prazo_ddl|date:"d/m/Y · H:i" }}</time><span data-modal-overdue>{% if pauta.atrasada %} · atrasada{% endif %}</span></dd></div>
+                <div class="pta-detail"><dt>Prioridade</dt><dd style="color:{{ pauta.prioridade_cor }}">{{ pauta.get_prioridade_display }}</dd></div>
+                <div class="pta-detail"><dt>Responsáveis</dt><dd>{% for responsavel in pauta.responsaveis.all %}{{ responsavel.get_full_name|default:responsavel.username }}{% if not forloop.last %}, {% endif %}{% empty %}Não definidos{% endfor %}</dd></div>
+                <div class="pta-detail"><dt>Emitida por</dt><dd>{{ pauta.criado_por.get_full_name|default:pauta.criado_por.username }} · {{ pauta.get_emitido_por_area_display }}</dd></div>
+                {% if pauta.reuniao %}<div class="pta-detail" style="grid-column:1/-1"><dt>Reunião</dt><dd><a class="pta-meeting-link" href="{% url 'gerenciamento:painel_reuniao' pauta.reuniao.pk %}">{{ pauta.reuniao.titulo }} · {{ pauta.reuniao.data_reuniao|date:"d/m/Y · H:i" }} → abrir painel</a></dd></div>{% endif %}
+              </dl>
+
+              <div class="pta-ack-box {% if pauta.usuario_ciente %}done{% endif %}">
+                <div class="pta-ack-copy">
+                  {% if pauta.usuario_ciente %}
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#16845b" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16.5 9"/></svg>
+                    <div><strong>Ciência registrada</strong><span>O card continua no quadro para você acompanhar a conversa.</span></div>
+                  {% else %}
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#d55312" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3h.01"/></svg>
+                    <div><strong>Esta pauta espera sua ciência</strong><span>Confirme que você leu e entendeu o conteúdo.</span></div>
+                  {% endif %}
+                </div>
+                <div class="pta-actions-row">
+                  {% if not pauta.usuario_ciente %}
+                    <form method="post" action="{% url 'gerenciamento:registrar_ciencia' pauta.pk %}">
+                      {% csrf_token %}
+                      <button class="pcf-btn pcf-btn-primary pcf-btn-sm" type="submit">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg> Dar ciência
+                      </button>
+                    </form>
+                  {% endif %}
+
+                  {% if pauta.pode_mover %}
+                    <form class="pta-move-form" method="post" action="{% url 'gerenciamento:atualizar_status' pauta.pk %}">
+                      {% csrf_token %}
+                      <label class="sr-only" for="mover-pauta-{{ pauta.pk }}">Mover {{ pauta.titulo }} para</label>
+                      <select class="pta-move-select" id="mover-pauta-{{ pauta.pk }}" name="status">
+                        {% for codigo, titulo in status_choices %}<option value="{{ codigo }}" {% if codigo == pauta.status %}selected{% endif %}>{{ titulo }}</option>{% endfor %}
+                      </select>
+                      <button class="pcf-btn pcf-btn-outline pcf-btn-sm" type="submit">Mover</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <section class="pta-comment-pane" aria-labelledby="comentariosTitulo{{ pauta.pk }}">
+              <header class="pta-comment-head">
+                <p class="pta-section-label" id="comentariosTitulo{{ pauta.pk }}" style="margin:0">Comentários</p>
+                <span class="pta-comment-count">{{ pauta.comentarios.count }} comentário{{ pauta.comentarios.count|pluralize }}</span>
+              </header>
+              <div class="pta-comment-scroll" tabindex="0" aria-label="Comentários da pauta {{ pauta.titulo }}" data-comment-scroll>
+                {% for comentario in pauta.comentarios.all %}
+                  <article class="pta-comment">
+                    <span class="pta-avatar" aria-hidden="true">
+                      {% if comentario.autor.foto %}<img src="{{ comentario.autor.foto.url }}" alt="">{% elif comentario.autor.first_name %}{{ comentario.autor.first_name|first }}{{ comentario.autor.last_name|first }}{% else %}{{ comentario.autor.username|first }}{% endif %}
+                    </span>
+                    <div class="pta-comment-body">
+                      <div><span class="pta-comment-by">{{ comentario.autor.get_full_name|default:comentario.autor.username }}</span> <time class="pta-comment-time" datetime="{{ comentario.criado_em|date:'c' }}">· {{ comentario.criado_em|date:"d/m H:i" }}</time></div>
+                      <p class="pta-comment-text" data-highlight-mentions data-mentioned-users="{% for mencionado in comentario.mencoes.all %}{{ mencionado.username }}{% if not forloop.last %},{% endif %}{% endfor %}">{{ comentario.texto }}</p>
+                    </div>
+                  </article>
+                {% empty %}
+                  <div class="pta-no-comments">Ainda não há comentários.<br>Comece a conversa abaixo.</div>
+                {% endfor %}
+              </div>
+              <form class="pta-comment-form" method="post" action="{% url 'gerenciamento:comentar_pauta' pauta.pk %}">
+                {% csrf_token %}
+                <label class="pta-section-label" for="comentario-pauta-{{ pauta.pk }}">Adicionar comentário</label>
+                <div class="pta-mention-wrap">
+                  <textarea class="comment-input" id="comentario-pauta-{{ pauta.pk }}" name="texto" maxlength="2000" required autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="mencoes-pauta-{{ pauta.pk }}" data-mention-input placeholder="Escreva um comentário. Use @usuario para mencionar…"></textarea>
+                  <div class="pta-mention-menu" id="mencoes-pauta-{{ pauta.pk }}" role="listbox" aria-label="Sugestões de usuários" data-mention-menu hidden></div>
+                </div>
+                <div class="pta-comment-help"><span>Digite @ para sugerir pessoas</span><span>máx. 2.000 caracteres</span></div>
+                <button class="pcf-btn pcf-btn-dark pcf-btn-sm" type="submit">Publicar comentário</button>
+              </form>
+            </section>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+{% endfor %}
+
+{{ usuarios_mencao|json_script:"pta-mention-users" }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+
+  var usersNode = document.getElementById('pta-mention-users');
+  var mentionUsers = [];
+  try { mentionUsers = usersNode ? JSON.parse(usersNode.textContent) : []; } catch (error) { mentionUsers = []; }
+
+  function announce(message) {
+    var live = document.querySelector('[data-board-live]');
+    if (live) live.textContent = message;
+    if (typeof window.showToast === 'function') window.showToast(message, 'success');
+  }
+
+  document.querySelectorAll('[data-highlight-mentions]').forEach(function (element) {
+    var text = element.textContent;
+    var mentionedUsers = new Set(
+      (element.dataset.mentionedUsers || '')
+        .split(',')
+        .filter(Boolean)
+        .map(function (username) { return username.toLocaleLowerCase('pt-BR'); })
+    );
+    var pattern = /(^|[^\p{L}\p{N}_@])(@[\p{L}\p{N}_.+-]+)/gu;
+    var fragment = document.createDocumentFragment();
+    var lastIndex = 0;
+    var match;
+    while ((match = pattern.exec(text)) !== null) {
+      fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index) + match[1]));
+      var username = match[2].slice(1).toLocaleLowerCase('pt-BR');
+      if (mentionedUsers.has(username)) {
+        var mark = document.createElement('span');
+        mark.className = 'pta-mention-mark';
+        mark.textContent = match[2];
+        fragment.appendChild(mark);
+      } else {
+        fragment.appendChild(document.createTextNode(match[2]));
+      }
+      lastIndex = match.index + match[0].length;
+    }
+    fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+    element.replaceChildren(fragment);
+  });
+
+  document.querySelectorAll('[data-mention-input]').forEach(function (input) {
+    var menu = document.getElementById(input.getAttribute('aria-controls'));
+    var matches = [];
+    var activeIndex = -1;
+    var mentionStart = -1;
+
+    function closeMenu() {
+      menu.hidden = true;
+      menu.replaceChildren();
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+      matches = [];
+      activeIndex = -1;
+    }
+
+    function setActive(index) {
+      if (!matches.length) return;
+      activeIndex = (index + matches.length) % matches.length;
+      menu.querySelectorAll('[role="option"]').forEach(function (option, optionIndex) {
+        var active = optionIndex === activeIndex;
+        option.classList.toggle('is-active', active);
+        option.setAttribute('aria-selected', active ? 'true' : 'false');
+        if (active) {
+          input.setAttribute('aria-activedescendant', option.id);
+          option.scrollIntoView({ block: 'nearest' });
+        }
+      });
+    }
+
+    function insertMention(user) {
+      var cursor = input.selectionStart;
+      var before = input.value.slice(0, mentionStart);
+      var after = input.value.slice(cursor);
+      var inserted = '@' + user.username + ' ';
+      input.value = before + inserted + after;
+      var nextCursor = before.length + inserted.length;
+      input.setSelectionRange(nextCursor, nextCursor);
+      input.focus();
+      closeMenu();
+    }
+
+    function renderMenu() {
+      var cursor = input.selectionStart;
+      var beforeCursor = input.value.slice(0, cursor);
+      var token = beforeCursor.match(/(^|[^\p{L}\p{N}_@])@([\p{L}\p{N}_.+-]*)$/u);
+      if (!token) { closeMenu(); return; }
+
+      var query = token[2].toLocaleLowerCase('pt-BR');
+      mentionStart = cursor - token[2].length - 1;
+      matches = mentionUsers.filter(function (user) {
+        return user.username.toLocaleLowerCase('pt-BR').includes(query) || user.nome.toLocaleLowerCase('pt-BR').includes(query);
+      }).slice(0, 7);
+      if (!matches.length) { closeMenu(); return; }
+
+      menu.replaceChildren();
+      matches.forEach(function (user, index) {
+        var option = document.createElement('div');
+        option.id = input.id + '-mention-' + index;
+        option.className = 'pta-mention-option';
+        option.setAttribute('role', 'option');
+        option.setAttribute('aria-selected', 'false');
+
+        var name = document.createElement('span');
+        name.className = 'pta-mention-name';
+        name.textContent = user.nome;
+        var username = document.createElement('span');
+        username.className = 'pta-mention-user';
+        username.textContent = '@' + user.username;
+        option.append(name, username);
+        option.addEventListener('mousedown', function (event) { event.preventDefault(); });
+        option.addEventListener('click', function () { insertMention(user); });
+        menu.appendChild(option);
+      });
+      menu.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      setActive(0);
+    }
+
+    input.addEventListener('input', renderMenu);
+    input.addEventListener('click', renderMenu);
+    input.addEventListener('keydown', function (event) {
+      if (menu.hidden) return;
+      if (event.key === 'ArrowDown') { event.preventDefault(); setActive(activeIndex + 1); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); setActive(activeIndex - 1); }
+      else if ((event.key === 'Enter' || (event.key === 'Tab' && !event.shiftKey)) && activeIndex >= 0) { event.preventDefault(); insertMention(matches[activeIndex]); }
+      else if (event.key === 'Escape') { event.preventDefault(); closeMenu(); }
+      else if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { window.setTimeout(renderMenu, 0); }
+    });
+    input.addEventListener('blur', function () { window.setTimeout(closeMenu, 120); });
+  });
+
+  document.querySelectorAll('[data-pauta-modal]').forEach(function (modal) {
+    modal.addEventListener('shown.bs.modal', function () {
+      var comments = modal.querySelector('[data-comment-scroll]');
+      if (comments) comments.scrollTop = comments.scrollHeight;
+    });
+  });
+
+  var openPautaId = '{{ pauta_aberta_id|escapejs }}';
+  if (openPautaId && window.bootstrap) {
+    var modalToOpen = document.querySelector('[data-pauta-modal="' + openPautaId + '"]');
+    if (modalToOpen) window.bootstrap.Modal.getOrCreateInstance(modalToOpen).show();
+  }
+
+  function csrfToken() {
+    var found = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+    return found ? decodeURIComponent(found[1]) : '';
+  }
+
+  function refreshColumn(column) {
+    var total = column.querySelectorAll('[data-kanban-card]').length;
+    var count = column.querySelector('[data-column-count]');
+    var empty = column.querySelector('[data-column-empty]');
+    if (count) { count.textContent = total; count.setAttribute('aria-label', total + ' cards'); }
+    if (empty) empty.hidden = total > 0;
+  }
+
+  var draggedCard = null;
+  document.querySelectorAll('[data-kanban-card][draggable="true"]').forEach(function (card) {
+    card.addEventListener('dragstart', function (event) {
+      draggedCard = card;
+      card.classList.add('is-dragging');
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', card.dataset.pautaId);
+    });
+    card.addEventListener('dragend', function () {
+      card.classList.remove('is-dragging');
+      document.querySelectorAll('[data-kanban-column]').forEach(function (column) { column.classList.remove('is-dragover'); });
+      draggedCard = null;
+    });
+  });
+
+  document.querySelectorAll('[data-kanban-column]').forEach(function (column) {
+    column.addEventListener('dragover', function (event) {
+      if (!draggedCard || draggedCard.dataset.currentStatus === column.dataset.status) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+      column.classList.add('is-dragover');
+    });
+    column.addEventListener('dragleave', function (event) {
+      if (!column.contains(event.relatedTarget)) column.classList.remove('is-dragover');
+    });
+    column.addEventListener('drop', function (event) {
+      event.preventDefault();
+      column.classList.remove('is-dragover');
+      var card = draggedCard;
+      if (!card || card.dataset.currentStatus === column.dataset.status) return;
+      var oldColumn = card.closest('[data-kanban-column]');
+      var body = new URLSearchParams({ status: column.dataset.status });
+      card.classList.add('is-dragging');
+
+      window.fetch(card.dataset.statusUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
+        body: body
+      }).then(function (response) {
+        return response.json().then(function (data) {
+          if (!response.ok) throw new Error(data.erro || 'Não foi possível mover a pauta.');
+          return data;
+        });
+      }).then(function (data) {
+        column.querySelector('[data-column-list]').appendChild(card);
+        card.dataset.currentStatus = data.status;
+        card.style.setProperty('--status-color', data.status_cor);
+        var cardDeadline = card.querySelector('[data-card-deadline]');
+        if (cardDeadline) {
+          cardDeadline.classList.toggle('is-overdue', data.atrasada);
+          var deadlineText = cardDeadline.querySelector('[data-deadline-text]');
+          if (deadlineText) deadlineText.textContent = (data.atrasada ? 'Atrasada · ' : '') + cardDeadline.dataset.deadlineLabel;
+        }
+        var modal = document.querySelector('[data-pauta-modal="' + card.dataset.pautaId + '"]');
+        if (modal) {
+          var modalContent = modal.querySelector('.modal-content');
+          if (modalContent) modalContent.style.setProperty('--status-color', data.status_cor);
+          var status = modal.querySelector('[data-modal-status]');
+          var select = modal.querySelector('select[name="status"]');
+          var overdue = modal.querySelector('[data-modal-overdue]');
+          if (status) status.textContent = data.status_label;
+          if (select) select.value = data.status;
+          if (overdue) overdue.textContent = data.atrasada ? ' · atrasada' : '';
+        }
+        refreshColumn(oldColumn);
+        refreshColumn(column);
+        announce('Pauta movida para “' + data.status_label + '”.');
+      }).catch(function (error) {
+        if (typeof window.showToast === 'function') window.showToast(error.message, 'error');
+      }).finally(function () {
+        card.classList.remove('is-dragging');
+      });
+    });
+  });
+});
+</script>
 {% endblock %}

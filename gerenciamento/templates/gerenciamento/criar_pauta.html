@@ -29,6 +29,8 @@
     transition: border-color .15s, box-shadow .15s;
   }
   textarea.field-control { resize: vertical; min-height: 120px; }
+  select[multiple].field-control { min-height: 9rem; padding: .45rem; }
+  select[multiple].field-control option { padding: .48rem .55rem; border-radius: 7px; }
   .field-control:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
 
   .cpt-errors, .cpt-field .errorlist { list-style: none; margin: .15rem 0 0; padding: 0; color: #b03636; font-size: .78rem; }
@@ -82,20 +84,46 @@
 
       <div class="cpt-row">
         <div class="cpt-field">
-          <label for="{{ form.grupo.id_for_label }}">{{ form.grupo.label }}</label>
-          {{ form.grupo }}
-          {{ form.grupo.errors }}
-        </div>
-        <div class="cpt-field">
           <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
           {{ form.status }}
           {{ form.status.errors }}
         </div>
         <div class="cpt-field">
-          <label for="{{ form.ddl.id_for_label }}">{{ form.ddl.label }}</label>
-          {{ form.ddl }}
-          {{ form.ddl.errors }}
+          <label for="{{ form.prioridade.id_for_label }}">{{ form.prioridade.label }}</label>
+          {{ form.prioridade }}
+          {{ form.prioridade.errors }}
         </div>
+        <div class="cpt-field">
+          <label for="{{ form.prazo_ddl.id_for_label }}">{{ form.prazo_ddl.label }}</label>
+          {{ form.prazo_ddl }}
+          {{ form.prazo_ddl.errors }}
+        </div>
+      </div>
+
+      <div class="cpt-row">
+        <div class="cpt-field">
+          <label for="{{ form.grupo.id_for_label }}">{{ form.grupo.label }}</label>
+          {{ form.grupo }}
+          {{ form.grupo.errors }}
+        </div>
+        <div class="cpt-field">
+          <label for="{{ form.reuniao.id_for_label }}">{{ form.reuniao.label }}</label>
+          {{ form.reuniao }}
+          {{ form.reuniao.errors }}
+        </div>
+        <div class="cpt-field">
+          <label for="{{ form.responsaveis.id_for_label }}">{{ form.responsaveis.label }}</label>
+          {{ form.responsaveis }}
+          {{ form.responsaveis.errors }}
+          {% if form.responsaveis.help_text %}<small class="cpt-note" style="border:0;padding:0">{{ form.responsaveis.help_text }}</small>{% endif %}
+        </div>
+      </div>
+
+      <div class="cpt-field">
+        <label for="{{ form.etiquetas_texto.id_for_label }}">{{ form.etiquetas_texto.label }}</label>
+        {{ form.etiquetas_texto }}
+        {{ form.etiquetas_texto.errors }}
+        {% if form.etiquetas_texto.help_text %}<small class="cpt-note" style="border:0;padding:0">{{ form.etiquetas_texto.help_text }}</small>{% endif %}
       </div>
 
       <p class="cpt-note">Área emissora: <strong>{% if pauta %}{{ pauta.get_emitido_por_area_display }}{% else %}{{ user.get_area_display }}{% endif %}</strong>.</p>

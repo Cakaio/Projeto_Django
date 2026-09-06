@@ -19,7 +19,7 @@
   .mpt-head-actions { display: flex; gap: .625rem; flex-wrap: wrap; }
 
   /* Resumo (stats) */
-  .mpt-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.75rem; }
+  .mpt-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 1rem; margin-bottom: 1.75rem; }
   .mpt-stat { padding: 1.1rem 1.2rem; }
 
   /* Lista */
@@ -82,18 +82,12 @@
         <span class="num">{{ pautas|length }}</span>
         <span class="lbl">Total</span>
       </div>
-      <div class="pcf-card pcf-card-sm pcf-stat mpt-stat">
-        <span class="num">{{ totais.a_fazer|default:0 }}</span>
-        <span class="lbl">A fazer</span>
-      </div>
-      <div class="pcf-card pcf-card-sm pcf-stat mpt-stat">
-        <span class="num">{{ totais.em_execucao|default:0 }}</span>
-        <span class="lbl">Em execução</span>
-      </div>
-      <div class="pcf-card pcf-card-sm pcf-stat mpt-stat">
-        <span class="num">{{ totais.finalizadas|default:0 }}</span>
-        <span class="lbl">Finalizadas</span>
-      </div>
+      {% for item in resumo_status %}
+        <div class="pcf-card pcf-card-sm pcf-stat mpt-stat" style="border-top:3px solid {{ item.cor }}">
+          <span class="num">{{ item.total }}</span>
+          <span class="lbl">{{ item.titulo }}</span>
+        </div>
+      {% endfor %}
     </div>
 
     <!-- Lista -->
@@ -110,7 +104,7 @@
               <span class="mpt-for">Para {{ pauta.grupo.nome }}</span>
             </div>
             <h2 class="mpt-card-title">{{ pauta.titulo }}</h2>
-            <p class="mpt-card-meta">Prazo {{ pauta.ddl|date:"d/m/Y H:i" }} · {{ pauta.comentarios.count }} comentário{{ pauta.comentarios.count|pluralize }}</p>
+            <p class="mpt-card-meta">Prazo {{ pauta.prazo_ddl|date:"d/m/Y H:i" }} · prioridade {{ pauta.get_prioridade_display|lower }} · {{ pauta.comentarios.count }} comentário{{ pauta.comentarios.count|pluralize }}</p>
           </div>
           <a class="pcf-btn pcf-btn-outline pcf-btn-sm mpt-edit" href="{% url 'gerenciamento:editar_pauta' pauta.pk %}">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>

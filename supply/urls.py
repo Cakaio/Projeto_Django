@@ -6,6 +6,8 @@ app_name = 'supply'
 
 urlpatterns = [
     path('', views.SupplyView.as_view(), name='supply_view'),
+    path('itens/cadastrar/', views.CadastroItemView.as_view(), name='cadastrar_item'),
+    path('locais/cadastrar/', views.CadastroLocalView.as_view(), name='cadastrar_local'),
     path('estoque/', views.ListaItensView.as_view(), name='lista_itens'),
     path('movimentacoes/', views.ListaMovimentacoesView.as_view(), name='lista_movimentacoes'),
     path("painel_materiais/", painel_materiais, name="painel_materiais"),

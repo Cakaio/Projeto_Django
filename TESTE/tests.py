@@ -15,10 +15,13 @@ from pathlib import Path
 from django.contrib.auth.models import AnonymousUser
 from django.http import Http404
 from django.test import RequestFactory, TestCase, override_settings
+from django.urls import reverse
+from django.utils import timezone
 
 from TESTE.views import inicio, midia
+from gerenciamento.models import CienciaPauta, Pauta
 from sabado.models import DisponibilidadeVoluntario, Sabado
-from voluntario.models import Voluntario
+from voluntario.models import Grupo, Voluntario
 
 
 def _pedir(endereco, usuario=None):
@@ -132,6 +135,71 @@ class InicioVoluntariosAtivosTests(TestCase):
         self.assertEqual(formulario.total_respostas_view, 1)
         self.assertEqual(formulario.total_nao_responderam, 0)
         self.assertEqual(formulario.percentual_respostas_int, 100)
+
+
+class InicioPautasPendentesTests(TestCase):
+    def setUp(self):
+        self.grupo = Grupo.objects.create(
+            nome="Recreação",
+            regras=[{"areas": ["RECREACAO"], "cargos": []}],
+        )
+        self.usuario = Voluntario.objects.create_user(
+            username="recreador",
+            password="teste",
+            area="RECREACAO",
+        )
+        self.autor = Voluntario.objects.create_user(
+            username="projetos",
+            password="teste",
+            area="PROJETOS",
+        )
+        self.pauta = Pauta.objects.create(
+            titulo="Confirmar escala",
+            descricao="Leia o plano antes do sábado.",
+            criado_por=self.autor,
+            emitido_por_area=self.autor.area,
+            prazo_ddl=timezone.now() + datetime.timedelta(days=2),
+            grupo=self.grupo,
+        )
+
+    def test_inicio_exibe_modal_com_total_e_atalho(self):
+        self.client.force_login(self.usuario)
+        resposta = self.client.get(reverse("inicio"))
+
+        self.assertEqual(resposta.context["total_pautas_pendentes_ciencia"], 1)
+        self.assertContains(resposta, 'id="pautasPendentesModal"')
+        self.assertContains(resposta, reverse("gerenciamento:pautas"))
+        self.assertContains(resposta, "Confirmar escala")
+
+    def test_modal_some_depois_da_ciencia(self):
+        CienciaPauta.objects.create(pauta=self.pauta, voluntario=self.usuario)
+        self.client.force_login(self.usuario)
+        resposta = self.client.get(reverse("inicio"))
+
+        self.assertEqual(resposta.context["total_pautas_pendentes_ciencia"], 0)
+        self.assertNotContains(resposta, 'id="pautasPendentesModal"')
+
+    def test_modal_resume_pautas_alem_das_cinco_exibidas(self):
+        for indice in range(5):
+            Pauta.objects.create(
+                titulo=f"Pauta adicional {indice}",
+                descricao="Detalhes.",
+                criado_por=self.autor,
+                emitido_por_area=self.autor.area,
+                prazo_ddl=timezone.now() + datetime.timedelta(days=indice + 3),
+                grupo=self.grupo,
+            )
+        self.client.force_login(self.usuario)
+
+        resposta = self.client.get(reverse("inicio"))
+
+        self.assertEqual(resposta.context["total_pautas_pendentes_ciencia"], 6)
+        self.assertEqual(resposta.context["total_pautas_pendentes_extras"], 1)
+        self.assertContains(resposta, "E mais 1 pauta no quadro.")
+
+    def test_inicio_exige_login(self):
+        resposta = self.client.get(reverse("inicio"))
+        self.assertRedirects(resposta, f"/login/?next={reverse('inicio')}")
 
 
 class VersaoEstaticaTests(TestCase):

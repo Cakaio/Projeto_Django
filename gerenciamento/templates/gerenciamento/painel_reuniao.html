@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block titulo %}{{ reuniao.titulo }} · Painel{% endblock %}
+
+{% block head %}
+<style>
+  .prn-page {
+    --panel: #171a18;
+    --panel-soft: #202521;
+    --line: rgba(255,255,255,.1);
+    --cream: #f6f0e7;
+    --muted: #aeb7ae;
+    min-height: calc(100vh - 4rem);
+    color: var(--cream);
+    background:
+      radial-gradient(circle at 88% 4%, rgba(232, 142, 44, .15), transparent 30rem),
+      radial-gradient(circle at 3% 75%, rgba(38, 142, 98, .1), transparent 34rem),
+      #111412;
+  }
+  .prn-shell { width: min(100%, 1540px); margin-inline: auto; padding: clamp(1.2rem, 3vw, 2.5rem); }
+  .prn-topline { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: clamp(1.5rem, 4vw, 3rem); }
+  .prn-back { color: var(--muted); font-size: .75rem; font-weight: 750; letter-spacing: .05em; text-decoration: none; text-transform: uppercase; }
+  .prn-back:hover { color: #fff; }
+  .prn-live { display: inline-flex; align-items: center; gap: .45rem; color: #cbd4cb; font-size: .68rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  .prn-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #36c98a; box-shadow: 0 0 0 5px rgba(54,201,138,.13); animation: prnPulse 2s infinite; }
+  .prn-tools { display: flex; align-items: center; gap: .5rem; }
+  .prn-icon-btn { display: grid; width: 2.35rem; height: 2.35rem; place-items: center; border: 1px solid var(--line); border-radius: 10px; color: #fff; background: rgba(255,255,255,.04); }
+  .prn-icon-btn:hover { background: rgba(255,255,255,.09); }
+
+  .prn-hero { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(260px, .65fr); gap: clamp(1.5rem, 5vw, 5rem); align-items: end; padding-bottom: clamp(1.4rem, 3vw, 2.4rem); border-bottom: 1px solid var(--line); }
+  .prn-kicker { margin: 0 0 .7rem; color: #efa25f; font-size: .7rem; font-weight: 850; letter-spacing: .16em; text-transform: uppercase; }
+  .prn-title { max-width: 16ch; margin: 0; font-size: clamp(2.25rem, 6vw, 5.4rem); font-weight: 900; letter-spacing: -.065em; line-height: .92; }
+  .prn-meta { display: flex; gap: .65rem 1.2rem; flex-wrap: wrap; margin-top: 1rem; color: var(--muted); font-size: .78rem; }
+  .prn-time { text-align: right; }
+  .prn-clock { display: block; font-variant-numeric: tabular-nums; font-size: clamp(2.3rem, 6vw, 5rem); font-weight: 250; letter-spacing: -.055em; line-height: .9; }
+  .prn-date { display: block; margin-top: .65rem; color: var(--muted); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; }
+
+  .prn-progress { display: grid; grid-template-columns: auto 1fr auto; gap: .9rem; align-items: center; margin: 1.25rem 0 1.5rem; }
+  .prn-progress-copy strong { display: block; font-size: .8rem; }
+  .prn-progress-copy span { display: block; margin-top: .1rem; color: var(--muted); font-size: .67rem; }
+  .prn-progress-track { overflow: hidden; height: 9px; border-radius: 999px; background: rgba(255,255,255,.08); }
+  .prn-progress-bar { width: var(--progress); height: 100%; border-radius: inherit; background: linear-gradient(90deg, #e89139, #38bd82); transition: width .45s ease; }
+  .prn-progress-value { min-width: 3.4rem; color: #fff; font-size: 1.05rem; font-weight: 850; text-align: right; }
+
+  .prn-rundown { display: grid; gap: .7rem; counter-reset: agenda; }
+  .prn-item { --status-color: #d97706; overflow: hidden; border: 1px solid var(--line); border-radius: 17px; background: rgba(30,35,31,.88); box-shadow: 0 12px 35px rgba(0,0,0,.14); counter-increment: agenda; transition: border-color .2s, background .2s, opacity .2s; }
+  .prn-item[data-status="CONCLUIDA"] { opacity: .68; }
+  .prn-item.is-open { border-color: color-mix(in srgb, var(--status-color) 55%, white 10%); background: #252a26; }
+  .prn-item-main { display: grid; grid-template-columns: 3rem minmax(0,1fr) auto; gap: .8rem; align-items: center; width: 100%; padding: 1rem; border: 0; color: inherit; background: transparent; text-align: left; }
+  .prn-number { color: #69716a; font-variant-numeric: tabular-nums; font-size: 1rem; font-weight: 800; }
+  .prn-number::before { content: counter(agenda, decimal-leading-zero); }
+  .prn-item-copy { min-width: 0; }
+  .prn-item-line { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
+  .prn-item-title { overflow: hidden; margin: 0; font-size: clamp(1rem, 2.4vw, 1.35rem); font-weight: 820; letter-spacing: -.025em; text-overflow: ellipsis; white-space: nowrap; }
+  .prn-status { display: inline-flex; align-items: center; gap: .38rem; padding: .24rem .48rem; border: 1px solid color-mix(in srgb, var(--status-color) 55%, transparent); border-radius: 999px; color: color-mix(in srgb, var(--status-color) 72%, white 28%); font-size: .58rem; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+  .prn-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--status-color); }
+  .prn-item-meta { margin-top: .28rem; color: var(--muted); font-size: .67rem; }
+  .prn-chevron { transition: transform .2s; }
+  .prn-item.is-open .prn-chevron { transform: rotate(180deg); }
+  .prn-details { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(250px,.8fr); gap: 1.2rem; padding: 0 1rem 1rem 4.8rem; }
+  .prn-description { margin: 0; color: #d7ddd7; font-size: clamp(.82rem, 1.5vw, .96rem); line-height: 1.65; white-space: pre-wrap; }
+  .prn-labels { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .8rem; }
+  .prn-label { padding: .22rem .48rem; border-radius: 5px; color: #ffbc83; background: rgba(232,86,15,.13); font-size: .62rem; font-weight: 800; }
+  .prn-facts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .5rem; margin-top: 1rem; }
+  .prn-fact { padding: .6rem; border: 1px solid var(--line); border-radius: 10px; }
+  .prn-fact dt { margin-bottom: .18rem; color: #89928a; font-size: .55rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+  .prn-fact dd { margin: 0; color: #f3eee8; font-size: .7rem; line-height: 1.4; }
+  .prn-side { padding-left: 1.2rem; border-left: 1px solid var(--line); }
+  .prn-side-title { margin: 0 0 .6rem; color: #89928a; font-size: .6rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+  .prn-notes { max-height: 9rem; overflow-y: auto; padding-right: .25rem; }
+  .prn-note { padding: .5rem 0; border-bottom: 1px solid rgba(255,255,255,.07); color: #cbd2cb; font-size: .68rem; line-height: 1.45; }
+  .prn-note strong { color: #fff; }
+  .prn-no-notes { color: #747d75; font-size: .68rem; }
+  .prn-action { margin-top: .85rem; }
+  .prn-advance { width: 100%; justify-content: center; color: #1e201e; border: 0; background: #f0a25e; }
+  .prn-advance:hover { color: #111; background: #ffb779; }
+  .prn-advance:disabled { color: #93a098; background: rgba(255,255,255,.08); }
+  .prn-empty { padding: 4rem 1rem; border: 1px dashed var(--line); border-radius: 18px; color: var(--muted); text-align: center; }
+  .prn-toast { position: fixed; z-index: 1100; right: 1.25rem; bottom: 1.25rem; max-width: min(24rem, calc(100vw - 2.5rem)); padding: .75rem .9rem; border: 1px solid rgba(255,255,255,.12); border-radius: 11px; color: #fff; background: #252b26; box-shadow: 0 15px 40px rgba(0,0,0,.35); font-size: .75rem; }
+
+  @keyframes prnPulse { 50% { opacity: .45; transform: scale(.82); } }
+  @media (max-width: 800px) {
+    .prn-hero, .prn-details { grid-template-columns: 1fr; }
+    .prn-time { text-align: left; }
+    .prn-details { padding-left: 1rem; }
+    .prn-side { padding: 1rem 0 0; border-top: 1px solid var(--line); border-left: 0; }
+  }
+  @media (max-width: 560px) {
+    .prn-item-main { grid-template-columns: 2rem minmax(0,1fr) auto; padding-inline: .75rem; }
+    .prn-details { padding-inline: .75rem; }
+    .prn-progress { grid-template-columns: 1fr auto; }
+    .prn-progress-copy { grid-column: 1 / -1; }
+  }
+  @media (prefers-reduced-motion: reduce) { .prn-live::before { animation: none; } .prn-progress-bar, .prn-chevron { transition: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="prn-page" data-meeting-panel data-state-url="{% url 'gerenciamento:estado_reuniao' reuniao.pk %}">
+  <div class="prn-shell">
+    <div class="prn-topline">
+      <a class="prn-back" href="{% url 'gerenciamento:pautas' %}">← Quadro de pautas</a>
+      <div class="prn-tools"><span class="prn-live">Sincronização ativa</span><button class="prn-icon-btn" type="button" data-fullscreen title="Tela cheia" aria-label="Alternar tela cheia"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3m13 5h3a2 2 0 0 0 2-2v-3"/></svg></button></div>
+    </div>
+
+    <header class="prn-hero">
+      <div>
+        <p class="prn-kicker">{{ reuniao.grupo.nome }} · reunião em pauta</p>
+        <h1 class="prn-title">{{ reuniao.titulo }}</h1>
+        <div class="prn-meta"><span>{{ reuniao.data_reuniao|date:"d/m/Y · H:i" }}</span><span>{{ total_pautas }} pauta{{ total_pautas|pluralize }}</span>{% if reuniao.descricao %}<span>{{ reuniao.descricao }}</span>{% endif %}</div>
+      </div>
+      <div class="prn-time" aria-label="Horário atual"><time class="prn-clock" data-clock>--:--</time><span class="prn-date" data-today>Atualizando horário…</span></div>
+    </header>
+
+    <section class="prn-progress" aria-label="Progresso da reunião">
+      <span class="prn-progress-copy"><strong>Progresso da pauta</strong><span data-progress-caption>{{ pautas_concluidas }} de {{ total_pautas }} concluídas</span></span>
+      <span class="prn-progress-track"><span class="prn-progress-bar" data-progress-bar style="--progress:{{ percentual_concluido }}%"></span></span>
+      <span class="prn-progress-value" data-progress-value>{{ percentual_concluido }}%</span>
+    </section>
+
+    <section class="prn-rundown" aria-label="Roteiro da reunião">
+      {% for pauta in pautas %}
+        <article class="prn-item" data-meeting-item data-pauta-id="{{ pauta.pk }}" data-status="{{ pauta.status }}" style="--status-color:{{ pauta.status_cor }}">
+          <button class="prn-item-main" type="button" aria-expanded="false" aria-controls="detalhesPauta{{ pauta.pk }}" data-toggle-details>
+            <span class="prn-number" aria-hidden="true"></span>
+            <span class="prn-item-copy">
+              <span class="prn-item-line"><span class="prn-item-title" role="heading" aria-level="2">{{ pauta.titulo }}</span><span class="prn-status" data-status-label>{{ pauta.get_status_display }}</span></span>
+              <span class="prn-item-meta">Prioridade {{ pauta.get_prioridade_display|lower }} · prazo {{ pauta.prazo_ddl|date:"d/m H:i" }} · {{ pauta.comentarios.count }} anotação{{ pauta.comentarios.count|pluralize }}</span>
+            </span>
+            <svg class="prn-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="prn-details" id="detalhesPauta{{ pauta.pk }}" data-details hidden>
+            <div>
+              <p class="prn-description">{{ pauta.descricao }}</p>
+              {% if pauta.etiquetas %}<div class="prn-labels">{% for etiqueta in pauta.etiquetas %}<span class="prn-label">{{ etiqueta }}</span>{% endfor %}</div>{% endif %}
+              <dl class="prn-facts">
+                <div class="prn-fact"><dt>Responsáveis</dt><dd>{% for responsavel in pauta.responsaveis.all %}{{ responsavel.get_full_name|default:responsavel.username }}{% if not forloop.last %}, {% endif %}{% empty %}Não definidos{% endfor %}</dd></div>
+                <div class="prn-fact"><dt>Emitida por</dt><dd>{{ pauta.get_emitido_por_area_display }}</dd></div>
+              </dl>
+            </div>
+            <aside class="prn-side">
+              <h3 class="prn-side-title">Anotações recentes</h3>
+              <div class="prn-notes">
+                {% for comentario in pauta.comentarios.all %}<div class="prn-note"><strong>{{ comentario.autor.get_full_name|default:comentario.autor.username }}</strong> · {{ comentario.texto }}</div>{% empty %}<p class="prn-no-notes">Nenhuma anotação registrada.</p>{% endfor %}
+              </div>
+              {% if pauta.pode_mover %}
+                <form class="prn-action" method="post" action="{% url 'gerenciamento:atualizar_status' pauta.pk %}" data-advance-form>
+                  {% csrf_token %}<input type="hidden" name="status" value="{{ pauta.proximo_status|default:'' }}" data-next-status><input type="hidden" name="retorno" value="painel_reuniao">
+                  <button class="pcf-btn prn-advance" type="submit" data-advance-button {% if not pauta.proximo_status %}disabled{% endif %}>{% if pauta.proximo_status %}Avançar para {{ pauta.proximo_status_label }}{% else %}Pauta concluída{% endif %}</button>
+                </form>
+              {% endif %}
+            </aside>
+          </div>
+        </article>
+      {% empty %}
+        <div class="prn-empty">Esta reunião ainda não possui pautas.</div>
+      {% endfor %}
+    </section>
+    <p class="sr-only" aria-live="polite" data-panel-live></p>
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+  var panel = document.querySelector('[data-meeting-panel]');
+  if (!panel) return;
+  var live = panel.querySelector('[data-panel-live]');
+
+  function updateClock() {
+    var now = new Date();
+    panel.querySelector('[data-clock]').textContent = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(now);
+    panel.querySelector('[data-today]').textContent = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }).format(now);
+  }
+  updateClock();
+  window.setInterval(updateClock, 30000);
+
+  panel.querySelectorAll('[data-toggle-details]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var item = button.closest('[data-meeting-item]');
+      var details = item.querySelector('[data-details]');
+      var willOpen = details.hidden;
+      details.hidden = !willOpen;
+      item.classList.toggle('is-open', willOpen);
+      button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+  });
+
+  function updateItem(data) {
+    var item = panel.querySelector('[data-meeting-item][data-pauta-id="' + data.id + '"]');
+    if (!item) return;
+    item.dataset.status = data.status;
+    item.style.setProperty('--status-color', data.status_cor);
+    var label = item.querySelector('[data-status-label]');
+    if (label) label.textContent = data.status_label;
+    var input = item.querySelector('[data-next-status]');
+    var button = item.querySelector('[data-advance-button]');
+    if (input) input.value = data.proximo_status || '';
+    if (button) {
+      button.disabled = !data.proximo_status;
+      button.textContent = data.proximo_status ? 'Avançar para ' + data.proximo_status_label : 'Pauta concluída';
+    }
+  }
+
+  function updateProgress(data) {
+    panel.querySelector('[data-progress-bar]').style.setProperty('--progress', data.percentual + '%');
+    panel.querySelector('[data-progress-value]').textContent = data.percentual + '%';
+    panel.querySelector('[data-progress-caption]').textContent = data.concluidas + ' de ' + data.total + ' concluída' + (data.concluidas === 1 ? '' : 's');
+  }
+
+  function loadState(announce) {
+    if (document.hidden) return Promise.resolve();
+    return window.fetch(panel.dataset.stateUrl, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function (response) { if (!response.ok) throw new Error('Não foi possível sincronizar o painel.'); return response.json(); })
+      .then(function (data) {
+        data.pautas.forEach(updateItem);
+        updateProgress(data);
+        if (announce) live.textContent = announce;
+      })
+      .catch(function (error) { live.textContent = error.message; });
+  }
+
+  panel.querySelectorAll('[data-advance-form]').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var button = form.querySelector('[data-advance-button]');
+      if (button.disabled) return;
+      button.disabled = true;
+      window.fetch(form.action, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value, 'X-Requested-With': 'XMLHttpRequest' },
+        body: new FormData(form)
+      }).then(function (response) {
+        return response.json().then(function (data) { if (!response.ok) throw new Error(data.erro || 'Não foi possível avançar a pauta.'); return data; });
+      }).then(function (data) {
+        updateItem(Object.assign({ id: form.closest('[data-meeting-item]').dataset.pautaId }, data));
+        return loadState('Pauta avançada para ' + data.status_label + '.');
+      }).catch(function (error) {
+        button.disabled = false;
+        live.textContent = error.message;
+      });
+    });
+  });
+
+  panel.querySelector('[data-fullscreen]').addEventListener('click', function () {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (panel.requestFullscreen) panel.requestFullscreen();
+  });
+
+  window.setInterval(function () { loadState(''); }, 5000);
+});
+</script>
+{% endblock %}

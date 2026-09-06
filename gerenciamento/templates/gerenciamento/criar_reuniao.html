@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% block titulo %}Montar reunião{% endblock %}
+
+{% block head %}
+<style>
+  .mtr-page {
+    min-height: 78vh;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 8% 0, rgba(232, 86, 15, .1), transparent 27rem),
+      linear-gradient(180deg, #fffaf5 0, hsl(var(--background)) 22rem);
+  }
+  .mtr-shell { width: min(100%, 1380px); margin-inline: auto; padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 3vw, 2.25rem) 4rem; }
+  .mtr-back { display: inline-flex; align-items: center; gap: .35rem; margin-bottom: 1.2rem; color: var(--ink-muted); font-size: .8rem; font-weight: 700; text-decoration: none; }
+  .mtr-back:hover { color: #c9490a; }
+  .mtr-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.2rem; flex-wrap: wrap; margin-bottom: 1.45rem; }
+  .mtr-title { max-width: 13ch; margin: .5rem 0 .4rem; font-size: clamp(2rem, 5vw, 3.7rem); font-weight: 900; letter-spacing: -.06em; line-height: .95; }
+  .mtr-sub { max-width: 64ch; margin: 0; color: var(--ink-muted); font-size: .92rem; line-height: 1.55; }
+  .mtr-step { display: grid; grid-template-columns: auto 1fr; gap: .65rem; align-items: center; min-width: 12rem; }
+  .mtr-step-num { display: grid; width: 2.35rem; height: 2.35rem; place-items: center; border-radius: 50%; color: #fff; background: #2f2925; font-size: .72rem; font-weight: 850; }
+  .mtr-step strong, .mtr-step span { display: block; }
+  .mtr-step strong { font-size: .78rem; }
+  .mtr-step span { margin-top: .08rem; color: var(--ink-muted); font-size: .67rem; }
+
+  .mtr-form { display: grid; gap: 1rem; }
+  .mtr-meta { display: grid; grid-template-columns: 1.35fr .8fr .85fr; gap: .9rem; padding: 1rem; border: 1px solid #eeddd0; border-radius: 20px; background: rgba(255,255,255,.9); box-shadow: 0 15px 40px rgba(70, 44, 27, .06); }
+  .mtr-field { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+  .mtr-field-wide { grid-column: 1 / -1; }
+  .mtr-field label { color: var(--ink-soft); font-size: .72rem; font-weight: 800; letter-spacing: .055em; text-transform: uppercase; }
+  .field-control { width: 100%; padding: .68rem .78rem; border: 1px solid #ead8cb; border-radius: 11px; color: var(--ink); background: #fff; font: inherit; font-size: .86rem; }
+  textarea.field-control { min-height: 5rem; resize: vertical; }
+  .field-control:focus { outline: none; border-color: #ef9a66; box-shadow: 0 0 0 3px rgba(232, 86, 15, .12); }
+  .errorlist, .mtr-errors { margin: .1rem 0 0; padding: 0; color: #b42323; font-size: .73rem; list-style: none; }
+
+  .mtr-workspace { display: grid; grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr); gap: 1rem; align-items: stretch; }
+  .mtr-zone { min-height: 31rem; overflow: hidden; border: 1px solid #ead8cb; border-radius: 22px; background: rgba(249, 245, 241, .92); transition: border-color .16s, box-shadow .16s, transform .16s; }
+  .mtr-zone.is-over { border-color: #e8560f; box-shadow: 0 0 0 4px rgba(232, 86, 15, .12); transform: translateY(-2px); }
+  .mtr-zone-selected { color: #f9f4ef; border-color: #302925; background: #302925; box-shadow: 0 20px 50px rgba(43, 35, 30, .18); }
+  .mtr-zone-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem 1.05rem .8rem; border-bottom: 1px solid rgba(95, 70, 53, .12); }
+  .mtr-zone-selected .mtr-zone-head { border-color: rgba(255,255,255,.1); }
+  .mtr-zone-title { margin: 0; font-size: .86rem; font-weight: 850; letter-spacing: -.01em; }
+  .mtr-count { display: grid; min-width: 1.8rem; height: 1.8rem; place-items: center; padding-inline: .35rem; border-radius: 999px; color: #7a5a46; background: #fff; font-size: .68rem; font-weight: 850; }
+  .mtr-zone-selected .mtr-count { color: #2f2925; background: #f7b589; }
+  .mtr-search { margin: .75rem 1rem 0; }
+  .mtr-search input { width: 100%; padding: .6rem .72rem; border: 1px solid #e6d7cc; border-radius: 10px; background: rgba(255,255,255,.8); font: inherit; font-size: .78rem; }
+  .mtr-search input:focus { outline: none; border-color: #ef9a66; }
+  .mtr-cards { display: flex; min-height: 23rem; max-height: 34rem; flex-direction: column; gap: .6rem; overflow-y: auto; padding: .8rem 1rem 1rem; scrollbar-gutter: stable; }
+  .mtr-card { --status-color: #d97706; position: relative; display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: .7rem; align-items: center; padding: .8rem; border: 1px solid #eaded5; border-left: 4px solid var(--status-color); border-radius: 13px; color: var(--ink); background: #fff; box-shadow: 0 5px 16px rgba(55, 37, 27, .06); cursor: grab; transition: transform .16s, opacity .16s, border-color .16s; }
+  .mtr-card:hover { transform: translateY(-1px); border-color: #eab995; }
+  .mtr-card.is-dragging { opacity: .4; transform: rotate(.7deg); }
+  .mtr-zone-selected .mtr-card { color: #fff; border-color: rgba(255,255,255,.1); border-left-color: var(--status-color); background: #403833; box-shadow: none; }
+  .mtr-order { display: none; width: 1.7rem; height: 1.7rem; place-items: center; border-radius: 8px; color: #2f2925; background: #f7b589; font-size: .66rem; font-weight: 900; }
+  .mtr-zone-selected .mtr-order { display: grid; }
+  .mtr-card-copy { min-width: 0; }
+  .mtr-card-title { display: block; overflow: hidden; font-size: .82rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+  .mtr-card-meta { display: block; margin-top: .15rem; color: var(--ink-muted); font-size: .65rem; }
+  .mtr-zone-selected .mtr-card-meta { color: rgba(255,255,255,.62); }
+  .mtr-card-action { padding: .42rem .55rem; border: 0; border-radius: 8px; color: #a63b08; background: #fff0e6; font: inherit; font-size: .65rem; font-weight: 800; }
+  .mtr-zone-selected .mtr-card-action { color: #fff; background: rgba(255,255,255,.1); }
+  .mtr-empty { display: grid; min-height: 8rem; place-items: center; padding: 1rem; border: 1px dashed rgba(122, 90, 70, .22); border-radius: 13px; color: var(--ink-muted); font-size: .74rem; line-height: 1.45; text-align: center; }
+  .mtr-zone-selected .mtr-empty { color: rgba(255,255,255,.55); border-color: rgba(255,255,255,.18); }
+  .mtr-actions { position: sticky; bottom: .75rem; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .8rem 1rem; border: 1px solid #ead8cb; border-radius: 15px; background: rgba(255,253,251,.94); box-shadow: 0 12px 32px rgba(61, 38, 24, .12); backdrop-filter: blur(12px); }
+  .mtr-actions-copy strong, .mtr-actions-copy span { display: block; }
+  .mtr-actions-copy strong { font-size: .78rem; }
+  .mtr-actions-copy span { color: var(--ink-muted); font-size: .68rem; }
+  .mtr-actions-buttons { display: flex; gap: .5rem; }
+
+  .mtr-recent { margin-top: 2rem; }
+  .mtr-recent-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; margin-bottom: .75rem; }
+  .mtr-recent-head h2 { margin: 0; font-size: 1rem; font-weight: 850; }
+  .mtr-recent-head span { color: var(--ink-muted); font-size: .7rem; }
+  .mtr-recent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .7rem; }
+  .mtr-recent-card { padding: .85rem; border: 1px solid #ead8cb; border-radius: 13px; color: inherit; background: #fff; text-decoration: none; }
+  .mtr-recent-card:hover { color: inherit; border-color: #ef9a66; }
+  .mtr-recent-card strong, .mtr-recent-card span { display: block; }
+  .mtr-recent-card strong { font-size: .78rem; }
+  .mtr-recent-card span { margin-top: .25rem; color: var(--ink-muted); font-size: .66rem; }
+
+  @media (max-width: 850px) {
+    .mtr-meta, .mtr-workspace { grid-template-columns: 1fr; }
+    .mtr-field-wide { grid-column: auto; }
+    .mtr-zone { min-height: 24rem; }
+    .mtr-cards { min-height: 15rem; max-height: 26rem; }
+  }
+  @media (max-width: 560px) {
+    .mtr-actions { align-items: stretch; flex-direction: column; }
+    .mtr-actions-buttons, .mtr-actions-buttons .pcf-btn { width: 100%; }
+    .mtr-actions-buttons .pcf-btn { justify-content: center; }
+  }
+  @media (prefers-reduced-motion: reduce) { .mtr-card, .mtr-zone { transition: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="mtr-page">
+  <div class="mtr-shell">
+    <a class="mtr-back" href="{% url 'gerenciamento:pautas' %}">← Voltar ao quadro</a>
+
+    <header class="mtr-head">
+      <div>
+        <span class="pcf-eyebrow">Editor de roteiro</span>
+        <h1 class="mtr-title">Monte a próxima reunião.</h1>
+        <p class="mtr-sub">Defina o encontro e arraste as pautas para a ordem em que serão apresentadas. Somente pautas do mesmo grupo podem compartilhar uma reunião.</p>
+      </div>
+      <div class="mtr-step" aria-label="Etapa atual">
+        <span class="mtr-step-num">01</span>
+        <span><strong>Composição da agenda</strong><span>Depois, abra o painel de apresentação</span></span>
+      </div>
+    </header>
+
+    <form method="post" class="mtr-form" data-reuniao-form>
+      {% csrf_token %}
+      {{ form.pautas_ids }}
+
+      {% if form.non_field_errors %}<div class="mtr-errors">{{ form.non_field_errors }}</div>{% endif %}
+      <section class="mtr-meta" aria-label="Dados da reunião">
+        <div class="mtr-field">
+          <label for="{{ form.titulo.id_for_label }}">{{ form.titulo.label }}</label>
+          {{ form.titulo }}{{ form.titulo.errors }}
+        </div>
+        <div class="mtr-field">
+          <label for="{{ form.data_reuniao.id_for_label }}">{{ form.data_reuniao.label }}</label>
+          {{ form.data_reuniao }}{{ form.data_reuniao.errors }}
+        </div>
+        <div class="mtr-field">
+          <label for="{{ form.grupo.id_for_label }}">{{ form.grupo.label }}</label>
+          {{ form.grupo }}{{ form.grupo.errors }}
+        </div>
+        <div class="mtr-field mtr-field-wide">
+          <label for="{{ form.descricao.id_for_label }}">{{ form.descricao.label }}</label>
+          {{ form.descricao }}{{ form.descricao.errors }}
+        </div>
+      </section>
+
+      {% if form.pautas_ids.errors %}<div class="mtr-errors">{{ form.pautas_ids.errors }}</div>{% endif %}
+      <div class="mtr-workspace">
+        <section class="mtr-zone" data-drop-zone="available" aria-labelledby="pautasDisponiveisTitulo">
+          <header class="mtr-zone-head">
+            <h2 class="mtr-zone-title" id="pautasDisponiveisTitulo">Pautas disponíveis</h2>
+            <span class="mtr-count" data-count="available">{{ pautas_disponiveis|length }}</span>
+          </header>
+          <div class="mtr-search"><label class="sr-only" for="buscarPauta">Buscar pauta</label><input id="buscarPauta" type="search" placeholder="Buscar pelo título…" data-search-pauta></div>
+          <div class="mtr-cards" data-card-list="available">
+            {% for pauta in pautas_disponiveis %}
+              <article class="mtr-card" draggable="true" data-pauta-card data-pauta-id="{{ pauta.pk }}" data-grupo-id="{{ pauta.grupo_id }}" data-title="{{ pauta.titulo|lower }}" style="--status-color:{{ pauta.status_cor }}">
+                <span class="mtr-order" data-order aria-hidden="true"></span>
+                <span class="mtr-card-copy">
+                  <span class="mtr-card-title">{{ pauta.titulo }}</span>
+                  <span class="mtr-card-meta">{{ pauta.grupo.nome }} · {{ pauta.get_status_display }} · prazo {{ pauta.prazo_ddl|date:"d/m H:i" }}</span>
+                </span>
+                <button class="mtr-card-action" type="button" data-toggle-pauta aria-label="Adicionar {{ pauta.titulo }} à reunião">Adicionar</button>
+              </article>
+            {% endfor %}
+            <div class="mtr-empty" data-empty="available" {% if pautas_disponiveis %}hidden{% endif %}>Nenhuma pauta disponível para este grupo ou busca.</div>
+          </div>
+        </section>
+
+        <section class="mtr-zone mtr-zone-selected" data-drop-zone="selected" aria-labelledby="pautasReuniaoTitulo">
+          <header class="mtr-zone-head">
+            <h2 class="mtr-zone-title" id="pautasReuniaoTitulo">Pautas da reunião</h2>
+            <span class="mtr-count" data-count="selected">0</span>
+          </header>
+          <div class="mtr-cards" data-card-list="selected">
+            <div class="mtr-empty" data-empty="selected">Arraste pautas para cá ou use o botão “Adicionar”.<br>A ordem desta lista será a ordem de apresentação.</div>
+          </div>
+        </section>
+      </div>
+
+      <p class="sr-only" aria-live="polite" data-reuniao-live></p>
+      <footer class="mtr-actions">
+        <span class="mtr-actions-copy"><strong data-agenda-summary>Nenhuma pauta selecionada</strong><span>A seleção é salva somente ao criar a reunião.</span></span>
+        <span class="mtr-actions-buttons">
+          <a class="pcf-btn pcf-btn-ghost" href="{% url 'gerenciamento:pautas' %}">Cancelar</a>
+          <button class="pcf-btn pcf-btn-primary" type="submit" data-submit-reuniao disabled>Criar e abrir painel</button>
+        </span>
+      </footer>
+    </form>
+
+    {% if reunioes_recentes %}
+      <section class="mtr-recent" aria-labelledby="reunioesRecentesTitulo">
+        <header class="mtr-recent-head"><h2 id="reunioesRecentesTitulo">Reuniões recentes</h2><span>Acesso rápido aos painéis</span></header>
+        <div class="mtr-recent-grid">
+          {% for reuniao in reunioes_recentes %}
+            <a class="mtr-recent-card" href="{% url 'gerenciamento:painel_reuniao' reuniao.pk %}">
+              <strong>{{ reuniao.titulo }}</strong>
+              <span>{{ reuniao.data_reuniao|date:"d/m/Y · H:i" }} · {{ reuniao.grupo.nome }} · {{ reuniao.pautas.count }} pauta{{ reuniao.pautas.count|pluralize }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+  var form = document.querySelector('[data-reuniao-form]');
+  if (!form) return;
+  var hidden = form.querySelector('[data-pautas-selecionadas]');
+  var group = form.querySelector('[data-grupo-reuniao]');
+  var search = form.querySelector('[data-search-pauta]');
+  var available = form.querySelector('[data-card-list="available"]');
+  var selected = form.querySelector('[data-card-list="selected"]');
+  var submit = form.querySelector('[data-submit-reuniao]');
+  var live = form.querySelector('[data-reuniao-live]');
+  var dragged = null;
+
+  function cardsIn(zone) { return Array.from(zone.querySelectorAll('[data-pauta-card]')); }
+  function announce(message) { live.textContent = message; }
+  function selectedIds() { return cardsIn(selected).map(function (card) { return card.dataset.pautaId; }); }
+
+  function refresh() {
+    var selectedCards = cardsIn(selected);
+    selectedCards.forEach(function (card, index) {
+      var order = card.querySelector('[data-order]');
+      var button = card.querySelector('[data-toggle-pauta]');
+      if (order) order.textContent = index + 1;
+      if (button) {
+        button.textContent = 'Remover';
+        button.setAttribute('aria-label', 'Remover ' + card.dataset.title + ' da reunião');
+      }
+    });
+    cardsIn(available).forEach(function (card) {
+      var button = card.querySelector('[data-toggle-pauta]');
+      if (button) {
+        button.textContent = 'Adicionar';
+        button.setAttribute('aria-label', 'Adicionar ' + card.dataset.title + ' à reunião');
+      }
+    });
+    hidden.value = selectedIds().join(',');
+    form.querySelector('[data-count="selected"]').textContent = selectedCards.length;
+    form.querySelector('[data-count="available"]').textContent = cardsIn(available).filter(function (card) { return !card.hidden; }).length;
+    form.querySelector('[data-empty="selected"]').hidden = selectedCards.length > 0;
+    form.querySelector('[data-empty="available"]').hidden = cardsIn(available).some(function (card) { return !card.hidden; });
+    submit.disabled = selectedCards.length === 0;
+    var summary = form.querySelector('[data-agenda-summary]');
+    summary.textContent = selectedCards.length ? selectedCards.length + ' pauta' + (selectedCards.length === 1 ? '' : 's') + ' no roteiro' : 'Nenhuma pauta selecionada';
+  }
+
+  function filterAvailable() {
+    var groupId = group.value;
+    var query = search.value.trim().toLocaleLowerCase('pt-BR');
+    cardsIn(available).forEach(function (card) {
+      var wrongGroup = groupId && card.dataset.grupoId !== groupId;
+      var wrongSearch = query && !card.dataset.title.includes(query);
+      card.hidden = Boolean(wrongGroup || wrongSearch);
+    });
+    refresh();
+  }
+
+  function moveCard(card, destination, speak, beforeCard) {
+    if (destination === selected && !group.value) {
+      group.value = card.dataset.grupoId;
+    }
+    if (destination === selected && group.value && card.dataset.grupoId !== group.value) {
+      announce('Esta pauta pertence a outro grupo.');
+      return;
+    }
+    if (beforeCard) destination.insertBefore(card, beforeCard);
+    else destination.appendChild(card);
+    card.hidden = false;
+    refresh();
+    filterAvailable();
+    if (speak) announce(card.dataset.title + (destination === selected ? ' adicionada à reunião.' : ' removida da reunião.'));
+  }
+
+  form.querySelectorAll('[data-toggle-pauta]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var card = button.closest('[data-pauta-card]');
+      moveCard(card, card.closest('[data-card-list]') === selected ? available : selected, true);
+    });
+  });
+
+  form.querySelectorAll('[data-pauta-card]').forEach(function (card) {
+    card.addEventListener('dragstart', function (event) {
+      dragged = card;
+      card.classList.add('is-dragging');
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', card.dataset.pautaId);
+    });
+    card.addEventListener('dragend', function () {
+      card.classList.remove('is-dragging');
+      form.querySelectorAll('[data-drop-zone]').forEach(function (zone) { zone.classList.remove('is-over'); });
+      dragged = null;
+    });
+  });
+
+  form.querySelectorAll('[data-drop-zone]').forEach(function (zone) {
+    zone.addEventListener('dragover', function (event) {
+      if (!dragged) return;
+      if (zone.dataset.dropZone === 'selected' && group.value && dragged.dataset.grupoId !== group.value) return;
+      event.preventDefault();
+      zone.classList.add('is-over');
+    });
+    zone.addEventListener('dragleave', function (event) {
+      if (!zone.contains(event.relatedTarget)) zone.classList.remove('is-over');
+    });
+    zone.addEventListener('drop', function (event) {
+      event.preventDefault();
+      zone.classList.remove('is-over');
+      if (!dragged) return;
+      var destination = zone.dataset.dropZone === 'selected' ? selected : available;
+      var beforeCard = null;
+      if (destination === selected) {
+        beforeCard = cardsIn(selected).filter(function (card) { return card !== dragged; }).find(function (card) {
+          var rect = card.getBoundingClientRect();
+          return event.clientY < rect.top + rect.height / 2;
+        }) || null;
+      }
+      moveCard(dragged, destination, true, beforeCard);
+    });
+  });
+
+  group.addEventListener('change', function () {
+    cardsIn(selected).forEach(function (card) {
+      if (group.value && card.dataset.grupoId !== group.value) available.appendChild(card);
+    });
+    filterAvailable();
+    announce('Lista atualizada para o grupo selecionado.');
+  });
+  search.addEventListener('input', filterAvailable);
+
+  var initialIds = (hidden.value || '').split(',').filter(Boolean);
+  initialIds.forEach(function (id) {
+    var card = form.querySelector('[data-pauta-card][data-pauta-id="' + id + '"]');
+    if (card) selected.appendChild(card);
+  });
+  filterAvailable();
+});
+</script>
+{% endblock %}

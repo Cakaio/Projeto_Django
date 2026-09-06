@@ -1,7 +1,94 @@
 from django import forms
 from django.forms import modelformset_factory
-from .models import Item, Pedido
+
 from semanario.models import Material
+
+from .models import Item, Local, Pedido
+
+
+class ItemForm(forms.ModelForm):
+    class Meta:
+        model = Item
+        fields = [
+            "nome",
+            "descricao",
+            "categoria",
+            "unidade",
+            "quantidade_minima",
+            "ativo",
+        ]
+        widgets = {
+            "nome": forms.TextInput(attrs={
+                "class": "pcf-input",
+                "placeholder": "Ex.: Cartolina colorida",
+                "autofocus": True,
+            }),
+            "descricao": forms.Textarea(attrs={
+                "class": "pcf-input",
+                "rows": 4,
+                "placeholder": "Detalhes que ajudem a identificar o item",
+            }),
+            "categoria": forms.Select(attrs={"class": "pcf-input"}),
+            "unidade": forms.Select(attrs={"class": "pcf-input"}),
+            "quantidade_minima": forms.NumberInput(attrs={
+                "class": "pcf-input",
+                "step": "0.01",
+                "min": "0",
+            }),
+            "ativo": forms.CheckboxInput(attrs={"class": "supply-form-checkbox"}),
+        }
+
+
+class LocalForm(forms.ModelForm):
+    class Meta:
+        model = Local
+        fields = [
+            "nome",
+            "tipo",
+            "localizacao",
+            "cidade",
+            "numero_contato",
+            "whatsapp",
+            "email",
+            "site",
+            "observacoes",
+            "ativo",
+        ]
+        widgets = {
+            "nome": forms.TextInput(attrs={
+                "class": "pcf-input",
+                "placeholder": "Ex.: Papelaria Central",
+                "autofocus": True,
+            }),
+            "tipo": forms.Select(attrs={"class": "pcf-input"}),
+            "localizacao": forms.TextInput(attrs={
+                "class": "pcf-input",
+                "placeholder": "Rua, número, bairro ou referência",
+            }),
+            "cidade": forms.TextInput(attrs={
+                "class": "pcf-input",
+                "placeholder": "Ex.: São Paulo",
+            }),
+            "numero_contato": forms.TextInput(attrs={
+                "class": "pcf-input",
+                "placeholder": "(00) 00000-0000",
+            }),
+            "whatsapp": forms.CheckboxInput(attrs={"class": "supply-form-checkbox"}),
+            "email": forms.EmailInput(attrs={
+                "class": "pcf-input",
+                "placeholder": "contato@exemplo.com",
+            }),
+            "site": forms.URLInput(attrs={
+                "class": "pcf-input",
+                "placeholder": "https://exemplo.com",
+            }),
+            "observacoes": forms.Textarea(attrs={
+                "class": "pcf-input",
+                "rows": 4,
+                "placeholder": "Horários, condições de compra ou outras informações",
+            }),
+            "ativo": forms.CheckboxInput(attrs={"class": "supply-form-checkbox"}),
+        }
 
 
 class PedidoForm(forms.ModelForm):

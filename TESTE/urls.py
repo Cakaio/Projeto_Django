@@ -46,7 +46,10 @@ urlpatterns = [
     path('adm/', include('adm.urls', namespace='adm')),
     path('forms/', include('forms_pcf.urls', namespace='forms_pcf')),
     path('ronda/', include('ronda.urls', namespace='ronda')),
-    path('gerenciamento/', include('gerenciamento.urls', namespace='gerenciamento')),
+    # /pautas/ é a rota canônica. O namespace legado mantém favoritos e links
+    # antigos em /gerenciamento/ funcionando durante a transição.
+    path('pautas/', include('gerenciamento.urls', namespace='gerenciamento')),
+    path('gerenciamento/', include('gerenciamento.urls', namespace='gerenciamento_legacy')),
     path('parceiros/', include('parceiros.urls', namespace='parceiros')),
     path('editais/', include('editais.urls', namespace='editais')),
     path('projetos/', include('projetos.urls', namespace='projetos')),

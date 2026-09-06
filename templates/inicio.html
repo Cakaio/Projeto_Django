@@ -2,6 +2,48 @@
 {% load static %}
 {% block titulo %}Início{% endblock %}
 
+{% block head %}
+<style>
+  .ini-pautas-modal .modal-content {
+    overflow: hidden;
+    border: 0;
+    border-radius: 24px;
+    box-shadow: 0 28px 80px rgba(53, 31, 18, .25);
+  }
+  .ini-pautas-modal .modal-header {
+    position: relative;
+    align-items: flex-start;
+    padding: 1.5rem 1.5rem 1.1rem;
+    color: #fff;
+    border: 0;
+    background: linear-gradient(125deg, #bd3f0b, #f26b21 58%, #ff9b54);
+  }
+  .ini-pautas-modal .modal-header::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: .3;
+    background-image: radial-gradient(circle at 1px 1px, #fff 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+  .ini-pautas-modal .modal-header > * { position: relative; z-index: 1; }
+  .ini-pautas-kicker { margin: 0 0 .35rem; font-size: .68rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; opacity: .82; }
+  .ini-pautas-title { margin: 0; font-size: clamp(1.35rem, 4vw, 1.8rem); font-weight: 850; letter-spacing: -.035em; }
+  .ini-pautas-modal .btn-close { filter: invert(1); opacity: .82; }
+  .ini-pautas-modal .modal-body { padding: 1.4rem 1.5rem .5rem; }
+  .ini-pautas-copy { margin: 0 0 1rem; color: var(--ink-soft); line-height: 1.6; }
+  .ini-pautas-list { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+  .ini-pautas-item { display: flex; align-items: center; gap: .7rem; padding: .7rem .8rem; border: 1px solid #f1dfd2; border-radius: 13px; background: #fffaf6; }
+  .ini-pautas-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: #e8560f; box-shadow: 0 0 0 5px rgba(232, 86, 15, .1); }
+  .ini-pautas-item-text { min-width: 0; }
+  .ini-pautas-item-title { display: block; overflow: hidden; color: var(--ink); font-size: .86rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+  .ini-pautas-item-meta { display: block; margin-top: .12rem; color: var(--ink-muted); font-size: .72rem; }
+  .ini-pautas-more { margin: .8rem 0 0; color: var(--ink-muted); font-size: .76rem; text-align: center; }
+  .ini-pautas-modal .modal-footer { padding: 1.1rem 1.5rem 1.5rem; border: 0; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="pcf-container" style="padding-block:1.5rem 2rem">
 
@@ -183,4 +225,54 @@
     </section>
   </div>
 </div>
+
+{% if total_pautas_pendentes_ciencia %}
+<div class="modal fade ini-pautas-modal" id="pautasPendentesModal" tabindex="-1"
+     aria-labelledby="pautasPendentesTitulo" aria-describedby="pautasPendentesDescricao">
+  <div class="modal-dialog modal-dialog-centered">
+    <section class="modal-content">
+      <header class="modal-header">
+        <div>
+          <p class="ini-pautas-kicker">Sua atenção é necessária</p>
+          <h2 class="ini-pautas-title" id="pautasPendentesTitulo">Pautas aguardando ciência</h2>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </header>
+      <div class="modal-body">
+        <p class="ini-pautas-copy" id="pautasPendentesDescricao">
+          Você tem <strong>{{ total_pautas_pendentes_ciencia }}</strong>
+          pauta{{ total_pautas_pendentes_ciencia|pluralize }} direcionada{{ total_pautas_pendentes_ciencia|pluralize }}
+          a você ou aos seus grupos sem ciência registrada.
+        </p>
+        <ul class="ini-pautas-list">
+          {% for pauta in pautas_pendentes_ciencia %}
+            <li class="ini-pautas-item">
+              <span class="ini-pautas-dot" aria-hidden="true"></span>
+              <span class="ini-pautas-item-text">
+                <span class="ini-pautas-item-title">{{ pauta.titulo }}</span>
+                <span class="ini-pautas-item-meta">{{ pauta.grupo.nome }} · prazo {{ pauta.prazo_ddl|date:"d/m/Y H:i" }}</span>
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+        {% if total_pautas_pendentes_extras %}
+          <p class="ini-pautas-more">E mais {{ total_pautas_pendentes_extras }} pauta{{ total_pautas_pendentes_extras|pluralize }} no quadro.</p>
+        {% endif %}
+      </div>
+      <footer class="modal-footer">
+        <button type="button" class="pcf-btn pcf-btn-ghost" data-bs-dismiss="modal">Agora não</button>
+        <a class="pcf-btn pcf-btn-primary" href="{% url 'gerenciamento:pautas' %}">Abrir quadro de pautas</a>
+      </footer>
+    </section>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var elemento = document.getElementById('pautasPendentesModal');
+    if (elemento && window.bootstrap) {
+      window.bootstrap.Modal.getOrCreateInstance(elemento).show();
+    }
+  });
+</script>
+{% endif %}
 {% endblock %}

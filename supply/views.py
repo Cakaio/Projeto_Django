@@ -1,31 +1,34 @@
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from django.views.generic import ListView, TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.forms import modelformset_factory
-from .forms import MeuMaterialForm, MeuPedidoForm
-from supply.forms import PedidoFormSet
-from .models import Item, Local, Movimentacao, Pedido
-from django.shortcuts import render, redirect
-from django.db.models import Prefetch
-from semanario.models import Material
-from sabado.models import Sabado
-from django.shortcuts import render, get_object_or_404
-from django.utils import timezone
-from django.db.models import Sum, Count, Q, Value, DecimalField, F, ExpressionWrapper
-from django.db.models.functions import Coalesce
-from sabado.models import Sabado
-from semanario.models import Material, LISTA_SALAS, PEDIDO
 from collections import OrderedDict
 from decimal import Decimal, InvalidOperation
-from django.contrib import messages
-from django.urls import reverse
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ValidationError
-from django.shortcuts import redirect, render
+from django.db import transaction
+from django.db.models import (
+    Count,
+    DecimalField,
+    ExpressionWrapper,
+    F,
+    Prefetch,
+    Q,
+    Sum,
+    Value,
+)
+from django.db.models.functions import Coalesce
+from django.forms import modelformset_factory
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.views.generic import CreateView, ListView, TemplateView
+
+from sabado.models import Sabado
+from semanario.models import LISTA_SALAS, PEDIDO, Material
 from voluntario.models import Voluntario, LISTA_AREAS
+
+from .forms import ItemForm, LocalForm, MeuMaterialForm, MeuPedidoForm, PedidoFormSet
+from .models import Item, Local, Movimentacao, Pedido
 
 
 VALOR_TOTAL_EXPRESSION = ExpressionWrapper(
@@ -64,6 +67,36 @@ class ListaMovimentacoesView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return Movimentacao.objects.select_related('item', 'registrado_por', 'sabado')
+
+
+class CadastroItemView(LoginRequiredMixin, CreateView):
+    model = Item
+    form_class = ItemForm
+    template_name = "supply/cadastro_item.html"
+    success_url = reverse_lazy("supply:supply_view")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(
+            self.request,
+            f'Item "{self.object.nome}" cadastrado com sucesso.',
+        )
+        return response
+
+
+class CadastroLocalView(LoginRequiredMixin, CreateView):
+    model = Local
+    form_class = LocalForm
+    template_name = "supply/cadastro_local.html"
+    success_url = reverse_lazy("supply:supply_view")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(
+            self.request,
+            f'Local "{self.object.nome}" cadastrado com sucesso.',
+        )
+        return response
 
 
 def painel_materiais(request):
