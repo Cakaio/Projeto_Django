@@ -17,6 +17,7 @@ inteiro se a dependência não estivesse instalada no servidor.
 """
 import io
 import logging
+import re
 
 from django.conf import settings
 
@@ -171,6 +172,29 @@ def _listar(servico, consulta):
         pagina = resposta.get('nextPageToken')
         if not pagina:
             return itens
+
+
+def id_da_pasta(texto):
+    """Aceita o ID puro ou a URL inteira do Drive.
+
+    Existe porque o ID é uma sequência longa de letras e números onde `l` e `1`
+    são indistinguíveis a olho nu — e digitá-lo à mão já trocou um pelo outro na
+    prática. Copiar a URL da barra do navegador não tem esse risco.
+
+    "https://drive.google.com/drive/u/4/folders/1AbC_dEf?usp=sharing" -> "1AbC_dEf"
+    """
+    bruto = (texto or '').strip()
+    if 'drive.google.com' not in bruto:
+        return bruto
+
+    # Formatos que aparecem na prática: /folders/<id>, /file/d/<id>/view,
+    # e qualquer um deles seguido de ?usp=... ou #algo.
+    achado = re.search(r'/(?:folders|file/d)/([A-Za-z0-9_-]+)', bruto)
+    if achado:
+        return achado.group(1)
+
+    achado = re.search(r'[?&]id=([A-Za-z0-9_-]+)', bruto)
+    return achado.group(1) if achado else bruto
 
 
 def metadados(servico, arquivo_id):

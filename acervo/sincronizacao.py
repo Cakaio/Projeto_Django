@@ -317,7 +317,8 @@ def rodar(disparada_por=None, dry_run=False, somente=None, exceto=None,
     registro = SincronizacaoDrive.objects.create(disparada_por=disparada_por)
     try:
         servico = drive.cliente()
-        placar = sincronizar(servico, pasta or settings.ACERVO_DRIVE_PASTA_ID,
+        alvo = drive.id_da_pasta(pasta or settings.ACERVO_DRIVE_PASTA_ID)
+        placar = sincronizar(servico, alvo,
                              dry_run=dry_run, somente=somente, exceto=exceto)
     except Exception as erro:
         logger.exception('Sincronização do acervo falhou')

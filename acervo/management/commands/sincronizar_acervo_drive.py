@@ -42,9 +42,8 @@ class Command(BaseCommand):
                  'ACERVO_DRIVE_IGNORAR no .env.')
         parser.add_argument(
             '--pasta', default='',
-            help='ID de OUTRA pasta do Drive, so nesta rodada. Use para trazer '
-                 'uma pasta especifica sem mexer no .env. E o trecho depois de '
-                 '/folders/ na URL.')
+            help='Outra pasta do Drive, so nesta rodada. Aceita a URL INTEIRA '
+                 'copiada da barra do navegador, ou so o ID.')
         parser.add_argument(
             '--contar', action='store_true',
             help='Com --verificar, conta os arquivos de cada pasta. Percorre a '
@@ -87,7 +86,8 @@ class Command(BaseCommand):
         """
         from django.conf import settings
 
-        self.stdout.write(f'Pasta configurada: {settings.ACERVO_DRIVE_PASTA_ID}')
+        raiz = drive.id_da_pasta(settings.ACERVO_DRIVE_PASTA_ID)
+        self.stdout.write(f'Pasta configurada: {raiz}')
         self.stdout.write(f'Autenticando por: {drive.modo_de_autenticacao()}')
 
         if settings.ACERVO_DRIVE_CREDENCIAIS:
@@ -118,7 +118,7 @@ class Command(BaseCommand):
         # com um pai invisível devolve lista vazia sem erro; `files.get` no ID
         # levanta 404. É o que separa "não tenho acesso" de "não tem subpasta".
         try:
-            pasta = drive.metadados(servico, settings.ACERVO_DRIVE_PASTA_ID)
+            pasta = drive.metadados(servico, raiz)
         except Exception as erro:
             raise CommandError(
                 f'A conta de serviço NÃO enxerga essa pasta.\n\n'
@@ -143,7 +143,7 @@ class Command(BaseCommand):
                 'no Drive, não do compartilhamento da pasta.')
 
         try:
-            pastas = drive.subpastas(servico, settings.ACERVO_DRIVE_PASTA_ID)
+            pastas = drive.subpastas(servico, raiz)
         except Exception as erro:
             raise CommandError(f'Não consegui listar o conteúdo: {erro}')
 
@@ -171,9 +171,9 @@ class Command(BaseCommand):
             self.stdout.write(f"  {bruto}{marca}")
 
         if ignoradas:
+            self.stdout.write('')
             self.stdout.write(
-                f"
-ACERVO_DRIVE_IGNORAR: {', '.join(sorted(ignoradas))}")
+                f"ACERVO_DRIVE_IGNORAR: {', '.join(sorted(ignoradas))}")
 
         if not self.contar:
             self.stdout.write(

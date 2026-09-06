@@ -919,3 +919,42 @@ class PastaEspecificaTest(BaseDrive):
 
         sincronizar(self.drive, 'alvo', Placar())
         self.assertTrue(Colecao.objects.filter(nome='2018').exists())
+
+
+class UrlDaPastaTest(TestCase):
+    """--pasta aceita a URL inteira, não só o ID.
+
+    O ID é uma sequência longa onde `l` e `1` são indistinguíveis a olho nu — e
+    digitá-lo à mão já trocou um pelo outro na prática, gerando um 404 que não
+    tinha nada a ver com permissão. Copiar a URL da barra do navegador não tem
+    esse risco.
+    """
+
+    ID = '1_mfvETJviwtcYk0l2Ids_3GvZYbDIVQ0'
+
+    def test_url_de_pasta(self):
+        self.assertEqual(
+            drive.id_da_pasta(f'https://drive.google.com/drive/u/4/folders/{self.ID}'),
+            self.ID)
+
+    def test_url_com_parametro_no_fim(self):
+        self.assertEqual(
+            drive.id_da_pasta(
+                f'https://drive.google.com/drive/folders/{self.ID}?usp=sharing'),
+            self.ID)
+
+    def test_url_de_arquivo(self):
+        self.assertEqual(
+            drive.id_da_pasta(f'https://drive.google.com/file/d/{self.ID}/view'),
+            self.ID)
+
+    def test_id_puro_passa_intacto(self):
+        self.assertEqual(drive.id_da_pasta(self.ID), self.ID)
+
+    def test_espaco_em_volta_nao_atrapalha(self):
+        """Copiar e colar traz espaço junto com frequência."""
+        self.assertEqual(drive.id_da_pasta(f'  {self.ID}  '), self.ID)
+
+    def test_vazio_nao_quebra(self):
+        self.assertEqual(drive.id_da_pasta(''), '')
+        self.assertEqual(drive.id_da_pasta(None), '')
