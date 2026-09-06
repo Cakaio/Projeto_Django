@@ -170,8 +170,22 @@ def _trazer(servico, arquivo, colecao, ano, dono):
     return documento
 
 
+def pastas_ignoradas(exceto=None):
+    """Pastas do Drive que nunca entram, em minúsculas.
+
+    Vem de ACERVO_DRIVE_IGNORAR no .env, e não de uma flag de linha de comando,
+    porque o botão da tela e a tarefa agendada não passam flag nenhuma: uma
+    exclusão feita só no comando seria desfeita na primeira rodada automática.
+    `exceto` soma a essa lista, para uma rodada avulsa.
+    """
+    do_env = getattr(settings, 'ACERVO_DRIVE_IGNORAR', []) or []
+    return {nome.strip().lower()
+            for nome in list(do_env) + list(exceto or [])
+            if nome and nome.strip()}
+
+
 def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
-                dono=DONO_PADRAO, somente=None):
+                dono=DONO_PADRAO, somente=None, exceto=None):
     """Percorre o Drive e traz o que falta. Devolve o Placar.
 
     Cada subpasta do primeiro nível vira uma coleção, igual ao comando de pasta
@@ -181,9 +195,13 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
     `somente` limita a essas pastas (nomes, com ou sem o prefixo de ordenação).
     Serve para trazer pasta por pasta em vez de tudo de uma vez, que é como se
     decide o que entra num acervo aberto a todo voluntário.
+
+    `exceto` e ACERVO_DRIVE_IGNORAR excluem pastas. A exclusão vence o `somente`:
+    pasta marcada para nunca entrar não entra nem se for pedida por engano.
     """
     placar = placar or Placar()
     filtro = {p.strip().lower() for p in (somente or [])}
+    ignorar = pastas_ignoradas(exceto)
 
     # Uma consulta só, antes de qualquer espera de rede.
     ja_importados = ids_ja_no_acervo()
@@ -193,7 +211,11 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
         nome_colecao, ordem = nome_e_ordem_da_pasta(bruto)
         if not nome_colecao:
             continue
-        if filtro and not {bruto.lower(), nome_colecao.lower()} & filtro:
+
+        apelidos = {bruto.lower(), nome_colecao.lower()}
+        if apelidos & ignorar:
+            continue
+        if filtro and not apelidos & filtro:
             continue
 
         # A varredura desta pasta pode levar minutos. Nada de segurar uma
@@ -261,7 +283,7 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
     return placar
 
 
-def rodar(disparada_por=None, dry_run=False, somente=None):
+def rodar(disparada_por=None, dry_run=False, somente=None, exceto=None):
     """Uma rodada completa, com registro no banco do começo ao fim.
 
     O registro existe porque a sincronização roda em thread (o botão não pode
@@ -273,7 +295,7 @@ def rodar(disparada_por=None, dry_run=False, somente=None):
     try:
         servico = drive.cliente()
         placar = sincronizar(servico, settings.ACERVO_DRIVE_PASTA_ID,
-                             dry_run=dry_run, somente=somente)
+                             dry_run=dry_run, somente=somente, exceto=exceto)
     except Exception as erro:
         logger.exception('Sincronização do acervo falhou')
         # A falha mais provável numa rodada longa é a própria conexão com o

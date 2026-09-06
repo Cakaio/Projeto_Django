@@ -194,6 +194,12 @@ Depois, em qualquer um dos modos:
 5. `manage.py sincronizar_acervo_drive --verificar` — diagnostica a conexão.
 6. Scheduled Task diária: `manage.py sincronizar_acervo_drive`.
 
+`ACERVO_DRIVE_IGNORAR` no `.env` (nomes separados por vírgula) exclui pastas de
+vez. Precisa ser configuração, e não flag: o botão da tela e a tarefa agendada
+não passam flag nenhuma, então uma exclusão feita só no comando seria desfeita
+na primeira rodada automática. `--exceto` exclui só naquela rodada. A exclusão
+permanente vence o `--somente`.
+
 Decisões que já custaram pensamento:
 - **`origem_drive_id` é `null=True`, não string vazia.** `unique` trata strings
   vazias como iguais, e dois documentos cadastrados na tela colidiriam.

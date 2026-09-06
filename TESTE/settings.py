@@ -233,6 +233,17 @@ ACERVO_DRIVE_OAUTH_CLIENT_ID = config("ACERVO_DRIVE_OAUTH_CLIENT_ID", default=""
 ACERVO_DRIVE_OAUTH_CLIENT_SECRET = config("ACERVO_DRIVE_OAUTH_CLIENT_SECRET", default="")
 ACERVO_DRIVE_OAUTH_REFRESH_TOKEN = config("ACERVO_DRIVE_OAUTH_REFRESH_TOKEN", default="")
 
+# Pastas do Drive que NUNCA entram no acervo, separadas por vírgula. Aceita o
+# nome com ou sem o prefixo de ordenação ("Áreas" ou "a. Áreas").
+#
+# Precisa ser configuração, e não um --somente na linha de comando: o botão da
+# tela e a tarefa agendada não passam flag nenhuma, então uma exclusão feita só
+# no comando seria desfeita na primeira rodada automática.
+ACERVO_DRIVE_IGNORAR = [
+    nome.strip() for nome in config("ACERVO_DRIVE_IGNORAR", default="").split(",")
+    if nome.strip()
+]
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

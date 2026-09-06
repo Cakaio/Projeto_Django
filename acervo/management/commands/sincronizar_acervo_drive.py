@@ -14,6 +14,7 @@ não faz ele voltar.
 from django.core.management.base import BaseCommand, CommandError
 
 from acervo import drive
+from acervo.importacao import nome_e_ordem_da_pasta
 from acervo.models import SincronizacaoDrive
 from acervo.sincronizacao import rodar
 
@@ -35,6 +36,11 @@ class Command(BaseCommand):
             help='Traz só estas pastas (repita para várias). Aceita o nome com '
                  'ou sem o prefixo de ordenação: "2018" ou "1. 2018".')
         parser.add_argument(
+            '--exceto', action='append', default=[],
+            help='Deixa estas pastas de fora nesta rodada. Para excluir de vez '
+                 '(inclusive do botao e da tarefa agendada), use '
+                 'ACERVO_DRIVE_IGNORAR no .env.')
+        parser.add_argument(
             '--contar', action='store_true',
             help='Com --verificar, conta os arquivos de cada pasta. Percorre a '
                  'árvore inteira no Drive e demora num acervo grande.')
@@ -49,7 +55,7 @@ class Command(BaseCommand):
             return self._verificar()
 
         registro = rodar(disparada_por=None, dry_run=opcoes['dry_run'],
-                         somente=opcoes['somente'])
+                         somente=opcoes['somente'], exceto=opcoes['exceto'])
 
         if registro.status == SincronizacaoDrive.ERRO:
             # Sai com código de erro para a tarefa agendada do PythonAnywhere
@@ -148,8 +154,20 @@ class Command(BaseCommand):
             f'\nConexão OK. {len(pastas)} subpasta(s) visíveis — '
             f'cada uma vira uma coleção:\n'))
 
+        from acervo.sincronizacao import pastas_ignoradas
+        ignoradas = pastas_ignoradas()
+
         for pasta in sorted(pastas, key=lambda p: p.get('name', '')):
-            self.stdout.write(f"  {pasta['name']}")
+            bruto = pasta['name']
+            limpo, _ = nome_e_ordem_da_pasta(bruto)
+            fora = {bruto.lower(), limpo.lower()} & ignoradas
+            marca = '  [IGNORADA pelo .env]' if fora else ''
+            self.stdout.write(f"  {bruto}{marca}")
+
+        if ignoradas:
+            self.stdout.write(
+                f"
+ACERVO_DRIVE_IGNORAR: {', '.join(sorted(ignoradas))}")
 
         if not self.contar:
             self.stdout.write(

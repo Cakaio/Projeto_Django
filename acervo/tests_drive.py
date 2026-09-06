@@ -783,3 +783,51 @@ class ExtensaoTest(TestCase):
     def test_pdf_de_verdade_continua_entrando(self):
         from acervo.importacao import motivo_para_recusar
         self.assertIsNone(motivo_para_recusar('ata.pdf', 1000))
+
+
+class PastaIgnoradaTest(BaseDrive):
+    """Exclusão permanente precisa valer para o botão e a tarefa agendada.
+
+    Nenhum dos dois passa flag. Uma exclusão feita só com --somente na linha de
+    comando seria desfeita na primeira rodada automática — e no acervo real a
+    pasta em questão tem 11.779 arquivos e 5,9 GB.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.drive.pasta('p1', 'a. Áreas')
+        self.drive.arquivo('a1', 'foto-2024.jpg', 'p1')
+        self.drive.pasta('p2', '1. 2018')
+        self.drive.arquivo('a2', 'ata.pdf', 'p2')
+
+    @override_settings(ACERVO_DRIVE_IGNORAR=['Áreas'])
+    def test_pasta_do_env_nao_entra(self):
+        self.sincronizar()
+
+        self.assertFalse(Colecao.objects.filter(nome='Áreas').exists())
+        self.assertTrue(Colecao.objects.filter(nome='2018').exists())
+
+    @override_settings(ACERVO_DRIVE_IGNORAR=['a. Áreas'])
+    def test_o_env_aceita_o_nome_com_prefixo(self):
+        self.sincronizar()
+        self.assertFalse(Colecao.objects.filter(nome='Áreas').exists())
+
+    @override_settings(ACERVO_DRIVE_IGNORAR=['Áreas'])
+    def test_a_exclusao_permanente_vence_o_somente(self):
+        """Pasta marcada para nunca entrar não entra nem se for pedida."""
+        self.sincronizar(somente=['Áreas'])
+        self.assertFalse(Colecao.objects.filter(nome='Áreas').exists())
+
+    @override_settings(ACERVO_DRIVE_IGNORAR=[])
+    def test_exceto_exclui_só_naquela_rodada(self):
+        self.sincronizar(exceto=['Áreas'])
+        self.assertFalse(Colecao.objects.filter(nome='Áreas').exists())
+
+        self.sincronizar()
+        self.assertTrue(Colecao.objects.filter(nome='Áreas').exists())
+
+    @override_settings(ACERVO_DRIVE_IGNORAR=['Áreas'])
+    def test_pasta_ignorada_nem_e_varrida_no_drive(self):
+        """Não basta não importar: varrer 11.779 arquivos à toa custa minutos."""
+        self.sincronizar()
+        self.assertEqual(self.drive.baixados, ['a2'])
