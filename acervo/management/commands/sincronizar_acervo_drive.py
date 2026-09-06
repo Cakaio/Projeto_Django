@@ -28,8 +28,12 @@ class Command(BaseCommand):
             help='Conta o que entraria, sem baixar nem gravar nada.')
         parser.add_argument(
             '--verificar', action='store_true',
-            help='Só testa a conexão: diz o que a conta de serviço enxerga na '
-                 'pasta. Use logo depois de configurar.')
+            help='Só testa a conexão: diz o que a credencial enxerga na pasta. '
+                 'Use logo depois de configurar. É rápido.')
+        parser.add_argument(
+            '--contar', action='store_true',
+            help='Com --verificar, conta os arquivos de cada pasta. Percorre a '
+                 'árvore inteira no Drive e demora num acervo grande.')
 
     def handle(self, *args, **opcoes):
         if not drive.configurado():
@@ -37,6 +41,7 @@ class Command(BaseCommand):
                 f'Sincronização não configurada: {drive.motivo_de_estar_desligado()}')
 
         if opcoes['verificar']:
+            self.contar = opcoes['contar']
             return self._verificar()
 
         registro = rodar(disparada_por=None, dry_run=opcoes['dry_run'])
@@ -135,12 +140,30 @@ class Command(BaseCommand):
             return
 
         self.stdout.write(self.style.SUCCESS(
-            f'\nConexão OK. {len(pastas)} subpasta(s) visíveis:\n'))
+            f'\nConexão OK. {len(pastas)} subpasta(s) visíveis — '
+            f'cada uma vira uma coleção:\n'))
+
+        for pasta in sorted(pastas, key=lambda p: p.get('name', '')):
+            self.stdout.write(f"  {pasta['name']}")
+
+        if not self.contar:
+            self.stdout.write(
+                '\nPara contar os arquivos de cada uma, rode com --contar. '
+                'Isso percorre a árvore inteira no Drive e pode demorar '
+                'vários minutos num acervo grande.')
+            return
+
+        # A contagem desce a árvore inteira de cada pasta: são muitas chamadas
+        # sequenciais à API. Imprime e descarrega a saída pasta a pasta — sem
+        # isso, um acervo grande fica minutos mudo e parece travado, que foi
+        # exatamente o que aconteceu na primeira versão deste comando.
+        self.stdout.write('\nContando (uma linha por pasta, conforme termina):\n')
         total = 0
-        for pasta in pastas:
+        for pasta in sorted(pastas, key=lambda p: p.get('name', '')):
             arquivos = drive.arquivos_da_arvore(servico, pasta['id'], pasta['name'])
             total += len(arquivos)
             self.stdout.write(f"  {pasta['name']} — {len(arquivos)} arquivo(s)")
+            self.stdout.flush()
 
         self.stdout.write(self.style.SUCCESS(
             f'\n{total} arquivo(s) no total. Rode --dry-run para ver quantos '
