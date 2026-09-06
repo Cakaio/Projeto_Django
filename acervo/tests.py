@@ -5,9 +5,12 @@ As views que renderizam página são chamadas direto pelo RequestFactory, sem
 Python 3.14 (o Django 4.2 só suporta até o 3.12). É falha do ambiente, não do
 app — e chamando a view direto os templates DE VERDADE são exercitados.
 """
+import shutil
+import tempfile
+
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
 from voluntario.models import Voluntario
@@ -19,6 +22,24 @@ from .models import Colecao, Documento, caminho_do_documento
 
 def arquivo(nome='ficha.pdf', tamanho=10):
     return SimpleUploadedFile(nome, b'x' * tamanho, content_type='application/pdf')
+
+
+class MediaIsolada(TestCase):
+    """Base para teste que grava arquivo.
+
+    Sem isto cada rodada da suite deixa um .pdf orfao em media/acervo/ do
+    projeto: a transacao do TestCase desfaz a linha no banco, mas nao apaga o
+    arquivo que o FileField ja escreveu no disco. Eram mais de 30 acumulados
+    quando isto foi notado.
+    """
+
+    def setUp(self):
+        super().setUp()
+        pasta = tempfile.mkdtemp(prefix='acervo-teste-')
+        self.addCleanup(shutil.rmtree, pasta, ignore_errors=True)
+        self._media = override_settings(MEDIA_ROOT=pasta)
+        self._media.enable()
+        self.addCleanup(self._media.disable)
 
 
 class ColecaoInicialTests(TestCase):
@@ -106,7 +127,7 @@ class PermissaoTests(TestCase):
         self.assertEqual(views.colecao(pedido, slug='postulacoes').status_code, 200)
 
 
-class DocumentoModeloTests(TestCase):
+class DocumentoModeloTests(MediaIsolada):
 
     @classmethod
     def setUpTestData(cls):
@@ -144,7 +165,7 @@ class DocumentoModeloTests(TestCase):
         self.assertEqual(documento.extensao, 'ARQUIVO')
 
 
-class DocumentoFormTests(TestCase):
+class DocumentoFormTests(MediaIsolada):
 
     @classmethod
     def setUpTestData(cls):
@@ -184,7 +205,7 @@ class DocumentoFormTests(TestCase):
         self.assertIn(saiu, form.fields['pessoa'].queryset)
 
 
-class CadastroTests(TestCase):
+class CadastroTests(MediaIsolada):
 
     @classmethod
     def setUpTestData(cls):
