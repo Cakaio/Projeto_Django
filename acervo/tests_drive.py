@@ -614,3 +614,83 @@ class SomenteTest(BaseDrive):
     def test_sem_somente_traz_tudo(self):
         self.sincronizar()
         self.assertEqual(Documento.objects.count(), 2)
+
+
+class ConexaoLongaTest(BaseDrive):
+    """Rodada longa não pode morrer por conexão de banco ociosa.
+
+    A primeira rodada real levou 18 minutos varrendo 15 pastas. A conexão com o
+    MySQL, aberta no início e parada esse tempo todo, foi derrubada pelo
+    servidor por inatividade — e a consulta seguinte estourou sem nada a ver
+    com o Drive.
+    """
+
+    def test_a_conexao_e_solta_antes_de_cada_varredura(self):
+        from acervo import sincronizacao
+
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+
+        with patch.object(sincronizacao, '_soltar_a_conexao') as soltou:
+            self.sincronizar()
+        self.assertTrue(soltou.called)
+
+    def test_os_ids_ja_importados_saem_numa_consulta_so(self):
+        """Antes era uma consulta POR ARQUIVO, intercalada com o Drive.
+
+        Cada intervalo entre elas é uma chance a mais de a conexão morrer — e
+        num acervo de milhares de arquivos são milhares de intervalos.
+        """
+        from acervo import sincronizacao
+
+        self.drive.pasta('p1', 'Atas 2024')
+        for i in range(5):
+            self.drive.arquivo(f'a{i}', f'ata-{i}-2024.pdf', 'p1')
+
+        with patch.object(sincronizacao, 'ids_ja_no_acervo',
+                          return_value=set()) as consulta:
+            self.sincronizar()
+        self.assertEqual(consulta.call_count, 1)
+
+    def test_arquivo_ja_trazido_na_mesma_rodada_nao_repete(self):
+        """O conjunto em memória tem que acompanhar o que a rodada grava."""
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 1)
+
+
+class FalhaRegistradaTest(TestCase):
+    """Quando a rodada falha, a falha PRECISA ficar registrada.
+
+    Na primeira rodada real o erro foi a conexão com o banco morrer. O
+    tratamento de erro então tentou gravar o registro da falha na MESMA conexão
+    morta, estourou de novo, e não sobrou registro nenhum — só um traceback no
+    terminal de quem rodou.
+    """
+
+    @override_settings(ACERVO_DRIVE_PASTA_ID='raiz',
+                       ACERVO_DRIVE_CREDENCIAIS='/tmp/sa.json')
+    @patch('acervo.drive.build', object())
+    def test_falha_no_meio_vira_registro_de_erro(self):
+        from acervo.sincronizacao import rodar
+
+        with patch('acervo.drive.cliente', side_effect=RuntimeError('sem rede')):
+            registro = rodar()
+
+        self.assertEqual(registro.status, SincronizacaoDrive.ERRO)
+        self.assertIn('sem rede', registro.detalhe)
+        self.assertIsNotNone(registro.terminou_em)
+
+    @override_settings(ACERVO_DRIVE_PASTA_ID='raiz',
+                       ACERVO_DRIVE_CREDENCIAIS='/tmp/sa.json')
+    @patch('acervo.drive.build', object())
+    def test_o_tratamento_de_erro_solta_a_conexao_antes_de_gravar(self):
+        from acervo import sincronizacao
+
+        with patch('acervo.drive.cliente', side_effect=RuntimeError('x')), \
+                patch.object(sincronizacao, '_soltar_a_conexao') as soltou:
+            sincronizacao.rodar()
+
+        self.assertTrue(soltou.called)

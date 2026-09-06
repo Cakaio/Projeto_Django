@@ -16,7 +16,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 
 from . import drive
@@ -61,8 +61,36 @@ class Placar:
         return '\n'.join(linhas)
 
 
-def _ja_esta_no_acervo(drive_id):
-    return Documento.objects.filter(origem_drive_id=drive_id).exists()
+def _soltar_a_conexao():
+    """Fecha a conexão com o banco antes de uma espera longa na rede.
+
+    Uma rodada varre 15 árvores no Drive e leva vários minutos. A conexão com o
+    MySQL, aberta no início e PARADA esse tempo todo, é derrubada pelo servidor
+    por inatividade (erro 4031 no PythonAnywhere) — e a próxima consulta estoura
+    sem nada a ver com o Drive.
+
+    Fechar não custa nada: o Django abre uma nova, sozinho, na próxima consulta.
+    Segurar uma conexão ociosa durante uma espera de rede é que é o erro.
+    """
+    try:
+        connection.close()
+    except Exception:
+        # Fechar conexão já morta pode levantar; não é motivo para abortar.
+        logger.debug('Falha ao fechar a conexão com o banco', exc_info=True)
+
+
+def ids_ja_no_acervo():
+    """Todos os IDs do Drive já importados, numa consulta só.
+
+    Antes era uma consulta POR ARQUIVO. Num acervo de milhares de arquivos isso
+    é milhares de idas ao banco intercaladas com chamadas ao Drive — lento, e
+    cada intervalo entre elas é uma chance a mais de a conexão morrer.
+    """
+    return set(
+        Documento.objects
+        .exclude(origem_drive_id=None)
+        .values_list('origem_drive_id', flat=True)
+    )
 
 
 def _colecao_para(nome, ordem, criar):
@@ -76,6 +104,10 @@ def _colecao_para(nome, ordem, criar):
 def _trazer(servico, arquivo, colecao, ano, dono):
     """Baixa e grava um documento. Devolve o Documento criado."""
     nome = drive.nome_para_salvar(arquivo)
+
+    # Baixar é rede: pode demorar num arquivo grande. Solta a conexão antes,
+    # para não voltar do download com um cursor que o MySQL já derrubou.
+    _soltar_a_conexao()
     conteudo = drive.baixar(servico, arquivo)
 
     with transaction.atomic():
@@ -107,6 +139,9 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
     placar = placar or Placar()
     filtro = {p.strip().lower() for p in (somente or [])}
 
+    # Uma consulta só, antes de qualquer espera de rede.
+    ja_importados = ids_ja_no_acervo()
+
     for pasta in drive.subpastas(servico, pasta_raiz_id):
         bruto = (pasta.get('name') or '').strip()
         nome_colecao, ordem = nome_e_ordem_da_pasta(bruto)
@@ -115,12 +150,16 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
         if filtro and not {bruto.lower(), nome_colecao.lower()} & filtro:
             continue
 
+        # A varredura desta pasta pode levar minutos. Nada de segurar uma
+        # conexão com o banco parada durante ela.
+        _soltar_a_conexao()
         arquivos = drive.arquivos_da_arvore(servico, pasta['id'], nome_colecao)
+
         novos = 0
         colecao = None
 
         for arquivo in arquivos:
-            if _ja_esta_no_acervo(arquivo['id']):
+            if arquivo['id'] in ja_importados:
                 # Não é motivo de aviso: é o caso NORMAL a partir da segunda
                 # rodada, e listá-lo encheria o relatório de ruído.
                 continue
@@ -164,6 +203,7 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
                 placar.pular('falha ao gravar')
                 continue
 
+            ja_importados.add(arquivo['id'])
             novos += 1
             placar.trazidos += 1
 
@@ -186,13 +226,22 @@ def rodar(disparada_por=None, dry_run=False, somente=None):
         placar = sincronizar(servico, settings.ACERVO_DRIVE_PASTA_ID,
                              dry_run=dry_run, somente=somente)
     except Exception as erro:
-        registro.status = SincronizacaoDrive.ERRO
-        registro.detalhe = str(erro)[:2000]
-        registro.terminou_em = timezone.now()
-        registro.save()
         logger.exception('Sincronização do acervo falhou')
+        # A falha mais provável numa rodada longa é a própria conexão com o
+        # banco ter morrido de inatividade — e aí gravar o registro do erro na
+        # MESMA conexão morta estoura de novo, e a falha não fica registrada em
+        # lugar nenhum. Foi exatamente o que aconteceu na primeira rodada real.
+        _soltar_a_conexao()
+        try:
+            registro.status = SincronizacaoDrive.ERRO
+            registro.detalhe = str(erro)[:2000]
+            registro.terminou_em = timezone.now()
+            registro.save()
+        except Exception:
+            logger.exception('Não consegui nem registrar a falha da sincronização')
         return registro
 
+    _soltar_a_conexao()
     registro.status = SincronizacaoDrive.OK
     registro.trazidos = placar.trazidos
     registro.pulados = placar.pulados
