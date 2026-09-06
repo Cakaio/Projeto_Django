@@ -200,6 +200,17 @@ não passam flag nenhuma, então uma exclusão feita só no comando seria desfei
 na primeira rodada automática. `--exceto` exclui só naquela rodada. A exclusão
 permanente vence o `--somente`.
 
+A sincronização aceita **só documento e planilha** (`FORMATOS_DE_DOCUMENTO` em
+`acervo/importacao.py`), diferente do formulário manual, que aceita imagem. A
+diferença tem razão: no formulário uma pessoa escolhe cada arquivo e sabe que
+aquela foto é a ficha digitalizada; na varredura automática de um Drive de
+trabalho, "imagem" é foto de evento aos milhares — no acervo real eram 5,9 GB
+numa pasta só. `ACERVO_DRIVE_FORMATOS` no `.env` sobrepõe a lista.
+
+`--pasta` e `ACERVO_DRIVE_PASTA_ID` aceitam a URL inteira do Drive, não só o ID:
+`l` e `1` são indistinguíveis a olho nu num ID, e digitá-lo à mão já gerou um
+404 que parecia problema de permissão.
+
 Decisões que já custaram pensamento:
 - **`origem_drive_id` é `null=True`, não string vazia.** `unique` trata strings
   vazias como iguais, e dois documentos cadastrados na tela colidiriam.
