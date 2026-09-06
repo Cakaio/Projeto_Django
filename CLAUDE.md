@@ -151,21 +151,48 @@ entrou nunca volta, mesmo que alguém renomeie ou mova o arquivo lá.
 
 Em ambos, cada subpasta do primeiro nível vira uma Coleção.
 
-Para ligar a sincronização:
+**Dois modos de autenticação.** A escolha depende de uma coisa só: quem
+configura tem direito de COMPARTILHAR a pasta do Drive?
+
+*Conta de serviço* — o PCF é uma identidade própria; alguém precisa compartilhar
+a pasta com o e-mail dela. Preferível quando possível: não depende de nenhuma
+pessoa continuar no projeto.
+
+*OAuth de usuário* — o PCF lê o Drive COMO uma pessoa, com a permissão que ela
+já tem. É a saída quando a pasta é da organização e quem configura consegue LER
+mas não consegue COMPARTILHAR (o Google mostra "Pedir para compartilhar" no
+diálogo, e `files.get` no ID da pasta devolve 404 para a conta de serviço).
+Custo: o acesso morre se a pessoa sair da organização ou revogar a permissão.
+
+Se as duas estiverem no `.env`, a conta de serviço vence.
+
+Para ligar com CONTA DE SERVIÇO:
 
 1. Google Cloud Console: criar projeto, ativar a **Google Drive API**, criar uma
    **conta de serviço** e baixar o JSON da chave.
-2. Compartilhar a pasta do Drive com o e-mail da conta de serviço, como
-   **Leitor**. Ela não precisa ser dona de nada.
-3. Subir o JSON para o servidor, FORA do repositório, e apontar o `.env`:
+2. Compartilhar a pasta do Drive com o e-mail dela, como **Leitor**.
+3. Subir o JSON para o servidor, FORA do repositório, e no `.env`:
    `ACERVO_DRIVE_CREDENCIAIS=/home/pcf/segredos/drive.json`
    `ACERVO_DRIVE_PASTA_ID=<o trecho depois de /folders/ na URL da pasta>`
-4. `pip install -r requirements.txt`, `migrate`, Reload.
-5. Scheduled Task diária: `manage.py sincronizar_acervo_drive`.
 
-Conta de serviço e não OAuth de usuário: em app não verificado pelo Google, o
-refresh token do OAuth expira em 7 dias e a sincronização pararia sozinha toda
-semana, sem ninguém entender por quê.
+Para ligar com OAUTH:
+
+1. Google Cloud Console: ativar a **Google Drive API** e criar um **OAuth client
+   ID** do tipo "App para computador"; baixar o JSON.
+2. Na MÁQUINA de quem tem acesso à pasta (precisa de navegador):
+   `python manage.py autorizar_acervo_drive client_secret.json`
+3. Colar as três linhas `ACERVO_DRIVE_OAUTH_*` que ele imprime no `.env` do
+   servidor, junto com `ACERVO_DRIVE_PASTA_ID`.
+
+**Publique a tela de consentimento OAuth ("In production").** Em "Testing", o
+Google expira o refresh token em 7 dias e a sincronização para sozinha toda
+semana, sem erro visível.
+
+Depois, em qualquer um dos modos:
+
+4. `pip install -r requirements.txt`, `migrate`, Reload.
+5. `manage.py sincronizar_acervo_drive --verificar` — diagnostica a conexão.
+6. Scheduled Task diária: `manage.py sincronizar_acervo_drive`.
 
 Decisões que já custaram pensamento:
 - **`origem_drive_id` é `null=True`, não string vazia.** `unique` trata strings

@@ -222,6 +222,17 @@ VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="")
 ACERVO_DRIVE_CREDENCIAIS = config("ACERVO_DRIVE_CREDENCIAIS", default="")
 ACERVO_DRIVE_PASTA_ID = config("ACERVO_DRIVE_PASTA_ID", default="")
 
+# Alternativa à conta de serviço: o PCF lê o Drive COMO uma pessoa, com a
+# permissão que ela já tem. É a saída quando a pasta é da organização e quem
+# configura consegue LER mas não consegue COMPARTILHAR com outra identidade —
+# que é justamente o caso deste projeto.
+#
+# Obtidos uma vez com: python manage.py autorizar_acervo_drive
+# O refresh token é SEGREDO, como uma senha.
+ACERVO_DRIVE_OAUTH_CLIENT_ID = config("ACERVO_DRIVE_OAUTH_CLIENT_ID", default="")
+ACERVO_DRIVE_OAUTH_CLIENT_SECRET = config("ACERVO_DRIVE_OAUTH_CLIENT_SECRET", default="")
+ACERVO_DRIVE_OAUTH_REFRESH_TOKEN = config("ACERVO_DRIVE_OAUTH_REFRESH_TOKEN", default="")
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

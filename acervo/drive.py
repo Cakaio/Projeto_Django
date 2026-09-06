@@ -22,11 +22,13 @@ from django.conf import settings
 
 try:
     from google.oauth2 import service_account
+    from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
     from googleapiclient.http import MediaIoBaseDownload
 except ImportError:  # pragma: no cover - ambiente sem a dependência
     service_account = None
+    Credentials = None
     build = None
     MediaIoBaseDownload = None
 
@@ -59,12 +61,44 @@ class DriveIndisponivel(Exception):
     """A configuração está incompleta ou o Google recusou o acesso."""
 
 
+def _tem_conta_de_servico() -> bool:
+    return bool(getattr(settings, 'ACERVO_DRIVE_CREDENCIAIS', ''))
+
+
+def _tem_oauth() -> bool:
+    return all(getattr(settings, nome, '') for nome in (
+        'ACERVO_DRIVE_OAUTH_CLIENT_ID',
+        'ACERVO_DRIVE_OAUTH_CLIENT_SECRET',
+        'ACERVO_DRIVE_OAUTH_REFRESH_TOKEN',
+    ))
+
+
 def configurado() -> bool:
+    """Dá para falar com o Drive?
+
+    Dois modos de autenticação, e a escolha entre eles não é de gosto:
+
+    CONTA DE SERVIÇO — o PCF é uma identidade própria. Exige que alguém
+    COMPARTILHE a pasta com ela, e portanto exige ter direito de compartilhar.
+
+    OAUTH DO USUÁRIO — o PCF lê o Drive COMO uma pessoa, com a permissão que
+    ela já tem. É a saída para quem consegue ler a pasta mas não consegue
+    conceder acesso a outra identidade — o caso deste projeto, onde a pasta é da
+    organização e nem todo mundo pode compartilhá-la.
+    """
     return bool(
         build is not None
-        and getattr(settings, 'ACERVO_DRIVE_CREDENCIAIS', '')
         and getattr(settings, 'ACERVO_DRIVE_PASTA_ID', '')
+        and (_tem_conta_de_servico() or _tem_oauth())
     )
+
+
+def modo_de_autenticacao() -> str:
+    if _tem_conta_de_servico():
+        return 'conta de serviço'
+    if _tem_oauth():
+        return 'OAuth de usuário'
+    return ''
 
 
 def motivo_de_estar_desligado() -> str:
@@ -72,15 +106,38 @@ def motivo_de_estar_desligado() -> str:
     if build is None:
         return ('google-api-python-client não instalado — rode '
                 'pip install -r requirements.txt no virtualenv do site')
-    faltando = [nome for nome in ('ACERVO_DRIVE_CREDENCIAIS', 'ACERVO_DRIVE_PASTA_ID')
-                if not getattr(settings, nome, '')]
-    if faltando:
-        return f"faltando no .env: {', '.join(faltando)}"
+
+    if not getattr(settings, 'ACERVO_DRIVE_PASTA_ID', ''):
+        return 'faltando no .env: ACERVO_DRIVE_PASTA_ID'
+
+    if not (_tem_conta_de_servico() or _tem_oauth()):
+        return ('faltando credencial no .env: ou ACERVO_DRIVE_CREDENCIAIS '
+                '(conta de serviço), ou as três ACERVO_DRIVE_OAUTH_* '
+                '(rode: python manage.py autorizar_acervo_drive)')
     return ''
 
 
+def _credenciais():
+    """Credencial do modo configurado. Conta de serviço tem precedência."""
+    if _tem_conta_de_servico():
+        return service_account.Credentials.from_service_account_file(
+            settings.ACERVO_DRIVE_CREDENCIAIS, scopes=ESCOPOS)
+
+    # Só o refresh token é guardado. O access token, que dura uma hora, é
+    # obtido na hora pela própria biblioteca — guardar um token de uma hora no
+    # .env seria inútil.
+    return Credentials(
+        token=None,
+        refresh_token=settings.ACERVO_DRIVE_OAUTH_REFRESH_TOKEN,
+        client_id=settings.ACERVO_DRIVE_OAUTH_CLIENT_ID,
+        client_secret=settings.ACERVO_DRIVE_OAUTH_CLIENT_SECRET,
+        token_uri='https://oauth2.googleapis.com/token',
+        scopes=ESCOPOS,
+    )
+
+
 def cliente():
-    """Serviço do Drive autenticado pela conta de serviço.
+    """Serviço do Drive autenticado.
 
     Levanta DriveIndisponivel quando falta configuração — quem chama transforma
     isso em mensagem na tela, em vez de num traceback.
@@ -88,11 +145,9 @@ def cliente():
     if not configurado():
         raise DriveIndisponivel(motivo_de_estar_desligado())
 
-    credenciais = service_account.Credentials.from_service_account_file(
-        settings.ACERVO_DRIVE_CREDENCIAIS, scopes=ESCOPOS)
     # cache_discovery=False: o cache em disco do discovery quebra em ambiente
     # sem permissão de escrita e polui o log com avisos.
-    return build('drive', 'v3', credentials=credenciais, cache_discovery=False)
+    return build('drive', 'v3', credentials=_credenciais(), cache_discovery=False)
 
 
 def _listar(servico, consulta):

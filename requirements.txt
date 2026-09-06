@@ -41,3 +41,6 @@ pywebpush==2.4.0
 # dias e a sincronizacao pararia sozinha toda semana.
 google-api-python-client==2.184.0
 google-auth==2.42.1
+# Fluxo OAuth do comando `autorizar_acervo_drive`. So e usado nessa autorizacao
+# unica, na maquina de quem configura — o servidor nunca precisa dele.
+google-auth-oauthlib==1.2.2

@@ -332,11 +332,25 @@ class BotaoDesligadoTest(TestCase):
         self.assertNotIn('Trazer do Drive', resposta.content.decode())
 
     @patch('acervo.drive.build', object())   # finge a lib instalada
-    def test_a_triade_ve_que_falta_configurar_o_env(self):
+    def test_a_triade_ve_que_falta_a_pasta(self):
+        from acervo.views import _aviso_do_drive
+
+        aviso = _aviso_do_drive(pode_mexer_=True, ligado=False)
+        self.assertIn('ACERVO_DRIVE_PASTA_ID', aviso)
+
+    @patch('acervo.drive.build', object())
+    @override_settings(ACERVO_DRIVE_PASTA_ID='raiz', ACERVO_DRIVE_CREDENCIAIS='')
+    def test_com_a_pasta_definida_o_aviso_cobra_a_credencial(self):
+        """E cita os DOIS caminhos: conta de serviço ou OAuth.
+
+        Quem não pode compartilhar a pasta precisa saber que existe a segunda
+        saída — senão trava achando que só a conta de serviço serve.
+        """
         from acervo.views import _aviso_do_drive
 
         aviso = _aviso_do_drive(pode_mexer_=True, ligado=False)
         self.assertIn('ACERVO_DRIVE_CREDENCIAIS', aviso)
+        self.assertIn('autorizar_acervo_drive', aviso)
 
     def test_sem_a_biblioteca_o_aviso_manda_instalar(self):
         """A biblioteca do Google não vem instalada — o aviso tem que dizer isso.
@@ -435,3 +449,68 @@ class BotaoLigadoTest(TestCase):
         with patch('threading.Thread') as thread:
             sincronizar_drive(self._pedido())
         thread.assert_called_once()
+
+
+class ModoDeAutenticacaoTest(TestCase):
+    """Dois modos de falar com o Drive, e a escolha não é de gosto.
+
+    Conta de serviço exige que ALGUÉM compartilhe a pasta com ela — e portanto
+    exige ter direito de compartilhar. OAuth lê o Drive como uma pessoa, com a
+    permissão que ela já tem: é a saída para pasta da organização que quem
+    configura consegue ler mas não consegue compartilhar.
+    """
+
+    OAUTH = dict(
+        ACERVO_DRIVE_PASTA_ID='raiz',
+        ACERVO_DRIVE_CREDENCIAIS='',
+        ACERVO_DRIVE_OAUTH_CLIENT_ID='cid',
+        ACERVO_DRIVE_OAUTH_CLIENT_SECRET='segredo',
+        ACERVO_DRIVE_OAUTH_REFRESH_TOKEN='refresh',
+    )
+
+    @patch('acervo.drive.build', object())
+    @override_settings(**OAUTH)
+    def test_oauth_completo_conta_como_configurado(self):
+        self.assertTrue(drive.configurado())
+        self.assertEqual(drive.modo_de_autenticacao(), 'OAuth de usuário')
+
+    @patch('acervo.drive.build', object())
+    @override_settings(**{**OAUTH, 'ACERVO_DRIVE_OAUTH_REFRESH_TOKEN': ''})
+    def test_oauth_pela_metade_nao_conta(self):
+        """Faltando uma das três, o Drive fica desligado — e diz o que falta.
+
+        Meio configurado é pior que desligado: falharia só na hora do envio.
+        """
+        self.assertFalse(drive.configurado())
+        self.assertIn('ACERVO_DRIVE_OAUTH', drive.motivo_de_estar_desligado())
+
+    @patch('acervo.drive.build', object())
+    @override_settings(ACERVO_DRIVE_PASTA_ID='raiz',
+                       ACERVO_DRIVE_CREDENCIAIS='/tmp/sa.json')
+    def test_conta_de_servico_sozinha_basta(self):
+        self.assertTrue(drive.configurado())
+        self.assertEqual(drive.modo_de_autenticacao(), 'conta de serviço')
+
+    @patch('acervo.drive.build', object())
+    @override_settings(**{**OAUTH, 'ACERVO_DRIVE_CREDENCIAIS': '/tmp/sa.json'})
+    def test_conta_de_servico_tem_precedencia(self):
+        """Com os dois configurados, um tem que vencer de forma previsível."""
+        self.assertEqual(drive.modo_de_autenticacao(), 'conta de serviço')
+
+    @patch('acervo.drive.build', object())
+    @override_settings(**{**OAUTH, 'ACERVO_DRIVE_PASTA_ID': ''})
+    def test_sem_a_pasta_nao_adianta_ter_credencial(self):
+        self.assertFalse(drive.configurado())
+        self.assertIn('ACERVO_DRIVE_PASTA_ID', drive.motivo_de_estar_desligado())
+
+    @patch('acervo.drive.build', object())
+    @patch('acervo.drive.Credentials')
+    @override_settings(**OAUTH)
+    def test_a_credencial_oauth_guarda_so_o_refresh_token(self, fake):
+        """O access token dura 1 hora — guardá-lo no .env seria inútil.
+
+        A biblioteca obtém um novo a cada uso, a partir do refresh token.
+        """
+        drive._credenciais()
+        self.assertIsNone(fake.call_args.kwargs['token'])
+        self.assertEqual(fake.call_args.kwargs['refresh_token'], 'refresh')
