@@ -18,31 +18,23 @@ computador de alguém.
 SEMPRE rode com --dry-run primeiro. Ele não escreve nada e mostra exatamente o
 que entraria, o que ficaria de fora e por quê.
 """
-import re
 from pathlib import Path
 
 from django.core.files import File
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from acervo.forms import EXTENSOES_ACEITAS, TAMANHO_MAXIMO_MB
+from acervo.forms import TAMANHO_MAXIMO_MB
+from acervo.importacao import (ano_em, motivo_para_recusar, titulo_de)
 from acervo.models import Colecao, Documento
 from voluntario.models import Voluntario
 
-# Anos plausíveis para um documento do projeto. Serve para não confundir um
-# "2 vias" ou um telefone no nome do arquivo com o ano do documento.
-ANO_MINIMO = 1990
-ANO_MAXIMO = 2100
-_ANO = re.compile(r'(?<!\d)(19[9]\d|20\d\d)(?!\d)')
 
-LIMITE_BYTES = TAMANHO_MAXIMO_MB * 1024 * 1024
+def partes_do_caminho(caminho: Path, raiz: Path):
+    """Nomes a consultar em busca do ano, do mais específico para o mais genérico.
 
-
-def ano_do_caminho(caminho: Path, raiz: Path):
-    """Procura um ano no nome do arquivo e depois nas pastas acima dele.
-
-    Do mais específico para o mais genérico: "ata-2023.pdf" dentro de
-    "Postulações 2019/" é de 2023, não de 2019. Devolve None se não achar.
+    Nome do arquivo primeiro, depois as pastas de dentro para fora — é o que faz
+    "ata-2023.pdf" dentro de "Postulações 2019/" ser de 2023.
     """
     partes = [caminho.stem]
     atual = caminho.parent
@@ -50,25 +42,7 @@ def ano_do_caminho(caminho: Path, raiz: Path):
         partes.append(atual.name)
         atual = atual.parent
     partes.append(raiz.name)
-
-    for parte in partes:
-        achado = _ANO.search(parte)
-        if achado:
-            ano = int(achado.group(1))
-            if ANO_MINIMO <= ano <= ANO_MAXIMO:
-                return ano
-    return None
-
-
-def titulo_do_arquivo(caminho: Path) -> str:
-    """Nome de arquivo vira título legível.
-
-    "ata_reuniao-geral_2023.pdf" -> "ata reuniao geral 2023". Não tenta ser
-    esperto além disso: inventar capitalização em nome próprio erra mais do que
-    acerta, e o título é editável na tela depois.
-    """
-    bruto = caminho.stem.replace('_', ' ').replace('-', ' ')
-    return re.sub(r'\s+', ' ', bruto).strip()[:160] or caminho.name[:160]
+    return partes
 
 
 class Command(BaseCommand):
@@ -204,23 +178,18 @@ class Command(BaseCommand):
             if not resumo:
                 self.stdout.write(f'  PULADO  {relativo} — {detalhe or motivo}')
 
-        extensao = arquivo.suffix.lower().lstrip('.')
-        if extensao not in EXTENSOES_ACEITAS:
-            # Google Docs/Sheets/Slides caem aqui se vierem exportados em
-            # formato que o acervo não aceita, e é bom que caiam: importar
-            # arquivo que a tela não sabe abrir só enche o disco.
-            return pular(f'formato .{extensao or "sem extensão"} não aceito')
-
         tamanho = arquivo.stat().st_size
-        if tamanho > LIMITE_BYTES:
-            return pular(f'acima de {TAMANHO_MAXIMO_MB} MB',
-                         f'{tamanho / 1048576:.1f} MB — o limite é {TAMANHO_MAXIMO_MB} MB')
+        recusa = motivo_para_recusar(arquivo.name, tamanho)
+        if recusa:
+            detalhe = (f'{tamanho / 1048576:.1f} MB — o limite é {TAMANHO_MAXIMO_MB} MB'
+                       if 'acima de' in recusa else '')
+            return pular(recusa, detalhe)
 
-        ano = ano_do_caminho(arquivo, raiz) or ano_padrao
+        ano = ano_em(partes_do_caminho(arquivo, raiz)) or ano_padrao
         if ano is None:
             return pular('sem ano no nome do arquivo nem da pasta (use --ano)')
 
-        titulo = titulo_do_arquivo(arquivo)
+        titulo = titulo_de(arquivo.name)
 
         if colecao is not None and Documento.objects.filter(
                 colecao=colecao, titulo=titulo, ano=ano).exists():

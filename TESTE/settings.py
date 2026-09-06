@@ -209,6 +209,19 @@ VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
 VAPID_PRIVATE_KEY = config("VAPID_PRIVATE_KEY", default="")
 VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="")
 
+# ─── Acervo ← Google Drive ───
+# Conta de SERVIÇO, não OAuth de usuário: em app não verificado pelo Google, o
+# refresh token do OAuth expira em 7 dias e a sincronização pararia sozinha
+# toda semana. A conta de serviço não expira — basta compartilhar a pasta do
+# Drive com o e-mail dela como Leitor.
+#
+# ACERVO_DRIVE_CREDENCIAIS: caminho do JSON da chave, FORA do repositório.
+# ACERVO_DRIVE_PASTA_ID: o trecho depois de /folders/ na URL da pasta.
+# Vazios de propósito: sem eles o botão aparece desligado e explica o que falta,
+# em vez de o projeto quebrar em toda máquina que não tenha a credencial.
+ACERVO_DRIVE_CREDENCIAIS = config("ACERVO_DRIVE_CREDENCIAIS", default="")
+ACERVO_DRIVE_PASTA_ID = config("ACERVO_DRIVE_PASTA_ID", default="")
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -222,6 +235,11 @@ LOGGING = {
             'propagate': False,
         },
         'notificacoes': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'acervo': {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,

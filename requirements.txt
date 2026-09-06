@@ -35,3 +35,9 @@ ddgs==9.14.4
 # cryptography. Exige Python 3.10+ — o Dockerfile usa 3.11, mas CONFIRA a versão
 # da web app no PythonAnywhere antes de subir.
 pywebpush==2.4.0
+
+# Sincronizacao do Acervo com o Google Drive (acervo/drive.py). Autenticacao por
+# CONTA DE SERVICO: em app nao verificado, o refresh token do OAuth expira em 7
+# dias e a sincronizacao pararia sozinha toda semana.
+google-api-python-client==2.184.0
+google-auth==2.42.1

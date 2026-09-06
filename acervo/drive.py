@@ -1,0 +1,179 @@
+"""Conversa com o Google Drive. Só isto — nada de regra do Acervo aqui.
+
+A separação é o que torna a sincronização testável: `acervo/sincronizacao.py`
+recebe um cliente como argumento e não sabe se ele fala com o Google ou é um
+dublê de teste. Sem isso, testar a importação exigiria rede e credencial de
+verdade.
+
+Autenticação por CONTA DE SERVIÇO, e não OAuth de usuário. Motivo concreto: em
+app não verificado pelo Google, o refresh token do OAuth expira em 7 dias — a
+sincronização pararia sozinha toda semana e ninguém entenderia por quê. A conta
+de serviço não expira; basta compartilhar a pasta do Drive com o e-mail dela
+como Leitor.
+
+Import protegido pelo mesmo motivo do pywebpush em notificacoes/services.py:
+este módulo é alcançado pelo URLconf, e um ImportError aqui derrubaria o site
+inteiro se a dependência não estivesse instalada no servidor.
+"""
+import io
+import logging
+
+from django.conf import settings
+
+try:
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
+    from googleapiclient.http import MediaIoBaseDownload
+except ImportError:  # pragma: no cover - ambiente sem a dependência
+    service_account = None
+    build = None
+    MediaIoBaseDownload = None
+
+    class HttpError(Exception):
+        """Substituto para quando o google-api-python-client não está instalado."""
+
+logger = logging.getLogger('acervo')
+
+# Só leitura. A conta de serviço nunca precisa escrever no Drive, e pedir escopo
+# a mais é dar poder que ninguém vai usar.
+ESCOPOS = ['https://www.googleapis.com/auth/drive.readonly']
+
+TIPO_PASTA = 'application/vnd.google-apps.folder'
+
+# Arquivos nativos do Google não são arquivos: não têm bytes para baixar, só
+# podem ser EXPORTADOS. O Acervo aceita PDF, então é para PDF que exportamos.
+EXPORTAVEIS = {
+    'application/vnd.google-apps.document': 'application/pdf',
+    'application/vnd.google-apps.presentation': 'application/pdf',
+    'application/vnd.google-apps.spreadsheet': 'application/pdf',
+    'application/vnd.google-apps.drawing': 'application/pdf',
+}
+
+# Campos pedidos na listagem. Pedir só o necessário deixa a resposta menor e a
+# paginação mais rápida.
+CAMPOS = 'nextPageToken, files(id, name, mimeType, size, modifiedTime)'
+
+
+class DriveIndisponivel(Exception):
+    """A configuração está incompleta ou o Google recusou o acesso."""
+
+
+def configurado() -> bool:
+    return bool(
+        build is not None
+        and getattr(settings, 'ACERVO_DRIVE_CREDENCIAIS', '')
+        and getattr(settings, 'ACERVO_DRIVE_PASTA_ID', '')
+    )
+
+
+def motivo_de_estar_desligado() -> str:
+    """Frase única para log e para tela — o que exatamente falta."""
+    if build is None:
+        return ('google-api-python-client não instalado — rode '
+                'pip install -r requirements.txt no virtualenv do site')
+    faltando = [nome for nome in ('ACERVO_DRIVE_CREDENCIAIS', 'ACERVO_DRIVE_PASTA_ID')
+                if not getattr(settings, nome, '')]
+    if faltando:
+        return f"faltando no .env: {', '.join(faltando)}"
+    return ''
+
+
+def cliente():
+    """Serviço do Drive autenticado pela conta de serviço.
+
+    Levanta DriveIndisponivel quando falta configuração — quem chama transforma
+    isso em mensagem na tela, em vez de num traceback.
+    """
+    if not configurado():
+        raise DriveIndisponivel(motivo_de_estar_desligado())
+
+    credenciais = service_account.Credentials.from_service_account_file(
+        settings.ACERVO_DRIVE_CREDENCIAIS, scopes=ESCOPOS)
+    # cache_discovery=False: o cache em disco do discovery quebra em ambiente
+    # sem permissão de escrita e polui o log com avisos.
+    return build('drive', 'v3', credentials=credenciais, cache_discovery=False)
+
+
+def _listar(servico, consulta):
+    """Todos os itens de uma consulta, seguindo a paginação até o fim.
+
+    `supportsAllDrives` e `includeItemsFromAllDrives`: sem os dois, uma pasta
+    que vive num Drive compartilhado (não no "Meu Drive" de alguém) volta vazia,
+    sem erro nenhum — é o modo de falha mais confuso da API.
+    """
+    itens, pagina = [], None
+    while True:
+        resposta = servico.files().list(
+            q=consulta,
+            fields=CAMPOS,
+            pageToken=pagina,
+            pageSize=1000,
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True,
+        ).execute()
+        itens.extend(resposta.get('files', []))
+        pagina = resposta.get('nextPageToken')
+        if not pagina:
+            return itens
+
+
+def subpastas(servico, pasta_id):
+    """Pastas filhas diretas. Cada uma vira uma coleção do Acervo."""
+    return _listar(
+        servico,
+        f"'{pasta_id}' in parents and mimeType = '{TIPO_PASTA}' and trashed = false")
+
+
+def arquivos_da_arvore(servico, pasta_id, nome_da_pasta=''):
+    """Arquivos abaixo desta pasta, em qualquer profundidade.
+
+    A API não sabe buscar recursivamente: `'X' in parents` só devolve os filhos
+    diretos. Então descemos nível a nível.
+
+    Cada arquivo volta com a chave extra `pastas`: os nomes das pastas acima
+    dele, da mais interna para a mais externa. É disso que sai o ano quando o
+    nome do arquivo não tem — em "Postulações/2023/joao.pdf", o ano está na
+    pasta do meio, que uma varredura plana perderia.
+    """
+    encontrados = []
+    fila = [(pasta_id, [nome_da_pasta] if nome_da_pasta else [])]
+    vistas = {pasta_id}
+    while fila:
+        atual, caminho = fila.pop()
+        for item in _listar(servico, f"'{atual}' in parents and trashed = false"):
+            if item['mimeType'] == TIPO_PASTA:
+                # `vistas` protege contra atalho que aponta para uma pasta já
+                # visitada — sem isso, o laço não termina.
+                if item['id'] not in vistas:
+                    vistas.add(item['id'])
+                    fila.append((item['id'], [item['name']] + caminho))
+            else:
+                encontrados.append({**item, 'pastas': caminho})
+    return encontrados
+
+
+def nome_para_salvar(arquivo):
+    """Nome de arquivo com extensão, já considerando a exportação para PDF."""
+    nome = arquivo.get('name', 'sem-nome')
+    if arquivo.get('mimeType') in EXPORTAVEIS:
+        return f"{nome}.pdf" if not nome.lower().endswith('.pdf') else nome
+    return nome
+
+
+def baixar(servico, arquivo) -> bytes:
+    """Bytes do arquivo. Exporta para PDF se for nativo do Google."""
+    tipo = arquivo.get('mimeType')
+    if tipo in EXPORTAVEIS:
+        pedido = servico.files().export_media(
+            fileId=arquivo['id'], mimeType=EXPORTAVEIS[tipo])
+    else:
+        pedido = servico.files().get_media(
+            fileId=arquivo['id'], supportsAllDrives=True)
+
+    buffer = io.BytesIO()
+    baixador = MediaIoBaseDownload(buffer, pedido)
+    terminou = False
+    while not terminou:
+        _, terminou = baixador.next_chunk()
+    return buffer.getvalue()

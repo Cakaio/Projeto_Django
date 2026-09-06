@@ -90,6 +90,20 @@ class Documento(models.Model):
                                     null=True, blank=True, related_name='documentos_enviados')
     criado_em = models.DateTimeField(default=timezone.now)
 
+    # Identidade do arquivo no Google Drive, quando veio de lá.
+    #
+    # É isto que faz a sincronização não retrazer o que já entrou. Comparar por
+    # título e ano não serve: renomear o arquivo no Drive criaria um documento
+    # duplicado, e dois arquivos de nome igual em pastas diferentes se anulariam.
+    # O ID do Drive não muda quando o arquivo é renomeado ou movido.
+    #
+    # `null=True` (e não string vazia) porque `unique` conta strings vazias como
+    # iguais: dois documentos cadastrados na mão pela tela colidiriam.
+    origem_drive_id = models.CharField(
+        'ID no Google Drive', max_length=100, unique=True, null=True, blank=True,
+        editable=False,
+        help_text='Preenchido pela sincronização. Vazio em documento cadastrado na tela.')
+
     class Meta:
         # Mais recente primeiro: acervo se consulta a partir do que acabou de
         # acontecer, e é a postulação do ano passado que alguém vai querer ver.
@@ -119,3 +133,54 @@ class Documento(models.Model):
         """Só o sufixo, em maiúsculas, para o selo do arquivo na lista."""
         nome = (self.arquivo.name or '').rsplit('.', 1)
         return nome[-1].upper() if len(nome) == 2 else 'ARQUIVO'
+
+
+class SincronizacaoDrive(models.Model):
+    """Registro de cada rodada de sincronização com o Google Drive.
+
+    Existe por dois motivos concretos. Primeiro, a sincronização roda em thread
+    (o botão não pode segurar a resposta enquanto centenas de arquivos baixam),
+    então a tela precisa de algum lugar para ler o resultado depois. Segundo,
+    quando alguém disser "meu arquivo não apareceu no acervo", a resposta tem
+    que estar no sistema — e não no log do servidor, que ninguém da liderança
+    alcança.
+    """
+    RODANDO = 'RODANDO'
+    OK = 'OK'
+    ERRO = 'ERRO'
+    STATUS = (
+        (RODANDO, 'Em andamento'),
+        (OK, 'Concluída'),
+        (ERRO, 'Falhou'),
+    )
+
+    comecou_em = models.DateTimeField(default=timezone.now)
+    terminou_em = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS, default=RODANDO)
+
+    # Quem clicou. Fica vazio quando foi a tarefa agendada.
+    disparada_por = models.ForeignKey(
+        'voluntario.Voluntario', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='sincronizacoes_do_acervo')
+
+    trazidos = models.PositiveIntegerField(default=0)
+    pulados = models.PositiveIntegerField(default=0)
+    detalhe = models.TextField(blank=True, help_text='Resumo por coleção e motivos.')
+
+    class Meta:
+        ordering = ['-comecou_em']
+        verbose_name = 'sincronização com o Drive'
+        verbose_name_plural = 'sincronizações com o Drive'
+
+    def __str__(self):
+        return f'{self.comecou_em:%d/%m/%Y %H:%M} — {self.get_status_display()}'
+
+    @property
+    def automatica(self):
+        return self.disparada_por_id is None
+
+    @property
+    def duracao_em_segundos(self):
+        if not self.terminou_em:
+            return None
+        return int((self.terminou_em - self.comecou_em).total_seconds())

@@ -21,6 +21,8 @@ python manage.py shell              # Interactive Django shell
 # Management commands
 python manage.py lembrete_disponibilidade   # Daily: email + push to volunteers who haven't answered the poll (--dry-run available)
 python manage.py gerar_chaves_vapid         # One-off: generate the VAPID key pair for push (run on the server)
+python manage.py importar_acervo <pasta>    # Importa uma arvore de pastas para o Acervo (--dry-run, --resumo, --somente)
+python manage.py sincronizar_acervo_drive   # Daily: traz do Google Drive o que ainda nao esta no Acervo (--dry-run)
 python manage.py seed_sabado                # Seed Saturday event data
 python manage.py seed_admin                 # Seed admin volunteer user
 ```
@@ -132,6 +134,56 @@ Regras que já custaram bug:
   (`enquete-{pk}`) quando o novo aviso deve mesmo substituir o antigo.
 - O service worker é `templates/sw.js`, servido pelo Django — **não** está em
   `/static/`. Editá-lo exige bumpar `const VERSAO`, não `collectstatic`.
+
+## Acervo ← Google Drive
+
+O Acervo se enche por dois caminhos, e os dois usam as MESMAS regras
+(`acervo/importacao.py`) — não existe um jeito pelo botão e outro pelo comando.
+
+**Pasta local** (`importar_acervo`): baixe a pasta do Drive como .zip, e rode.
+Serve para migração e para lote vindo de qualquer lugar. Tem `--dry-run`,
+`--resumo`, `--somente`.
+
+**Sincronização automática** (`sincronizar_acervo_drive`, e o botão "Trazer do
+Drive" na tela do acervo): o Django lê o Drive direto. Incremental —
+`Documento.origem_drive_id` guarda o ID do arquivo no Drive, então o que já
+entrou nunca volta, mesmo que alguém renomeie ou mova o arquivo lá.
+
+Em ambos, cada subpasta do primeiro nível vira uma Coleção.
+
+Para ligar a sincronização:
+
+1. Google Cloud Console: criar projeto, ativar a **Google Drive API**, criar uma
+   **conta de serviço** e baixar o JSON da chave.
+2. Compartilhar a pasta do Drive com o e-mail da conta de serviço, como
+   **Leitor**. Ela não precisa ser dona de nada.
+3. Subir o JSON para o servidor, FORA do repositório, e apontar o `.env`:
+   `ACERVO_DRIVE_CREDENCIAIS=/home/pcf/segredos/drive.json`
+   `ACERVO_DRIVE_PASTA_ID=<o trecho depois de /folders/ na URL da pasta>`
+4. `pip install -r requirements.txt`, `migrate`, Reload.
+5. Scheduled Task diária: `manage.py sincronizar_acervo_drive`.
+
+Conta de serviço e não OAuth de usuário: em app não verificado pelo Google, o
+refresh token do OAuth expira em 7 dias e a sincronização pararia sozinha toda
+semana, sem ninguém entender por quê.
+
+Decisões que já custaram pensamento:
+- **`origem_drive_id` é `null=True`, não string vazia.** `unique` trata strings
+  vazias como iguais, e dois documentos cadastrados na tela colidiriam.
+- **O ano nunca é chutado.** Sai de um número de 4 dígitos no nome do arquivo e
+  depois nas pastas acima. Sem achar, o arquivo é pulado — a data de upload do
+  Drive é de quando alguém mexeu no arquivo, não do documento.
+- **`Documento.clean()` exige dizer de quem é o documento.** Veio da coleção de
+  postulações e não generaliza: a sincronização preenche com o nome do projeto.
+  Se o acervo passar a guardar muita coisa que não é de ninguém, o certo é
+  relaxar a regra por coleção, não seguir preenchendo.
+- **`arquivos_da_arvore` carrega os nomes das pastas** de cada arquivo. Sem
+  isso, "Postulações/2023/joao.pdf" perderia o ano, que está na pasta do meio.
+- **`supportsAllDrives` e `includeItemsFromAllDrives`** na listagem: sem os dois,
+  pasta em Drive compartilhado volta VAZIA, sem erro nenhum.
+- **O que os testes não cobrem:** autenticação real, exportação de Google Docs
+  pela API de verdade, paginação com muitos arquivos e Drive compartilhado.
+  `acervo/tests_drive.py` usa um dublê; essas partes só se provam no servidor.
 
 ## Conventions
 
