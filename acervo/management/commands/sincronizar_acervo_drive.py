@@ -66,7 +66,23 @@ class Command(BaseCommand):
         from django.conf import settings
 
         self.stdout.write(f'Pasta configurada: {settings.ACERVO_DRIVE_PASTA_ID}')
-        self.stdout.write(f'Credencial: {settings.ACERVO_DRIVE_CREDENCIAIS}')
+        self.stdout.write(f'Autenticando por: {drive.modo_de_autenticacao()}')
+
+        if settings.ACERVO_DRIVE_CREDENCIAIS:
+            self.stdout.write(f'  conta de serviço: {settings.ACERVO_DRIVE_CREDENCIAIS}')
+            if drive._tem_oauth():
+                # Erro fácil de cometer e difícil de perceber: colar as linhas
+                # do OAuth sem apagar a da conta de serviço. O código continua
+                # usando a conta de serviço e o sintoma é "configurei o OAuth e
+                # continua dando 404".
+                self.stdout.write(self.style.WARNING(
+                    '  ATENÇÃO: o OAuth também está configurado, mas a conta de '
+                    'serviço tem precedência e é ela que está sendo usada.\n'
+                    '  Para usar o OAuth, apague a linha ACERVO_DRIVE_CREDENCIAIS '
+                    'do .env.'))
+        else:
+            self.stdout.write(
+                f'  cliente OAuth: {settings.ACERVO_DRIVE_OAUTH_CLIENT_ID[:32]}...')
 
         try:
             servico = drive.cliente()
