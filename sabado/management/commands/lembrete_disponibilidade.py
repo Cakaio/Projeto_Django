@@ -1,47 +1,114 @@
-from django.core.management.base import BaseCommand
-from django.utils import timezone
-from django.core.mail import send_mail
-from sabado.models import Sabado, DisponibilidadeVoluntario
-from voluntario.models import Voluntario
-from notificacoes.services import enviar_push
+"""Cobra, todo dia, quem ainda não respondeu a enquete do próximo sábado.
+
+Feito para rodar em tarefa agendada no PythonAnywhere, UMA vez por dia — mesmo
+padrão de `editais/management/commands/buscar_editais.py`.
+
+Antes este comando disparava em um único dia por sábado (a condição era uma
+igualdade exata: `hoje == data - 4 dias`) e o texto dizia "fecha amanhã" —
+mentira em qualquer outro dia. Agora ele cobra todos os dias enquanto a enquete
+estiver aberta, e o texto diz quantos dias faltam de verdade.
+"""
 from django.conf import settings
-from datetime import timedelta
+from django.core.mail import send_mail
+from django.core.management.base import BaseCommand
+
+from notificacoes.services import enviar_push
+from sabado.notificacoes import (TITULO_LEMBRETE, corpo_do_lembrete,
+                                 quem_nao_respondeu, sabado_da_vez,
+                                 tag_da_enquete, url_da_enquete)
+
 
 class Command(BaseCommand):
-    help = 'Envia email para voluntários que não responderam o formulário de disponibilidade, 1 dia antes de fechar a enquete.'
+    help = ('Cobra quem ainda não respondeu a enquete de disponibilidade do '
+            'próximo sábado. Roda todo dia enquanto a enquete estiver aberta.')
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--dry-run', action='store_true',
+            help='Mostra quem receberia e não envia nada. Use para conferir em '
+                 'produção sem cobrar a equipe.',
+        )
 
     def handle(self, *args, **options):
-        hoje = timezone.now().date()
-        sabados = Sabado.objects.all()
-        for sabado in sabados:
-            data_fechamento = sabado.data - timedelta(days=3)
-            if data_fechamento - hoje == timedelta(days=1) and sabado.enquete_aberta:
-                voluntarios_que_responderam = DisponibilidadeVoluntario.objects.filter(sabado=sabado).values_list('voluntario_id', flat=True)
-                # Só voluntários ATIVOS: antes o lembrete ia para todo mundo já
-                # cadastrado, então quem saiu do projeto continuava recebendo
-                # cobrança para responder uma enquete que não é mais dele.
-                voluntarios = Voluntario.objects.ativos().exclude(id__in=voluntarios_que_responderam)
-                for voluntario in voluntarios:
-                    if voluntario.email:
-                        send_mail(
-                            subject=f"Lembrete: Responda sua disponibilidade para o sábado {sabado.data.strftime('%d/%m/%Y')}",
-                            message=f"Olá {voluntario.get_full_name() or voluntario.username},\n\nPor favor, responda o formulário de disponibilidade para o sábado {sabado.data.strftime('%d/%m/%Y')} antes do fechamento da enquete.\nAcesse o sistema para responder!",
-                            from_email=settings.DEFAULT_FROM_EMAIL,
-                            recipient_list=[voluntario.email],
-                            fail_silently=False,
-                        )
-                        self.stdout.write(self.style.SUCCESS(f"Email enviado para {voluntario.email}"))
+        seco = options['dry_run']
 
-                # Push para todo mundo que não respondeu — inclusive quem não
-                # tem e-mail cadastrado, que hoje não recebe lembrete nenhum.
-                # Comando agendado usa enviar_push SÍNCRONO: thread daemon
-                # morreria junto com o processo e a notificação sumiria.
-                data_fmt = sabado.data.strftime('%d/%m/%Y')
-                enviados = enviar_push(
-                    voluntarios,
-                    "Responda sua disponibilidade",
-                    f"A enquete do sábado {data_fmt} fecha amanhã.",
-                    url=f"/sabado/responder/{sabado.pk}/",
-                    tag=f"enquete-{sabado.pk}",
+        sabado = sabado_da_vez()
+        if sabado is None:
+            self.stdout.write('Nenhum sábado com enquete aberta. Nada a fazer.')
+            return
+
+        pendentes = list(quem_nao_respondeu(sabado))
+        data_fmt = sabado.data.strftime('%d/%m/%Y')
+        self.stdout.write(
+            f'Sábado {data_fmt} — fecha em {sabado.dias_para_fechar} dia(s). '
+            f'{len(pendentes)} pendente(s).'
+        )
+
+        if not pendentes:
+            return
+
+        if seco:
+            for voluntario in pendentes:
+                nome = voluntario.get_full_name() or voluntario.username
+                canais = []
+                if voluntario.email:
+                    canais.append('e-mail')
+                if voluntario.inscricoes_push.exists():
+                    canais.append('push')
+                self.stdout.write(
+                    f'  {nome} — {", ".join(canais) or "SEM CANAL NENHUM"}')
+            self.stdout.write(self.style.WARNING('--dry-run: nada foi enviado.'))
+            return
+
+        corpo = corpo_do_lembrete(sabado)
+
+        # O push vem ANTES do laço de e-mail, e não depois como era. O laço usava
+        # fail_silently=False: um endereço inválido ou o SMTP fora do ar levantava
+        # no meio dele, e ninguém dali para frente recebia e-mail E o push não
+        # saía para NINGUÉM. Num comando diário isso vira falha recorrente,
+        # visível só no log do servidor.
+        #
+        # Comando agendado usa enviar_push SÍNCRONO: a thread daemon do
+        # enviar_push_async morreria junto com o processo e a notificação sumiria.
+        enviados = enviar_push(
+            pendentes,
+            TITULO_LEMBRETE,
+            corpo,
+            url=url_da_enquete(sabado),
+            tag=tag_da_enquete(sabado),
+        )
+        self.stdout.write(self.style.SUCCESS(f'{enviados} push enviado(s).'))
+
+        sem_canal = 0
+        falhas = 0
+        for voluntario in pendentes:
+            if not voluntario.email:
+                sem_canal += 1
+                continue
+            nome = voluntario.get_full_name() or voluntario.username
+            try:
+                send_mail(
+                    subject=f'Lembrete: responda sua disponibilidade para {data_fmt}',
+                    message=(
+                        f'Olá {nome},\n\n{corpo}\n\n'
+                        f'Acesse o sistema para responder.'
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[voluntario.email],
+                    fail_silently=True,
                 )
-                self.stdout.write(self.style.SUCCESS(f"{enviados} push enviado(s)"))
+            except Exception as erro:
+                # fail_silently cobre queda de SMTP, mas não tudo: endereço
+                # malformado estoura na montagem da mensagem, antes de o backend
+                # ver a flag. Um voluntário com cadastro ruim não pode calar a
+                # cobrança de todos os que vêm depois dele na lista — e num
+                # comando diário essa lista é percorrida todo dia.
+                falhas += 1
+                self.stderr.write(f'E-mail falhou para {nome}: {erro}')
+
+        if sem_canal:
+            self.stdout.write(self.style.WARNING(
+                f'{sem_canal} pendente(s) sem e-mail cadastrado.'))
+        if falhas:
+            self.stdout.write(self.style.WARNING(
+                f'{falhas} e-mail(s) falharam — o push desses já tinha saído.'))

@@ -1,6 +1,6 @@
 # ronda/views.py
 from collections import OrderedDict
-from datetime import timedelta
+from datetime import time, timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -105,7 +105,7 @@ def painel(request):
         'aprovadas':  todas.filter(status='APROVADA').count(),
         'reprovadas': todas.filter(status='REPROVADA').count(),
     }
-    hoje = timezone.now().date()
+    hoje = timezone.localdate()
     proxima = (
         ConfiguracaoRondaSabado.objects
         .filter(status='APROVADA', sabado__data__gte=hoje)
@@ -276,7 +276,7 @@ def configuracao_detalhe(request, pk):
         'elegiveis': elegiveis,
         'scores': scores,
         'ultima_ronda': ultima_ronda,
-        'hoje': timezone.now().date(),
+        'hoje': timezone.localdate(),
         'confirmados': confirmados,
         'necessarios': necessarios,
         'pool_insuficiente': confirmados < necessarios,
@@ -299,6 +299,39 @@ def configuracao_sortear(request, pk):
     return redirect('ronda:configuracao_detalhe', pk=pk)
 
 
+def _avisar_escalados(cfg, escalas):
+    """Avisa cada escalado, com o local dele — pedido 4.
+
+    Uma notificação por PESSOA, não por escala: no modo normal o sorteio só
+    impede repetição dentro da mesma faixa de horário, então a mesma pessoa cai
+    em várias janelas da mesma ronda com frequência.
+
+    Não dispara para ronda de sábado que já passou: o seletor aceita sábados dos
+    últimos 30 dias, e aprovar retroativamente convocaria gente para uma ronda
+    que já aconteceu.
+    """
+    if cfg.sabado.data < timezone.localdate():
+        return
+
+    from notificacoes.services import enviar_push_individual_async
+
+    from .notificacoes import TITULO, URL_RONDA, mensagens_da_ronda
+
+    mensagens = mensagens_da_ronda(cfg, escalas)
+    if not mensagens:
+        return
+
+    enviar_push_individual_async(
+        mensagens,
+        TITULO,
+        url=URL_RONDA,
+        # Tag por ronda: se a Tríade reprovar e aprovar de novo, a notificação
+        # nova substitui a antiga em vez de a pessoa ficar com duas escalas
+        # conflitantes na bandeja.
+        tag=f"ronda-{cfg.pk}",
+    )
+
+
 @ronda_required
 def configuracao_aprovar(request, pk):
     cfg = get_object_or_404(ConfiguracaoRondaSabado, pk=pk)
@@ -306,13 +339,25 @@ def configuracao_aprovar(request, pk):
         if cfg.status != 'SORTEADA':
             messages.error(request, 'Só é possível aprovar rondas sorteadas.')
             return redirect('ronda:configuracao_detalhe', pk=pk)
+        from .notificacoes import escalas_da_configuracao
+
         ano = cfg.sabado.data.year
-        for escala in EscalaRonda.objects.filter(horario__configuracao=cfg):
+        # UMA query com select_related, reaproveitada pelo score E pela
+        # notificação. Antes eram duas passadas sem select_related: `escala.
+        # voluntario` custava uma query por escala.
+        escalas = escalas_da_configuracao(cfg)
+        for escala in escalas:
             ScoreRonda.incrementar(escala.voluntario, ano)
         cfg.status = 'APROVADA'
         cfg.aprovado_por = request.user
         cfg.aprovado_em = timezone.now()
         cfg.save(update_fields=['status', 'aprovado_por', 'aprovado_em'])
+
+        # A ronda "sai" exatamente aqui: só depois desta linha o status vira
+        # APROVADA e a tela pública (ronda_publica) passa a mostrá-la. Avisar
+        # antes levaria a pessoa para uma página que ainda não tem a escala.
+        _avisar_escalados(cfg, escalas)
+
         messages.success(request, 'Ronda aprovada e scores atualizados!')
     return redirect('ronda:configuracao_detalhe', pk=pk)
 
@@ -438,7 +483,7 @@ def ranking(request):
     ):
         ultima_map[e.voluntario_id] = e.horario.configuracao.sabado.data
 
-    hoje = timezone.now().date()
+    hoje = timezone.localdate()
     voluntarios = []
     for v in vols_qs:
         score_obj = scores_map.get(v.pk)
@@ -490,9 +535,15 @@ def ronda_publica(request):
     # Para cada config, agrupa horários por janela de tempo
     blocos = []
     for cfg in configuracoes:
+        # `hora_inicio or time.min`: o campo é opcional (obrigatoriamente nulo
+        # no dia de evento, e o formulário permite deixar vazio também no modo
+        # normal). Com uma linha sem horário e outra com, a comparação de tupla
+        # chega a `time` contra `None` e levanta TypeError — 500 nesta tela, que
+        # é justamente a que a notificação de ronda abre.
         horarios = sorted(
             cfg.horarios.all(),
-            key=lambda h: (h.hora_inicio, h.local.nome if h.local_id else '')
+            key=lambda h: (h.hora_inicio or time.min,
+                           h.local.nome if h.local_id else '')
         )
         janelas = OrderedDict()
         for h in horarios:

@@ -10,7 +10,7 @@ class Command(BaseCommand):
         from ronda.models import ConfiguracaoRondaSabado
         from ronda.sorteio import executar_sorteio
 
-        hoje = timezone.now().date()
+        hoje = timezone.localdate()
         if hoje.weekday() != 4:  # 4 = sexta-feira
             self.stdout.write(self.style.WARNING(
                 f'Hoje é {hoje.strftime("%A")} — este comando só executa às sextas. Nenhuma ação.'

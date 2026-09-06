@@ -202,7 +202,10 @@ class inicio(LoginRequiredMixin, TemplateView):
 
         sabados_qs = (
             Sabado.objects
-            .filter(data__gte=timezone.now().date())
+            # localdate(), não now().date(): o now() é UTC e depois das 21h de
+            # São Paulo o .date() já é amanhã — o sábado sumia do painel uma
+            # noite antes da hora, junto com o card "Responder".
+            .filter(data__gte=timezone.localdate())
             .order_by("data")
             .annotate(
                 respostas_count=Count(
@@ -238,7 +241,7 @@ class inicio(LoginRequiredMixin, TemplateView):
 
         context["proxima_ronda"] = (
             ConfiguracaoRondaSabado.objects
-            .filter(status='APROVADA', sabado__data__gte=timezone.now().date())
+            .filter(status='APROVADA', sabado__data__gte=timezone.localdate())
             .select_related('sabado')
             .order_by('sabado__data')
             .first()

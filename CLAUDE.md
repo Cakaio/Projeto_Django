@@ -19,7 +19,8 @@ python manage.py test <app>         # Run tests for a specific app
 python manage.py shell              # Interactive Django shell
 
 # Management commands
-python manage.py lembrete_disponibilidade   # Email volunteers who haven't filled availability form
+python manage.py lembrete_disponibilidade   # Daily: email + push to volunteers who haven't answered the poll (--dry-run available)
+python manage.py gerar_chaves_vapid         # One-off: generate the VAPID key pair for push (run on the server)
 python manage.py seed_sabado                # Seed Saturday event data
 python manage.py seed_admin                 # Seed admin volunteer user
 ```
@@ -47,7 +48,7 @@ Requires a `.env` file (loaded via `python-decouple`) with:
 - **Login**: Django's built-in `LoginView` → redirects to `inicio`; root `/` redirects to `/login/`
 - **Custom context processor**: `atendido.novos_context.atendidos_filtrados` — available in all templates
 - **Session**: 90-day cookie, persists across browser close (`SESSION_EXPIRE_AT_BROWSER_CLOSE = False`)
-- **Timezone**: `America/Sao_Paulo`; `USE_TZ = True` — always use `timezone.now()` not `datetime.now()`
+- **Timezone**: `America/Sao_Paulo`; `USE_TZ = True` — use `timezone.now()` not `datetime.now()` for **datetimes**, and `timezone.localdate()` not `timezone.now().date()` for **dates**. `timezone.now()` is UTC, so `.date()` on it rolls over to tomorrow after 21:00 local — which silently shifts anything comparing "today" to a date field (poll deadlines, scheduled commands, dashboards). Several call sites still use the wrong form; fix them as you touch them.
 
 ### Django Apps
 
@@ -81,7 +82,9 @@ When a volunteer is marked absent (`AUSENTE`) via the attendance registration vi
 Only volunteers in `TRIADE` or `GESTAO_DE_TALENTOS` areas can register volunteer attendance at `/voluntario/presencas/`. This is enforced in `RegistrarPresencasVoluntarios` view.
 
 ### Sabado Availability Poll
-`Sabado.enquete_aberta` (property) returns `True` if today is before `data - 1 day`. The management command `lembrete_disponibilidade` emails non-responders when the poll is 1 day from closing (3 days before the event).
+`Sabado.enquete_aberta` (property) returns `True` if today is before `data - 1 day` — this is the **single** closing rule; the view, the home page and the reminder command all consult it. The management command `lembrete_disponibilidade` runs **daily** while the poll is open, emailing and pushing to non-responders of the *nearest* open Saturday only. It takes `--dry-run`.
+
+Creating a `Sabado` in the Django admin pushes a notification to every active volunteer (`SabadoAdmin.save_model`) — that is what "opening the form" means, since there is no create view.
 
 ### Frontend
 The Django app uses standard HTML templates (`/templates/`) with:
@@ -95,6 +98,40 @@ A separate **Next.js 16 + React 19 + TailwindCSS 4 + shadcn/ui** frontend is als
 
 ### Data Import/Export
 `django-import-export` is installed and enabled for bulk Excel/CSV operations on `Atendido`, `Familia`, `ResponsavelAtendido`, and `AtendidoInclusivo` via the Django admin.
+
+## Notificações push (PWA)
+
+O app `notificacoes` implementa Web Push via VAPID. **O push só funciona se as
+três variáveis estiverem no `.env` do servidor** — sem elas `enviar_push` devolve
+0 e grava um aviso no log, sem erro visível em tela.
+
+Ordem obrigatória para ligar (a segunda depende da primeira):
+
+1. `pip install -r requirements.txt` no virtualenv da web app — `gerar_chaves_vapid`
+   importa `py_vapid`, que vem junto do `pywebpush`.
+2. `python manage.py gerar_chaves_vapid` **no servidor**, e colar as três linhas
+   no `.env`. Gerar de novo invalida TODAS as inscrições e obriga cada voluntário
+   a reativar as notificações no aparelho.
+3. `migrate`, `collectstatic --noinput`, Reload.
+4. Uma **Scheduled Task diária** chamando `manage.py lembrete_disponibilidade`.
+   Sem ela o lembrete da enquete nunca roda. Use `--dry-run` para conferir antes.
+
+Gatilhos ligados hoje: abertura da enquete (`SabadoAdmin.save_model`), lembrete
+diário da enquete (comando), novo pedido de reembolso e reembolso aprovado
+(`forms_pcf/views.py`), ronda aprovada (`ronda/views.py`), ocorrências
+(`voluntario/views.py`), pedido de material (`supply/views.py`) e avisos manuais.
+
+Regras que já custaram bug:
+- Comando agendado usa `enviar_push` **síncrono**; view usa `enviar_push_async`.
+  Thread daemon morre junto com o processo do comando.
+- O import de `notificacoes.services` dentro de views/admin é **local**, não no
+  topo: no topo ele entra na cadeia de carregamento dos apps e uma dependência
+  faltando derruba o site inteiro.
+- `tag` igual **substitui** a notificação anterior na bandeja. Use tag por
+  registro (`reembolso-{pk}`) quando cada evento importa, e tag fixa por assunto
+  (`enquete-{pk}`) quando o novo aviso deve mesmo substituir o antigo.
+- O service worker é `templates/sw.js`, servido pelo Django — **não** está em
+  `/static/`. Editá-lo exige bumpar `const VERSAO`, não `collectstatic`.
 
 ## Conventions
 

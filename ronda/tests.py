@@ -439,13 +439,14 @@ class SortearCommandTest(TestCase):
         cfg = ConfiguracaoRondaSabado.objects.create(sabado=sab)
         HorarioRonda.objects.create(configuracao=cfg, hora_inicio='08:00', hora_fim='09:00', ordem=1)
         [_vol(f'cmd{i}') for i in range(10)]
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
         import datetime as dt
         sexta = dt.date(2099, 1, 2)  # sexta-feira real
-        fake_now = MagicMock()
-        fake_now.date.return_value = sexta
+        # Dubla `localdate`, não `now().date()`: o comando é agendado e usa a
+        # data LOCAL. Com now().date() (UTC) uma execução às 22h de sexta já
+        # calcularia sábado e o sorteio não rodaria.
         with patch('ronda.management.commands.sortear_rondas.timezone') as mock_tz:
-            mock_tz.now.return_value = fake_now
+            mock_tz.localdate.return_value = sexta
             call_command('sortear_rondas')
         cfg.refresh_from_db()
         self.assertEqual(cfg.status, 'SORTEADA')
