@@ -694,3 +694,92 @@ class FalhaRegistradaTest(TestCase):
             sincronizacao.rodar()
 
         self.assertTrue(soltou.called)
+
+
+class RelatorioTest(BaseDrive):
+    """O relatório precisa dar o número que decide: quantos MB.
+
+    A primeira rodada real disse "12807 documentos" e não disse o tamanho —
+    inútil para saber se cabe no disco do servidor, e disco cheio no
+    PythonAnywhere derruba o site inteiro, não só a importação.
+    """
+
+    def test_o_total_em_mb_aparece_no_relatorio(self):
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1', tamanho=2 * 1024 * 1024)
+        self.drive.arquivo('a2', 'outra-2024.pdf', 'p1', tamanho=3 * 1024 * 1024)
+
+        placar = self.sincronizar(dry_run=True)
+        self.assertIn('5.0 MB', placar.texto())
+
+    def test_cada_colecao_mostra_o_proprio_tamanho(self):
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1', tamanho=2 * 1024 * 1024)
+        self.drive.pasta('p2', 'Fotos 2023')
+        self.drive.arquivo('a2', 'foto.jpg', 'p2', tamanho=4 * 1024 * 1024)
+
+        texto = self.sincronizar(dry_run=True).texto()
+        self.assertIn('Atas 2024: 1 novo(s), 2.0 MB', texto)
+        self.assertIn('Fotos 2023: 1 novo(s), 4.0 MB', texto)
+
+    def test_arquivo_do_google_e_contado_a_parte(self):
+        """Docs e Planilhas não informam tamanho — o total fica subestimado.
+
+        Fingir que o total é exato seria pior que admitir que não é.
+        """
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'Ata da reunião', 'p1',
+                           tipo='application/vnd.google-apps.document')
+
+        texto = self.sincronizar(dry_run=True).texto()
+        self.assertIn('subestimado', texto)
+
+    def test_a_lista_de_motivos_nao_vira_varias_telas(self):
+        """O acervo real gerou mais de 60 motivos, quase todos com 1 ocorrência.
+
+        A lista foi cortada no meio de uma palavra ao ser gravada no registro.
+        """
+        from acervo.sincronizacao import MOTIVOS_NO_RELATORIO
+
+        self.drive.pasta('p1', 'Atas 2024')
+        for i in range(MOTIVOS_NO_RELATORIO + 8):
+            self.drive.arquivo(f'a{i}', f'arq{i}.ext{i}', 'p1',
+                               tipo='application/octet-stream')
+
+        texto = self.sincronizar(dry_run=True).texto()
+        self.assertIn('e mais', texto)
+        self.assertLessEqual(
+            len([l for l in texto.splitlines() if l.strip().endswith('não aceito')]),
+            MOTIVOS_NO_RELATORIO)
+
+
+class ExtensaoTest(TestCase):
+    """Ponto no meio do nome não é extensão.
+
+    O acervo real tem "Vídeo 2. corolouco destruindo a cidade opção 2" e
+    "Reunião. 05/03/2021". Pegar cegamente tudo depois do último ponto
+    transformava a frase inteira em "extensão" e enchia o relatório de motivos
+    absurdos, um para cada arquivo.
+    """
+
+    def test_extensao_de_verdade_e_reconhecida(self):
+        from acervo.importacao import extensao_de
+        self.assertEqual(extensao_de('ata.pdf'), 'pdf')
+        self.assertEqual(extensao_de('foto.JPEG'), 'jpeg')
+
+    def test_frase_depois_do_ponto_nao_e_extensao(self):
+        from acervo.importacao import extensao_de
+        self.assertEqual(
+            extensao_de('Vídeo 2. corolouco destruindo a cidade opção 2'), '')
+
+    def test_data_depois_do_ponto_nao_e_extensao(self):
+        from acervo.importacao import extensao_de
+        self.assertEqual(extensao_de('Reunião. 05/03/2021'), '')
+
+    def test_arquivo_sem_ponto_nenhum(self):
+        from acervo.importacao import extensao_de
+        self.assertEqual(extensao_de('Documento sem extensao'), '')
+
+    def test_pdf_de_verdade_continua_entrando(self):
+        from acervo.importacao import motivo_para_recusar
+        self.assertIsNone(motivo_para_recusar('ata.pdf', 1000))

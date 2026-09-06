@@ -56,8 +56,22 @@ def titulo_de(nome_do_arquivo):
     return re.sub(r'\s+', ' ', bruto).strip()[:160] or nome_do_arquivo[:160]
 
 
+# Extensão de verdade é curta e alfanumérica. O acervo real tem muito arquivo
+# com ponto no MEIO do nome e sem extensão nenhuma — "Vídeo 2. corolouco
+# destruindo a cidade opção 2", "Reunião. 05/03/2021", "Áudio. tchau". Pegar
+# cegamente tudo depois do último ponto transformava a frase inteira em
+# "extensão" e enchia o relatório de motivos absurdos, um para cada arquivo.
+EXTENSAO_MAXIMA = 5
+
+
 def extensao_de(nome_do_arquivo):
-    return nome_do_arquivo.rsplit('.', 1)[-1].lower() if '.' in nome_do_arquivo else ''
+    """Sufixo do arquivo, ou string vazia quando não há extensão de verdade."""
+    if '.' not in nome_do_arquivo:
+        return ''
+    candidata = nome_do_arquivo.rsplit('.', 1)[-1].strip().lower()
+    if len(candidata) > EXTENSAO_MAXIMA or not candidata.isalnum():
+        return ''
+    return candidata
 
 
 def motivo_para_recusar(nome_do_arquivo, tamanho_em_bytes):

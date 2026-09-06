@@ -33,31 +33,77 @@ logger = logging.getLogger('acervo')
 DONO_PADRAO = 'Projeto Criança Feliz'
 
 
+# Quantos motivos diferentes cabem no relatório. O acervo real gerou mais de 60
+# motivos distintos, a maioria com uma ocorrência só — a lista virou várias
+# telas e foi cortada no meio de uma palavra ao ser gravada no registro.
+MOTIVOS_NO_RELATORIO = 12
+
+
 class Placar:
     """Contagem de uma rodada, e o texto que a tela vai mostrar."""
 
     def __init__(self):
         self.trazidos = 0
+        self.bytes = 0
+        # Arquivo nativo do Google (Docs, Planilhas) não informa tamanho pela
+        # API: só se sabe depois de exportar. Contá-los à parte é o que impede
+        # o total em MB de parecer exato quando não é.
+        self.sem_tamanho = 0
         self.motivos = {}
         self.por_colecao = []
 
     def pular(self, motivo):
         self.motivos[motivo] = self.motivos.get(motivo, 0) + 1
 
+    def contar(self, tamanho):
+        self.trazidos += 1
+        if tamanho is None:
+            self.sem_tamanho += 1
+        else:
+            self.bytes += tamanho
+
     @property
     def pulados(self):
         return sum(self.motivos.values())
 
-    def fechar_colecao(self, nome, quantos):
+    @property
+    def megabytes(self):
+        return self.bytes / (1024 * 1024)
+
+    def fechar_colecao(self, nome, quantos, bytes_da_colecao=0):
         if quantos:
-            self.por_colecao.append(f'{nome}: {quantos} novo(s)')
+            mb = bytes_da_colecao / (1024 * 1024)
+            self.por_colecao.append(f'{nome}: {quantos} novo(s), {mb:.1f} MB')
 
     def texto(self):
         linhas = list(self.por_colecao) or ['Nada novo no Drive.']
-        # Motivos agregados: "12x formato .mp4 não aceito" em vez de doze
-        # linhas iguais. É o que responde "por que meu arquivo não apareceu?".
-        for motivo, quantos in sorted(self.motivos.items(), key=lambda i: -i[1]):
-            linhas.append(f'{quantos}x {motivo}')
+
+        if self.trazidos:
+            # O total em MB é o número que decide se cabe no disco do servidor.
+            # Sem ele, "12807 documentos" não diz nada sobre o risco — e disco
+            # cheio no PythonAnywhere derruba o site inteiro, não só a
+            # importação.
+            linhas.append('')
+            linhas.append(
+                f'TOTAL: {self.trazidos} documento(s), {self.megabytes:.1f} MB')
+            if self.sem_tamanho:
+                linhas.append(
+                    f'  (+{self.sem_tamanho} arquivo(s) do Google sem tamanho '
+                    f'informado — o total acima está subestimado)')
+
+        if self.motivos:
+            linhas.append('')
+            linhas.append(f'PULADOS: {self.pulados}')
+            # Motivos agregados: "12x formato .mp4 não aceito" em vez de doze
+            # linhas iguais. É o que responde "por que meu arquivo não apareceu?".
+            ordenados = sorted(self.motivos.items(), key=lambda i: -i[1])
+            for motivo, quantos in ordenados[:MOTIVOS_NO_RELATORIO]:
+                linhas.append(f'  {quantos}x {motivo}')
+            resto = ordenados[MOTIVOS_NO_RELATORIO:]
+            if resto:
+                linhas.append(f'  e mais {sum(q for _, q in resto)} arquivo(s) '
+                              f'em {len(resto)} outros motivos')
+
         return '\n'.join(linhas)
 
 
@@ -156,6 +202,7 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
         arquivos = drive.arquivos_da_arvore(servico, pasta['id'], nome_colecao)
 
         novos = 0
+        bytes_da_colecao = 0
         colecao = None
 
         for arquivo in arquivos:
@@ -181,7 +228,8 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
 
             if dry_run:
                 novos += 1
-                placar.trazidos += 1
+                bytes_da_colecao += tamanho or 0
+                placar.contar(tamanho)
                 continue
 
             # A coleção só nasce quando o primeiro documento dela vai entrar.
@@ -205,9 +253,10 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
 
             ja_importados.add(arquivo['id'])
             novos += 1
-            placar.trazidos += 1
+            bytes_da_colecao += tamanho or 0
+            placar.contar(tamanho)
 
-        placar.fechar_colecao(nome_colecao, novos)
+        placar.fechar_colecao(nome_colecao, novos, bytes_da_colecao)
 
     return placar
 
