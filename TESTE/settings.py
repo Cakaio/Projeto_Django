@@ -244,6 +244,19 @@ ACERVO_DRIVE_IGNORAR = [
     if nome.strip()
 ]
 
+# Formatos que a SINCRONIZAÇÃO aceita, separados por vírgula. Vazio = o padrão
+# de `acervo.importacao.FORMATOS_DE_DOCUMENTO` (texto e planilha, sem imagem).
+#
+# É outro conjunto que o do formulário manual de propósito: no formulário uma
+# pessoa escolhe cada arquivo e sabe que aquela foto é a ficha digitalizada; na
+# varredura automática de um Drive de trabalho, "imagem" é foto de evento aos
+# milhares. Para aceitar imagem também, acrescente jpg,jpeg,png,webp aqui.
+ACERVO_DRIVE_FORMATOS = [
+    f.strip().lstrip('.').lower()
+    for f in config("ACERVO_DRIVE_FORMATOS", default="").split(",")
+    if f.strip()
+]
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

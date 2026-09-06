@@ -233,12 +233,19 @@ class FiltrosTest(BaseDrive):
 
     def test_formato_nao_aceito_e_pulado(self):
         self.drive.pasta('p1', 'Atas 2024')
-        self.drive.arquivo('a1', 'planilha.xlsx', 'p1',
-                           tipo='application/vnd.ms-excel')
+        self.drive.arquivo('a1', 'clipe.mp4', 'p1', tipo='video/mp4')
 
         placar = self.sincronizar()
         self.assertEqual(Documento.objects.count(), 0)
-        self.assertIn('.xlsx', placar.texto())
+        self.assertIn('.mp4', placar.texto())
+
+    def test_planilha_entra(self):
+        """1.001 .xlsx foram recusados no acervo real — planilha é documento."""
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'orcamento.xlsx', 'p1')
+
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 1)
 
     def test_arquivo_grande_demais_e_pulado_sem_baixar(self):
         """Recusar depois de baixar 200 MB seria desperdício puro."""
@@ -715,12 +722,12 @@ class RelatorioTest(BaseDrive):
     def test_cada_colecao_mostra_o_proprio_tamanho(self):
         self.drive.pasta('p1', 'Atas 2024')
         self.drive.arquivo('a1', 'ata.pdf', 'p1', tamanho=2 * 1024 * 1024)
-        self.drive.pasta('p2', 'Fotos 2023')
-        self.drive.arquivo('a2', 'foto.jpg', 'p2', tamanho=4 * 1024 * 1024)
+        self.drive.pasta('p2', 'Relatórios 2023')
+        self.drive.arquivo('a2', 'relatorio.pdf', 'p2', tamanho=4 * 1024 * 1024)
 
         texto = self.sincronizar(dry_run=True).texto()
         self.assertIn('Atas 2024: 1 novo(s), 2.0 MB', texto)
-        self.assertIn('Fotos 2023: 1 novo(s), 4.0 MB', texto)
+        self.assertIn('Relatórios 2023: 1 novo(s), 4.0 MB', texto)
 
     def test_arquivo_do_google_e_contado_a_parte(self):
         """Docs e Planilhas não informam tamanho — o total fica subestimado.
@@ -796,7 +803,7 @@ class PastaIgnoradaTest(BaseDrive):
     def setUp(self):
         super().setUp()
         self.drive.pasta('p1', 'a. Áreas')
-        self.drive.arquivo('a1', 'foto-2024.jpg', 'p1')
+        self.drive.arquivo('a1', 'relatorio-2024.pdf', 'p1')
         self.drive.pasta('p2', '1. 2018')
         self.drive.arquivo('a2', 'ata.pdf', 'p2')
 
@@ -831,3 +838,84 @@ class PastaIgnoradaTest(BaseDrive):
         """Não basta não importar: varrer 11.779 arquivos à toa custa minutos."""
         self.sincronizar()
         self.assertEqual(self.drive.baixados, ['a2'])
+
+
+class FormatosDaSincronizacaoTest(BaseDrive):
+    """A varredura automática é mais restrita que o formulário manual.
+
+    A diferença tem razão: no formulário uma pessoa escolhe cada arquivo e sabe
+    que aquela foto é a ficha de postulação digitalizada. Na varredura de um
+    Drive de trabalho, "imagem" é foto de evento aos milhares — no acervo real
+    eram 5,9 GB numa pasta só, e nenhum deles era documento.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.drive.pasta('p1', 'Atas 2024')
+
+    def test_imagem_nao_entra_pela_sincronizacao(self):
+        self.drive.arquivo('a1', 'foto.jpg', 'p1')
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 0)
+
+    def test_o_formulario_manual_continua_aceitando_imagem(self):
+        """Trava a diferença: mudar um não pode mudar o outro em silêncio."""
+        from acervo.forms import EXTENSOES_ACEITAS
+        self.assertIn('jpg', EXTENSOES_ACEITAS)
+
+    def test_documento_e_planilha_entram(self):
+        for i, nome in enumerate(['ata.pdf', 'oficio.docx', 'orcamento.xlsx',
+                                  'lista.csv', 'texto.odt']):
+            self.drive.arquivo(f'd{i}', nome, 'p1')
+
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 5)
+
+    def test_video_e_imagem_ficam_de_fora(self):
+        for i, nome in enumerate(['clipe.mp4', 'foto.jpg', 'arte.psd',
+                                  'audio.mp3', 'pacote.zip']):
+            self.drive.arquivo(f'x{i}', nome, 'p1',
+                               tipo='application/octet-stream')
+
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 0)
+
+    @override_settings(ACERVO_DRIVE_FORMATOS=['jpg', 'pdf'])
+    def test_o_env_manda_na_lista_de_formatos(self):
+        """Se a liderança quiser imagem também, é uma linha no .env."""
+        self.drive.arquivo('a1', 'foto.jpg', 'p1')
+        self.drive.arquivo('a2', 'orcamento.xlsx', 'p1')
+
+        self.sincronizar()
+        self.assertEqual(
+            list(Documento.objects.values_list('origem_drive_id', flat=True)),
+            ['a1'])
+
+
+class PastaEspecificaTest(BaseDrive):
+    """Apontar para uma pasta só, sem mexer no .env.
+
+    É como se começa devagar num acervo de 12.807 arquivos: traz uma pasta,
+    olha o resultado, e decide o resto.
+    """
+
+    def test_pasta_sem_subpasta_vira_ela_mesma_a_colecao(self):
+        """Sem isto, apontar para uma pasta folha não importaria nada."""
+        from acervo.sincronizacao import Placar, sincronizar
+
+        self.drive.arquivo('a1', 'ata-2024.pdf', 'alvo')
+        with patch('acervo.drive.metadados',
+                   return_value={'id': 'alvo', 'name': 'Documentos Oficiais'}):
+            sincronizar(self.drive, 'alvo', Placar())
+
+        self.assertTrue(Colecao.objects.filter(nome='Documentos Oficiais').exists())
+        self.assertEqual(Documento.objects.count(), 1)
+
+    def test_pasta_com_subpastas_continua_agrupando_por_subpasta(self):
+        from acervo.sincronizacao import Placar, sincronizar
+
+        self.drive.pasta('sub', '1. 2018', dentro_de='alvo')
+        self.drive.arquivo('a1', 'ata.pdf', 'sub')
+
+        sincronizar(self.drive, 'alvo', Placar())
+        self.assertTrue(Colecao.objects.filter(nome='2018').exists())

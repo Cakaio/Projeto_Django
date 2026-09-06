@@ -74,17 +74,37 @@ def extensao_de(nome_do_arquivo):
     return candidata
 
 
-def motivo_para_recusar(nome_do_arquivo, tamanho_em_bytes):
+# Formatos de DOCUMENTO: texto e planilha. É o conjunto que a sincronização
+# automática usa por padrão.
+#
+# Deliberadamente SEM imagem, ao contrário do formulário manual. A diferença tem
+# razão: no formulário uma pessoa escolhe cada arquivo e sabe que aquela foto é
+# a ficha de postulação digitalizada. Na varredura automática de um Drive de
+# trabalho, "imagem" é foto de evento aos milhares — no acervo real eram 5,9 GB
+# numa pasta só, e nenhum deles era documento.
+FORMATOS_DE_DOCUMENTO = (
+    'pdf',
+    'doc', 'docx', 'odt', 'rtf', 'txt',
+    'xls', 'xlsx', 'xlsm', 'ods', 'csv',
+)
+
+
+def motivo_para_recusar(nome_do_arquivo, tamanho_em_bytes, formatos=None):
     """Por que este arquivo não entra — ou None se entra.
+
+    `formatos` permite que a sincronização automática seja mais restrita que o
+    formulário manual. Sem ele, vale o que o formulário aceita.
 
     O texto devolvido é agregável: aparece igual para todos os arquivos com o
     mesmo problema, para o relatório poder dizer "12x formato .mp4 não aceito"
     em vez de listar doze linhas.
     """
+    aceitos = formatos if formatos is not None else EXTENSOES_ACEITAS
+
     extensao = extensao_de(nome_do_arquivo)
-    if extensao not in EXTENSOES_ACEITAS:
-        # Vídeo, planilha e afins caem aqui, e é bom que caiam: importar arquivo
-        # que a tela do acervo não sabe abrir só ocupa disco.
+    if extensao not in aceitos:
+        # Vídeo, imagem e afins caem aqui quando a lista é a de documentos:
+        # importar arquivo que não é documento só ocupa disco.
         return f'formato .{extensao or "sem extensão"} não aceito'
 
     if tamanho_em_bytes is not None and tamanho_em_bytes > LIMITE_BYTES:

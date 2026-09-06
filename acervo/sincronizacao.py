@@ -20,7 +20,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 
 from . import drive
-from .importacao import (ano_em, motivo_para_recusar,
+from .importacao import (FORMATOS_DE_DOCUMENTO, ano_em, motivo_para_recusar,
                         nome_e_ordem_da_pasta, titulo_de)
 from .models import Colecao, Documento, SincronizacaoDrive
 
@@ -170,6 +170,18 @@ def _trazer(servico, arquivo, colecao, ano, dono):
     return documento
 
 
+def formatos_aceitos():
+    """O que a sincronização aceita. Documento por padrão, sem imagem.
+
+    Separado do formulário manual de propósito: lá uma pessoa escolhe cada
+    arquivo e sabe que aquela foto é a ficha digitalizada; aqui é varredura
+    automática de um Drive de trabalho, onde "imagem" é foto de evento aos
+    milhares.
+    """
+    do_env = getattr(settings, 'ACERVO_DRIVE_FORMATOS', []) or []
+    return tuple(do_env) if do_env else FORMATOS_DE_DOCUMENTO
+
+
 def pastas_ignoradas(exceto=None):
     """Pastas do Drive que nunca entram, em minúsculas.
 
@@ -202,11 +214,21 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
     placar = placar or Placar()
     filtro = {p.strip().lower() for p in (somente or [])}
     ignorar = pastas_ignoradas(exceto)
+    formatos = formatos_aceitos()
 
     # Uma consulta só, antes de qualquer espera de rede.
     ja_importados = ids_ja_no_acervo()
 
-    for pasta in drive.subpastas(servico, pasta_raiz_id):
+    subpastas = drive.subpastas(servico, pasta_raiz_id)
+    if not subpastas:
+        # Pasta sem subpasta nenhuma: ela PRÓPRIA vira a coleção. Sem isto,
+        # apontar o comando para uma pasta folha não importaria nada e não
+        # explicaria por quê — e apontar para uma pasta específica é justamente
+        # como se começa devagar num acervo grande.
+        alvo = drive.metadados(servico, pasta_raiz_id)
+        subpastas = [{'id': pasta_raiz_id, 'name': alvo.get('name') or 'Acervo'}]
+
+    for pasta in subpastas:
         bruto = (pasta.get('name') or '').strip()
         nome_colecao, ordem = nome_e_ordem_da_pasta(bruto)
         if not nome_colecao:
@@ -238,7 +260,7 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
             # tamanho só se conhece depois. None desliga a checagem de tamanho.
             tamanho = int(arquivo['size']) if arquivo.get('size') else None
 
-            recusa = motivo_para_recusar(nome, tamanho)
+            recusa = motivo_para_recusar(nome, tamanho, formatos)
             if recusa:
                 placar.pular(recusa)
                 continue
@@ -283,7 +305,8 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
     return placar
 
 
-def rodar(disparada_por=None, dry_run=False, somente=None, exceto=None):
+def rodar(disparada_por=None, dry_run=False, somente=None, exceto=None,
+          pasta=None):
     """Uma rodada completa, com registro no banco do começo ao fim.
 
     O registro existe porque a sincronização roda em thread (o botão não pode
@@ -294,7 +317,7 @@ def rodar(disparada_por=None, dry_run=False, somente=None, exceto=None):
     registro = SincronizacaoDrive.objects.create(disparada_por=disparada_por)
     try:
         servico = drive.cliente()
-        placar = sincronizar(servico, settings.ACERVO_DRIVE_PASTA_ID,
+        placar = sincronizar(servico, pasta or settings.ACERVO_DRIVE_PASTA_ID,
                              dry_run=dry_run, somente=somente, exceto=exceto)
     except Exception as erro:
         logger.exception('Sincronização do acervo falhou')

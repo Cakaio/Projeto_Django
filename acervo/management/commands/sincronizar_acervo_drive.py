@@ -41,6 +41,11 @@ class Command(BaseCommand):
                  '(inclusive do botao e da tarefa agendada), use '
                  'ACERVO_DRIVE_IGNORAR no .env.')
         parser.add_argument(
+            '--pasta', default='',
+            help='ID de OUTRA pasta do Drive, so nesta rodada. Use para trazer '
+                 'uma pasta especifica sem mexer no .env. E o trecho depois de '
+                 '/folders/ na URL.')
+        parser.add_argument(
             '--contar', action='store_true',
             help='Com --verificar, conta os arquivos de cada pasta. Percorre a '
                  'árvore inteira no Drive e demora num acervo grande.')
@@ -55,7 +60,8 @@ class Command(BaseCommand):
             return self._verificar()
 
         registro = rodar(disparada_por=None, dry_run=opcoes['dry_run'],
-                         somente=opcoes['somente'], exceto=opcoes['exceto'])
+                         somente=opcoes['somente'], exceto=opcoes['exceto'],
+                         pasta=opcoes['pasta'])
 
         if registro.status == SincronizacaoDrive.ERRO:
             # Sai com código de erro para a tarefa agendada do PythonAnywhere
