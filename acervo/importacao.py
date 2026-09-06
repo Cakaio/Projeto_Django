@@ -77,3 +77,46 @@ def motivo_para_recusar(nome_do_arquivo, tamanho_em_bytes):
         return f'acima de {TAMANHO_MAXIMO_MB} MB'
 
     return None
+
+
+# Prefixo de ordenação que as pessoas põem no nome da pasta para o Drive
+# mostrar na ordem certa: "1. 2018", "a. Áreas", "b) Conselho".
+_PREFIXO_DE_ORDEM = re.compile(r'^\s*(\d{1,3}|[A-Za-z])\s*[.)]\s+')
+
+# Letras vêm depois dos números. No acervo do projeto os números são os anos
+# (1. 2018 … 8. 2025) e as letras são os temas (a. Áreas, b. Documentos…) —
+# a intenção de quem nomeou é justamente essa sequência.
+_DESLOCAMENTO_DAS_LETRAS = 100
+
+
+def nome_e_ordem_da_pasta(nome_da_pasta):
+    """Separa o nome da coleção do prefixo de ordenação.
+
+    "1. 2018"                 -> ("2018", 1)
+    "b.  Documentos Pontuais" -> ("Documentos Pontuais", 101)
+    "Conselho"                -> ("Conselho", 0)
+
+    O prefixo é convenção de tela do Drive, não nome. Levá-lo para o Acervo
+    daria coleções chamadas "1. 2018" — e pior, jogaria fora a ordem que a
+    pessoa quis expressar, porque a lista do acervo ordena por `ordem` e depois
+    por nome.
+
+    Prefixo repetido (há dois "b." e dois "d." nesta pasta) não é problema:
+    `ordem` empata e o desempate vira alfabético, que é o comportamento
+    razoável.
+    """
+    bruto = (nome_da_pasta or '').strip()
+    achado = _PREFIXO_DE_ORDEM.match(bruto)
+
+    ordem = 0
+    if achado:
+        marca = achado.group(1)
+        if marca.isdigit():
+            ordem = int(marca)
+        else:
+            ordem = _DESLOCAMENTO_DAS_LETRAS + (ord(marca.lower()) - ord('a'))
+        bruto = bruto[achado.end():]
+
+    # Espaço duplo é comum em nome digitado à mão ("b.  Documentos Pontuais").
+    nome = re.sub(r'\s+', ' ', bruto).strip()[:80]
+    return (nome or (nome_da_pasta or '').strip()[:80], ordem)

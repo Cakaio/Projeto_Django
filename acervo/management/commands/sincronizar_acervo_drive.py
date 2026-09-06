@@ -31,6 +31,10 @@ class Command(BaseCommand):
             help='Só testa a conexão: diz o que a credencial enxerga na pasta. '
                  'Use logo depois de configurar. É rápido.')
         parser.add_argument(
+            '--somente', action='append', default=[],
+            help='Traz só estas pastas (repita para várias). Aceita o nome com '
+                 'ou sem o prefixo de ordenação: "2018" ou "1. 2018".')
+        parser.add_argument(
             '--contar', action='store_true',
             help='Com --verificar, conta os arquivos de cada pasta. Percorre a '
                  'árvore inteira no Drive e demora num acervo grande.')
@@ -44,7 +48,8 @@ class Command(BaseCommand):
             self.contar = opcoes['contar']
             return self._verificar()
 
-        registro = rodar(disparada_por=None, dry_run=opcoes['dry_run'])
+        registro = rodar(disparada_por=None, dry_run=opcoes['dry_run'],
+                         somente=opcoes['somente'])
 
         if registro.status == SincronizacaoDrive.ERRO:
             # Sai com código de erro para a tarefa agendada do PythonAnywhere

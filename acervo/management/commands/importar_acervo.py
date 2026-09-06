@@ -25,7 +25,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from acervo.forms import TAMANHO_MAXIMO_MB
-from acervo.importacao import (ano_em, motivo_para_recusar, titulo_de)
+from acervo.importacao import (ano_em, motivo_para_recusar,
+                               nome_e_ordem_da_pasta, titulo_de)
 from acervo.models import Colecao, Documento
 from voluntario.models import Voluntario
 
@@ -123,7 +124,9 @@ class Command(BaseCommand):
 
     def _processar_colecao(self, subpasta, raiz, seco, ano_padrao, nome_padrao,
                            enviado_por, total, resumo):
-        nome = subpasta.name.strip()[:80]
+        # Mesmo tratamento do Drive: "1. 2018" vira nome "2018" com ordem 1.
+        # O prefixo e convencao de tela, nao nome de colecao.
+        nome, ordem = nome_e_ordem_da_pasta(subpasta.name)
         colecao = Colecao.objects.filter(nome=nome).first()
 
         self.stdout.write('')
@@ -134,6 +137,7 @@ class Command(BaseCommand):
         if colecao is None and not seco:
             colecao = Colecao.objects.create(
                 nome=nome,
+                ordem=ordem,
                 descricao='Importado do acervo digital do projeto.',
             )
             criada_agora = True

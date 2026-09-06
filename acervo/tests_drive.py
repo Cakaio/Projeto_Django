@@ -514,3 +514,103 @@ class ModoDeAutenticacaoTest(TestCase):
         drive._credenciais()
         self.assertIsNone(fake.call_args.kwargs['token'])
         self.assertEqual(fake.call_args.kwargs['refresh_token'], 'refresh')
+
+
+class PrefixoDeOrdenacaoTest(TestCase):
+    """"1. 2018" é ordem + nome, não nome.
+
+    A pasta real do projeto usa esse padrão: oito anos numerados e sete temas
+    com letra. Levar o prefixo para o Acervo daria coleções chamadas "1. 2018"
+    e jogaria fora a ordem que a pessoa quis expressar.
+    """
+
+    def test_numero_vira_ordem_e_sai_do_nome(self):
+        from acervo.importacao import nome_e_ordem_da_pasta
+        self.assertEqual(nome_e_ordem_da_pasta('1. 2018'), ('2018', 1))
+
+    def test_letra_ordena_depois_dos_numeros(self):
+        """No acervo real os números são anos e as letras são temas."""
+        from acervo.importacao import nome_e_ordem_da_pasta
+
+        _, ordem_do_ano = nome_e_ordem_da_pasta('8. 2025')
+        _, ordem_do_tema = nome_e_ordem_da_pasta('a. Áreas')
+        self.assertLess(ordem_do_ano, ordem_do_tema)
+
+    def test_espaco_duplo_e_normalizado(self):
+        """A pasta real tem "b.  Documentos Pontuais", com dois espaços."""
+        from acervo.importacao import nome_e_ordem_da_pasta
+        nome, _ = nome_e_ordem_da_pasta('b.  Documentos Pontuais')
+        self.assertEqual(nome, 'Documentos Pontuais')
+
+    def test_pasta_sem_prefixo_fica_intacta(self):
+        from acervo.importacao import nome_e_ordem_da_pasta
+        self.assertEqual(nome_e_ordem_da_pasta('Conselho'), ('Conselho', 0))
+
+    def test_prefixo_repetido_nao_quebra(self):
+        """Há dois "b." e dois "d." na pasta real — a ordem empata e tudo bem."""
+        from acervo.importacao import nome_e_ordem_da_pasta
+
+        _, um = nome_e_ordem_da_pasta('b.  Documentos Pontuais')
+        _, outro = nome_e_ordem_da_pasta('b. Documentos Oficiais')
+        self.assertEqual(um, outro)
+
+    def test_nome_que_e_so_prefixo_nao_vira_vazio(self):
+        """Coleção sem nome quebraria a tela; melhor manter o original."""
+        from acervo.importacao import nome_e_ordem_da_pasta
+        nome, _ = nome_e_ordem_da_pasta('7.')
+        self.assertTrue(nome.strip())
+
+
+class ColecaoComOrdemTest(BaseDrive):
+
+    def test_a_colecao_nasce_com_o_nome_limpo_e_a_ordem_do_prefixo(self):
+        self.drive.pasta('p1', '1. 2018')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+
+        self.sincronizar()
+
+        colecao = Colecao.objects.get(nome='2018')
+        self.assertEqual(colecao.ordem, 1)
+
+    def test_as_colecoes_saem_na_ordem_do_drive(self):
+        """Anos primeiro, temas depois — a ordem que a pessoa expressou."""
+        for pid, nome in (('p1', '8. 2025'), ('p2', 'a. Áreas'), ('p3', '1. 2018')):
+            self.drive.pasta(pid, nome)
+            self.drive.arquivo(f'arq-{pid}', 'doc-2020.pdf', pid)
+
+        self.sincronizar()
+
+        self.assertEqual(
+            list(Colecao.objects.exclude(nome='Postulações')
+                 .values_list('nome', flat=True)),
+            ['2018', '2025', 'Áreas'])
+
+
+class SomenteTest(BaseDrive):
+    """Trazer pasta por pasta, em vez de tudo de uma vez.
+
+    O acervo é aberto a todo voluntário logado, então o que entra é decisão da
+    liderança — pasta a pasta, olhando o que tem dentro.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.drive.pasta('p1', '1. 2018')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+        self.drive.pasta('p2', 'e. Conselho')
+        self.drive.arquivo('a2', 'ata-2024.pdf', 'p2')
+
+    def test_somente_traz_so_a_pasta_pedida(self):
+        self.sincronizar(somente=['2018'])
+
+        self.assertEqual(Documento.objects.count(), 1)
+        self.assertEqual(Documento.objects.get().origem_drive_id, 'a1')
+
+    def test_somente_aceita_o_nome_com_prefixo(self):
+        """Quem lê a lista do --verificar vê "1. 2018" e vai digitar isso."""
+        self.sincronizar(somente=['1. 2018'])
+        self.assertEqual(Documento.objects.count(), 1)
+
+    def test_sem_somente_traz_tudo(self):
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 2)

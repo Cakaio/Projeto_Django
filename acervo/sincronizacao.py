@@ -20,7 +20,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from . import drive
-from .importacao import ano_em, motivo_para_recusar, titulo_de
+from .importacao import (ano_em, motivo_para_recusar,
+                        nome_e_ordem_da_pasta, titulo_de)
 from .models import Colecao, Documento, SincronizacaoDrive
 
 logger = logging.getLogger('acervo')
@@ -64,12 +65,12 @@ def _ja_esta_no_acervo(drive_id):
     return Documento.objects.filter(origem_drive_id=drive_id).exists()
 
 
-def _colecao_para(nome, criar):
+def _colecao_para(nome, ordem, criar):
     colecao = Colecao.objects.filter(nome=nome).first()
     if colecao or not criar:
         return colecao
     return Colecao.objects.create(
-        nome=nome, descricao='Sincronizado do Google Drive.')
+        nome=nome, ordem=ordem, descricao='Sincronizado do Google Drive.')
 
 
 def _trazer(servico, arquivo, colecao, ano, dono):
@@ -92,18 +93,26 @@ def _trazer(servico, arquivo, colecao, ano, dono):
 
 
 def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
-                dono=DONO_PADRAO):
+                dono=DONO_PADRAO, somente=None):
     """Percorre o Drive e traz o que falta. Devolve o Placar.
 
     Cada subpasta do primeiro nível vira uma coleção, igual ao comando de pasta
     local — a estrutura que a liderança já mantém no Drive é a estrutura do
     acervo, e inventar outra só criaria duas verdades.
+
+    `somente` limita a essas pastas (nomes, com ou sem o prefixo de ordenação).
+    Serve para trazer pasta por pasta em vez de tudo de uma vez, que é como se
+    decide o que entra num acervo aberto a todo voluntário.
     """
     placar = placar or Placar()
+    filtro = {p.strip().lower() for p in (somente or [])}
 
     for pasta in drive.subpastas(servico, pasta_raiz_id):
-        nome_colecao = (pasta.get('name') or '').strip()[:80]
+        bruto = (pasta.get('name') or '').strip()
+        nome_colecao, ordem = nome_e_ordem_da_pasta(bruto)
         if not nome_colecao:
+            continue
+        if filtro and not {bruto.lower(), nome_colecao.lower()} & filtro:
             continue
 
         arquivos = drive.arquivos_da_arvore(servico, pasta['id'], nome_colecao)
@@ -140,7 +149,7 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
             # Assim uma pasta cujos arquivos foram todos recusados não deixa
             # coleção vazia na tela do acervo.
             if colecao is None:
-                colecao = _colecao_para(nome_colecao, criar=True)
+                colecao = _colecao_para(nome_colecao, ordem, criar=True)
 
             try:
                 _trazer(servico, arquivo, colecao, ano, dono)
@@ -163,7 +172,7 @@ def sincronizar(servico, pasta_raiz_id, placar=None, dry_run=False,
     return placar
 
 
-def rodar(disparada_por=None, dry_run=False):
+def rodar(disparada_por=None, dry_run=False, somente=None):
     """Uma rodada completa, com registro no banco do começo ao fim.
 
     O registro existe porque a sincronização roda em thread (o botão não pode
@@ -175,7 +184,7 @@ def rodar(disparada_por=None, dry_run=False):
     try:
         servico = drive.cliente()
         placar = sincronizar(servico, settings.ACERVO_DRIVE_PASTA_ID,
-                             dry_run=dry_run)
+                             dry_run=dry_run, somente=somente)
     except Exception as erro:
         registro.status = SincronizacaoDrive.ERRO
         registro.detalhe = str(erro)[:2000]
