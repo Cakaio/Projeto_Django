@@ -108,6 +108,13 @@ class EnviarReembolsoView(LoginRequiredMixin, FormView):
         pedido.status = 'PENDENTE'
         pedido.save()
         self._enviar_email(pedido)
+        # Chamada SEPARADA do e-mail, de propósito. O push morava dentro de
+        # _enviar_email, depois do `return` que sai quando não há nenhum
+        # ReceptorNotificacaoReembolso ativo cadastrado — ou seja, a notificação
+        # no celular dependia de existir um endereço numa tabela que não tem
+        # nada a ver com push, e o estado inicial do banco é justamente lista
+        # vazia. Separados, cada canal falha sozinho.
+        self._avisar_adm_por_push(pedido)
         return super().form_valid(form)
 
     def _enviar_email(self, pedido):
@@ -131,16 +138,31 @@ class EnviarReembolsoView(LoginRequiredMixin, FormView):
         )
         send_mail(assunto, corpo, settings.DEFAULT_FROM_EMAIL, receptores, fail_silently=True)
 
-        # Push além do e-mail, para quem cuida de dinheiro no projeto.
+    def _avisar_adm_por_push(self, pedido):
+        """Push além do e-mail, para quem decide sobre o dinheiro.
+
+        O público sai de REEMBOLSO_AREAS — a MESMA constante que
+        ReembolsoInboxView.dispatch usa para deixar entrar. Antes era uma lista
+        escrita à mão, `["SUPPLY", "ADM/FIN"]`, e SUPPLY não está em
+        REEMBOLSO_AREAS: a pessoa de SUPPLY recebia a notificação, tocava nela,
+        e caía num 403 na tela que a notificação prometia. De quebra, via o nome
+        do colega e o valor de um fluxo que não é da alçada dela.
+
+        Derivar da constante impede as duas pontas de divergirem de novo.
+        """
         from notificacoes.services import enviar_push_async
         from voluntario.models import Voluntario
 
+        nome = pedido.solicitante.get_full_name() or pedido.solicitante.username
         enviar_push_async(
-            Voluntario.objects.ativos().filter(area__in=["SUPPLY", "ADM/FIN"]),
+            Voluntario.objects.ativos().filter(area__in=REEMBOLSO_AREAS),
             "Novo pedido de reembolso",
             f"R$ {pedido.valor} — {nome}",
             url="/forms/reembolso/inbox/",
-            tag="reembolso",
+            # Tag POR PEDIDO. Com a tag fixa "reembolso", dois pedidos na mesma
+            # tarde viravam uma notificação só: a segunda substituía a primeira
+            # na bandeja e o primeiro pedido sumia sem nunca ter sido lido.
+            tag=f"reembolso-{pedido.pk}",
         )
 
 
@@ -214,6 +236,44 @@ def avisar_solicitante_da_aprovacao(pedido):
     return destino
 
 
+def avisar_solicitante_por_push(pedido):
+    """Notificação no celular de quem pediu, no instante da aprovação.
+
+    Fica FORA do try/except do e-mail de propósito: se o SMTP estiver fora do
+    ar, o `except` engoliria o push junto e a pessoa não saberia de nada por
+    canal nenhum. E sem try próprio porque `enviar_push` promete nunca levantar
+    (notificacoes/services.py) — o disparo é assíncrono e falha em silêncio, por
+    projeto.
+
+    O texto carrega a ressalva de que APROVADO NÃO É PAGO. É a mesma insistência
+    do e-mail, e pelo mesmo motivo: quem lê só "aprovado" entende "o dinheiro
+    caiu" e vai cobrar a ADM por um pagamento que ninguém prometeu para hoje. No
+    push o espaço é muito menor, então a ressalva precisa caber na primeira
+    linha — é a única que o Android mostra com a notificação recolhida.
+
+    Nada de prometer "você recebe outro aviso no app quando o dinheiro sair": o
+    aviso de pagamento existe (adm/views.py) mas é só por e-mail.
+    """
+    if not pedido.solicitante:
+        # `solicitante` é SET_NULL: um pedido de alguém removido do banco fica
+        # sem dono. Não é caso de erro — só não há para quem mandar.
+        return
+
+    from notificacoes.services import enviar_push_async
+
+    enviar_push_async(
+        [pedido.solicitante],
+        "Reembolso aprovado",
+        f"R$ {pedido.valor} aprovado. O pagamento ainda vai sair — "
+        f"você recebe um e-mail quando o dinheiro cair.",
+        # Não existe tela do voluntário ver os próprios reembolsos, e mandar
+        # para a caixa da ADM repetiria o erro do 403. A inicial é o destino
+        # honesto até essa tela existir.
+        url="/inicio/",
+        tag=f"reembolso-aprovado-{pedido.pk}",
+    )
+
+
 class AprovarReembolsoView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -230,6 +290,8 @@ class AprovarReembolsoView(LoginRequiredMixin, View):
         pedido.aprovado_em = timezone.now()
         pedido.save()
         messages.success(request, 'Reembolso aprovado.')
+
+        avisar_solicitante_por_push(pedido)
 
         # A aprovação já está no banco: nenhum problema de e-mail pode desfazê-la.
         # Por isso o except é largo — SMTP fora do ar, DNS, credencial expirada.

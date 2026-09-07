@@ -19,12 +19,22 @@ def responder_disponibilidade(request, sabado_id):
         messages.error(request, "⚠️ Esta enquete já foi encerrada.")
         return redirect("inicio")
 
-    # pega ou cria a resposta do voluntário (1 por sábado)
-    obj, created = DisponibilidadeVoluntario.objects.get_or_create(
-        sabado=sabado,
-        voluntario=request.user,
-        defaults={"vai_ao_projeto": False}
-    )
+    # Busca a resposta existente, se houver. NÃO cria no GET.
+    #
+    # Antes isto era um get_or_create fora do `if POST`: só ABRIR a tela já
+    # gravava uma resposta com vai_ao_projeto=False. A pessoa era contada como
+    # respondente em todo lugar (o resumo e o lembrete definem "respondeu" como
+    # "tem linha de disponibilidade"), e ainda aparecia para a liderança como
+    # "não vai ao projeto" sem nunca ter dito isso.
+    #
+    # Com o lembrete diário isso deixaria de ser azar e viraria regra: o push
+    # leva a pessoa à tela, ela olha, fecha sem enviar — e nunca mais é cobrada
+    # daquele sábado. Quanto melhor a notificação funcionasse, mais gente o bug
+    # engoliria.
+    obj = DisponibilidadeVoluntario.objects.filter(
+        sabado=sabado, voluntario=request.user
+    ).first()
+    created = obj is None
 
     if request.method == "POST":
         form = DisponibilidadeForm(request.POST, instance=obj)

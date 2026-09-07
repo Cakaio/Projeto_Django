@@ -153,11 +153,17 @@
         Imprimir
       </button>
       {% comment %}
+        ESTÚDIO DESLIGADO (a pedido, set/2026) — o time não vai usar o editor
+        por enquanto, então a revistinha volta a ter só imprimir/PDF/e-mail.
+        O app e os documentos continuam no lugar; para religar, é tirar este
+        bloco de comentário (e os de templates/sidebar.html e TESTE/views.py).
+
+        Nota do código original, preservada:
         Ponte com o estúdio: quando a revista ainda não tem layout livre, o
-        botão MONTA um a partir das seções (o texto vem dos semanários); quando
-        já tem, abre o editor. Dois botões diferentes confundiriam — é a mesma
-        intenção, "quero desenhar esta edição".
-      {% endcomment %}
+                botão MONTA um a partir das seções (o texto vem dos semanários); quando
+                já tem, abre o editor. Dois botões diferentes confundiriam — é a mesma
+                intenção, "quero desenhar esta edição".
+
       {% if revista.documento %}
         <a href="{% url 'estudio:editor' revista.documento.pk %}" class="pcf-btn pcf-btn-outline">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/></svg>
@@ -172,6 +178,7 @@
           </button>
         </form>
       {% endif %}
+      {% endcomment %}
       <a href="{% url 'revista:pdf' revista.pk %}" class="pcf-btn pcf-btn-outline">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Baixar PDF

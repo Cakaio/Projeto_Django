@@ -606,3 +606,50 @@ class CorrecoesDaRevisaoTests(TestCase):
         self.assertEqual(resposta.status_code, 200)
         self.assertIn('no-store', resposta['Cache-Control'])
         self.assertIn('noindex', resposta['X-Robots-Tag'])
+
+
+class EstudioDesligadoTests(TestCase):
+    """O botão do estúdio saiu da revistinha (set/2026), e o bloco que o
+    envolvia tinha um {% comment %} DENTRO.
+
+    Comentário do Django não aninha: se eu tivesse simplesmente embrulhado o
+    bloco, o template fecharia no primeiro {% endcomment %} e o resto do markup
+    vazaria como texto na tela — armadilha que este projeto já pegou antes.
+    """
+
+    def setUp(self):
+        import datetime
+        from django.test import RequestFactory
+        from revista.models import Revista
+        from voluntario.models import Voluntario
+
+        self.fabrica = RequestFactory()
+        self.cr = Voluntario.objects.create_user(
+            username='cr-estudio', password='x', area='CR/RE')
+        self.revista = Revista.objects.create(
+            titulo='Edição 25', periodo_inicio=datetime.date(2026, 3, 1),
+            periodo_fim=datetime.date(2026, 3, 31))
+
+    def _ver(self):
+        from revista.views import ver
+        requisicao = self.fabrica.get(f'/revista/{self.revista.pk}/')
+        requisicao.user = self.cr
+        return ver(requisicao, pk=self.revista.pk).content.decode()
+
+    def test_o_botao_do_estudio_sumiu(self):
+        html = self._ver()
+        self.assertNotIn('Gerar layout no estúdio', html)
+        self.assertNotIn('Abrir no estúdio', html)
+
+    def test_nada_do_comentario_vazou_para_a_tela(self):
+        """Se o comment tivesse fechado cedo, este texto apareceria para o CR."""
+        html = self._ver()
+        self.assertNotIn('ESTÚDIO DESLIGADO', html)
+        self.assertNotIn('endcomment', html)
+        self.assertNotIn('Nota do código original', html)
+
+    def test_o_resto_da_barra_continua_de_pe(self):
+        """Comentar o botão não pode levar os vizinhos junto."""
+        html = self._ver()
+        self.assertIn('Baixar PDF', html)
+        self.assertIn('Imprimir', html)

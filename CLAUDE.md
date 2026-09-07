@@ -19,7 +19,10 @@ python manage.py test <app>         # Run tests for a specific app
 python manage.py shell              # Interactive Django shell
 
 # Management commands
-python manage.py lembrete_disponibilidade   # Email volunteers who haven't filled availability form
+python manage.py lembrete_disponibilidade   # Daily: email + push to volunteers who haven't answered the poll (--dry-run available)
+python manage.py gerar_chaves_vapid         # One-off: generate the VAPID key pair for push (run on the server)
+python manage.py importar_acervo <pasta>    # Importa uma arvore de pastas para o Acervo (--dry-run, --resumo, --somente)
+python manage.py sincronizar_acervo_drive   # Daily: traz do Google Drive o que ainda nao esta no Acervo (--dry-run)
 python manage.py seed_sabado                # Seed Saturday event data
 python manage.py seed_admin                 # Seed admin volunteer user
 ```
@@ -47,7 +50,7 @@ Requires a `.env` file (loaded via `python-decouple`) with:
 - **Login**: Django's built-in `LoginView` → redirects to `inicio`; root `/` redirects to `/login/`
 - **Custom context processor**: `atendido.novos_context.atendidos_filtrados` — available in all templates
 - **Session**: 90-day cookie, persists across browser close (`SESSION_EXPIRE_AT_BROWSER_CLOSE = False`)
-- **Timezone**: `America/Sao_Paulo`; `USE_TZ = True` — always use `timezone.now()` not `datetime.now()`
+- **Timezone**: `America/Sao_Paulo`; `USE_TZ = True` — use `timezone.now()` not `datetime.now()` for **datetimes**, and `timezone.localdate()` not `timezone.now().date()` for **dates**. `timezone.now()` is UTC, so `.date()` on it rolls over to tomorrow after 21:00 local — which silently shifts anything comparing "today" to a date field (poll deadlines, scheduled commands, dashboards). Several call sites still use the wrong form; fix them as you touch them.
 
 ### Django Apps
 
@@ -81,7 +84,9 @@ When a volunteer is marked absent (`AUSENTE`) via the attendance registration vi
 Only volunteers in `TRIADE` or `GESTAO_DE_TALENTOS` areas can register volunteer attendance at `/voluntario/presencas/`. This is enforced in `RegistrarPresencasVoluntarios` view.
 
 ### Sabado Availability Poll
-`Sabado.enquete_aberta` (property) returns `True` if today is before `data - 1 day`. The management command `lembrete_disponibilidade` emails non-responders when the poll is 1 day from closing (3 days before the event).
+`Sabado.enquete_aberta` (property) returns `True` if today is before `data - 1 day` — this is the **single** closing rule; the view, the home page and the reminder command all consult it. The management command `lembrete_disponibilidade` runs **daily** while the poll is open, emailing and pushing to non-responders of the *nearest* open Saturday only. It takes `--dry-run`.
+
+Creating a `Sabado` in the Django admin pushes a notification to every active volunteer (`SabadoAdmin.save_model`) — that is what "opening the form" means, since there is no create view.
 
 ### Frontend
 The Django app uses standard HTML templates (`/templates/`) with:
@@ -95,6 +100,134 @@ A separate **Next.js 16 + React 19 + TailwindCSS 4 + shadcn/ui** frontend is als
 
 ### Data Import/Export
 `django-import-export` is installed and enabled for bulk Excel/CSV operations on `Atendido`, `Familia`, `ResponsavelAtendido`, and `AtendidoInclusivo` via the Django admin.
+
+## Notificações push (PWA)
+
+O app `notificacoes` implementa Web Push via VAPID. **O push só funciona se as
+três variáveis estiverem no `.env` do servidor** — sem elas `enviar_push` devolve
+0 e grava um aviso no log, sem erro visível em tela.
+
+Ordem obrigatória para ligar (a segunda depende da primeira):
+
+1. `pip install -r requirements.txt` no virtualenv da web app — `gerar_chaves_vapid`
+   importa `py_vapid`, que vem junto do `pywebpush`.
+2. `python manage.py gerar_chaves_vapid` **no servidor**, e colar as três linhas
+   no `.env`. Gerar de novo invalida TODAS as inscrições e obriga cada voluntário
+   a reativar as notificações no aparelho.
+3. `migrate`, `collectstatic --noinput`, Reload.
+4. Uma **Scheduled Task diária** chamando `manage.py lembrete_disponibilidade`.
+   Sem ela o lembrete da enquete nunca roda. Use `--dry-run` para conferir antes.
+
+Gatilhos ligados hoje: abertura da enquete (`SabadoAdmin.save_model`), lembrete
+diário da enquete (comando), novo pedido de reembolso e reembolso aprovado
+(`forms_pcf/views.py`), ronda aprovada (`ronda/views.py`), ocorrências
+(`voluntario/views.py`), pedido de material (`supply/views.py`) e avisos manuais.
+
+Regras que já custaram bug:
+- Comando agendado usa `enviar_push` **síncrono**; view usa `enviar_push_async`.
+  Thread daemon morre junto com o processo do comando.
+- O import de `notificacoes.services` dentro de views/admin é **local**, não no
+  topo: no topo ele entra na cadeia de carregamento dos apps e uma dependência
+  faltando derruba o site inteiro.
+- `tag` igual **substitui** a notificação anterior na bandeja. Use tag por
+  registro (`reembolso-{pk}`) quando cada evento importa, e tag fixa por assunto
+  (`enquete-{pk}`) quando o novo aviso deve mesmo substituir o antigo.
+- O service worker é `templates/sw.js`, servido pelo Django — **não** está em
+  `/static/`. Editá-lo exige bumpar `const VERSAO`, não `collectstatic`.
+
+## Acervo ← Google Drive
+
+O Acervo se enche por dois caminhos, e os dois usam as MESMAS regras
+(`acervo/importacao.py`) — não existe um jeito pelo botão e outro pelo comando.
+
+**Pasta local** (`importar_acervo`): baixe a pasta do Drive como .zip, e rode.
+Serve para migração e para lote vindo de qualquer lugar. Tem `--dry-run`,
+`--resumo`, `--somente`.
+
+**Sincronização automática** (`sincronizar_acervo_drive`, e o botão "Trazer do
+Drive" na tela do acervo): o Django lê o Drive direto. Incremental —
+`Documento.origem_drive_id` guarda o ID do arquivo no Drive, então o que já
+entrou nunca volta, mesmo que alguém renomeie ou mova o arquivo lá.
+
+Em ambos, cada subpasta do primeiro nível vira uma Coleção.
+
+**Dois modos de autenticação.** A escolha depende de uma coisa só: quem
+configura tem direito de COMPARTILHAR a pasta do Drive?
+
+*Conta de serviço* — o PCF é uma identidade própria; alguém precisa compartilhar
+a pasta com o e-mail dela. Preferível quando possível: não depende de nenhuma
+pessoa continuar no projeto.
+
+*OAuth de usuário* — o PCF lê o Drive COMO uma pessoa, com a permissão que ela
+já tem. É a saída quando a pasta é da organização e quem configura consegue LER
+mas não consegue COMPARTILHAR (o Google mostra "Pedir para compartilhar" no
+diálogo, e `files.get` no ID da pasta devolve 404 para a conta de serviço).
+Custo: o acesso morre se a pessoa sair da organização ou revogar a permissão.
+
+Se as duas estiverem no `.env`, a conta de serviço vence.
+
+Para ligar com CONTA DE SERVIÇO:
+
+1. Google Cloud Console: criar projeto, ativar a **Google Drive API**, criar uma
+   **conta de serviço** e baixar o JSON da chave.
+2. Compartilhar a pasta do Drive com o e-mail dela, como **Leitor**.
+3. Subir o JSON para o servidor, FORA do repositório, e no `.env`:
+   `ACERVO_DRIVE_CREDENCIAIS=/home/pcf/segredos/drive.json`
+   `ACERVO_DRIVE_PASTA_ID=<o trecho depois de /folders/ na URL da pasta>`
+
+Para ligar com OAUTH:
+
+1. Google Cloud Console: ativar a **Google Drive API** e criar um **OAuth client
+   ID** do tipo "App para computador"; baixar o JSON.
+2. Na MÁQUINA de quem tem acesso à pasta (precisa de navegador):
+   `python manage.py autorizar_acervo_drive client_secret.json`
+3. Colar as três linhas `ACERVO_DRIVE_OAUTH_*` que ele imprime no `.env` do
+   servidor, junto com `ACERVO_DRIVE_PASTA_ID`.
+
+**Publique a tela de consentimento OAuth ("In production").** Em "Testing", o
+Google expira o refresh token em 7 dias e a sincronização para sozinha toda
+semana, sem erro visível.
+
+Depois, em qualquer um dos modos:
+
+4. `pip install -r requirements.txt`, `migrate`, Reload.
+5. `manage.py sincronizar_acervo_drive --verificar` — diagnostica a conexão.
+6. Scheduled Task diária: `manage.py sincronizar_acervo_drive`.
+
+`ACERVO_DRIVE_IGNORAR` no `.env` (nomes separados por vírgula) exclui pastas de
+vez. Precisa ser configuração, e não flag: o botão da tela e a tarefa agendada
+não passam flag nenhuma, então uma exclusão feita só no comando seria desfeita
+na primeira rodada automática. `--exceto` exclui só naquela rodada. A exclusão
+permanente vence o `--somente`.
+
+A sincronização aceita **só documento e planilha** (`FORMATOS_DE_DOCUMENTO` em
+`acervo/importacao.py`), diferente do formulário manual, que aceita imagem. A
+diferença tem razão: no formulário uma pessoa escolhe cada arquivo e sabe que
+aquela foto é a ficha digitalizada; na varredura automática de um Drive de
+trabalho, "imagem" é foto de evento aos milhares — no acervo real eram 5,9 GB
+numa pasta só. `ACERVO_DRIVE_FORMATOS` no `.env` sobrepõe a lista.
+
+`--pasta` e `ACERVO_DRIVE_PASTA_ID` aceitam a URL inteira do Drive, não só o ID:
+`l` e `1` são indistinguíveis a olho nu num ID, e digitá-lo à mão já gerou um
+404 que parecia problema de permissão.
+
+Decisões que já custaram pensamento:
+- **`origem_drive_id` é `null=True`, não string vazia.** `unique` trata strings
+  vazias como iguais, e dois documentos cadastrados na tela colidiriam.
+- **O ano nunca é chutado.** Sai de um número de 4 dígitos no nome do arquivo e
+  depois nas pastas acima. Sem achar, o arquivo é pulado — a data de upload do
+  Drive é de quando alguém mexeu no arquivo, não do documento.
+- **`Documento.clean()` exige dizer de quem é o documento.** Veio da coleção de
+  postulações e não generaliza: a sincronização preenche com o nome do projeto.
+  Se o acervo passar a guardar muita coisa que não é de ninguém, o certo é
+  relaxar a regra por coleção, não seguir preenchendo.
+- **`arquivos_da_arvore` carrega os nomes das pastas** de cada arquivo. Sem
+  isso, "Postulações/2023/joao.pdf" perderia o ano, que está na pasta do meio.
+- **`supportsAllDrives` e `includeItemsFromAllDrives`** na listagem: sem os dois,
+  pasta em Drive compartilhado volta VAZIA, sem erro nenhum.
+- **O que os testes não cobrem:** autenticação real, exportação de Google Docs
+  pela API de verdade, paginação com muitos arquivos e Drive compartilhado.
+  `acervo/tests_drive.py` usa um dublê; essas partes só se provam no servidor.
 
 ## Conventions
 

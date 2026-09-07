@@ -4,7 +4,8 @@
 {% block content %}
 {% comment %}
   Layout desta tela (prefixo .acv-). O visual base vem das classes .pcf-*.
-  Contexto: colecoes (com `quantos`), pode_mexer, total.
+  Contexto: colecoes (com `quantos`), pode_mexer, total,
+  drive_ligado, drive_rodando, drive_aviso.
 {% endcomment %}
 <style>
   .acv-wrap { padding-block: clamp(2rem, 5vw, 3.25rem) clamp(2.5rem, 6vw, 4rem); }
@@ -38,6 +39,7 @@
   @media (max-width: 560px) {
     .acv-acoes { width: 100%; }
     .acv-acoes .pcf-btn { flex: 1; justify-content: center; }
+    .acv-nota-drive p { margin: 0; font-size: .88rem; color: #5b5b5b; }
   }
 </style>
 
@@ -59,9 +61,24 @@
           Novo documento
         </a>
         <a href="{% url 'acervo:colecao_criar' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Nova coleção</a>
+        {% if drive_ligado %}
+          <form method="post" action="{% url 'acervo:sincronizar_drive' %}" style="display:contents">
+            {% csrf_token %}
+            <button type="submit" class="pcf-btn pcf-btn-outline pcf-btn-sm"
+                    {% if drive_rodando %}disabled{% endif %}>
+              {% if drive_rodando %}Buscando...{% else %}Trazer do Drive{% endif %}
+            </button>
+          </form>
+        {% endif %}
       </div>
     {% endif %}
   </header>
+
+  {% if pode_mexer and drive_aviso %}
+    <div class="acv-nota acv-nota-drive" data-reveal>
+      <p>{{ drive_aviso }}</p>
+    </div>
+  {% endif %}
 
   <div class="acv-nota" data-reveal>
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c9490a" stroke-width="1.9" aria-hidden="true" style="flex-shrink:0;margin-top:.1rem"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>

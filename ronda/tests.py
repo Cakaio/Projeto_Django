@@ -71,11 +71,19 @@ class SorteioAlgoritmoTest(TestCase):
         import datetime
         self.sabado = Sabado.objects.create(data=datetime.date(2099, 1, 4), tema='T', descricao='D')
         self.cfg = ConfiguracaoRondaSabado.objects.create(sabado=self.sabado)
-        self.horario = HorarioRonda.objects.create(
-            configuracao=self.cfg, hora_inicio='08:00', hora_fim='09:00', ordem=1
-        )
+        self.horarios = [
+            HorarioRonda.objects.create(
+                configuracao=self.cfg, local=local,
+                hora_inicio='08:00', hora_fim='09:00', ordem=ordem,
+            )
+            for ordem, local in enumerate(LocalRonda.objects.filter(ativo=True))
+        ]
+        self.horario = self.horarios[0]
         # 10 voluntários elegíveis (área AZUL)
         self.vols = [_vol(f'sv{i}') for i in range(10)]
+        from sabado.models import DisponibilidadeVoluntario
+        for vol in self.vols:
+            DisponibilidadeVoluntario.objects.create(sabado=self.sabado, voluntario=vol, vai_ao_projeto=True)
 
     def test_sorteia_2_por_local(self):
         from ronda.models import LocalRonda, EscalaRonda
@@ -83,7 +91,7 @@ class SorteioAlgoritmoTest(TestCase):
         executar_sorteio(self.cfg)
         locais = LocalRonda.objects.filter(ativo=True)
         for local in locais:
-            count = EscalaRonda.objects.filter(horario=self.horario, local=local).count()
+            count = EscalaRonda.objects.filter(horario__configuracao=self.cfg, local=local).count()
             self.assertEqual(count, 2)
 
     def test_status_muda_para_sorteada(self):
@@ -104,7 +112,7 @@ class SorteioAlgoritmoTest(TestCase):
         from ronda.sorteio import executar_sorteio
         executar_sorteio(self.cfg)
         vols_escalados = list(EscalaRonda.objects.filter(
-            horario=self.horario
+            horario__configuracao=self.cfg
         ).values_list('voluntario_id', flat=True))
         self.assertEqual(len(vols_escalados), len(set(vols_escalados)))
 
@@ -195,7 +203,7 @@ class ConfiguracaoCriarTest(TestCase):
         self.sabado = Sabado.objects.create(data=datetime.date(2099, 4, 5), tema='T', descricao='D')
 
     def test_criar_configuracao_com_horario(self):
-        from ronda.models import ConfiguracaoRondaSabado, HorarioRonda
+        from ronda.models import ConfiguracaoRondaSabado, HorarioRonda, LocalRonda
         resp = self.client.post(reverse('ronda:configuracao_criar'), {
             'sabado': self.sabado.pk,
             'horarios-TOTAL_FORMS': '1',
@@ -204,6 +212,7 @@ class ConfiguracaoCriarTest(TestCase):
             'horarios-MAX_NUM_FORMS': '1000',
             'horarios-0-hora_inicio': '08:00',
             'horarios-0-hora_fim': '09:00',
+            'horarios-0-local': LocalRonda.objects.get(nome='Campus').pk,
             'horarios-0-ordem': '1',
             'horarios-0-DELETE': '',
         })
@@ -213,17 +222,19 @@ class ConfiguracaoCriarTest(TestCase):
 
 class DetalheConfiguracaoTest(TestCase):
     def setUp(self):
-        from ronda.models import ConfiguracaoRondaSabado, HorarioRonda
-        from sabado.models import Sabado
+        from ronda.models import ConfiguracaoRondaSabado, HorarioRonda, LocalRonda
+        from sabado.models import Sabado, DisponibilidadeVoluntario
         import datetime
         self.client = Client()
         self.triade = _vol('triade_det', area='TRIADE')
         self.client.force_login(self.triade)
         self.sabado = Sabado.objects.create(data=datetime.date(2099, 5, 3), tema='T', descricao='D')
         self.cfg = ConfiguracaoRondaSabado.objects.create(sabado=self.sabado, criado_por=self.triade)
-        self.horario = HorarioRonda.objects.create(configuracao=self.cfg, hora_inicio='08:00', hora_fim='09:00', ordem=1)
+        self.horario = HorarioRonda.objects.create(configuracao=self.cfg, local=LocalRonda.objects.get(nome='Campus'), hora_inicio='08:00', hora_fim='09:00', ordem=1)
         # 10 voluntários elegíveis
         self.vols = [_vol(f'det{i}') for i in range(10)]
+        for vol in self.vols:
+            DisponibilidadeVoluntario.objects.create(sabado=self.sabado, voluntario=vol, vai_ao_projeto=True)
 
     def test_detalhe_acessivel(self):
         resp = self.client.get(reverse('ronda:configuracao_detalhe', args=[self.cfg.pk]))
@@ -242,7 +253,7 @@ class DetalheConfiguracaoTest(TestCase):
         from ronda.sorteio import executar_sorteio
         executar_sorteio(self.cfg)
         self.cfg.refresh_from_db()
-        ano = timezone.now().year
+        ano = self.sabado.data.year
         resp = self.client.post(reverse('ronda:configuracao_aprovar', args=[self.cfg.pk]))
         self.assertRedirects(resp, reverse('ronda:configuracao_detalhe', args=[self.cfg.pk]))
         self.cfg.refresh_from_db()
@@ -423,7 +434,7 @@ class RondaPublicaTest(TestCase):
         c = Client()
         c.force_login(_vol('pub_vol'))
         resp = c.get(reverse('ronda:ronda_publica'))
-        cfgs = list(resp.context['configuracoes'])
+        cfgs = [bloco['cfg'] for bloco in resp.context['blocos']]
         self.assertIn(cfg1, cfgs)
         self.assertNotIn(cfg2, cfgs)
 
@@ -439,13 +450,14 @@ class SortearCommandTest(TestCase):
         cfg = ConfiguracaoRondaSabado.objects.create(sabado=sab)
         HorarioRonda.objects.create(configuracao=cfg, hora_inicio='08:00', hora_fim='09:00', ordem=1)
         [_vol(f'cmd{i}') for i in range(10)]
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
         import datetime as dt
         sexta = dt.date(2099, 1, 2)  # sexta-feira real
-        fake_now = MagicMock()
-        fake_now.date.return_value = sexta
+        # Dubla `localdate`, não `now().date()`: o comando é agendado e usa a
+        # data LOCAL. Com now().date() (UTC) uma execução às 22h de sexta já
+        # calcularia sábado e o sorteio não rodaria.
         with patch('ronda.management.commands.sortear_rondas.timezone') as mock_tz:
-            mock_tz.now.return_value = fake_now
+            mock_tz.localdate.return_value = sexta
             call_command('sortear_rondas')
         cfg.refresh_from_db()
         self.assertEqual(cfg.status, 'SORTEADA')

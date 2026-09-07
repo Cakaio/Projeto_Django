@@ -5,9 +5,7 @@ e obriga cada voluntário a reativar as notificações no aparelho dele.
 """
 import base64
 
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
-from django.core.management.base import BaseCommand
-from py_vapid import Vapid02
+from django.core.management.base import BaseCommand, CommandError
 
 
 def _b64(dados: bytes) -> str:
@@ -19,6 +17,20 @@ class Command(BaseCommand):
     help = "Gera o par de chaves VAPID para colar no .env"
 
     def handle(self, *args, **options):
+        # Import TARDIO, não no topo do módulo: `py_vapid` vem junto do
+        # pywebpush e só existe onde as dependências foram instaladas. No topo,
+        # o comando nem IMPORTA em máquina sem elas — e o sintoma é um
+        # ModuleNotFoundError cru, que não diz o que fazer.
+        try:
+            from cryptography.hazmat.primitives.serialization import (Encoding,
+                                                                      PublicFormat)
+            from py_vapid import Vapid02
+        except ImportError as erro:
+            raise CommandError(
+                f'Falta a dependência do push ({erro}).\n\n'
+                'Rode primeiro, no virtualenv do site:\n'
+                '  pip install -r requirements.txt')
+
         vapid = Vapid02()
         vapid.generate_keys()
 

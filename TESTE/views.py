@@ -105,7 +105,10 @@ def _paginas_do_usuario(user):
         ("Pedido de Reembolso", "forms_pcf:reembolso", "Solicitar reembolso", True),
         ("Dores & Sugestões", "forms_pcf:feedback", "Enviar feedback", True),
         ("Acervo", "acervo:lista", "Documentos que o projeto guarda", True),
-        ("Estúdio", "estudio:lista", "Editor de página: revistinha, ata, cartaz", True),
+        # ESTÚDIO DESLIGADO (a pedido, set/2026): o time não vai usar por
+        # enquanto. O app segue instalado e as rotas registradas — some só
+        # da busca e do menu. Descomentar aqui e na sidebar religa.
+        # ("Estúdio", "estudio:lista", "Editor de página: revistinha, ata, cartaz", True),
         ("Financeiro", "adm:painel", "Lançamentos, fluxo e DRE",
          is_su or area in ("ADM/FIN", "TRIADE")),
         ("Teto da Área", "adm:tetos", "Quanto sua área pode gastar no mês", True),
@@ -199,7 +202,10 @@ class inicio(LoginRequiredMixin, TemplateView):
 
         sabados_qs = (
             Sabado.objects
-            .filter(data__gte=timezone.now().date())
+            # localdate(), não now().date(): o now() é UTC e depois das 21h de
+            # São Paulo o .date() já é amanhã — o sábado sumia do painel uma
+            # noite antes da hora, junto com o card "Responder".
+            .filter(data__gte=timezone.localdate())
             .order_by("data")
             .annotate(
                 respostas_count=Count(
@@ -235,7 +241,7 @@ class inicio(LoginRequiredMixin, TemplateView):
 
         context["proxima_ronda"] = (
             ConfiguracaoRondaSabado.objects
-            .filter(status='APROVADA', sabado__data__gte=timezone.now().date())
+            .filter(status='APROVADA', sabado__data__gte=timezone.localdate())
             .select_related('sabado')
             .order_by('sabado__data')
             .first()

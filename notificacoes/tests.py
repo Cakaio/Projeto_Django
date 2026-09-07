@@ -6,9 +6,15 @@ from django.contrib.staticfiles import finders
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from pywebpush import WebPushException
 
 from notificacoes.models import Aviso, InscricaoPush
+
+# Importar do services, NÃO do pywebpush direto. O services já tem o fallback
+# para quando a dependência falta (services.py:20-26); um `from pywebpush import
+# ...` aqui no topo derruba o MÓDULO INTEIRO de teste no loader do unittest, e os
+# 37 testes de push somem da suíte sem ninguém perceber — a suíte reporta 1 erro
+# e segue verde. Foi exatamente o estado em que este arquivo estava.
+from notificacoes.services import WebPushException
 
 Voluntario = get_user_model()
 

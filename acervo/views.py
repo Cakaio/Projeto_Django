@@ -42,14 +42,59 @@ def escrita_required(view):
 # ────────────────────────────── Leitura ──────────────────────────────
 @login_required(login_url='/login/')
 def lista(request):
-    """As coleções do acervo. Contexto: colecoes, pode_mexer, total."""
+    """As coleções do acervo.
+
+    Contexto: colecoes, pode_mexer, total, drive_ligado, drive_rodando,
+    drive_aviso.
+    """
+    from . import drive
+    from .sincronizacao import esta_rodando
+
     colecoes = (Colecao.objects.filter(ativo=True)
                 .annotate(quantos=Count('documentos')))
+
+    quem_manda = pode_mexer(request.user)
+    ligado = drive.configurado()
+
     return render(request, 'acervo/lista.html', {
         'colecoes': colecoes,
-        'pode_mexer': pode_mexer(request.user),
+        'pode_mexer': quem_manda,
         'total': sum(c.quantos for c in colecoes),
+        'drive_ligado': ligado,
+        'drive_rodando': ligado and esta_rodando(),
+        # A ausência de configuração não pode ser silenciosa: sem este aviso, a
+        # Tríade não veria botão nenhum e concluiria que a sincronização não
+        # existe, em vez de que falta uma variável no .env.
+        'drive_aviso': _aviso_do_drive(quem_manda, ligado),
     })
+
+
+def _aviso_do_drive(pode_mexer_, ligado):
+    """Uma linha dizendo o estado da sincronização, ou vazio se não há o que dizer."""
+    from . import drive
+    from .models import SincronizacaoDrive
+
+    if not pode_mexer_:
+        return ''
+
+    if not ligado:
+        return (f'Sincronização com o Google Drive desligada — '
+                f'{drive.motivo_de_estar_desligado()}.')
+
+    ultima = SincronizacaoDrive.objects.first()
+    if ultima is None:
+        return 'Sincronização com o Drive configurada, mas nunca executada.'
+
+    if ultima.status == SincronizacaoDrive.ERRO:
+        return (f'A última busca no Drive falhou em '
+                f'{ultima.comecou_em:%d/%m às %H:%M}: {ultima.detalhe}')
+
+    if ultima.status == SincronizacaoDrive.RODANDO:
+        return f'Busca no Drive em andamento desde {ultima.comecou_em:%H:%M}.'
+
+    quem = 'automática' if ultima.automatica else f'por {ultima.disparada_por}'
+    return (f'Última busca no Drive: {ultima.comecou_em:%d/%m às %H:%M} '
+            f'({quem}) — {ultima.trazidos} trazido(s), {ultima.pulados} pulado(s).')
 
 
 @login_required(login_url='/login/')
@@ -158,3 +203,40 @@ def colecao_form(request, pk=None):
         'colecao': obj,
         'titulo': 'Editar coleção' if obj else 'Nova coleção',
     })
+
+
+# ────────────────────────── Sincronização com o Drive ──────────────────────
+@escrita_required
+def sincronizar_drive(request):
+    """Botão "Trazer do Drive". Só Tríade, e só POST.
+
+    Dispara em thread daemon e devolve na hora: baixar centenas de arquivos não
+    cabe no tempo de uma requisição, e o worker do PythonAnywhere derrubaria a
+    resposta no meio. O resultado fica no registro de SincronizacaoDrive, que a
+    tela mostra na próxima visita — mesmo padrão do push de ocorrências.
+    """
+    import threading
+
+    from . import drive
+    from .sincronizacao import esta_rodando, rodar
+
+    if request.method != 'POST':
+        return redirect('acervo:lista')
+
+    if not drive.configurado():
+        messages.error(
+            request,
+            f'Sincronização com o Drive não configurada — {drive.motivo_de_estar_desligado()}.')
+        return redirect('acervo:lista')
+
+    if esta_rodando():
+        messages.info(request, 'Já existe uma sincronização em andamento. '
+                               'Recarregue a página em instantes.')
+        return redirect('acervo:lista')
+
+    threading.Thread(target=rodar, args=(request.user,), daemon=True).start()
+    messages.success(
+        request,
+        'Buscando no Drive. Isso roda em segundo plano — recarregue a página '
+        'em alguns instantes para ver o resultado.')
+    return redirect('acervo:lista')

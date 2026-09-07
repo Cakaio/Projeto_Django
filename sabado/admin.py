@@ -20,6 +20,40 @@ class SabadoAdmin(admin.ModelAdmin):
     list_display = ['data', 'tema']
     search_fields = ['tema']
 
+    def save_model(self, request, obj, form, change):
+        """Cadastrar o sábado é o que 'abre o formulário' — e agora avisa todo mundo.
+
+        Fica em `save_model` e não num signal `post_save` de propósito: o admin é
+        o único caminho de escrita de Sabado em produção (não existe view nem
+        ModelForm, e o SabadoAdmin nem é ImportExportModelAdmin), enquanto um
+        signal pegaria também as dez criações do `seed_sabado` e as dezenas
+        espalhadas pelos testes de ronda, revista e adm — disparando push em
+        todas.
+
+        `if not change` porque editar o tema de um sábado já cadastrado não é
+        abrir a enquete de novo.
+        """
+        super().save_model(request, obj, form, change)
+        if change or not obj.enquete_aberta:
+            return
+
+        # Import local: `notificacoes.services` alcança o pywebpush, e um import
+        # no topo do admin colocaria a dependência na cadeia de carregamento dos
+        # apps — foi assim que o primeiro deploy derrubou o site inteiro.
+        from notificacoes.services import enviar_push_async
+
+        from .notificacoes import (TITULO_ABERTURA, corpo_da_abertura,
+                                   quem_nao_respondeu, tag_da_enquete,
+                                   url_da_enquete)
+
+        enviar_push_async(
+            quem_nao_respondeu(obj),
+            TITULO_ABERTURA,
+            corpo_da_abertura(obj),
+            url=url_da_enquete(obj),
+            tag=tag_da_enquete(obj),
+        )
+
 @admin.register(DisponibilidadeVoluntario)
 class DisponibilidadeVoluntarioAdmin(ImportExportModelAdmin):
     resource_class = DisponibilidadeVoluntarioResource

@@ -46,7 +46,7 @@ class ConfiguracaoRondaForm(forms.ModelForm):
         from django.utils import timezone
         from datetime import timedelta
         ja_configurados = ConfiguracaoRondaSabado.objects.values_list('sabado_id', flat=True)
-        limite = timezone.now().date() - timedelta(days=30)
+        limite = timezone.localdate() - timedelta(days=30)
         self.fields['sabado'].queryset = (
             Sabado.objects.filter(data__gte=limite)
             .exclude(pk__in=ja_configurados)

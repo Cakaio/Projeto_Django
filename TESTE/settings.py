@@ -210,6 +210,54 @@ VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
 VAPID_PRIVATE_KEY = config("VAPID_PRIVATE_KEY", default="")
 VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="")
 
+# ─── Acervo ← Google Drive ───
+# Conta de SERVIÇO, não OAuth de usuário: em app não verificado pelo Google, o
+# refresh token do OAuth expira em 7 dias e a sincronização pararia sozinha
+# toda semana. A conta de serviço não expira — basta compartilhar a pasta do
+# Drive com o e-mail dela como Leitor.
+#
+# ACERVO_DRIVE_CREDENCIAIS: caminho do JSON da chave, FORA do repositório.
+# ACERVO_DRIVE_PASTA_ID: o trecho depois de /folders/ na URL da pasta.
+# Vazios de propósito: sem eles o botão aparece desligado e explica o que falta,
+# em vez de o projeto quebrar em toda máquina que não tenha a credencial.
+ACERVO_DRIVE_CREDENCIAIS = config("ACERVO_DRIVE_CREDENCIAIS", default="")
+ACERVO_DRIVE_PASTA_ID = config("ACERVO_DRIVE_PASTA_ID", default="")
+
+# Alternativa à conta de serviço: o PCF lê o Drive COMO uma pessoa, com a
+# permissão que ela já tem. É a saída quando a pasta é da organização e quem
+# configura consegue LER mas não consegue COMPARTILHAR com outra identidade —
+# que é justamente o caso deste projeto.
+#
+# Obtidos uma vez com: python manage.py autorizar_acervo_drive
+# O refresh token é SEGREDO, como uma senha.
+ACERVO_DRIVE_OAUTH_CLIENT_ID = config("ACERVO_DRIVE_OAUTH_CLIENT_ID", default="")
+ACERVO_DRIVE_OAUTH_CLIENT_SECRET = config("ACERVO_DRIVE_OAUTH_CLIENT_SECRET", default="")
+ACERVO_DRIVE_OAUTH_REFRESH_TOKEN = config("ACERVO_DRIVE_OAUTH_REFRESH_TOKEN", default="")
+
+# Pastas do Drive que NUNCA entram no acervo, separadas por vírgula. Aceita o
+# nome com ou sem o prefixo de ordenação ("Áreas" ou "a. Áreas").
+#
+# Precisa ser configuração, e não um --somente na linha de comando: o botão da
+# tela e a tarefa agendada não passam flag nenhuma, então uma exclusão feita só
+# no comando seria desfeita na primeira rodada automática.
+ACERVO_DRIVE_IGNORAR = [
+    nome.strip() for nome in config("ACERVO_DRIVE_IGNORAR", default="").split(",")
+    if nome.strip()
+]
+
+# Formatos que a SINCRONIZAÇÃO aceita, separados por vírgula. Vazio = o padrão
+# de `acervo.importacao.FORMATOS_DE_DOCUMENTO` (texto e planilha, sem imagem).
+#
+# É outro conjunto que o do formulário manual de propósito: no formulário uma
+# pessoa escolhe cada arquivo e sabe que aquela foto é a ficha digitalizada; na
+# varredura automática de um Drive de trabalho, "imagem" é foto de evento aos
+# milhares. Para aceitar imagem também, acrescente jpg,jpeg,png,webp aqui.
+ACERVO_DRIVE_FORMATOS = [
+    f.strip().lstrip('.').lower()
+    for f in config("ACERVO_DRIVE_FORMATOS", default="").split(",")
+    if f.strip()
+]
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -223,6 +271,11 @@ LOGGING = {
             'propagate': False,
         },
         'notificacoes': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'acervo': {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,

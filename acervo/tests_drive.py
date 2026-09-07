@@ -1,0 +1,960 @@
+"""Testes da sincronização com o Google Drive.
+
+Nenhum destes testes toca a rede. `acervo/sincronizacao.py` recebe o cliente
+como argumento justamente para isso: aqui entra um dublê que devolve pastas e
+arquivos de mentira, e a lógica inteira — decidir o ano, recusar formato,
+agrupar em coleção, não retrazer o que já entrou — é exercitada de verdade.
+
+O que NÃO está coberto, e é honesto registrar: autenticação por conta de
+serviço, exportação de Google Docs para PDF pela API real, paginação com muitos
+arquivos e pasta em Drive compartilhado. Essas partes só se provam rodando
+contra o Drive de verdade.
+"""
+import shutil
+import tempfile
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core.exceptions import PermissionDenied
+from django.test import RequestFactory, TestCase, override_settings
+
+from acervo import drive
+from acervo.models import Colecao, Documento, SincronizacaoDrive
+from acervo.sincronizacao import Placar, sincronizar
+
+Voluntario = get_user_model()
+
+PASTA_RAIZ = 'raiz-id'
+
+
+class DriveFalso:
+    """Dublê do serviço do Drive.
+
+    Guarda as pastas e os arquivos numa árvore em memória e responde às três
+    perguntas que `acervo/drive.py` faz: quais são as subpastas, quais são os
+    arquivos abaixo de uma pasta, e quais são os bytes de um arquivo.
+    """
+
+    def __init__(self):
+        self.pastas = {}      # pasta_id -> [subpasta, ...]
+        self.arquivos = {}    # pasta_id -> [arquivo, ...]
+        self.conteudo = {}    # arquivo_id -> bytes
+        self.baixados = []    # ordem dos downloads, para asserção
+        self.recusar = set()  # ids que devem falhar no download
+
+    def pasta(self, pasta_id, nome, dentro_de=PASTA_RAIZ):
+        self.pastas.setdefault(dentro_de, []).append(
+            {'id': pasta_id, 'name': nome, 'mimeType': drive.TIPO_PASTA})
+        return pasta_id
+
+    def arquivo(self, arquivo_id, nome, dentro_de, tamanho=1000,
+                tipo='application/pdf', conteudo=b'conteudo'):
+        item = {'id': arquivo_id, 'name': nome, 'mimeType': tipo}
+        if tipo not in drive.EXPORTAVEIS:
+            # Arquivo nativo do Google não tem `size` na API — a ausência aqui
+            # é o que faz o teste exercitar esse caminho.
+            item['size'] = str(tamanho)
+        self.arquivos.setdefault(dentro_de, []).append(item)
+        self.conteudo[arquivo_id] = conteudo
+        return item
+
+
+def _subpastas_falsas(servico, pasta_id):
+    return list(servico.pastas.get(pasta_id, []))
+
+
+def _arvore_falsa(servico, pasta_id, nome_da_pasta=''):
+    encontrados = []
+    fila = [(pasta_id, [nome_da_pasta] if nome_da_pasta else [])]
+    while fila:
+        atual, caminho = fila.pop()
+        for sub in servico.pastas.get(atual, []):
+            fila.append((sub['id'], [sub['name']] + caminho))
+        for arq in servico.arquivos.get(atual, []):
+            encontrados.append({**arq, 'pastas': caminho})
+    return encontrados
+
+
+def _baixar_falso(servico, arquivo):
+    if arquivo['id'] in servico.recusar:
+        raise drive.HttpError('sem permissão')
+    servico.baixados.append(arquivo['id'])
+    return servico.conteudo[arquivo['id']]
+
+
+class BaseDrive(TestCase):
+    def setUp(self):
+        pasta = tempfile.mkdtemp(prefix='acervo-drive-')
+        self.addCleanup(shutil.rmtree, pasta, ignore_errors=True)
+        self._media = override_settings(MEDIA_ROOT=pasta)
+        self._media.enable()
+        self.addCleanup(self._media.disable)
+
+        self.drive = DriveFalso()
+
+        for alvo, substituto in (
+            ('acervo.drive.subpastas', _subpastas_falsas),
+            ('acervo.drive.arquivos_da_arvore', _arvore_falsa),
+            ('acervo.drive.baixar', _baixar_falso),
+        ):
+            remendo = patch(alvo, substituto)
+            remendo.start()
+            self.addCleanup(remendo.stop)
+
+    def sincronizar(self, **extras):
+        return sincronizar(self.drive, PASTA_RAIZ, Placar(), **extras)
+
+
+class EstruturaTest(BaseDrive):
+
+    def test_cada_subpasta_do_drive_vira_uma_colecao(self):
+        self.drive.pasta('p1', 'Postulações 2023')
+        self.drive.arquivo('a1', 'joao.pdf', 'p1')
+        self.drive.pasta('p2', 'Atas 2024')
+        self.drive.arquivo('a2', 'ata.pdf', 'p2')
+
+        self.sincronizar()
+
+        self.assertTrue(Colecao.objects.filter(nome='Postulações 2023').exists())
+        self.assertTrue(Colecao.objects.filter(nome='Atas 2024').exists())
+
+    def test_arquivo_em_subpasta_profunda_entra_na_colecao_do_topo(self):
+        self.drive.pasta('p1', 'Postulações 2023')
+        self.drive.pasta('p1a', 'Eleitos', dentro_de='p1')
+        self.drive.arquivo('a1', 'joao.pdf', 'p1a')
+
+        self.sincronizar()
+
+        colecao = Colecao.objects.get(nome='Postulações 2023')
+        self.assertEqual(colecao.documentos.count(), 1)
+
+    def test_pasta_sem_nada_aproveitavel_nao_cria_colecao(self):
+        self.drive.pasta('p1', 'Vídeos')
+        self.drive.arquivo('a1', 'clipe.mp4', 'p1', tipo='video/mp4')
+
+        self.sincronizar()
+
+        self.assertFalse(Colecao.objects.filter(nome='Vídeos').exists())
+
+    def test_colecao_existente_e_reaproveitada(self):
+        Colecao.objects.create(nome='Atas 2024', descricao='Já existia')
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+
+        self.sincronizar()
+
+        self.assertEqual(Colecao.objects.filter(nome='Atas 2024').count(), 1)
+        self.assertEqual(Colecao.objects.get(nome='Atas 2024').descricao, 'Já existia')
+
+
+class IncrementalTest(BaseDrive):
+    """O ponto do pedido: não retrazer o que já entrou."""
+
+    def setUp(self):
+        super().setUp()
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+
+    def test_a_segunda_rodada_nao_traz_nada(self):
+        primeira = self.sincronizar()
+        self.assertEqual(primeira.trazidos, 1)
+
+        segunda = self.sincronizar()
+        self.assertEqual(segunda.trazidos, 0)
+        self.assertEqual(Documento.objects.count(), 1)
+
+    def test_a_segunda_rodada_nem_baixa_de_novo(self):
+        """Não basta não duplicar: não pode gastar banda com o que já entrou."""
+        self.sincronizar()
+        self.drive.baixados.clear()
+
+        self.sincronizar()
+        self.assertEqual(self.drive.baixados, [])
+
+    def test_arquivo_renomeado_no_drive_nao_volta(self):
+        """O ID do Drive não muda quando o arquivo é renomeado.
+
+        Comparar por título faria um documento duplicado aparecer toda vez que
+        alguém arrumasse o nome de um arquivo lá.
+        """
+        self.sincronizar()
+        self.drive.arquivos['p1'][0]['name'] = 'ata-da-reuniao-geral.pdf'
+
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 1)
+
+    def test_arquivo_novo_no_drive_entra_na_rodada_seguinte(self):
+        self.sincronizar()
+        self.drive.arquivo('a2', 'ata-nova-2024.pdf', 'p1')
+
+        placar = self.sincronizar()
+        self.assertEqual(placar.trazidos, 1)
+        self.assertEqual(Documento.objects.count(), 2)
+
+    def test_o_id_do_drive_fica_gravado_no_documento(self):
+        self.sincronizar()
+        self.assertEqual(Documento.objects.get().origem_drive_id, 'a1')
+
+
+class AnoTest(BaseDrive):
+
+    def test_ano_sai_do_nome_do_arquivo(self):
+        self.drive.pasta('p1', 'Atas')
+        self.drive.arquivo('a1', 'reuniao-2021.pdf', 'p1')
+        self.sincronizar()
+        self.assertEqual(Documento.objects.get().ano, 2021)
+
+    def test_ano_sai_da_pasta_do_meio(self):
+        """Uma varredura plana perderia isto: o ano está na pasta intermediária."""
+        self.drive.pasta('p1', 'Postulações')
+        self.drive.pasta('p1a', '2019', dentro_de='p1')
+        self.drive.arquivo('a1', 'joao.pdf', 'p1a')
+
+        self.sincronizar()
+        self.assertEqual(Documento.objects.get().ano, 2019)
+
+    def test_ano_do_arquivo_vence_o_da_pasta(self):
+        self.drive.pasta('p1', 'Postulações 2019')
+        self.drive.arquivo('a1', 'ata-2023.pdf', 'p1')
+        self.sincronizar()
+        self.assertEqual(Documento.objects.get().ano, 2023)
+
+    def test_sem_ano_o_arquivo_e_pulado_e_o_motivo_fica_registrado(self):
+        self.drive.pasta('p1', 'Atas')
+        self.drive.arquivo('a1', 'reuniao.pdf', 'p1')
+
+        placar = self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 0)
+        self.assertIn('sem ano', placar.texto())
+
+
+class FiltrosTest(BaseDrive):
+
+    def test_formato_nao_aceito_e_pulado(self):
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'clipe.mp4', 'p1', tipo='video/mp4')
+
+        placar = self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 0)
+        self.assertIn('.mp4', placar.texto())
+
+    def test_planilha_entra(self):
+        """1.001 .xlsx foram recusados no acervo real — planilha é documento."""
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'orcamento.xlsx', 'p1')
+
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 1)
+
+    def test_arquivo_grande_demais_e_pulado_sem_baixar(self):
+        """Recusar depois de baixar 200 MB seria desperdício puro."""
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'enorme.pdf', 'p1', tamanho=100 * 1024 * 1024)
+
+        self.sincronizar()
+        self.assertEqual(self.drive.baixados, [])
+        self.assertEqual(Documento.objects.count(), 0)
+
+    def test_google_doc_e_exportado_como_pdf(self):
+        """Arquivo nativo do Google não tem bytes nem `size` — só exportação."""
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'Ata da reunião', 'p1',
+                           tipo='application/vnd.google-apps.document')
+
+        self.sincronizar()
+
+        documento = Documento.objects.get()
+        self.assertTrue(documento.arquivo.name.endswith('.pdf'))
+
+    def test_um_arquivo_recusado_pelo_drive_nao_derruba_o_resto(self):
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'sem-permissao.pdf', 'p1')
+        self.drive.arquivo('a2', 'ok.pdf', 'p1')
+        self.drive.recusar.add('a1')
+
+        placar = self.sincronizar()
+
+        self.assertEqual(Documento.objects.count(), 1)
+        self.assertEqual(Documento.objects.get().origem_drive_id, 'a2')
+        self.assertIn('recusou', placar.texto())
+
+
+class DryRunTest(BaseDrive):
+
+    def test_dry_run_conta_sem_baixar_nem_gravar(self):
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+
+        placar = self.sincronizar(dry_run=True)
+
+        self.assertEqual(placar.trazidos, 1)
+        self.assertEqual(Documento.objects.count(), 0)
+        self.assertEqual(self.drive.baixados, [])
+
+
+class ConteudoTest(BaseDrive):
+
+    def test_o_arquivo_vai_para_a_pasta_protegida_por_login(self):
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1', conteudo=b'PDF da ata')
+
+        self.sincronizar()
+
+        documento = Documento.objects.get()
+        self.assertTrue(documento.arquivo.name.startswith('acervo/'))
+        self.assertEqual(documento.arquivo.read(), b'PDF da ata')
+
+    def test_o_documento_diz_de_quem_e(self):
+        """Documento.clean() exige atribuição; a sincronização usa o projeto."""
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+
+        self.sincronizar()
+        self.assertTrue(Documento.objects.get().de_quem.strip())
+
+
+@override_settings(ACERVO_DRIVE_CREDENCIAIS='', ACERVO_DRIVE_PASTA_ID='')
+class BotaoDesligadoTest(TestCase):
+    """Sem configuração, o botão não aparece — mas a Tríade entende por quê."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.triade = Voluntario.objects.create_user(
+            username='triade', password='senha-de-teste-123', area='TRIADE')
+        self.comum = Voluntario.objects.create_user(
+            username='comum', password='senha-de-teste-123', area='AZUL')
+
+    def _pedido(self, usuario, metodo='get'):
+        pedido = getattr(self.factory, metodo)('/acervo/')
+        pedido.user = usuario
+        pedido.session = {}
+        pedido._messages = FallbackStorage(pedido)
+        return pedido
+
+    def test_sem_credencial_o_botao_nao_aparece_na_tela(self):
+        from acervo.views import lista
+
+        resposta = lista(self._pedido(self.triade))
+        self.assertNotIn('Trazer do Drive', resposta.content.decode())
+
+    @patch('acervo.drive.build', object())   # finge a lib instalada
+    def test_a_triade_ve_que_falta_a_pasta(self):
+        from acervo.views import _aviso_do_drive
+
+        aviso = _aviso_do_drive(pode_mexer_=True, ligado=False)
+        self.assertIn('ACERVO_DRIVE_PASTA_ID', aviso)
+
+    @patch('acervo.drive.build', object())
+    @override_settings(ACERVO_DRIVE_PASTA_ID='raiz', ACERVO_DRIVE_CREDENCIAIS='')
+    def test_com_a_pasta_definida_o_aviso_cobra_a_credencial(self):
+        """E cita os DOIS caminhos: conta de serviço ou OAuth.
+
+        Quem não pode compartilhar a pasta precisa saber que existe a segunda
+        saída — senão trava achando que só a conta de serviço serve.
+        """
+        from acervo.views import _aviso_do_drive
+
+        aviso = _aviso_do_drive(pode_mexer_=True, ligado=False)
+        self.assertIn('ACERVO_DRIVE_CREDENCIAIS', aviso)
+        self.assertIn('autorizar_acervo_drive', aviso)
+
+    def test_sem_a_biblioteca_o_aviso_manda_instalar(self):
+        """A biblioteca do Google não vem instalada — o aviso tem que dizer isso.
+
+        É a primeira coisa que falta num servidor recém-atualizado, e sem esta
+        frase a Tríade veria só "desligado" sem saber o que fazer.
+        """
+        from acervo.views import _aviso_do_drive
+
+        with patch('acervo.drive.build', None):
+            aviso = _aviso_do_drive(pode_mexer_=True, ligado=False)
+        self.assertIn('pip install', aviso)
+
+    def test_voluntario_comum_nao_ve_aviso_nenhum(self):
+        """O estado da integração é assunto de quem administra, não da equipe."""
+        from acervo.views import _aviso_do_drive
+
+        self.assertEqual(_aviso_do_drive(pode_mexer_=False, ligado=False), '')
+
+    def test_post_sem_configuracao_avisa_e_nao_dispara(self):
+        from acervo.views import sincronizar_drive
+
+        with patch('acervo.sincronizacao.rodar') as rodou:
+            sincronizar_drive(self._pedido(self.triade, 'post'))
+        rodou.assert_not_called()
+
+    def test_voluntario_comum_nao_pode_disparar(self):
+        from acervo.views import sincronizar_drive
+
+        with self.assertRaises(PermissionDenied):
+            sincronizar_drive(self._pedido(self.comum, 'post'))
+
+
+@override_settings(ACERVO_DRIVE_CREDENCIAIS='/tmp/fake.json',
+                   ACERVO_DRIVE_PASTA_ID='raiz-id')
+class BotaoLigadoTest(TestCase):
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.triade = Voluntario.objects.create_user(
+            username='triade', password='senha-de-teste-123', area='TRIADE')
+
+    def _pedido(self, metodo='post'):
+        pedido = getattr(self.factory, metodo)('/acervo/sincronizar/')
+        pedido.user = self.triade
+        pedido.session = {}
+        pedido._messages = FallbackStorage(pedido)
+        return pedido
+
+    @patch('acervo.drive.build', object())   # finge a lib instalada
+    def test_o_botao_dispara_em_thread(self):
+        from acervo.views import sincronizar_drive
+
+        with patch('threading.Thread') as thread:
+            sincronizar_drive(self._pedido())
+        thread.assert_called_once()
+        # daemon=True: a thread não pode segurar o desligamento do worker.
+        self.assertTrue(thread.call_args.kwargs['daemon'])
+
+    @patch('acervo.drive.build', object())
+    def test_get_nao_dispara_nada(self):
+        """Sincronizar é ação, não leitura — link não pode disparar sem querer."""
+        from acervo.views import sincronizar_drive
+
+        with patch('threading.Thread') as thread:
+            sincronizar_drive(self._pedido('get'))
+        thread.assert_not_called()
+
+    @patch('acervo.drive.build', object())
+    def test_nao_dispara_duas_rodadas_ao_mesmo_tempo(self):
+        from acervo.views import sincronizar_drive
+
+        SincronizacaoDrive.objects.create(status=SincronizacaoDrive.RODANDO)
+
+        with patch('threading.Thread') as thread:
+            sincronizar_drive(self._pedido())
+        thread.assert_not_called()
+
+    @patch('acervo.drive.build', object())
+    def test_registro_antigo_travado_nao_bloqueia_para_sempre(self):
+        """Se o servidor reinicia no meio, a thread morre sem fechar o registro.
+
+        Sem uma janela de validade, esse registro órfão travaria o botão para
+        sempre e ninguém saberia por quê.
+        """
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from acervo.views import sincronizar_drive
+
+        antigo = SincronizacaoDrive.objects.create(status=SincronizacaoDrive.RODANDO)
+        SincronizacaoDrive.objects.filter(pk=antigo.pk).update(
+            comecou_em=timezone.now() - timedelta(hours=5))
+
+        with patch('threading.Thread') as thread:
+            sincronizar_drive(self._pedido())
+        thread.assert_called_once()
+
+
+class ModoDeAutenticacaoTest(TestCase):
+    """Dois modos de falar com o Drive, e a escolha não é de gosto.
+
+    Conta de serviço exige que ALGUÉM compartilhe a pasta com ela — e portanto
+    exige ter direito de compartilhar. OAuth lê o Drive como uma pessoa, com a
+    permissão que ela já tem: é a saída para pasta da organização que quem
+    configura consegue ler mas não consegue compartilhar.
+    """
+
+    OAUTH = dict(
+        ACERVO_DRIVE_PASTA_ID='raiz',
+        ACERVO_DRIVE_CREDENCIAIS='',
+        ACERVO_DRIVE_OAUTH_CLIENT_ID='cid',
+        ACERVO_DRIVE_OAUTH_CLIENT_SECRET='segredo',
+        ACERVO_DRIVE_OAUTH_REFRESH_TOKEN='refresh',
+    )
+
+    @patch('acervo.drive.build', object())
+    @override_settings(**OAUTH)
+    def test_oauth_completo_conta_como_configurado(self):
+        self.assertTrue(drive.configurado())
+        self.assertEqual(drive.modo_de_autenticacao(), 'OAuth de usuário')
+
+    @patch('acervo.drive.build', object())
+    @override_settings(**{**OAUTH, 'ACERVO_DRIVE_OAUTH_REFRESH_TOKEN': ''})
+    def test_oauth_pela_metade_nao_conta(self):
+        """Faltando uma das três, o Drive fica desligado — e diz o que falta.
+
+        Meio configurado é pior que desligado: falharia só na hora do envio.
+        """
+        self.assertFalse(drive.configurado())
+        self.assertIn('ACERVO_DRIVE_OAUTH', drive.motivo_de_estar_desligado())
+
+    @patch('acervo.drive.build', object())
+    @override_settings(ACERVO_DRIVE_PASTA_ID='raiz',
+                       ACERVO_DRIVE_CREDENCIAIS='/tmp/sa.json')
+    def test_conta_de_servico_sozinha_basta(self):
+        self.assertTrue(drive.configurado())
+        self.assertEqual(drive.modo_de_autenticacao(), 'conta de serviço')
+
+    @patch('acervo.drive.build', object())
+    @override_settings(**{**OAUTH, 'ACERVO_DRIVE_CREDENCIAIS': '/tmp/sa.json'})
+    def test_conta_de_servico_tem_precedencia(self):
+        """Com os dois configurados, um tem que vencer de forma previsível."""
+        self.assertEqual(drive.modo_de_autenticacao(), 'conta de serviço')
+
+    @patch('acervo.drive.build', object())
+    @override_settings(**{**OAUTH, 'ACERVO_DRIVE_PASTA_ID': ''})
+    def test_sem_a_pasta_nao_adianta_ter_credencial(self):
+        self.assertFalse(drive.configurado())
+        self.assertIn('ACERVO_DRIVE_PASTA_ID', drive.motivo_de_estar_desligado())
+
+    @patch('acervo.drive.build', object())
+    @patch('acervo.drive.Credentials')
+    @override_settings(**OAUTH)
+    def test_a_credencial_oauth_guarda_so_o_refresh_token(self, fake):
+        """O access token dura 1 hora — guardá-lo no .env seria inútil.
+
+        A biblioteca obtém um novo a cada uso, a partir do refresh token.
+        """
+        drive._credenciais()
+        self.assertIsNone(fake.call_args.kwargs['token'])
+        self.assertEqual(fake.call_args.kwargs['refresh_token'], 'refresh')
+
+
+class PrefixoDeOrdenacaoTest(TestCase):
+    """"1. 2018" é ordem + nome, não nome.
+
+    A pasta real do projeto usa esse padrão: oito anos numerados e sete temas
+    com letra. Levar o prefixo para o Acervo daria coleções chamadas "1. 2018"
+    e jogaria fora a ordem que a pessoa quis expressar.
+    """
+
+    def test_numero_vira_ordem_e_sai_do_nome(self):
+        from acervo.importacao import nome_e_ordem_da_pasta
+        self.assertEqual(nome_e_ordem_da_pasta('1. 2018'), ('2018', 1))
+
+    def test_letra_ordena_depois_dos_numeros(self):
+        """No acervo real os números são anos e as letras são temas."""
+        from acervo.importacao import nome_e_ordem_da_pasta
+
+        _, ordem_do_ano = nome_e_ordem_da_pasta('8. 2025')
+        _, ordem_do_tema = nome_e_ordem_da_pasta('a. Áreas')
+        self.assertLess(ordem_do_ano, ordem_do_tema)
+
+    def test_espaco_duplo_e_normalizado(self):
+        """A pasta real tem "b.  Documentos Pontuais", com dois espaços."""
+        from acervo.importacao import nome_e_ordem_da_pasta
+        nome, _ = nome_e_ordem_da_pasta('b.  Documentos Pontuais')
+        self.assertEqual(nome, 'Documentos Pontuais')
+
+    def test_pasta_sem_prefixo_fica_intacta(self):
+        from acervo.importacao import nome_e_ordem_da_pasta
+        self.assertEqual(nome_e_ordem_da_pasta('Conselho'), ('Conselho', 0))
+
+    def test_prefixo_repetido_nao_quebra(self):
+        """Há dois "b." e dois "d." na pasta real — a ordem empata e tudo bem."""
+        from acervo.importacao import nome_e_ordem_da_pasta
+
+        _, um = nome_e_ordem_da_pasta('b.  Documentos Pontuais')
+        _, outro = nome_e_ordem_da_pasta('b. Documentos Oficiais')
+        self.assertEqual(um, outro)
+
+    def test_nome_que_e_so_prefixo_nao_vira_vazio(self):
+        """Coleção sem nome quebraria a tela; melhor manter o original."""
+        from acervo.importacao import nome_e_ordem_da_pasta
+        nome, _ = nome_e_ordem_da_pasta('7.')
+        self.assertTrue(nome.strip())
+
+
+class ColecaoComOrdemTest(BaseDrive):
+
+    def test_a_colecao_nasce_com_o_nome_limpo_e_a_ordem_do_prefixo(self):
+        self.drive.pasta('p1', '1. 2018')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+
+        self.sincronizar()
+
+        colecao = Colecao.objects.get(nome='2018')
+        self.assertEqual(colecao.ordem, 1)
+
+    def test_as_colecoes_saem_na_ordem_do_drive(self):
+        """Anos primeiro, temas depois — a ordem que a pessoa expressou."""
+        for pid, nome in (('p1', '8. 2025'), ('p2', 'a. Áreas'), ('p3', '1. 2018')):
+            self.drive.pasta(pid, nome)
+            self.drive.arquivo(f'arq-{pid}', 'doc-2020.pdf', pid)
+
+        self.sincronizar()
+
+        self.assertEqual(
+            list(Colecao.objects.exclude(nome='Postulações')
+                 .values_list('nome', flat=True)),
+            ['2018', '2025', 'Áreas'])
+
+
+class SomenteTest(BaseDrive):
+    """Trazer pasta por pasta, em vez de tudo de uma vez.
+
+    O acervo é aberto a todo voluntário logado, então o que entra é decisão da
+    liderança — pasta a pasta, olhando o que tem dentro.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.drive.pasta('p1', '1. 2018')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+        self.drive.pasta('p2', 'e. Conselho')
+        self.drive.arquivo('a2', 'ata-2024.pdf', 'p2')
+
+    def test_somente_traz_so_a_pasta_pedida(self):
+        self.sincronizar(somente=['2018'])
+
+        self.assertEqual(Documento.objects.count(), 1)
+        self.assertEqual(Documento.objects.get().origem_drive_id, 'a1')
+
+    def test_somente_aceita_o_nome_com_prefixo(self):
+        """Quem lê a lista do --verificar vê "1. 2018" e vai digitar isso."""
+        self.sincronizar(somente=['1. 2018'])
+        self.assertEqual(Documento.objects.count(), 1)
+
+    def test_sem_somente_traz_tudo(self):
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 2)
+
+
+class ConexaoLongaTest(BaseDrive):
+    """Rodada longa não pode morrer por conexão de banco ociosa.
+
+    A primeira rodada real levou 18 minutos varrendo 15 pastas. A conexão com o
+    MySQL, aberta no início e parada esse tempo todo, foi derrubada pelo
+    servidor por inatividade — e a consulta seguinte estourou sem nada a ver
+    com o Drive.
+    """
+
+    def test_a_conexao_e_solta_antes_de_cada_varredura(self):
+        from acervo import sincronizacao
+
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+
+        with patch.object(sincronizacao, '_soltar_a_conexao') as soltou:
+            self.sincronizar()
+        self.assertTrue(soltou.called)
+
+    def test_os_ids_ja_importados_saem_numa_consulta_so(self):
+        """Antes era uma consulta POR ARQUIVO, intercalada com o Drive.
+
+        Cada intervalo entre elas é uma chance a mais de a conexão morrer — e
+        num acervo de milhares de arquivos são milhares de intervalos.
+        """
+        from acervo import sincronizacao
+
+        self.drive.pasta('p1', 'Atas 2024')
+        for i in range(5):
+            self.drive.arquivo(f'a{i}', f'ata-{i}-2024.pdf', 'p1')
+
+        with patch.object(sincronizacao, 'ids_ja_no_acervo',
+                          return_value=set()) as consulta:
+            self.sincronizar()
+        self.assertEqual(consulta.call_count, 1)
+
+    def test_arquivo_ja_trazido_na_mesma_rodada_nao_repete(self):
+        """O conjunto em memória tem que acompanhar o que a rodada grava."""
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1')
+
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 1)
+
+
+class FalhaRegistradaTest(TestCase):
+    """Quando a rodada falha, a falha PRECISA ficar registrada.
+
+    Na primeira rodada real o erro foi a conexão com o banco morrer. O
+    tratamento de erro então tentou gravar o registro da falha na MESMA conexão
+    morta, estourou de novo, e não sobrou registro nenhum — só um traceback no
+    terminal de quem rodou.
+    """
+
+    @override_settings(ACERVO_DRIVE_PASTA_ID='raiz',
+                       ACERVO_DRIVE_CREDENCIAIS='/tmp/sa.json')
+    @patch('acervo.drive.build', object())
+    def test_falha_no_meio_vira_registro_de_erro(self):
+        from acervo.sincronizacao import rodar
+
+        with patch('acervo.drive.cliente', side_effect=RuntimeError('sem rede')):
+            registro = rodar()
+
+        self.assertEqual(registro.status, SincronizacaoDrive.ERRO)
+        self.assertIn('sem rede', registro.detalhe)
+        self.assertIsNotNone(registro.terminou_em)
+
+    @override_settings(ACERVO_DRIVE_PASTA_ID='raiz',
+                       ACERVO_DRIVE_CREDENCIAIS='/tmp/sa.json')
+    @patch('acervo.drive.build', object())
+    def test_o_tratamento_de_erro_solta_a_conexao_antes_de_gravar(self):
+        from acervo import sincronizacao
+
+        with patch('acervo.drive.cliente', side_effect=RuntimeError('x')), \
+                patch.object(sincronizacao, '_soltar_a_conexao') as soltou:
+            sincronizacao.rodar()
+
+        self.assertTrue(soltou.called)
+
+
+class RelatorioTest(BaseDrive):
+    """O relatório precisa dar o número que decide: quantos MB.
+
+    A primeira rodada real disse "12807 documentos" e não disse o tamanho —
+    inútil para saber se cabe no disco do servidor, e disco cheio no
+    PythonAnywhere derruba o site inteiro, não só a importação.
+    """
+
+    def test_o_total_em_mb_aparece_no_relatorio(self):
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1', tamanho=2 * 1024 * 1024)
+        self.drive.arquivo('a2', 'outra-2024.pdf', 'p1', tamanho=3 * 1024 * 1024)
+
+        placar = self.sincronizar(dry_run=True)
+        self.assertIn('5.0 MB', placar.texto())
+
+    def test_cada_colecao_mostra_o_proprio_tamanho(self):
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'ata.pdf', 'p1', tamanho=2 * 1024 * 1024)
+        self.drive.pasta('p2', 'Relatórios 2023')
+        self.drive.arquivo('a2', 'relatorio.pdf', 'p2', tamanho=4 * 1024 * 1024)
+
+        texto = self.sincronizar(dry_run=True).texto()
+        self.assertIn('Atas 2024: 1 novo(s), 2.0 MB', texto)
+        self.assertIn('Relatórios 2023: 1 novo(s), 4.0 MB', texto)
+
+    def test_arquivo_do_google_e_contado_a_parte(self):
+        """Docs e Planilhas não informam tamanho — o total fica subestimado.
+
+        Fingir que o total é exato seria pior que admitir que não é.
+        """
+        self.drive.pasta('p1', 'Atas 2024')
+        self.drive.arquivo('a1', 'Ata da reunião', 'p1',
+                           tipo='application/vnd.google-apps.document')
+
+        texto = self.sincronizar(dry_run=True).texto()
+        self.assertIn('subestimado', texto)
+
+    def test_a_lista_de_motivos_nao_vira_varias_telas(self):
+        """O acervo real gerou mais de 60 motivos, quase todos com 1 ocorrência.
+
+        A lista foi cortada no meio de uma palavra ao ser gravada no registro.
+        """
+        from acervo.sincronizacao import MOTIVOS_NO_RELATORIO
+
+        self.drive.pasta('p1', 'Atas 2024')
+        for i in range(MOTIVOS_NO_RELATORIO + 8):
+            self.drive.arquivo(f'a{i}', f'arq{i}.ext{i}', 'p1',
+                               tipo='application/octet-stream')
+
+        texto = self.sincronizar(dry_run=True).texto()
+        self.assertIn('e mais', texto)
+        self.assertLessEqual(
+            len([l for l in texto.splitlines() if l.strip().endswith('não aceito')]),
+            MOTIVOS_NO_RELATORIO)
+
+
+class ExtensaoTest(TestCase):
+    """Ponto no meio do nome não é extensão.
+
+    O acervo real tem "Vídeo 2. corolouco destruindo a cidade opção 2" e
+    "Reunião. 05/03/2021". Pegar cegamente tudo depois do último ponto
+    transformava a frase inteira em "extensão" e enchia o relatório de motivos
+    absurdos, um para cada arquivo.
+    """
+
+    def test_extensao_de_verdade_e_reconhecida(self):
+        from acervo.importacao import extensao_de
+        self.assertEqual(extensao_de('ata.pdf'), 'pdf')
+        self.assertEqual(extensao_de('foto.JPEG'), 'jpeg')
+
+    def test_frase_depois_do_ponto_nao_e_extensao(self):
+        from acervo.importacao import extensao_de
+        self.assertEqual(
+            extensao_de('Vídeo 2. corolouco destruindo a cidade opção 2'), '')
+
+    def test_data_depois_do_ponto_nao_e_extensao(self):
+        from acervo.importacao import extensao_de
+        self.assertEqual(extensao_de('Reunião. 05/03/2021'), '')
+
+    def test_arquivo_sem_ponto_nenhum(self):
+        from acervo.importacao import extensao_de
+        self.assertEqual(extensao_de('Documento sem extensao'), '')
+
+    def test_pdf_de_verdade_continua_entrando(self):
+        from acervo.importacao import motivo_para_recusar
+        self.assertIsNone(motivo_para_recusar('ata.pdf', 1000))
+
+
+class PastaIgnoradaTest(BaseDrive):
+    """Exclusão permanente precisa valer para o botão e a tarefa agendada.
+
+    Nenhum dos dois passa flag. Uma exclusão feita só com --somente na linha de
+    comando seria desfeita na primeira rodada automática — e no acervo real a
+    pasta em questão tem 11.779 arquivos e 5,9 GB.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.drive.pasta('p1', 'a. Áreas')
+        self.drive.arquivo('a1', 'relatorio-2024.pdf', 'p1')
+        self.drive.pasta('p2', '1. 2018')
+        self.drive.arquivo('a2', 'ata.pdf', 'p2')
+
+    @override_settings(ACERVO_DRIVE_IGNORAR=['Áreas'])
+    def test_pasta_do_env_nao_entra(self):
+        self.sincronizar()
+
+        self.assertFalse(Colecao.objects.filter(nome='Áreas').exists())
+        self.assertTrue(Colecao.objects.filter(nome='2018').exists())
+
+    @override_settings(ACERVO_DRIVE_IGNORAR=['a. Áreas'])
+    def test_o_env_aceita_o_nome_com_prefixo(self):
+        self.sincronizar()
+        self.assertFalse(Colecao.objects.filter(nome='Áreas').exists())
+
+    @override_settings(ACERVO_DRIVE_IGNORAR=['Áreas'])
+    def test_a_exclusao_permanente_vence_o_somente(self):
+        """Pasta marcada para nunca entrar não entra nem se for pedida."""
+        self.sincronizar(somente=['Áreas'])
+        self.assertFalse(Colecao.objects.filter(nome='Áreas').exists())
+
+    @override_settings(ACERVO_DRIVE_IGNORAR=[])
+    def test_exceto_exclui_só_naquela_rodada(self):
+        self.sincronizar(exceto=['Áreas'])
+        self.assertFalse(Colecao.objects.filter(nome='Áreas').exists())
+
+        self.sincronizar()
+        self.assertTrue(Colecao.objects.filter(nome='Áreas').exists())
+
+    @override_settings(ACERVO_DRIVE_IGNORAR=['Áreas'])
+    def test_pasta_ignorada_nem_e_varrida_no_drive(self):
+        """Não basta não importar: varrer 11.779 arquivos à toa custa minutos."""
+        self.sincronizar()
+        self.assertEqual(self.drive.baixados, ['a2'])
+
+
+class FormatosDaSincronizacaoTest(BaseDrive):
+    """A varredura automática é mais restrita que o formulário manual.
+
+    A diferença tem razão: no formulário uma pessoa escolhe cada arquivo e sabe
+    que aquela foto é a ficha de postulação digitalizada. Na varredura de um
+    Drive de trabalho, "imagem" é foto de evento aos milhares — no acervo real
+    eram 5,9 GB numa pasta só, e nenhum deles era documento.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.drive.pasta('p1', 'Atas 2024')
+
+    def test_imagem_nao_entra_pela_sincronizacao(self):
+        self.drive.arquivo('a1', 'foto.jpg', 'p1')
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 0)
+
+    def test_o_formulario_manual_continua_aceitando_imagem(self):
+        """Trava a diferença: mudar um não pode mudar o outro em silêncio."""
+        from acervo.forms import EXTENSOES_ACEITAS
+        self.assertIn('jpg', EXTENSOES_ACEITAS)
+
+    def test_documento_e_planilha_entram(self):
+        for i, nome in enumerate(['ata.pdf', 'oficio.docx', 'orcamento.xlsx',
+                                  'lista.csv', 'texto.odt']):
+            self.drive.arquivo(f'd{i}', nome, 'p1')
+
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 5)
+
+    def test_video_e_imagem_ficam_de_fora(self):
+        for i, nome in enumerate(['clipe.mp4', 'foto.jpg', 'arte.psd',
+                                  'audio.mp3', 'pacote.zip']):
+            self.drive.arquivo(f'x{i}', nome, 'p1',
+                               tipo='application/octet-stream')
+
+        self.sincronizar()
+        self.assertEqual(Documento.objects.count(), 0)
+
+    @override_settings(ACERVO_DRIVE_FORMATOS=['jpg', 'pdf'])
+    def test_o_env_manda_na_lista_de_formatos(self):
+        """Se a liderança quiser imagem também, é uma linha no .env."""
+        self.drive.arquivo('a1', 'foto.jpg', 'p1')
+        self.drive.arquivo('a2', 'orcamento.xlsx', 'p1')
+
+        self.sincronizar()
+        self.assertEqual(
+            list(Documento.objects.values_list('origem_drive_id', flat=True)),
+            ['a1'])
+
+
+class PastaEspecificaTest(BaseDrive):
+    """Apontar para uma pasta só, sem mexer no .env.
+
+    É como se começa devagar num acervo de 12.807 arquivos: traz uma pasta,
+    olha o resultado, e decide o resto.
+    """
+
+    def test_pasta_sem_subpasta_vira_ela_mesma_a_colecao(self):
+        """Sem isto, apontar para uma pasta folha não importaria nada."""
+        from acervo.sincronizacao import Placar, sincronizar
+
+        self.drive.arquivo('a1', 'ata-2024.pdf', 'alvo')
+        with patch('acervo.drive.metadados',
+                   return_value={'id': 'alvo', 'name': 'Documentos Oficiais'}):
+            sincronizar(self.drive, 'alvo', Placar())
+
+        self.assertTrue(Colecao.objects.filter(nome='Documentos Oficiais').exists())
+        self.assertEqual(Documento.objects.count(), 1)
+
+    def test_pasta_com_subpastas_continua_agrupando_por_subpasta(self):
+        from acervo.sincronizacao import Placar, sincronizar
+
+        self.drive.pasta('sub', '1. 2018', dentro_de='alvo')
+        self.drive.arquivo('a1', 'ata.pdf', 'sub')
+
+        sincronizar(self.drive, 'alvo', Placar())
+        self.assertTrue(Colecao.objects.filter(nome='2018').exists())
+
+
+class UrlDaPastaTest(TestCase):
+    """--pasta aceita a URL inteira, não só o ID.
+
+    O ID é uma sequência longa onde `l` e `1` são indistinguíveis a olho nu — e
+    digitá-lo à mão já trocou um pelo outro na prática, gerando um 404 que não
+    tinha nada a ver com permissão. Copiar a URL da barra do navegador não tem
+    esse risco.
+    """
+
+    ID = '1_mfvETJviwtcYk0l2Ids_3GvZYbDIVQ0'
+
+    def test_url_de_pasta(self):
+        self.assertEqual(
+            drive.id_da_pasta(f'https://drive.google.com/drive/u/4/folders/{self.ID}'),
+            self.ID)
+
+    def test_url_com_parametro_no_fim(self):
+        self.assertEqual(
+            drive.id_da_pasta(
+                f'https://drive.google.com/drive/folders/{self.ID}?usp=sharing'),
+            self.ID)
+
+    def test_url_de_arquivo(self):
+        self.assertEqual(
+            drive.id_da_pasta(f'https://drive.google.com/file/d/{self.ID}/view'),
+            self.ID)
+
+    def test_id_puro_passa_intacto(self):
+        self.assertEqual(drive.id_da_pasta(self.ID), self.ID)
+
+    def test_espaco_em_volta_nao_atrapalha(self):
+        """Copiar e colar traz espaço junto com frequência."""
+        self.assertEqual(drive.id_da_pasta(f'  {self.ID}  '), self.ID)
+
+    def test_vazio_nao_quebra(self):
+        self.assertEqual(drive.id_da_pasta(''), '')
+        self.assertEqual(drive.id_da_pasta(None), '')
