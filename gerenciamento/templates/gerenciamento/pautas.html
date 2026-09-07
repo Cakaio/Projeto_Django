@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block titulo %}Quadro de pautas{% endblock %}
 
 {% block head %}
@@ -149,6 +150,18 @@
   .pta-mention-name { overflow: hidden; font-size: .75rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
   .pta-mention-user { color: var(--ink-muted); font-size: .68rem; }
   .pta-comment-help { display: flex; justify-content: space-between; gap: .7rem; margin: .35rem 0 .55rem; color: var(--ink-muted); font-size: .64rem; }
+  .pta-disclosure { margin-top: .85rem; border-top: 1px solid #f0e2d8; padding-top: .8rem; font-size: .78rem; }
+  .pta-disclosure > summary { color: var(--ink-muted); cursor: pointer; font-weight: 650; padding: .2rem 0; }
+  .pta-disclosure > summary:hover { color: #b4430d; }
+  .pta-ciencia-list { list-style: none; margin: .5rem 0; padding: 0; max-height: 12rem; overflow-y: auto; overscroll-behavior: contain; }
+  .pta-ciencia-list li { display: grid; gap: .1rem; padding: .5rem .2rem; border-bottom: 1px solid #f0e2d8; overflow-wrap: anywhere; }
+  .pta-ciencia-list small { color: var(--ink-muted); font-size: .67rem; }
+  .pta-ciencia-search { width: 100%; margin-top: .65rem; border: 1px solid #e6d6cb; border-radius: 8px; padding: .5rem .65rem; font: inherit; }
+  .pta-comment.is-mentioned { background: #fff0df; border-radius: 8px; outline: 2px solid #f0c59f; outline-offset: -2px; padding: .65rem; }
+  .pta-modal .errorlist { color: #a22d25; padding-left: 1rem; font-size: .75rem; }
+  .pta-modal .field-control { width: 100%; min-width: 0; padding: .6rem .7rem; border: 1px solid #e6d6cb; border-radius: 10px; background: #fff; color: var(--ink); font: inherit; }
+  .pta-modal textarea.field-control { resize: vertical; }
+  .pta-modal .field-control:focus { outline: 2px solid #ef9a66; outline-offset: 2px; }
 
   @media (max-width: 800px) {
     .pta-modal-grid { grid-template-columns: 1fr; }
@@ -327,6 +340,30 @@
                 {% if pauta.reuniao %}<div class="pta-detail" style="grid-column:1/-1"><dt>Reunião</dt><dd><a class="pta-meeting-link" href="{% url 'gerenciamento:painel_reuniao' pauta.reuniao.pk %}">{{ pauta.reuniao.titulo }} · {{ pauta.reuniao.data_reuniao|date:"d/m/Y · H:i" }} → abrir painel</a></dd></div>{% endif %}
               </dl>
 
+              <section aria-label="Documentos e links" style="margin-bottom:1rem">
+                <p class="pta-section-label">Documentos e links · {{ pauta.materiais.count }}</p>
+                {% include 'gerenciamento/_materiais_lista.html' %}
+                {% if pauta.pode_mover %}
+                  <details class="pta-disclosure" {% if pauta_material_id == pauta.pk %}open{% endif %}>
+                    <summary>Adicionar documentos ou links</summary>
+                    <form method="post" enctype="multipart/form-data" action="{% url 'gerenciamento:adicionar_materiais' pauta.pk %}">
+                      {% csrf_token %}
+                      {% include 'gerenciamento/_materiais_campos.html' with materiais_form=pauta.materiais_form %}
+                      <button class="pcf-btn pcf-btn-outline pcf-btn-sm" type="submit">Adicionar à pauta</button>
+                    </form>
+                  </details>
+                {% endif %}
+              </section>
+
+              <details class="pta-disclosure" data-ciencias data-url="{% url 'gerenciamento:ciencias_pauta' pauta.pk %}" data-read-mentions="{% url 'gerenciamento:ler_mencoes' pauta.pk %}" style="margin-bottom:1rem">
+                <summary>{{ pauta.total_ciencias }} pessoa{{ pauta.total_ciencias|pluralize }} com ciência · ver quem</summary>
+                <label class="sr-only" for="ciencia-busca-{{ pauta.pk }}">Buscar por nome ou usuário</label>
+                <input type="search" id="ciencia-busca-{{ pauta.pk }}" class="pta-ciencia-search" data-ciencia-search placeholder="Buscar por nome ou @usuário">
+                <ul class="pta-ciencia-list" data-ciencia-list></ul>
+                <p data-ciencia-feedback role="status" style="color:var(--ink-muted)"></p>
+                <button type="button" class="pcf-btn pcf-btn-outline pcf-btn-sm" data-ciencia-more hidden>Carregar mais</button>
+              </details>
+
               <div class="pta-ack-box {% if pauta.usuario_ciente %}done{% endif %}">
                 <div class="pta-ack-copy">
                   {% if pauta.usuario_ciente %}
@@ -368,7 +405,7 @@
               </header>
               <div class="pta-comment-scroll" tabindex="0" aria-label="Comentários da pauta {{ pauta.titulo }}" data-comment-scroll>
                 {% for comentario in pauta.comentarios.all %}
-                  <article class="pta-comment">
+                  <article class="pta-comment" id="comentario-{{ comentario.pk }}" tabindex="-1">
                     <span class="pta-avatar" aria-hidden="true">
                       {% if comentario.autor.foto %}<img src="{{ comentario.autor.foto.url }}" alt="">{% elif comentario.autor.first_name %}{{ comentario.autor.first_name|first }}{{ comentario.autor.last_name|first }}{% else %}{{ comentario.autor.username|first }}{% endif %}
                     </span>
@@ -388,7 +425,7 @@
                   <textarea class="comment-input" id="comentario-pauta-{{ pauta.pk }}" name="texto" maxlength="2000" required autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="mencoes-pauta-{{ pauta.pk }}" data-mention-input placeholder="Escreva um comentário. Use @usuario para mencionar…"></textarea>
                   <div class="pta-mention-menu" id="mencoes-pauta-{{ pauta.pk }}" role="listbox" aria-label="Sugestões de usuários" data-mention-menu hidden></div>
                 </div>
-                <div class="pta-comment-help"><span>Digite @ para sugerir pessoas</span><span>máx. 2.000 caracteres</span></div>
+                <div class="pta-comment-help"><span>Use @ para mencionar. Pessoas com acesso recebem um aviso.</span><span>máx. 2.000 caracteres</span></div>
                 <button class="pcf-btn pcf-btn-dark pcf-btn-sm" type="submit">Publicar comentário</button>
               </form>
             </section>
@@ -400,6 +437,7 @@
 {% endfor %}
 
 {{ usuarios_mencao|json_script:"pta-mention-users" }}
+<script src="{% static 'js/pauta-detalhes.js' %}?v={{ ESTATICO_V }}" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';

@@ -4,9 +4,10 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Max, Prefetch
-from django.http import JsonResponse
+from django.db.models import Count, Max, Prefetch, Q
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -15,10 +16,11 @@ from django.views.decorators.http import require_GET, require_POST
 
 from voluntario.models import Grupo
 
-from .forms import ComentarioPautaForm, PautaForm, ReuniaoForm
-from .models import CienciaPauta, ComentarioPauta, Pauta, Reuniao
+from .forms import ComentarioPautaForm, MateriaisPautaForm, PautaForm, ReuniaoForm
+from .models import CienciaPauta, ComentarioPauta, MaterialPauta, Pauta, Reuniao
 from .services import (
     ids_grupos_do_usuario,
+    mencoes_acessiveis,
     pautas_acessiveis_ao_usuario,
     reunioes_acessiveis_ao_usuario,
     usuario_pode_acessar_pauta,
@@ -88,16 +90,18 @@ def _ajustar_ordem_reuniao(pauta, *, reuniao_anterior_id=None):
 @login_required
 def criar_pauta(request):
     form = PautaForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
+    materiais_form = MateriaisPautaForm(request.POST if request.method == "POST" else None, request.FILES)
+    if request.method == "POST" and all([form.is_valid(), materiais_form.is_valid()]):
         pauta = form.save(commit=False)
         pauta.criado_por = request.user
         pauta.emitido_por_area = request.user.area
         pauta.save()
         form.save_m2m()
+        materiais_form.salvar(pauta, request.user)
         _ajustar_ordem_reuniao(pauta)
         messages.success(request, "Pauta criada e direcionada ao grupo.")
         return redirect("gerenciamento:pautas")
-    return render(request, "gerenciamento/criar_pauta.html", {"form": form})
+    return render(request, "gerenciamento/criar_pauta.html", {"form": form, "materiais_form": materiais_form})
 
 
 @login_required
@@ -131,8 +135,10 @@ def editar_pauta(request, pk):
 
     reuniao_anterior_id = pauta.reuniao_id
     form = PautaForm(request.POST or None, instance=pauta)
-    if request.method == "POST" and form.is_valid():
+    materiais_form = MateriaisPautaForm(request.POST if request.method == "POST" else None, request.FILES)
+    if request.method == "POST" and all([form.is_valid(), materiais_form.is_valid()]):
         pauta = form.save()
+        materiais_form.salvar(pauta, request.user)
         _ajustar_ordem_reuniao(
             pauta,
             reuniao_anterior_id=reuniao_anterior_id,
@@ -142,11 +148,12 @@ def editar_pauta(request, pk):
     return render(request, "gerenciamento/criar_pauta.html", {
         "form": form,
         "pauta": pauta,
+        "materiais_form": materiais_form,
     })
 
 
 @login_required
-def pautas(request):
+def pautas(request, *, materiais_form=None, pauta_material_id=None):
     grupos_ids = ids_grupos_do_usuario(request.user)
     estados = CienciaPauta.objects.filter(voluntario=request.user)
 
@@ -157,9 +164,11 @@ def pautas(request):
     )
     pautas_usuario = (
         pautas_acessiveis_ao_usuario(request.user)
+        .annotate(total_ciencias=Count("ciencias", distinct=True))
         .select_related("grupo", "criado_por", "reuniao")
         .prefetch_related(
             "responsaveis",
+            "materiais",
             Prefetch("comentarios", queryset=comentarios),
         )
     )
@@ -179,6 +188,7 @@ def pautas(request):
 
     pautas_usuario = list(pautas_usuario)
     for pauta in pautas_usuario:
+        pauta.materiais_form = materiais_form if pauta.pk == pauta_material_id else MateriaisPautaForm(auto_id=f"material_{pauta.pk}_%s")
         pauta.usuario_ciente = pauta.pk in ciencias_ids
         pauta.pode_mover = _pode_mover_pauta(request.user, pauta)
         pauta.atrasada = (
@@ -200,7 +210,7 @@ def pautas(request):
         )
     ]
 
-    pauta_aberta_id = request.GET.get("pauta", "")
+    pauta_aberta_id = str(pauta_material_id or request.GET.get("pauta", ""))
     if not pauta_aberta_id.isdigit() or not any(
         pauta.pk == int(pauta_aberta_id) for pauta in pautas_usuario
     ):
@@ -213,7 +223,74 @@ def pautas(request):
         "grupos_do_usuario": Grupo.objects.filter(pk__in=grupos_ids),
         "usuarios_mencao": usuarios_mencao,
         "pauta_aberta_id": pauta_aberta_id,
+        "materiais_form": materiais_form or MateriaisPautaForm(),
+        "pauta_material_id": pauta_material_id,
     })
+
+
+@login_required
+@require_GET
+def ciencias_pauta(request, pk):
+    pauta = get_object_or_404(pautas_acessiveis_ao_usuario(request.user), pk=pk)
+    ciencias = pauta.ciencias.select_related("voluntario").order_by("voluntario__first_name", "voluntario__last_name", "voluntario__username", "pk")
+    busca = request.GET.get("q", "").strip()[:150]
+    if busca:
+        for termo in busca.split():
+            ciencias = ciencias.filter(Q(voluntario__first_name__icontains=termo) | Q(voluntario__last_name__icontains=termo) | Q(voluntario__username__icontains=termo))
+    pagina = Paginator(ciencias, 20).get_page(request.GET.get("page"))
+    return JsonResponse({
+        "total": pagina.paginator.count,
+        "proxima": pagina.next_page_number() if pagina.has_next() else None,
+        "pessoas": [{"nome": ciencia.voluntario.get_full_name() or ciencia.voluntario.username,
+                     "username": ciencia.voluntario.username,
+                     "ciente_em": timezone.localtime(ciencia.ciente_em).strftime("%d/%m/%Y às %H:%M")}
+                    for ciencia in pagina],
+    })
+
+
+@login_required
+@require_POST
+def adicionar_materiais(request, pk):
+    pauta = get_object_or_404(pautas_acessiveis_ao_usuario(request.user), pk=pk)
+    if not _pode_mover_pauta(request.user, pauta):
+        raise PermissionDenied
+    form = MateriaisPautaForm(request.POST, request.FILES, auto_id=f"material_{pauta.pk}_%s")
+    if form.is_valid():
+        if form.cleaned_data["documentos"] or form.cleaned_data["links"]:
+            form.salvar(pauta, request.user)
+            messages.success(request, "Materiais adicionados à pauta.")
+            return redirect(_url_do_quadro(pauta_id=pauta.pk))
+        form.add_error(None, "Selecione um documento ou informe um link.")
+    return pautas(request, materiais_form=form, pauta_material_id=pauta.pk)
+
+
+@login_required
+@require_GET
+def baixar_material(request, pk):
+    material = get_object_or_404(MaterialPauta.objects.select_related("pauta__grupo").prefetch_related("pauta__responsaveis"), pk=pk)
+    if not (usuario_pode_acessar_pauta(request.user, material.pauta) or _pode_mover_pauta(request.user, material.pauta)):
+        raise PermissionDenied
+    if not material.arquivo:
+        raise Http404
+    try:
+        arquivo = material.arquivo.open("rb")
+    except FileNotFoundError:
+        raise Http404("Documento indisponível.")
+    return FileResponse(arquivo, as_attachment=True, filename=material.nome, content_type="application/octet-stream")
+
+
+@login_required
+def mencoes(request):
+    pagina = Paginator(mencoes_acessiveis(request.user).select_related("comentario__autor", "comentario__pauta"), 20).get_page(request.GET.get("page"))
+    return render(request, "gerenciamento/mencoes.html", {"pagina": pagina})
+
+
+@login_required
+@require_POST
+def ler_mencoes(request, pk):
+    pauta = get_object_or_404(pautas_acessiveis_ao_usuario(request.user), pk=pk)
+    mencoes_acessiveis(request.user).filter(comentario__pauta=pauta, lida_em__isnull=True).update(lida_em=timezone.now())
+    return JsonResponse({"ok": True, "nao_lidas": mencoes_acessiveis(request.user).filter(lida_em__isnull=True).count()})
 
 
 @login_required
@@ -257,6 +334,9 @@ def comentar_pauta(request, pk):
         comentario.autor = request.user
         comentario.save()
         total_mencoes = comentario.mencoes.count()
+        sem_acesso = sum(not usuario_pode_acessar_pauta(usuario, pauta) for usuario in comentario.mencoes.all())
+        if sem_acesso:
+            messages.warning(request, f"{sem_acesso} pessoa(s) mencionada(s) não receberam aviso porque não têm acesso à pauta.")
         complemento = (
             f" {total_mencoes} menção registrada."
             if total_mencoes == 1

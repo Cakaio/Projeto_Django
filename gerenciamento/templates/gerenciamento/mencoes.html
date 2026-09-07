@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block titulo %}Minhas menções{% endblock %}
+{% block content %}
+<div class="pcf-container" style="max-width:800px;padding-block:2rem">
+  <a href="{% url 'gerenciamento:pautas' %}" class="pcf-btn pcf-btn-ghost pcf-btn-sm">← Quadro de pautas</a>
+  <h1 style="margin-top:1rem;font-weight:800;letter-spacing:-.03em">Minhas menções</h1>
+  <p style="color:var(--ink-muted)">Conversas que chamaram você. Abra a pauta para ler e responder.</p>
+  <div style="display:grid;gap:.7rem">
+    {% for notificacao in pagina %}
+      <a class="pcf-card" href="{% url 'gerenciamento:pautas' %}?pauta={{ notificacao.comentario.pauta_id }}&amp;comentario={{ notificacao.comentario_id }}" style="display:block;padding:1rem;text-decoration:none;color:var(--ink);{% if not notificacao.lida_em %}border-left:3px solid #e8560f{% endif %}">
+        {% if not notificacao.lida_em %}<span class="pcf-badge brand">Nova menção</span>{% endif %}
+        <strong style="display:block;margin:.4rem 0">{{ notificacao.comentario.autor.get_full_name|default:notificacao.comentario.autor.username }} mencionou você</strong>
+        <span>{{ notificacao.comentario.pauta.titulo }}</span>
+        <p style="font-size:.85rem;color:var(--ink-muted);overflow-wrap:anywhere;margin:.4rem 0">{{ notificacao.comentario.texto|truncatechars:180 }}</p>
+        <small>{{ notificacao.criado_em|date:'d/m/Y H:i' }} · Abrir conversa →</small>
+      </a>
+    {% empty %}
+      <div class="pcf-card" style="padding:2rem;color:var(--ink-muted)">Você ainda não recebeu menções em pautas.</div>
+    {% endfor %}
+  </div>
+  {% if pagina.has_other_pages %}
+    <nav aria-label="Páginas de menções" style="display:flex;gap:1rem;align-items:center;margin-top:1rem">
+      {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+      <span>{{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+      {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}">Próxima</a>{% endif %}
+    </nav>
+  {% endif %}
+</div>
+{% endblock %}

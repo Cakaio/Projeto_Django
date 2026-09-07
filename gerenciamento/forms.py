@@ -1,10 +1,66 @@
 import re
+from pathlib import Path
 
 from django import forms
 from django.contrib.auth import get_user_model
+from django.core.validators import FileExtensionValidator, URLValidator
 
-from .models import ComentarioPauta, Pauta, Reuniao
+from .models import ComentarioPauta, MaterialPauta, Pauta, Reuniao
 from .services import pautas_organizaveis_ao_usuario
+
+
+EXTENSOES_DOCUMENTOS = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "txt", "csv", "png", "jpg", "jpeg"]
+
+
+class DocumentosInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class DocumentosField(forms.FileField):
+    def clean(self, data, initial=None):
+        if not data:
+            return []
+        arquivos = data if isinstance(data, (list, tuple)) else [data]
+        if len(arquivos) > 10:
+            raise forms.ValidationError("Envie até 10 documentos por vez.")
+        resultado = []
+        for arquivo in arquivos:
+            arquivo = super().clean(arquivo, initial)
+            if arquivo.size > 10 * 1024 * 1024:
+                raise forms.ValidationError("Cada documento pode ter até 10 MB.")
+            resultado.append(arquivo)
+        return resultado
+
+
+class MateriaisPautaForm(forms.Form):
+    documentos = DocumentosField(
+        required=False, label="Documentos",
+        validators=[FileExtensionValidator(EXTENSOES_DOCUMENTOS)],
+        widget=DocumentosInput(attrs={"class": "field-control", "accept": ",".join("." + ext for ext in EXTENSOES_DOCUMENTOS)}),
+        help_text="Até 10 arquivos por envio, 10 MB cada. PDF, Office, OpenDocument, texto ou imagens.",
+    )
+    links = forms.CharField(
+        required=False, label="Links",
+        widget=forms.Textarea(attrs={"class": "field-control", "rows": 2, "placeholder": "https://… (um link por linha)"}),
+        help_text="Um endereço http:// ou https:// por linha (até 20).",
+    )
+
+    def clean_links(self):
+        links = list(dict.fromkeys(linha.strip() for linha in self.cleaned_data["links"].splitlines() if linha.strip()))
+        if len(links) > 20:
+            raise forms.ValidationError("Adicione até 20 links por vez.")
+        validar = URLValidator(schemes=["http", "https"])
+        for link in links:
+            if len(link) > 2000:
+                raise forms.ValidationError("Cada link pode ter até 2.000 caracteres.")
+            validar(link)
+        return links
+
+    def salvar(self, pauta, autor):
+        for arquivo in self.cleaned_data["documentos"]:
+            MaterialPauta.objects.create(pauta=pauta, autor=autor, nome=Path(arquivo.name).name[:255], arquivo=arquivo)
+        for link in self.cleaned_data["links"]:
+            MaterialPauta.objects.create(pauta=pauta, autor=autor, nome=link[:255], link=link)
 
 
 class PautaForm(forms.ModelForm):

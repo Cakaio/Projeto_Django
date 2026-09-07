@@ -85,6 +85,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'atendido.novos_context.atendidos_filtrados',
                 'TESTE.versao_estatica.versao_estatica',
+                'gerenciamento.context_processors.notificacoes_mencoes',
             ],
         },
     },

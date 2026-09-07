@@ -345,9 +345,9 @@
     <a class="pcf-iconbtn pcf-search-mobile" href="{% url 'busca' %}" title="Buscar" aria-label="Buscar">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
     </a>
-    <a class="pcf-iconbtn" href="{% url 'gerenciamento:pautas' %}" title="Pautas recebidas" aria-label="Pautas recebidas">
+    <a class="pcf-iconbtn" href="{% url 'gerenciamento:mencoes' %}" title="Menções em pautas" aria-label="Menções em pautas: {{ total_mencoes_nao_lidas|default:0 }} não lidas" style="position:relative">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <span class="badge-dot" aria-hidden="true"></span>
+      {% if total_mencoes_nao_lidas %}<span data-mention-badge style="position:absolute;top:-5px;right:-5px;background:#c9490a;color:#fff;border:2px solid #fff;border-radius:99px;min-width:18px;padding:0 3px;font-size:10px;font-weight:800">{{ total_mencoes_nao_lidas }}</span>{% endif %}
     </a>
 
     <!-- Perfil: menu com Meu Perfil / Alterar Senha / Sair -->

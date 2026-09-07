@@ -1,0 +1,9 @@
+{{ materiais_form.non_field_errors }}
+{% for campo in materiais_form %}
+  <div style="display:grid;gap:.35rem;margin:.7rem 0;font-size:.8rem">
+    <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+    {{ campo }}
+    <small style="color:var(--ink-muted)">{{ campo.help_text }}</small>
+    {{ campo.errors }}
+  </div>
+{% endfor %}

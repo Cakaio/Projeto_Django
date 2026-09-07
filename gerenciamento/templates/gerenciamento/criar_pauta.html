@@ -61,7 +61,7 @@
       <p class="cpt-sub">Direcione uma decisão, ideia ou pendência para as pessoas certas. O grupo acompanha suas regras atuais.</p>
     </header>
 
-    <form method="post" class="pcf-card cpt-card">
+    <form method="post" enctype="multipart/form-data" class="pcf-card cpt-card">
       {% csrf_token %}
 
       {% if form.non_field_errors %}
@@ -127,6 +127,12 @@
       </div>
 
       <p class="cpt-note">Área emissora: <strong>{% if pauta %}{{ pauta.get_emitido_por_area_display }}{% else %}{{ user.get_area_display }}{% endif %}</strong>.</p>
+
+      <section aria-label="Documentos e links">
+        <strong>Documentos e links</strong>
+        {% if pauta %}{% include 'gerenciamento/_materiais_lista.html' %}{% endif %}
+        {% include 'gerenciamento/_materiais_campos.html' %}
+      </section>
 
       <div class="cpt-actions">
         <button type="submit" class="pcf-btn pcf-btn-primary">{% if pauta %}Salvar alterações{% else %}Publicar pauta{% endif %}</button>

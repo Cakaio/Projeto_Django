@@ -1,0 +1,15 @@
+<ul class="pta-material-list" style="list-style:none;padding:0;max-height:14rem;overflow:auto">
+  {% for material in pauta.materiais.all %}
+    <li style="padding:.5rem 0;border-bottom:1px solid #f0e2d8;overflow-wrap:anywhere;font-size:.8rem">
+      {% if material.arquivo %}
+        <a href="{% url 'gerenciamento:baixar_material' material.pk %}">↓ {{ material.nome }}</a>
+        <small style="display:block;color:var(--ink-muted)">Documento · baixar arquivo</small>
+      {% else %}
+        <a href="{{ material.link }}" target="_blank" rel="noopener noreferrer">↗ {{ material.nome }}</a>
+        <small style="display:block;color:var(--ink-muted)">Link · abre em outra aba</small>
+      {% endif %}
+    </li>
+  {% empty %}
+    <li style="color:var(--ink-muted);font-size:.78rem">Nenhum documento ou link adicionado.</li>
+  {% endfor %}
+</ul>

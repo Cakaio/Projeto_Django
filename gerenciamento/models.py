@@ -1,9 +1,11 @@
 import re
+from pathlib import Path
+from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 
 from voluntario.models import Grupo, LISTA_AREAS
@@ -229,8 +231,13 @@ class ComentarioPauta(models.Model):
         self.mencoes.set(usuarios)
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        self.sincronizar_mencoes()
+        from .services import notificar_mencoes
+
+        with transaction.atomic():
+            anteriores = set(self.mencoes.values_list("pk", flat=True)) if self.pk else set()
+            super().save(*args, **kwargs)
+            self.sincronizar_mencoes()
+            notificar_mencoes(self, anteriores)
 
 
 # Nome curto oferecido pela nova API sem quebrar imports históricos.
@@ -262,3 +269,36 @@ class CienciaPauta(models.Model):
 
     def __str__(self):
         return f"{self.voluntario} ciente de {self.pauta}"
+
+
+def caminho_documento_pauta(instance, filename):
+    return f"pautas/{instance.pauta_id}/{uuid4().hex}{Path(filename).suffix.lower()}"
+
+
+class MaterialPauta(models.Model):
+    pauta = models.ForeignKey(Pauta, on_delete=models.CASCADE, related_name="materiais")
+    autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    nome = models.CharField(max_length=255)
+    arquivo = models.FileField(upload_to=caminho_documento_pauta, blank=True)
+    link = models.URLField(max_length=2000, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["criado_em", "pk"]
+        constraints = [models.CheckConstraint(
+            check=(Q(arquivo="") & ~Q(link="")) | (~Q(arquivo="") & Q(link="")),
+            name="material_pauta_arquivo_ou_link",
+        )]
+
+
+class NotificacaoMencaoPauta(models.Model):
+    comentario = models.ForeignKey(ComentarioPauta, on_delete=models.CASCADE, related_name="notificacoes")
+    destinatario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notificacoes_mencoes")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    lida_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-criado_em", "-pk"]
+        constraints = [models.UniqueConstraint(
+            fields=["comentario", "destinatario"], name="notificacao_unica_mencao_pauta",
+        )]

@@ -1,8 +1,38 @@
 from django.db.models import Q
+from django.db import transaction
+from django.urls import reverse
+
+from notificacoes.services import enviar_push_async
 
 from voluntario.models import Grupo
 
-from .models import Pauta, Reuniao
+from .models import NotificacaoMencaoPauta, Pauta, Reuniao
+
+
+def notificar_mencoes(comentario, anteriores):
+    destinatarios = list(comentario.mencoes.exclude(pk__in=anteriores | {comentario.autor_id}))
+    if not destinatarios:
+        return
+    pauta = Pauta.objects.select_related("grupo").prefetch_related("responsaveis").get(pk=comentario.pauta_id)
+    for usuario in destinatarios:
+        if not usuario_pode_acessar_pauta(usuario, pauta):
+            continue
+        notificacao, criada = NotificacaoMencaoPauta.objects.get_or_create(comentario=comentario, destinatario=usuario)
+        if criada:
+            url = reverse("gerenciamento:pautas") + f"?pauta={pauta.pk}&comentario={comentario.pk}"
+            corpo = f"{comentario.autor.get_full_name() or comentario.autor.username} mencionou você em {pauta.titulo}."
+            transaction.on_commit(
+                lambda usuario=usuario, url=url, corpo=corpo, pk=notificacao.pk: enviar_push_async(
+                    [usuario], "Você foi mencionado em uma pauta", corpo[:300], url=url, tag=f"mencao-pauta-{pk}",
+                ), robust=True,
+            )
+
+
+def mencoes_acessiveis(usuario):
+    return NotificacaoMencaoPauta.objects.filter(
+        destinatario=usuario,
+        comentario__pauta__in=pautas_acessiveis_ao_usuario(usuario),
+    )
 
 
 def _usuario_ativo(usuario):
