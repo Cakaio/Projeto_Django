@@ -336,6 +336,15 @@
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M4 4h16v4H4z"/><path d="M6 8v12h12V8"/><path d="M10 13h4"/></svg>
       <span>Acervo</span>
     </a>
+
+    {# O Bazar so aparece enquanto estiver acontecendo: fora do evento e um item
+       morto no menu de todo mundo. `bazar_aberto` vem do context processor. #}
+    {% if bazar_aberto %}
+      <a class="pcf-navitem" href="{% url 'bazar:atendimento' %}" title="Atendimento do Bazar">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M3 7h18l-1.5 13H4.5z"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg>
+        <span>Bazar</span>
+      </a>
+    {% endif %}
   </nav>
 </aside>
 

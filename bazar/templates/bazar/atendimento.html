@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% load static %}
+{% block titulo %}Bazar — atendimento{% endblock %}
+
+{% block head %}
+<style>
+  {% comment %}
+  Tela usada em pé, com fila na frente, muitas vezes num celular ou tablet.
+  Tudo aqui é grande de propósito: alvo de toque generoso, número de saldo
+  legível a um braço de distância, e o botão de finalizar impossível de errar.
+  {% endcomment %}
+  .bz-page { min-height: 90vh; padding-block: clamp(1rem, 3vw, 2rem) 4rem; background: linear-gradient(180deg, #fffaf6 0, hsl(var(--background)) 12rem); }
+  .bz-shell { width: min(100%, 940px); margin-inline: auto; padding-inline: clamp(.8rem, 3vw, 1.5rem); }
+
+  .bz-etapa { display: inline-flex; align-items: center; gap: .45rem; padding: .35rem .8rem; border-radius: 999px; font-size: .74rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+  .bz-etapa.primeira { background: #fff0e5; color: #a83b08; }
+  .bz-etapa.segunda { background: #eee9ff; color: #5b35a6; }
+  .bz-etapa.fechado { background: #f1eeec; color: #6b5a51; }
+
+  .bz-busca { position: relative; margin: 1rem 0 1.25rem; }
+  .bz-busca input { width: 100%; padding: 1rem 1.1rem; border: 2px solid #e8d8cd; border-radius: 15px; background: #fff; color: var(--ink); font: inherit; font-size: 1.1rem; font-weight: 600; }
+  .bz-busca input:focus { border-color: #e8560f; outline: none; box-shadow: 0 0 0 4px rgba(232,86,15,.13); }
+  .bz-sugestoes { position: absolute; z-index: 20; right: 0; left: 0; margin-top: .35rem; overflow: hidden; border: 1px solid #e8d8cd; border-radius: 14px; background: #fff; box-shadow: 0 18px 40px rgba(48,28,16,.16); }
+  .bz-sugestao { display: flex; align-items: baseline; justify-content: space-between; gap: .8rem; width: 100%; padding: .85rem 1rem; border: 0; border-bottom: 1px solid #f4ece7; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .bz-sugestao:last-child { border-bottom: 0; }
+  .bz-sugestao:hover, .bz-sugestao:focus-visible { background: #fff6f0; outline: none; }
+  .bz-sugestao strong { font-size: 1rem; font-weight: 750; }
+  .bz-sugestao span { color: var(--ink-muted); font-size: .8rem; }
+
+  .bz-pessoa { padding: 1.1rem 1.2rem; border: 1px solid #eadbd0; border-radius: 18px; background: #fff; box-shadow: 0 10px 28px rgba(66,43,29,.07); }
+  .bz-pessoa-nome { margin: 0; font-size: clamp(1.3rem, 4vw, 1.85rem); font-weight: 880; letter-spacing: -.03em; line-height: 1.1; }
+  .bz-pessoa-sala { color: var(--ink-muted); font-size: .88rem; font-weight: 650; }
+
+  /* O saldo é o número que o voluntário olha o tempo todo. */
+  .bz-saldo { display: flex; align-items: baseline; gap: .5rem; margin-top: .8rem; padding: .8rem 1rem; border-radius: 14px; background: #effcf5; color: #0f6b46; }
+  .bz-saldo.pouco { background: #fff7ed; color: #a93e08; }
+  .bz-saldo.zerado { background: #fff0f0; color: #b42323; }
+  .bz-saldo.livre { background: #eee9ff; color: #5b35a6; }
+  .bz-saldo b { font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 900; line-height: 1; }
+
+  .bz-tamanhos { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .7rem; }
+  .bz-tamanho { padding: .3rem .6rem; border: 1px solid #eadbd0; border-radius: 8px; background: #fffaf7; font-size: .74rem; font-weight: 700; }
+  .bz-tamanho span { color: var(--ink-muted); font-weight: 600; }
+
+  .bz-aviso { margin-top: .85rem; padding: .85rem 1rem; border-radius: 12px; font-size: .86rem; font-weight: 700; }
+  .bz-aviso.bloqueio { background: #fff7ed; color: #92400e; }
+  .bz-aviso.erro { background: #fff0f0; color: #b42323; }
+  .bz-aviso.ok { background: #effcf5; color: #0f6b46; }
+
+  /* Botões de categoria: alvo grande, contagem visível sem abrir nada. */
+  .bz-categorias { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .7rem; margin-top: 1.25rem; }
+  .bz-categoria { position: relative; display: flex; min-height: 5.5rem; flex-direction: column; align-items: flex-start; justify-content: center; gap: .2rem; padding: .9rem 1rem; border: 2px solid #eadbd0; border-radius: 16px; background: #fff; color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, background .15s, transform .1s; }
+  .bz-categoria:hover { border-color: #d9bda9; }
+  .bz-categoria:active { transform: scale(.98); }
+  .bz-categoria.tem { border-color: #e8560f; background: #fff6f0; }
+  .bz-categoria-nome { font-size: 1rem; font-weight: 800; letter-spacing: -.01em; }
+  .bz-categoria-pontos { color: var(--ink-muted); font-size: .78rem; font-weight: 650; }
+  .bz-categoria-estoque { color: var(--ink-muted); font-size: .68rem; }
+  .bz-categoria-estoque.baixo { color: #b45309; font-weight: 800; }
+  .bz-conta { position: absolute; top: .5rem; right: .5rem; display: grid; min-width: 2rem; height: 2rem; place-items: center; border-radius: 999px; background: #e8560f; color: #fff; font-size: 1rem; font-weight: 900; }
+  .bz-menos { position: absolute; right: .5rem; bottom: .5rem; width: 2rem; height: 2rem; border: 1px solid #eadbd0; border-radius: 999px; background: #fff; color: var(--ink-soft); font-size: 1.2rem; font-weight: 800; line-height: 1; cursor: pointer; }
+
+  .bz-resumo { position: sticky; bottom: 0; margin-top: 1.25rem; padding: 1rem 1.1rem; border: 1px solid #eadbd0; border-radius: 18px 18px 0 0; background: #fff; box-shadow: 0 -10px 30px rgba(66,43,29,.1); }
+  .bz-resumo-linha { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .3rem; font-size: .88rem; }
+  .bz-resumo-total { font-size: 1.05rem; font-weight: 850; }
+  .bz-finalizar { width: 100%; margin-top: .8rem; padding: 1.05rem; border: 0; border-radius: 14px; background: #16845b; color: #fff; font: inherit; font-size: 1.1rem; font-weight: 850; letter-spacing: .01em; cursor: pointer; }
+  .bz-finalizar:disabled { background: #cdc5c0; cursor: not-allowed; }
+
+  .bz-extra { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .6rem; margin-top: .9rem; }
+  .bz-extra label { display: block; margin-bottom: .25rem; color: var(--ink-muted); font-size: .7rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+  .bz-extra select, .bz-extra input { width: 100%; padding: .6rem .7rem; border: 1px solid #e8d8cd; border-radius: 10px; background: #fff; color: var(--ink); font: inherit; font-size: .88rem; }
+
+  .bz-historico { margin-top: .9rem; padding-top: .8rem; border-top: 1px dashed #eadbd0; font-size: .82rem; }
+  .bz-historico li { margin-bottom: .3rem; color: var(--ink-soft); }
+
+  .bz-vazio { padding: 3rem 1.5rem; border: 1.5px dashed #e8cbb8; border-radius: 20px; background: rgba(255,255,255,.7); text-align: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bz-page">
+  <div class="bz-shell">
+
+    {% if not bazar %}
+      <div class="bz-vazio">
+        <h1 style="font-weight:880;letter-spacing:-.03em">Nenhum Bazar aberto</h1>
+        <p style="color:var(--ink-muted)">
+          A coordenação precisa abrir a 1ª etapa para o atendimento começar.
+        </p>
+        {% if pode_coordenar %}
+          <a href="{% url 'bazar:painel' %}" class="pcf-btn pcf-btn-primary">Abrir o painel do Bazar</a>
+        {% endif %}
+      </div>
+    {% else %}
+      <header style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div>
+          <span class="bz-etapa {% if bazar.etapa == 'PRIMEIRA' %}primeira{% elif bazar.etapa == 'SEGUNDA' %}segunda{% else %}fechado{% endif %}">
+            {{ bazar.get_etapa_display }}
+          </span>
+          <h1 style="margin:.5rem 0 0;font-size:clamp(1.5rem,4vw,2.1rem);font-weight:900;letter-spacing:-.04em">{{ bazar.nome }}</h1>
+        </div>
+        {% if pode_coordenar %}
+          <a href="{% url 'bazar:painel' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Painel</a>
+        {% endif %}
+      </header>
+
+      <div class="bz-busca">
+        <label class="sr-only" for="bz-nome">Buscar o atendido pelo nome</label>
+        <input type="search" id="bz-nome" data-busca autocomplete="off"
+               placeholder="Digite o nome do atendido">
+        <div class="bz-sugestoes" data-sugestoes hidden></div>
+      </div>
+
+      <section data-pessoa hidden>
+        <div class="bz-pessoa">
+          <p class="bz-pessoa-nome" data-nome></p>
+          <p class="bz-pessoa-sala" data-sala></p>
+
+          <div class="bz-saldo" data-saldo>
+            <b data-saldo-numero>—</b>
+            <span data-saldo-texto></span>
+          </div>
+
+          <div class="bz-tamanhos" data-tamanhos hidden></div>
+          <div class="bz-aviso bloqueio" data-bloqueio hidden></div>
+          <ul class="bz-historico" data-historico hidden style="list-style:none;padding:0;margin-top:.9rem"></ul>
+        </div>
+
+        <div class="bz-categorias" data-categorias>
+          {% for categoria in categorias %}
+            <button type="button" class="bz-categoria" data-categoria="{{ categoria.pk }}"
+                    data-pontos="{{ categoria.pontos }}">
+              <span class="bz-categoria-nome">{{ categoria.nome }}</span>
+              <span class="bz-categoria-pontos">{{ categoria.pontos }} ponto{{ categoria.pontos|pluralize }}</span>
+              {% if categoria.estoque_inicial %}
+                <span class="bz-categoria-estoque {% if categoria.estoque_baixo %}baixo{% endif %}">
+                  {{ categoria.restante }} em estoque
+                </span>
+              {% endif %}
+              <span class="bz-conta" data-conta hidden>0</span>
+              <span class="bz-menos" data-menos hidden aria-label="Tirar uma">−</span>
+            </button>
+          {% endfor %}
+        </div>
+
+        <div class="bz-resumo">
+          <div data-linhas></div>
+          <div class="bz-resumo-linha bz-resumo-total">
+            <span>Total</span>
+            <span><b data-total>0</b> pontos · <span data-pecas>0</span> peça(s)</span>
+          </div>
+
+          <div class="bz-extra">
+            <div>
+              <label for="bz-retirado-por">Quem levou</label>
+              <select id="bz-retirado-por" data-retirado-por>
+                {% for codigo, rotulo in opcoes_retirado_por %}
+                  <option value="{{ codigo }}">{{ rotulo }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div data-nome-de-quem hidden>
+              <label for="bz-quem-nome">Nome de quem levou</label>
+              <input type="text" id="bz-quem-nome" data-retirado-nome autocomplete="off">
+            </div>
+            <div>
+              <label for="bz-sala">Sala do Bazar</label>
+              <input type="text" id="bz-sala" data-sala-bazar autocomplete="off" placeholder="Ex.: Sala 1">
+            </div>
+          </div>
+
+          <div class="bz-aviso erro" data-erro hidden></div>
+          <button type="button" class="bz-finalizar" data-finalizar disabled>
+            Finalizar retirada
+          </button>
+        </div>
+      </section>
+
+      <div class="bz-aviso ok" data-sucesso hidden style="margin-top:1rem"></div>
+    {% endif %}
+  </div>
+</div>
+
+{% if bazar %}
+<script>
+  window.BAZAR = {
+    urlBusca: "{% url 'bazar:buscar' %}",
+    urlSituacao: "{% url 'bazar:situacao' 0 %}",
+    urlFinalizar: "{% url 'bazar:finalizar' %}",
+    descontaPontos: {{ bazar.desconta_pontos|yesno:"true,false" }},
+    csrf: "{{ csrf_token }}"
+  };
+</script>
+<script src="{% static 'js/bazar-atendimento.js' %}?v={{ ESTATICO_V }}" defer></script>
+{% endif %}
+{% endblock %}

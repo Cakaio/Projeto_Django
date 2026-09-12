@@ -229,6 +229,48 @@ Decisões que já custaram pensamento:
   pela API de verdade, paginação com muitos arquivos e Drive compartilhado.
   `acervo/tests_drive.py` usa um dublê; essas partes só se provam no servidor.
 
+## Bazar (distribuicao de roupa por pontos)
+
+App `bazar`. Substitui ficha e dinheiro ficticio: cada atendido recebe uma cota
+de pontos, cada categoria de peca custa pontos, e a tela de atendimento faz a
+conta enquanto o voluntario marca.
+
+**Nao existe cadastro de participante.** O Bazar aponta para o `Atendido` que o
+projeto ja mantem — nome, salinha, data de nascimento e a numeracao de camisa,
+calca e calcado, que a tela mostra porque economiza tempo na fila. Recadastrar
+criaria duas verdades sobre a mesma crianca.
+
+Tres telas: `/bazar/` (atendimento, qualquer voluntario logado), `/bazar/painel/`
+(coordenacao: TRIADE e EVENTOS) e o admin, onde a cota, as categorias e o
+estoque inicial sao configurados uma vez, antes do evento.
+
+Decisoes que ja custaram pensamento:
+- **A troca de etapa e MANUAL.** Evento atrasa. Se o relogio virasse sozinho as
+  11h com a fila da primeira etapa ainda andando, o sistema passaria a liberar
+  retirada extra para quem nem foi atendido, e ninguem perceberia na hora.
+- **A 2a etapa nao tem limite de pontos** (decisao da lideranca): ali o objetivo
+  deixa de ser racionar e passa a ser esvaziar o estoque. `saldo_de` devolve
+  None nessa etapa, e a tela mostra "sem limite" em vez de um zero enganoso.
+- **Estoque AVISA, nao bloqueia.** Contagem de bazar e aproximada; travar a
+  entrega porque a planilha diz que acabou seria deixar a crianca sem a peca que
+  ja esta na mao do voluntario.
+- **O alerta de estoque e medido ANTES de gravar.** Depois do bulk_create os
+  itens da propria retirada ja contam como distribuidos, e quem levasse
+  exatamente o que restava disparava alerta indevido. Foi bug real.
+- **`ItemRetirada.pontos_unitarios` e copia, nao referencia.** Corrigir o valor
+  de uma categoria no meio do evento nao pode reescrever o que ja saiu.
+- **Rascunho nao consome nada.** So `finalizada_em` preenchido conta para saldo,
+  estoque e relatorio. Se a tela cair no meio, nada foi gasto.
+- **Uma retirada finalizada por atendido por etapa**, por UniqueConstraint com
+  `condition` — e a trava contra passar duas vezes pela mesma fila.
+- **Um Bazar aberto por vez**: dois abertos seriam duas telas gravando em
+  edicoes diferentes no mesmo dia.
+- O CSV do relatorio tem **uma linha por peca** (a planilha soma por categoria,
+  salinha ou etapa sem desmontar nada) e comeca com BOM, senao o Excel abre
+  "Joao" como "JoA£o".
+
+FALTA: o modo de contingencia (ficha fisica impressa e lancamento posterior).
+
 ## Conventions
 
 - Language: All UI, models, and code comments are in **Brazilian Portuguese**

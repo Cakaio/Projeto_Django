@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'editais',
     'projetos',
     'acervo',
+    'bazar',
     'estudio',
     'notificacoes',
 ]
@@ -86,6 +87,7 @@ TEMPLATES = [
                 'atendido.novos_context.atendidos_filtrados',
                 'TESTE.versao_estatica.versao_estatica',
                 'gerenciamento.context_processors.notificacoes_mencoes',
+                'bazar.context_processors.bazar_aberto',
             ],
         },
     },

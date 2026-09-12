@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block titulo %}Bazar — painel{% endblock %}
+
+{% block head %}
+<style>
+  .bzp-page { min-height: 85vh; padding-block: clamp(1.5rem, 3vw, 2.5rem) 4rem; background: linear-gradient(180deg, #fffaf6 0, hsl(var(--background)) 14rem); }
+  .bzp-shell { width: min(100%, 1200px); margin-inline: auto; padding-inline: clamp(1rem, 3vw, 2rem); }
+
+  .bzp-numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: .75rem; margin: 1.25rem 0; }
+  .bzp-numero { padding: 1rem 1.1rem; border: 1px solid #eadbd0; border-radius: 16px; background: #fff; }
+  .bzp-numero b { display: block; font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 900; letter-spacing: -.035em; line-height: 1; }
+  .bzp-numero span { color: var(--ink-muted); font-size: .76rem; font-weight: 700; }
+
+  .bzp-etapa-atual { display: inline-flex; align-items: center; gap: .5rem; padding: .4rem .9rem; border-radius: 999px; background: #fff0e5; color: #a83b08; font-size: .78rem; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
+
+  .bzp-chave { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; padding: 1rem 1.1rem; border: 1px solid #eadbd0; border-radius: 16px; background: #fff; }
+  .bzp-chave form { display: inline; }
+
+  .bzp-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; margin-top: 1.25rem; align-items: start; }
+  .bzp-bloco { padding: 1.1rem 1.2rem; border: 1px solid #eadbd0; border-radius: 16px; background: #fff; }
+  .bzp-bloco h2 { margin: 0 0 .8rem; font-size: .78rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-muted); }
+
+  .bzp-tabela { width: 100%; border-collapse: collapse; font-size: .86rem; }
+  .bzp-tabela th { padding: .4rem .5rem; border-bottom: 1px solid #f0e4db; color: var(--ink-muted); font-size: .7rem; font-weight: 800; letter-spacing: .05em; text-align: left; text-transform: uppercase; }
+  .bzp-tabela td { padding: .45rem .5rem; border-bottom: 1px solid #f7f0eb; }
+  .bzp-tabela td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .bzp-baixo { color: #b45309; font-weight: 850; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bzp-page">
+  <div class="bzp-shell">
+
+    {% if not bazar %}
+      <h1 style="font-weight:900;letter-spacing:-.04em">Nenhum Bazar cadastrado</h1>
+      <p style="color:var(--ink-muted)">
+        Crie o Bazar pelo admin — lá você define a cota, as categorias e o estoque inicial.
+      </p>
+      <a href="/admin/bazar/bazar/add/" class="pcf-btn pcf-btn-primary">Criar o Bazar</a>
+    {% else %}
+      <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <div>
+          <span class="bzp-etapa-atual">{{ bazar.get_etapa_display }}</span>
+          <h1 style="margin:.55rem 0 0;font-size:clamp(1.7rem,4vw,2.5rem);font-weight:900;letter-spacing:-.045em">{{ bazar.nome }}</h1>
+          <p style="margin:.2rem 0 0;color:var(--ink-muted);font-size:.88rem">
+            {{ bazar.data|date:"d/m/Y" }} · cota de {{ bazar.cota_inicial }} ponto{{ bazar.cota_inicial|pluralize }}
+          </p>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <a href="{% url 'bazar:atendimento' %}" class="pcf-btn pcf-btn-outline">Tela de atendimento</a>
+          <a href="{% url 'bazar:relatorio' bazar.pk %}" class="pcf-btn pcf-btn-outline">Baixar relatório (CSV)</a>
+          <a href="/admin/bazar/bazar/{{ bazar.pk }}/change/" class="pcf-btn pcf-btn-outline">Configurar</a>
+        </div>
+      </header>
+
+      <div class="bzp-numeros">
+        <div class="bzp-numero"><b>{{ numeros.atendidos }}<span style="font-size:1rem;font-weight:700;color:var(--ink-muted)">/{{ numeros.elegiveis }}</span></b><span>atendidos</span></div>
+        <div class="bzp-numero"><b>{{ numeros.pecas }}</b><span>peças distribuídas</span></div>
+        <div class="bzp-numero"><b>{{ numeros.pontos }}</b><span>pontos utilizados</span></div>
+        <div class="bzp-numero"><b>{{ numeros.primeira }}</b><span>na 1ª etapa</span></div>
+        <div class="bzp-numero"><b>{{ numeros.segunda }}</b><span>na 2ª etapa</span></div>
+      </div>
+
+      <div class="bzp-chave">
+        <strong style="font-size:.82rem">Etapa do Bazar:</strong>
+        {% for codigo, rotulo in etapas %}
+          <form method="post" action="{% url 'bazar:mudar_etapa' bazar.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="etapa" value="{{ codigo }}">
+            <button type="submit" class="pcf-btn {% if bazar.etapa == codigo %}pcf-btn-primary{% else %}pcf-btn-outline{% endif %} pcf-btn-sm"
+                    {% if bazar.etapa == codigo %}disabled{% endif %}>{{ rotulo }}</button>
+          </form>
+        {% endfor %}
+      </div>
+      <p style="margin:.5rem 0 0;color:var(--ink-muted);font-size:.78rem">
+        A troca é manual de propósito: evento atrasa, e virar a etapa pelo relógio
+        liberaria retirada extra para quem ainda nem foi atendido.
+      </p>
+
+      <div class="bzp-grade">
+        <section class="bzp-bloco">
+          <h2>Estoque por categoria</h2>
+          <div class="pcf-scroll-x">
+            <table class="bzp-tabela" style="min-width:26rem">
+              <thead><tr><th>Categoria</th><th class="num">Inicial</th><th class="num">Saiu</th><th class="num">Resta</th></tr></thead>
+              <tbody>
+                {% for categoria in categorias %}
+                  <tr>
+                    <td>{{ categoria.nome }}</td>
+                    <td class="num">{% if categoria.estoque_inicial %}{{ categoria.estoque_inicial }}{% else %}—{% endif %}</td>
+                    <td class="num">{{ categoria.distribuido }}</td>
+                    <td class="num {% if categoria.estoque_baixo %}bzp-baixo{% endif %}">
+                      {% if categoria.restante is None %}—{% else %}{{ categoria.restante }}{% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="bzp-bloco">
+          <h2>Atendimentos por salinha</h2>
+          <div class="pcf-scroll-x">
+            <table class="bzp-tabela" style="min-width:18rem">
+              <tbody>
+                {% for linha in salinhas %}
+                  <tr><td>{{ linha.sala }}</td><td class="num">{{ linha.total }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="bzp-bloco" style="grid-column:1/-1">
+          <h2>Últimas retiradas</h2>
+          <div class="pcf-scroll-x">
+            <table class="bzp-tabela" style="min-width:40rem">
+              <thead><tr><th>Hora</th><th>Atendido</th><th>Salinha</th><th>Etapa</th><th>Peças</th><th class="num">Pontos</th><th>Conferiu</th></tr></thead>
+              <tbody>
+                {% for retirada in ultimas %}
+                  <tr>
+                    <td>{{ retirada.finalizada_em|date:"H:i" }}</td>
+                    <td>{{ retirada.atendido.nome }}</td>
+                    <td>{{ retirada.atendido.get_sala_display }}</td>
+                    <td>{{ retirada.get_etapa_display }}</td>
+                    <td>{% for item in retirada.itens.all %}{{ item.categoria.nome }} × {{ item.quantidade }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                    <td class="num">{{ retirada.pontos_usados }}</td>
+                    <td>{{ retirada.conferido_por.get_full_name|default:retirada.conferido_por.username }}</td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="7" style="color:var(--ink-muted)">Nenhuma retirada finalizada ainda.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
