@@ -201,3 +201,88 @@ class DadosDoFiltroTest(BaseQuadro):
         html = self.abrir()
         self.assertNotIn("data-board-filters", html)
         self.assertIn("Seu quadro está livre", html)
+
+
+class EscolherResponsaveisTest(BaseQuadro):
+    """Vários responsáveis sempre existiram no modelo — a interface é que escondia.
+
+    O formulário usava `<select multiple>` com a instrução "Use Ctrl (Windows)
+    ou Command (macOS)". No celular isso é impraticável, e o PCF é PWA: o
+    recurso existia e ninguém conseguia usar.
+    """
+
+    def abrir_formulario(self):
+        from .views import criar_pauta
+
+        pedido = self.factory.get("/gerenciamento/nova/")
+        pedido.user = self.lider
+        return criar_pauta(pedido).content.decode()
+
+    def test_o_campo_virou_caixas_de_selecao(self):
+        html = self.abrir_formulario()
+        self.assertIn('name="responsaveis"', html)
+        self.assertIn('type="checkbox"', html)
+
+    def test_nao_sobrou_select_multiple_nem_instrucao_de_teclado(self):
+        """A instrução de teclado era o sintoma: recurso que só o mouse alcança.
+
+        Afirma o texto exato que existia, e não a palavra solta "Ctrl" — ela
+        aparece legitimamente num comentário de CSS explicando esta mudança.
+        """
+        html = self.abrir_formulario()
+        self.assertNotIn('<select name="responsaveis" multiple', html)
+        self.assertNotIn("Use Ctrl (Windows) ou Command (macOS)", html)
+
+    def test_tem_busca_para_achar_a_pessoa(self):
+        """Com dezenas de voluntários, rolar a lista inteira não serve."""
+        self.assertIn("data-pessoas-busca", self.abrir_formulario())
+
+    def test_salva_mais_de_um_responsavel(self):
+        """A prova que interessa: dois nomes marcados viram dois responsáveis."""
+        from django.contrib.messages.storage.fallback import FallbackStorage
+
+        from .views import criar_pauta
+
+        pedido = self.factory.post("/gerenciamento/nova/", {
+            "titulo": "Dividir a organização do evento",
+            "descricao": "Duas pessoas tocam isso.",
+            "prioridade": Pauta.Prioridade.MEDIA,
+            "status": Pauta.Status.A_DISCUTIR,
+            "prazo_ddl": (timezone.now() + timedelta(days=5)).strftime("%Y-%m-%dT%H:%M"),
+            "grupo": self.grupo.pk,
+            "etiquetas_texto": "",
+            "responsaveis": [str(self.lider.pk)],
+        })
+        pedido.user = self.lider
+        pedido.session = {}
+        pedido._messages = FallbackStorage(pedido)
+        criar_pauta(pedido)
+
+        criada = Pauta.objects.get(titulo="Dividir a organização do evento")
+        self.assertEqual(list(criada.responsaveis.all()), [self.lider])
+
+
+class DensidadeDoCardTest(BaseQuadro):
+    """O card não pode gastar uma linha inteira repetindo o que a borda já diz."""
+
+    def test_concluida_nao_cobra_ciencia_no_card(self):
+        """Cobrar ciência de assunto encerrado é ruído — e contradizia o topo,
+        que não conta concluídas como pendentes."""
+        self.pauta("Encerrada", status=Pauta.Status.CONCLUIDA)
+        html = self.abrir()
+
+        self.assertIn("<strong>0</strong> esperando sua ciência", html)
+        self.assertNotIn("Falta sua ciência", html)
+
+    def test_pauta_aberta_sem_ciencia_avisa(self):
+        self.pauta("Em aberto")
+        self.assertIn("Falta sua ciência", self.abrir())
+
+    def test_ciencia_registrada_nao_gasta_linha_no_card(self):
+        """Registrada já aparece na cor da borda esquerda do card."""
+        pauta = self.pauta("Já vista")
+        CienciaPauta.objects.create(pauta=pauta, voluntario=self.lider)
+        html = self.abrir()
+
+        self.assertIn("is-acknowledged", html)
+        self.assertNotIn("Sua ciência está registrada", html)

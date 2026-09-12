@@ -115,9 +115,13 @@ class PautaForm(forms.ModelForm):
             }, format="%Y-%m-%dT%H:%M"),
             "grupo": forms.Select(attrs={"class": "field-control"}),
             "reuniao": forms.Select(attrs={"class": "field-control"}),
-            "responsaveis": forms.SelectMultiple(attrs={
-                "class": "field-control",
-                "size": 5,
+            # Caixas de seleção, e não <select multiple>: o nativo exige
+            # Ctrl+clique para marcar mais de um, o que no celular é
+            # praticamente impossível — e o PCF agora é PWA. O recurso de
+            # vários responsáveis sempre existiu no modelo; era a interface que
+            # o escondia atrás de uma instrução de teclado.
+            "responsaveis": forms.CheckboxSelectMultiple(attrs={
+                "class": "pta-escolha-multipla",
             }),
             "status": forms.Select(attrs={"class": "field-control"}),
             "prioridade": forms.Select(attrs={"class": "field-control"}),
@@ -130,7 +134,7 @@ class PautaForm(forms.ModelForm):
             get_user_model().objects.ativos().order_by("first_name", "last_name", "username")
         )
         self.fields["responsaveis"].help_text = (
-            "Use Ctrl (Windows) ou Command (macOS) para selecionar várias pessoas."
+            "Marque quantas pessoas quiserem. Só entra quem é do grupo escolhido."
         )
         self.fields["reuniao"].queryset = Reuniao.objects.select_related("grupo")
         if self.instance and self.instance.pk:

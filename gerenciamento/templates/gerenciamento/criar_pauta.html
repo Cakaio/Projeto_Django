@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block titulo %}{% if pauta %}Editar pauta{% else %}Nova pauta{% endif %}{% endblock %}
 
 {% block content %}
@@ -44,6 +45,25 @@
     .cpt-actions { flex-direction: column; }
     .cpt-actions .pcf-btn { width: 100%; }
   }
+  .cpt-pseudo-label { margin: 0 0 .4rem; font-size: .78rem; font-weight: 750; }
+
+  /* Escolha de varias pessoas. Caixas de selecao de verdade: acessivel por
+     teclado e por toque, sem depender de Ctrl+clique como o <select multiple>. */
+  .pta-pessoas { border: 1px solid #e8d8cd; border-radius: 12px; background: #fff; }
+  .pta-pessoas-busca { display: flex; align-items: center; gap: .45rem; padding: .55rem .7rem; border-bottom: 1px solid #f0e4db; color: var(--ink-muted); }
+  .pta-pessoas-busca input { flex: 1; min-width: 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: .82rem; }
+  .pta-pessoas-busca input:focus { outline: none; }
+  .pta-pessoas-lista { max-height: 15rem; overflow-y: auto; padding: .3rem; overscroll-behavior: contain; }
+  /* O widget do Django entrega <ul><li><label><input>. Tiramos a aparencia de
+     lista e damos alvo de toque grande o bastante para o dedo. */
+  .pta-pessoas-lista ul { list-style: none; margin: 0; padding: 0; }
+  .pta-pessoas-lista li { margin: 0; }
+  .pta-pessoas-lista label { display: flex; align-items: center; gap: .55rem; padding: .42rem .55rem; border-radius: 9px; font-size: .83rem; cursor: pointer; }
+  .pta-pessoas-lista label:hover { background: #fdf3ec; }
+  .pta-pessoas-lista input[type="checkbox"] { width: 1.05rem; height: 1.05rem; flex: 0 0 auto; accent-color: #e8560f; }
+  .pta-pessoas-lista li.esta-marcada label { background: #fff2e8; font-weight: 700; }
+  .pta-pessoas-vazio, .pta-pessoas-contagem { margin: 0; padding: .5rem .7rem; border-top: 1px solid #f0e4db; color: var(--ink-muted); font-size: .74rem; }
+  .pta-pessoas-contagem:empty { display: none; }
 </style>
 
 <div class="cpt-page">
@@ -112,8 +132,18 @@
           {{ form.reuniao.errors }}
         </div>
         <div class="cpt-field">
-          <label for="{{ form.responsaveis.id_for_label }}">{{ form.responsaveis.label }}</label>
-          {{ form.responsaveis }}
+          {# CheckboxSelectMultiple nao tem um unico campo para apontar: o label vira <p>. #}
+          <p class="cpt-pseudo-label">{{ form.responsaveis.label }}</p>
+          <div class="pta-pessoas" data-escolha-pessoas>
+            <label class="pta-pessoas-busca">
+              <span class="sr-only">Buscar pessoa</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input type="search" data-pessoas-busca autocomplete="off" placeholder="Buscar pelo nome">
+            </label>
+            <div class="pta-pessoas-lista">{{ form.responsaveis }}</div>
+            <p class="pta-pessoas-vazio" data-pessoas-vazio hidden>Ninguem com esse nome.</p>
+            <p class="pta-pessoas-contagem" data-pessoas-contagem aria-live="polite"></p>
+          </div>
           {{ form.responsaveis.errors }}
           {% if form.responsaveis.help_text %}<small class="cpt-note" style="border:0;padding:0">{{ form.responsaveis.help_text }}</small>{% endif %}
         </div>
@@ -142,4 +172,5 @@
 
   </div>
 </div>
+<script src="{% static 'js/pauta-pessoas.js' %}?v={{ ESTATICO_V }}" defer></script>
 {% endblock %}
