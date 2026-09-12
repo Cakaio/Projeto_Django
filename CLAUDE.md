@@ -274,6 +274,31 @@ de atendimento se explica sozinha quando nao ha edicao aberta.
 
 FALTA: o modo de contingencia (ficha fisica impressa e lancamento posterior).
 
+## Tetos de área (Financeiro)
+
+Quem mexe no teto é **ADM/FIN** (e superusuário), em QUALQUER área — não só na
+própria (`AREAS_ESCRITA` em `adm/views.py`). A Tríade lê o Financeiro inteiro e
+ainda assim não escreve teto. Qualquer voluntário logado VÊ `/adm/tetos/`: é a
+única tela do Financeiro aberta a todos, porque o pedido era cada um acompanhar
+o gasto da área sem depender do ADM. Ver não é editar — teto que o limitado
+ajusta sozinho não é teto.
+
+Armadilha que já custou a tela inteira: a migration `0005_teto_por_semestre`
+trocou `competencia` por `vigente_desde`, e `form_teto.html` continuou
+renderizando `{{ form.competencia }}`. Campo inexistente em template do Django
+não dá erro — sai string vazia. Resultado: `vigente_desde` (obrigatório) nunca
+era enviado, o formulário recusava e a página voltava SEM mensagem, porque o
+erro caía num campo que não aparecia. Ninguém conseguia cadastrar nem alterar
+teto nenhum. **Ao remover um campo do model, procure o nome antigo nos
+templates** — a suíte não pega isso sozinha.
+
+`situacao_dos_tetos()` devolve `teto_id` porque a tabela precisa dele para
+editar e excluir. Sem o id sobrava "Definir teto" para área sem teto e ação
+nenhuma para área COM teto — dava para criar e não dava para corrigir.
+
+Excluir não é zerar: teto zero acusa estouro no primeiro centavo gasto; sem
+teto a área aparece como "gastou sem teto definido". A confirmação diz isso.
+
 ## Conventions
 
 - Language: All UI, models, and code comments are in **Brazilian Portuguese**
