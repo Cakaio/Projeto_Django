@@ -1,3 +1,4 @@
+from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -33,6 +34,35 @@ STATUS_CORES = {
     Pauta.Status.EM_DISCUSSAO: "#7c3aed",
     Pauta.Status.CONCLUIDA: "#16845b",
 }
+
+# Por quantos dias uma pauta concluída continua no quadro.
+#
+# Sem corte, a coluna Concluída cresce para sempre e empurra o que importa para
+# longe — e cada pauta custa ~12 KB de HTML, porque a página traz um modal
+# completo por pauta. Num quadro de 100 pautas isso é 1,2 MB no celular.
+# `?concluidas=todas` mostra o histórico inteiro quando alguém precisa.
+DIAS_DE_CONCLUIDAS_NO_QUADRO = 30
+
+
+def _texto_de_busca(pauta):
+    """Tudo que a busca do quadro varre, num campo só e em minúsculas.
+
+    Montado no servidor para o filtro do navegador não precisar cavar o DOM de
+    cada card — e para achar por etiqueta e por responsável, que não aparecem
+    como texto no card.
+    """
+    partes = [
+        pauta.titulo,
+        pauta.descricao,
+        pauta.grupo.nome if pauta.grupo_id else "",
+        pauta.get_prioridade_display(),
+        " ".join(str(etiqueta) for etiqueta in (pauta.etiquetas or [])),
+    ]
+    partes += [
+        f"{responsavel.get_full_name()} {responsavel.username}"
+        for responsavel in pauta.responsaveis.all()
+    ]
+    return " ".join(parte for parte in partes if parte).casefold()
 
 
 def _url_do_quadro(*, pauta_id=None):
@@ -186,8 +216,25 @@ def pautas(request, *, materiais_form=None, pauta_material_id=None):
     ]
     colunas_por_codigo = {coluna["codigo"]: coluna for coluna in colunas}
 
+    # Concluída antiga sai do quadro por padrão. É o que impede a terceira
+    # coluna de virar um arquivo morto — e o que segura o peso da página, já
+    # que cada pauta renderiza um modal inteiro.
+    ver_todas_concluidas = request.GET.get("concluidas") == "todas"
+    corte_concluidas = agora - timedelta(days=DIAS_DE_CONCLUIDAS_NO_QUADRO)
+
     pautas_usuario = list(pautas_usuario)
+    visiveis = []
+    concluidas_ocultas = 0
+
     for pauta in pautas_usuario:
+        antiga = (
+            pauta.status == Pauta.Status.CONCLUIDA
+            and pauta.atualizado_em < corte_concluidas
+        )
+        if antiga and not ver_todas_concluidas:
+            concluidas_ocultas += 1
+            continue
+
         pauta.materiais_form = materiais_form if pauta.pk == pauta_material_id else MateriaisPautaForm(auto_id=f"material_{pauta.pk}_%s")
         pauta.usuario_ciente = pauta.pk in ciencias_ids
         pauta.pode_mover = _pode_mover_pauta(request.user, pauta)
@@ -195,9 +242,48 @@ def pautas(request, *, materiais_form=None, pauta_material_id=None):
             pauta.status != Pauta.Status.CONCLUIDA
             and pauta.prazo_ddl < agora
         )
+        pauta.sou_responsavel = any(
+            responsavel.pk == request.user.pk
+            for responsavel in pauta.responsaveis.all()
+        )
+        pauta.usernames_responsaveis = " ".join(
+            responsavel.username for responsavel in pauta.responsaveis.all()
+        )
+        pauta.texto_de_busca = _texto_de_busca(pauta)
+
+        visiveis.append(pauta)
         coluna = colunas_por_codigo.get(pauta.status)
         if coluna:
             coluna["pautas"].append(pauta)
+
+    pautas_usuario = visiveis
+
+    # Os números que respondem "o que preciso olhar?" sem contar card a card.
+    resumo = {
+        "total": len(pautas_usuario),
+        "atrasadas": sum(1 for pauta in pautas_usuario if pauta.atrasada),
+        "sem_ciencia": sum(
+            1 for pauta in pautas_usuario
+            if not pauta.usuario_ciente and pauta.status != Pauta.Status.CONCLUIDA
+        ),
+        "minhas": sum(1 for pauta in pautas_usuario if pauta.sou_responsavel),
+    }
+
+    # Só quem realmente aparece no quadro entra no filtro: oferecer nome que não
+    # devolve resultado nenhum é pior que não oferecer.
+    responsaveis_no_quadro = sorted(
+        {
+            (responsavel.username,
+             responsavel.get_full_name() or responsavel.username)
+            for pauta in pautas_usuario
+            for responsavel in pauta.responsaveis.all()
+        },
+        key=lambda par: par[1].casefold(),
+    )
+    grupos_no_quadro = sorted(
+        {pauta.grupo.nome for pauta in pautas_usuario if pauta.grupo_id},
+        key=str.casefold,
+    )
 
     usuarios_mencao = [
         {
@@ -225,6 +311,13 @@ def pautas(request, *, materiais_form=None, pauta_material_id=None):
         "pauta_aberta_id": pauta_aberta_id,
         "materiais_form": materiais_form or MateriaisPautaForm(),
         "pauta_material_id": pauta_material_id,
+        "resumo": resumo,
+        "prioridades": Pauta.Prioridade.choices,
+        "grupos_no_quadro": grupos_no_quadro,
+        "responsaveis_no_quadro": responsaveis_no_quadro,
+        "concluidas_ocultas": concluidas_ocultas,
+        "ver_todas_concluidas": ver_todas_concluidas,
+        "dias_de_concluidas": DIAS_DE_CONCLUIDAS_NO_QUADRO,
     })
 
 

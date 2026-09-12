@@ -19,6 +19,30 @@
   .pta-head-actions { display: flex; gap: .55rem; flex-wrap: wrap; }
   .pta-context { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; margin: 0 0 1.25rem; }
   .pta-context-label { margin-right: .15rem; color: var(--ink-muted); font-size: .72rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+  .pta-ver-antigas { margin-left: auto; color: var(--ink-muted); font-size: .74rem; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  .pta-ver-antigas:hover { color: var(--ink); }
+
+  /* Resumo: os quatro números que respondem "o que preciso olhar?". Cada um é
+     também o atalho que filtra o quadro por aquilo. */
+  .pta-resumo { display: flex; gap: .5rem; flex-wrap: wrap; margin: 0 0 .85rem; }
+  .pta-chip { display: inline-flex; align-items: baseline; gap: .35rem; padding: .45rem .8rem; border: 1px solid #ecdcd1; border-radius: 999px; background: rgba(255,255,255,.8); color: var(--ink-soft); font: inherit; font-size: .76rem; font-weight: 650; cursor: pointer; transition: border-color .15s, background .15s, color .15s; }
+  .pta-chip strong { color: var(--ink); font-size: .95rem; font-weight: 820; }
+  .pta-chip:hover:not(:disabled) { border-color: #d9bda9; background: #fff; }
+  .pta-chip:disabled { opacity: .45; cursor: default; }
+  /* O estado ligado precisa ser visível sem depender de cor: a borda engrossa
+     e o fundo muda junto. */
+  .pta-chip[aria-pressed="true"] { border-color: var(--chip-cor, #e8560f); border-width: 1.5px; background: var(--chip-fundo, rgba(232,86,15,.08)); color: var(--ink); }
+  .pta-chip.is-mine { --chip-cor: #7c3aed; --chip-fundo: rgba(124,58,237,.09); }
+  .pta-chip.is-pending { --chip-cor: #d97706; --chip-fundo: rgba(217,119,6,.1); }
+  .pta-chip.is-late { --chip-cor: #dc2626; --chip-fundo: rgba(220,38,38,.09); }
+
+  .pta-filtros { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: 0 0 .6rem; }
+  .pta-filtro-busca { display: flex; align-items: center; gap: .45rem; flex: 1 1 20rem; min-width: 0; padding: .5rem .75rem; border: 1px solid #e8d8cd; border-radius: 11px; background: #fff; color: var(--ink-muted); }
+  .pta-filtro-busca input { flex: 1; min-width: 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: .82rem; }
+  .pta-filtro-busca input:focus { outline: none; }
+  .pta-filtro-busca:focus-within { border-color: #e8560f; box-shadow: 0 0 0 3px rgba(232,86,15,.12); }
+  .pta-filtro select { padding: .52rem .7rem; border: 1px solid #e8d8cd; border-radius: 11px; background: #fff; color: var(--ink); font: inherit; font-size: .78rem; }
+  .pta-filtro-resultado { margin: 0 0 1rem; color: var(--ink-muted); font-size: .78rem; font-weight: 650; }
 
   .pta-board-scroll {
     overflow-x: auto;
@@ -205,13 +229,77 @@
       </div>
     </header>
 
-    <div class="pta-context" aria-label="Filtros e grupos do quadro">
+    {% if pautas %}
+      <div class="pta-resumo" data-board-summary>
+        <button type="button" class="pta-chip" data-quick="tudo" aria-pressed="true">
+          <strong>{{ resumo.total }}</strong> no quadro
+        </button>
+        <button type="button" class="pta-chip is-mine" data-quick="minhas" aria-pressed="false"
+                {% if not resumo.minhas %}disabled{% endif %}>
+          <strong>{{ resumo.minhas }}</strong> sob sua responsabilidade
+        </button>
+        <button type="button" class="pta-chip is-pending" data-quick="sem-ciencia" aria-pressed="false"
+                {% if not resumo.sem_ciencia %}disabled{% endif %}>
+          <strong>{{ resumo.sem_ciencia }}</strong> esperando sua ciência
+        </button>
+        <button type="button" class="pta-chip is-late" data-quick="atrasadas" aria-pressed="false"
+                {% if not resumo.atrasadas %}disabled{% endif %}>
+          <strong>{{ resumo.atrasadas }}</strong> atrasada{{ resumo.atrasadas|pluralize }}
+        </button>
+      </div>
+
+      <div class="pta-filtros" data-board-filters aria-label="Filtrar o quadro">
+        <label class="pta-filtro-busca">
+          <span class="sr-only">Buscar no quadro</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" data-filter-busca autocomplete="off"
+                 placeholder="Buscar por título, descrição, etiqueta ou responsável">
+        </label>
+
+        <label class="pta-filtro">
+          <span class="sr-only">Grupo</span>
+          <select data-filter-grupo>
+            <option value="">Todos os grupos</option>
+            {% for nome in grupos_no_quadro %}<option value="{{ nome }}">{{ nome }}</option>{% endfor %}
+          </select>
+        </label>
+
+        <label class="pta-filtro">
+          <span class="sr-only">Prioridade</span>
+          <select data-filter-prioridade>
+            <option value="">Qualquer prioridade</option>
+            {% for codigo, titulo in prioridades %}<option value="{{ codigo }}">{{ titulo }}</option>{% endfor %}
+          </select>
+        </label>
+
+        <label class="pta-filtro">
+          <span class="sr-only">Responsável</span>
+          <select data-filter-responsavel>
+            <option value="">Qualquer responsável</option>
+            {% for username, nome in responsaveis_no_quadro %}<option value="{{ username }}">{{ nome }}</option>{% endfor %}
+          </select>
+        </label>
+
+        <button type="button" class="pcf-btn pcf-btn-ghost pcf-btn-sm" data-filter-limpar hidden>Limpar filtros</button>
+      </div>
+
+      <p class="pta-filtro-resultado" data-filter-resultado hidden></p>
+    {% endif %}
+
+    <div class="pta-context">
       <span class="pta-context-label">Seus grupos</span>
       {% for grupo in grupos_do_usuario %}
         <span class="pcf-badge brand">{{ grupo.nome }}</span>
       {% empty %}
         <span class="pcf-badge">Nenhum grupo atual</span>
       {% endfor %}
+      {% if concluidas_ocultas %}
+        <a class="pta-ver-antigas" href="?concluidas=todas">
+          +{{ concluidas_ocultas }} concluída{{ concluidas_ocultas|pluralize }} há mais de {{ dias_de_concluidas }} dias · mostrar
+        </a>
+      {% elif ver_todas_concluidas %}
+        <a class="pta-ver-antigas" href="{% url 'gerenciamento:pautas' %}">Mostrando o histórico inteiro · voltar ao quadro ativo</a>
+      {% endif %}
     </div>
 
     {% if pautas %}
@@ -230,6 +318,13 @@
                   <article class="pta-card {% if pauta.usuario_ciente %}is-acknowledged{% else %}is-pending{% endif %}"
                            data-kanban-card data-pauta-id="{{ pauta.pk }}" data-current-status="{{ pauta.status }}"
                            data-status-url="{% url 'gerenciamento:atualizar_status' pauta.pk %}"
+                           data-busca="{{ pauta.texto_de_busca }}"
+                           data-grupo="{{ pauta.grupo.nome }}"
+                           data-prioridade="{{ pauta.prioridade }}"
+                           data-responsaveis="{{ pauta.usernames_responsaveis }}"
+                           data-minha="{{ pauta.sou_responsavel|yesno:'1,0' }}"
+                           data-sem-ciencia="{% if not pauta.usuario_ciente and pauta.status != 'CONCLUIDA' %}1{% else %}0{% endif %}"
+                           data-atrasada="{{ pauta.atrasada|yesno:'1,0' }}"
                            style="--status-color:{{ pauta.status_cor }};--priority-color:{{ pauta.prioridade_cor }}"
                            {% if pauta.pode_mover %}draggable="true"{% endif %}>
                     <button type="button" class="pta-card-open" data-bs-toggle="modal" data-bs-target="#pautaModal{{ pauta.pk }}" aria-haspopup="dialog" aria-label="Abrir detalhes de {{ pauta.titulo }}">
@@ -438,6 +533,7 @@
 
 {{ usuarios_mencao|json_script:"pta-mention-users" }}
 <script src="{% static 'js/pauta-detalhes.js' %}?v={{ ESTATICO_V }}" defer></script>
+<script src="{% static 'js/pauta-filtros.js' %}?v={{ ESTATICO_V }}" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';
