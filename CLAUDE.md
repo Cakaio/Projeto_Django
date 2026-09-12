@@ -269,6 +269,9 @@ Decisoes que ja custaram pensamento:
   salinha ou etapa sem desmontar nada) e comeca com BOM, senao o Excel abre
   "Joao" como "JoA£o".
 
+O link do Bazar fica fixo na sidebar e na busca global (a pedido). A tela
+de atendimento se explica sozinha quando nao ha edicao aberta.
+
 FALTA: o modo de contingencia (ficha fisica impressa e lancamento posterior).
 
 ## Conventions

@@ -105,6 +105,7 @@ def _paginas_do_usuario(user):
         ("Pedido de Reembolso", "forms_pcf:reembolso", "Solicitar reembolso", True),
         ("Dores & Sugestões", "forms_pcf:feedback", "Enviar feedback", True),
         ("Acervo", "acervo:lista", "Documentos que o projeto guarda", True),
+        ("Bazar", "bazar:atendimento", "Atendimento e pontos do Bazar", True),
         # ESTÚDIO DESLIGADO (a pedido, set/2026): o time não vai usar por
         # enquanto. O app segue instalado e as rotas registradas — some só
         # da busca e do menu. Descomentar aqui e na sidebar religa.
@@ -122,6 +123,8 @@ def _paginas_do_usuario(user):
          is_su or area in ("GESTAO_DE_TALENTOS", "TRIADE")),
         ("Gestão de Rondas", "ronda:painel", "Sortear e aprovar escalas",
          is_su or area == "TRIADE"),
+        ("Painel do Bazar", "bazar:painel", "Números do dia e etapas",
+         is_su or area in ("TRIADE", "EVENTOS")),
         ("Caixa de Dores & Sugestões", "forms_pcf:feedback_inbox", "Feedbacks recebidos",
          is_su or area in ("PROJETOS", "TRIADE")),
         ("Backlog de Projetos", "projetos:backlog", "O que estamos fazendo para cada área",
