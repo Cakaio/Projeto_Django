@@ -375,16 +375,12 @@
 
                   {% if pode_editar %}
                     <td>
-                      {% comment %} linha.teto_id só existe se a view passar o id do TetoArea da
-                         linha; hoje situacao_dos_tetos() não devolve id, então sobra o botão de
-                         definir para quem não tem teto — que é onde a ação existe de verdade.
-                         Quando o id chegar, o botão de editar acende sozinho. {% endcomment %}
+                      {% comment %} O Financeiro edita o teto de QUALQUER área por aqui, não só o
+                         da área dele. É por isso que o botão fica em toda linha. {% endcomment %}
                       {% if linha.teto_id %}
                         <a href="{% url 'adm:teto_editar' linha.teto_id %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Editar teto</a>
-                      {% elif linha.sem_teto %}
-                        <a href="{% url 'adm:teto_criar' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Definir teto</a>
                       {% else %}
-                        <span class="tet-vazio-cel" style="font-size:.8rem">—</span>
+                        <a href="{% url 'adm:teto_criar' %}?area={{ linha.area|urlencode:"" }}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Definir teto</a>
                       {% endif %}
                     </td>
                   {% endif %}

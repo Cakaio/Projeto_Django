@@ -39,9 +39,22 @@
   .fte-meta { margin: 1.1rem 0 0; padding-top: .9rem; border-top: 1px solid hsl(var(--border));
               font-size: .78rem; line-height: 1.6; color: hsl(var(--muted-foreground)); }
 
+  /* ── Confirmação de exclusão ── */
+  .fte-confirm { display: flex; gap: 1rem; align-items: flex-start; background: #fff2e9;
+                 border: 1px solid #fbe3d3; border-radius: 20px; padding: 1.4rem 1.5rem;
+                 margin-bottom: 1.25rem; }
+  .fte-confirm-icone { background: #fdeaea; color: #b03636; }
+  .fte-confirm-t { margin: 0 0 .35rem; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+  .fte-confirm-s { margin: 0; font-size: .88rem; line-height: 1.55; color: var(--ink-soft); }
+  .fte-btn-danger { background: #d64545; color: #fff; }
+  .fte-btn-danger:hover { background: #c23a3a; color: #fff; transform: translateY(-1px); }
+  .fte-btn-excluir { margin-left: auto; color: #b03636; }
+
   @media (max-width: 520px) {
     .fte-acoes { flex-direction: column; }
     .fte-acoes .pcf-btn { width: 100%; }
+    .fte-btn-excluir { margin-left: 0; }
+    .fte-confirm { flex-direction: column; gap: .75rem; }
   }
 </style>
 
@@ -60,10 +73,12 @@
         </nav>
         <h1 class="pcf-page-title">{{ titulo }}</h1>
         <p class="pcf-page-sub">
-          {% if objeto %}
-            Teto de {{ objeto.get_area_display }} para {{ objeto.competencia|date:"m/Y" }}.
+          {% if confirmar_delecao %}
+            Sem teto, {{ objeto.get_area_display }} passa a aparecer como "gastou sem teto definido".
+          {% elif objeto %}
+            Teto de {{ objeto.get_area_display }}: R$ {{ objeto.valor|floatformat:2 }} por semestre.
           {% else %}
-            Quanto uma área pode gastar num mês. Um teto por área por mês.
+            Quanto uma área pode gastar por semestre. Um teto por área, que vale até alguém alterar.
           {% endif %}
         </p>
       </div>
@@ -75,14 +90,40 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15h3v4H7z"/><path d="M14 9h3v10h-3z"/></svg>
       </span>
       <div>
-        <p class="fte-info-t">O teto é mensal e zera todo dia 1º</p>
+        <p class="fte-info-t">O teto vale até alguém alterar</p>
         <p class="fte-info-s">
-          O gasto que conta contra ele são as despesas do mês marcadas com esta área — incluindo
-          reembolso pago. Quem é da área vê a situação sozinho na tela de tetos.
+          Não se cadastra de novo a cada período: o que muda é o gasto, medido no semestre
+          corrente. Conta contra ele toda despesa marcada com esta área — inclusive reembolso
+          pago. Quem é da área vê a situação sozinho na tela de tetos, sem poder mexer no valor.
         </p>
       </div>
     </div>
 
+    {% if confirmar_delecao %}
+    <!-- ══════ Confirmação de exclusão ══════ -->
+    <div class="fte-confirm" data-reveal data-reveal-delay="80">
+      <span class="pcf-icon-tile fte-confirm-icone" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </span>
+      <div style="min-width:0">
+        <p class="fte-confirm-t">Excluir o teto de {{ objeto.get_area_display }}?</p>
+        <p class="fte-confirm-s">
+          Sai o limite de <strong>R$ {{ objeto.valor|floatformat:2 }} por semestre</strong>. O que
+          já foi gasto continua lançado — some só o limite contra o qual ele era comparado, e a
+          área passa a aparecer na tela como "gastou sem teto definido".
+          {% comment %} Zero e "sem teto" dizem coisas diferentes, e confundir os dois é o erro
+             fácil aqui: zero acusa estouro no primeiro centavo, sem teto não acusa nada. {% endcomment %}
+          Se a intenção é a área não poder gastar nada, não exclua: coloque o teto em zero.
+        </p>
+      </div>
+    </div>
+    <form method="post" class="fte-acoes">
+      {% csrf_token %}
+      <button type="submit" class="pcf-btn fte-btn-danger">Sim, excluir teto</button>
+      <a href="{% url 'adm:tetos' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+    </form>
+
+    {% else %}
     <!-- ══════ Formulário ══════ -->
     <div class="pcf-card" data-reveal data-reveal-delay="80">
       {% if form.non_field_errors %}
@@ -102,13 +143,16 @@
           {% endif %}
         </div>
 
+        {% comment %} Este campo é obrigatório. Ele já esteve fora da tela, e o efeito não era
+           um campo faltando: era o botão "Definir teto" não gravar nada, sem dizer por quê,
+           porque o erro caía num campo que a página não mostrava. {% endcomment %}
         <div class="pcf-field">
-          <label class="pcf-label" for="{{ form.competencia.id_for_label }}">{{ form.competencia.label }}</label>
-          {{ form.competencia }}
-          {% if form.competencia.errors %}
-            <p class="fte-erro">{{ form.competencia.errors|join:" " }}</p>
-          {% elif form.competencia.help_text %}
-            <p class="fte-help">{{ form.competencia.help_text }}</p>
+          <label class="pcf-label" for="{{ form.vigente_desde.id_for_label }}">{{ form.vigente_desde.label }}</label>
+          {{ form.vigente_desde }}
+          {% if form.vigente_desde.errors %}
+            <p class="fte-erro">{{ form.vigente_desde.errors|join:" " }}</p>
+          {% elif form.vigente_desde.help_text %}
+            <p class="fte-help">{{ form.vigente_desde.help_text }}</p>
           {% endif %}
         </div>
 
@@ -118,7 +162,7 @@
           {% if form.valor.errors %}
             <p class="fte-erro">{{ form.valor.errors|join:" " }}</p>
           {% else %}
-            <p class="fte-help">Valor em reais que a área pode gastar no mês inteiro. Zero significa que a área não pode gastar.</p>
+            <p class="fte-help">Valor em reais que a área pode gastar no semestre inteiro. Zero significa que a área não pode gastar nada.</p>
           {% endif %}
         </div>
 
@@ -128,7 +172,7 @@
           {% if form.observacao.errors %}
             <p class="fte-erro">{{ form.observacao.errors|join:" " }}</p>
           {% else %}
-            <p class="fte-help">Opcional. Serve para lembrar depois por que este mês teve teto diferente.</p>
+            <p class="fte-help">Opcional. Serve para lembrar depois de onde saiu este valor.</p>
           {% endif %}
         </div>
 
@@ -138,6 +182,9 @@
             {% if objeto %}Salvar teto{% else %}Definir teto{% endif %}
           </button>
           <a href="{% url 'adm:tetos' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+          {% if objeto %}
+            <a href="{% url 'adm:teto_deletar' objeto.pk %}" class="pcf-btn pcf-btn-ghost fte-btn-excluir">Excluir teto</a>
+          {% endif %}
         </div>
       </form>
 
@@ -151,6 +198,7 @@
         </p>
       {% endif %}
     </div>
+    {% endif %}
 
   </div>
 </div>

@@ -580,8 +580,17 @@ def tetos(request):
 
 @adm_escrita_required
 def teto_form(request, pk=None):
+    """Definir ou alterar o teto de QUALQUER área — só ADM/FIN e superusuário.
+
+    Não existe teto "da minha área" aqui: quem é da área vê o número na tela de
+    tetos e não mexe nele. O limite é combinado pelo Financeiro, e deixar cada
+    área alterar o próprio teto esvaziaria o sentido de existir um teto.
+    """
     teto = get_object_or_404(TetoArea, pk=pk) if pk else None
-    form = TetoAreaForm(request.POST or None, instance=teto)
+    # ?area=SUPPLY vem do botão "Definir teto" da linha da tabela: sem isto o
+    # select abre na primeira área da lista e é fácil cadastrar na área errada.
+    inicial = {'area': request.GET.get('area')} if request.GET.get('area') else None
+    form = TetoAreaForm(request.POST or None, instance=teto, initial=inicial)
     if request.method == 'POST' and form.is_valid():
         novo = form.save(commit=False)
         novo.definido_por = request.user
@@ -592,6 +601,27 @@ def teto_form(request, pk=None):
         'form': form,
         'titulo': 'Editar Teto' if teto else 'Novo Teto',
         'objeto': teto,
+    })
+
+
+@adm_escrita_required
+def teto_deletar(request, pk):
+    """Excluir o teto de uma área. Só ADM/FIN e superusuário.
+
+    Excluir é diferente de zerar, e a tela de confirmação diz isso: teto zero
+    acusa estouro no primeiro centavo gasto; sem teto não acusa nada. Quem
+    cadastrou a área errada precisa da exclusão, não do zero.
+    """
+    teto = get_object_or_404(TetoArea, pk=pk)
+    if request.method == 'POST':
+        rotulo = teto.get_area_display()
+        teto.delete()
+        messages.success(request, f'Teto de {rotulo} excluído.')
+        return redirect('adm:tetos')
+    return render(request, 'form_teto.html', {
+        'objeto': teto,
+        'confirmar_delecao': True,
+        'titulo': 'Excluir Teto',
     })
 
 

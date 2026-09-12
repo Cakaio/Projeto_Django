@@ -27,6 +27,7 @@ urlpatterns = [
     path('tetos/', views.tetos, name='tetos'),
     path('tetos/novo/', views.teto_form, name='teto_criar'),
     path('tetos/<int:pk>/editar/', views.teto_form, name='teto_editar'),
+    path('tetos/<int:pk>/deletar/', views.teto_deletar, name='teto_deletar'),
     path('reembolsos/', views.reembolsos, name='reembolsos'),
     path('reembolsos/<int:pk>/pagar/', views.reembolso_pagar, name='reembolso_pagar'),
     path('notificacoes-reembolso/', forms_views.receptores_reembolso, name='receptores_reembolso'),

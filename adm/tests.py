@@ -24,7 +24,7 @@ from adm.views import (
     AdmAcessoMixin, AdmEscritaMixin, _periodo_prestacao_contas, _semestre_escolhido,
     completar_lancamento,
     contas as view_contas, onde_investimos, recargas as view_recargas,
-    reembolso_pagar, tetos as view_tetos,
+    reembolso_pagar, teto_deletar, teto_form, tetos as view_tetos,
 )
 from forms_pcf.forms import PagamentoReembolsoForm
 from forms_pcf.models import ReceptorNotificacaoReembolso, PedidoReembolso
@@ -934,6 +934,176 @@ class TetosContextoTest(TestCase):
     def test_financeiro_pode_editar(self):
         usuario = User.objects.create_user(username='fin_teto', password='pw', area='ADM/FIN')
         self.assertTrue(self._contexto(usuario)['pode_editar'])
+
+
+class TetoIdNaLinhaTest(TestCase):
+    """A linha tem que levar o id do teto — é o que liga o botão de editar.
+
+    Sem ele a tabela mostrava "Definir teto" para área sem teto e NADA para
+    área com teto: o Financeiro conseguia criar e não conseguia alterar.
+    """
+
+    def setUp(self):
+        self.despesa = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        self.referencia = timezone.localdate()
+
+    def _linha(self, area):
+        return next(linha for linha in situacao_dos_tetos(self.referencia)
+                    if linha['area'] == area)
+
+    def test_area_com_teto_leva_o_id(self):
+        teto = TetoArea.objects.create(area='SUPPLY', valor='100.00')
+        self.assertEqual(self._linha('SUPPLY')['teto_id'], teto.pk)
+
+    def test_area_que_gastou_sem_teto_nao_leva_id(self):
+        Lancamento.objects.create(categoria=self.despesa, valor='10.00',
+                                  data=self.referencia, area='VIOLETA')
+        self.assertIsNone(self._linha('VIOLETA')['teto_id'])
+
+    def test_carregar_o_objeto_nao_custa_consulta_a_mais(self):
+        TetoArea.objects.create(area='SUPPLY', valor='100.00')
+        TetoArea.objects.create(area='RECREACAO', valor='100.00')
+        with self.assertNumQueries(2):
+            situacao_dos_tetos(self.referencia)
+
+
+class TetoEscritaTest(TestCase):
+    """Quem mexe no teto é o Financeiro, em QUALQUER área.
+
+    A área dona do teto não entra na conta da permissão. Se entrasse, cada área
+    poderia afrouxar o próprio limite — e um teto que o limitado ajusta sozinho
+    não é teto.
+    """
+
+    def setUp(self):
+        self.fabrica = RequestFactory()
+        self.financeiro = User.objects.create_user(
+            username='fin_escreve', password='pw', area='ADM/FIN')
+        self.recreacao = User.objects.create_user(
+            username='rec_escreve', password='pw', area='RECREACAO')
+        self.triade = User.objects.create_user(
+            username='tri_escreve', password='pw', area='TRIADE')
+
+    def _pedido(self, metodo, url, usuario, dados=None):
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        requisicao = getattr(self.fabrica, metodo)(url, dados or {})
+        requisicao.user = usuario
+        requisicao.session = {}
+        requisicao._messages = FallbackStorage(requisicao)
+        return requisicao
+
+    # ── Criar e editar ──
+
+    def test_financeiro_cria_teto_com_os_campos_que_a_tela_manda(self):
+        """O caso que estava quebrado: a tela não mandava `vigente_desde`, o
+        formulário recusava por campo obrigatório e nada era gravado — sem erro
+        visível, porque o campo nem aparecia na página."""
+        resposta = teto_form(self._pedido('post', '/adm/tetos/novo/', self.financeiro, {
+            'area': 'SUPPLY', 'valor': '1000.00',
+            'vigente_desde': '2026-09-12', 'observacao': 'combinado na reunião',
+        }))
+        self.assertEqual(resposta.status_code, 302)
+        teto = TetoArea.objects.get(area='SUPPLY')
+        self.assertEqual(teto.valor, Decimal('1000.00'))
+        self.assertEqual(teto.vigente_desde, date(2026, 9, 12))
+        self.assertEqual(teto.definido_por, self.financeiro)
+
+    def test_financeiro_edita_teto_de_area_que_nao_e_a_dele(self):
+        teto = TetoArea.objects.create(area='RECREACAO', valor='200.00')
+        resposta = teto_form(
+            self._pedido('post', f'/adm/tetos/{teto.pk}/editar/', self.financeiro, {
+                'area': 'RECREACAO', 'valor': '350.00', 'vigente_desde': '2026-09-12',
+                'observacao': '',
+            }),
+            pk=teto.pk)
+        self.assertEqual(resposta.status_code, 302)
+        teto.refresh_from_db()
+        self.assertEqual(teto.valor, Decimal('350.00'))
+
+    def test_a_tela_de_teto_mostra_todos_os_campos_obrigatorios(self):
+        """Guarda de regressão do bug de verdade: o template ficou para trás
+        quando o teto virou semestral e deixou de renderizar `vigente_desde`."""
+        resposta = teto_form(self._pedido('get', '/adm/tetos/novo/', self.financeiro))
+        html = resposta.content.decode()
+        for campo in ('area', 'valor', 'vigente_desde'):
+            with self.subTest(campo=campo):
+                self.assertIn(f'name="{campo}"', html)
+
+    def test_area_vem_da_querystring_para_nao_cadastrar_na_errada(self):
+        requisicao = self._pedido('get', '/adm/tetos/novo/?area=SUPPLY', self.financeiro)
+        with patch('adm.views.render') as render_falso:
+            teto_form(requisicao)
+        self.assertEqual(render_falso.call_args[0][2]['form'].initial['area'], 'SUPPLY')
+
+    def test_voluntario_comum_nao_edita_o_teto_da_propria_area(self):
+        teto = TetoArea.objects.create(area='RECREACAO', valor='200.00')
+        with self.assertRaises(PermissionDenied):
+            teto_form(self._pedido('get', f'/adm/tetos/{teto.pk}/editar/', self.recreacao),
+                      pk=teto.pk)
+
+    def test_triade_ve_mas_nao_edita(self):
+        """A Tríade lê o Financeiro inteiro; escrever no teto continua só do ADM/FIN."""
+        with self.assertRaises(PermissionDenied):
+            teto_form(self._pedido('get', '/adm/tetos/novo/', self.triade))
+
+    # ── Excluir ──
+
+    def test_get_apenas_confirma_e_nao_apaga(self):
+        teto = TetoArea.objects.create(area='SUPPLY', valor='100.00')
+        resposta = teto_deletar(
+            self._pedido('get', f'/adm/tetos/{teto.pk}/deletar/', self.financeiro), pk=teto.pk)
+        self.assertEqual(resposta.status_code, 200)
+        self.assertTrue(TetoArea.objects.filter(pk=teto.pk).exists())
+
+    def test_post_exclui_o_teto(self):
+        teto = TetoArea.objects.create(area='SUPPLY', valor='100.00')
+        resposta = teto_deletar(
+            self._pedido('post', f'/adm/tetos/{teto.pk}/deletar/', self.financeiro), pk=teto.pk)
+        self.assertEqual(resposta.status_code, 302)
+        self.assertFalse(TetoArea.objects.filter(pk=teto.pk).exists())
+
+    def test_voluntario_comum_nao_exclui(self):
+        teto = TetoArea.objects.create(area='RECREACAO', valor='200.00')
+        with self.assertRaises(PermissionDenied):
+            teto_deletar(self._pedido('post', f'/adm/tetos/{teto.pk}/deletar/', self.recreacao),
+                         pk=teto.pk)
+        self.assertTrue(TetoArea.objects.filter(pk=teto.pk).exists())
+
+    def test_excluir_o_teto_nao_apaga_o_gasto_da_area(self):
+        """A tela promete isso na confirmação: some o limite, não o histórico."""
+        despesa = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        Lancamento.objects.create(categoria=despesa, valor='40.00',
+                                  data=timezone.localdate(), area='SUPPLY')
+        teto = TetoArea.objects.create(area='SUPPLY', valor='100.00')
+        teto_deletar(self._pedido('post', f'/adm/tetos/{teto.pk}/deletar/', self.financeiro),
+                     pk=teto.pk)
+        linha = next(l for l in situacao_dos_tetos(timezone.localdate()) if l['area'] == 'SUPPLY')
+        self.assertTrue(linha['sem_teto'])
+        self.assertEqual(linha['gasto'], Decimal('40.00'))
+
+    def test_rota_de_exclusao_registrada(self):
+        self.assertEqual(reverse('adm:teto_deletar', args=[7]), '/adm/tetos/7/deletar/')
+
+    # ── A tabela ──
+
+    def test_tabela_traz_editar_de_area_com_teto_e_definir_de_area_sem_teto(self):
+        """Renderiza a tela de verdade: é lá que o botão estava morto."""
+        teto = TetoArea.objects.create(area='SUPPLY', valor='100.00')
+        despesa = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        Lancamento.objects.create(categoria=despesa, valor='10.00',
+                                  data=timezone.localdate(), area='VIOLETA')
+        html = view_tetos(
+            self._pedido('get', '/adm/tetos/', self.financeiro)).content.decode()
+        self.assertIn(f'/adm/tetos/{teto.pk}/editar/', html)
+        self.assertIn('/adm/tetos/novo/?area=VIOLETA', html)
+
+    def test_quem_nao_e_do_financeiro_nao_ve_botao_de_mexer_no_teto(self):
+        teto = TetoArea.objects.create(area='RECREACAO', valor='200.00')
+        html = view_tetos(
+            self._pedido('get', '/adm/tetos/', self.recreacao)).content.decode()
+        self.assertIn('Recreação', html)          # vê a situação da área
+        self.assertNotIn(f'/adm/tetos/{teto.pk}/editar/', html)
+        self.assertNotIn('/adm/tetos/novo/', html)
 
 
 # ─── Reembolso pago ───

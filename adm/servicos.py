@@ -154,9 +154,14 @@ def _ordem_do_teto(linha):
     return (grupo, -linha['percentual'], -linha['gasto'], linha['nome'])
 
 
-def _linha_do_teto(area, rotulos, teto, gasto):
-    """Monta a linha de uma área no mês. Separada da consulta para que os casos
-    de borda (teto zero, teto ausente) possam ser exercitados sem banco."""
+def _linha_do_teto(area, rotulos, teto, gasto, teto_id=None):
+    """Monta a linha de uma área no semestre. Separada da consulta para que os
+    casos de borda (teto zero, teto ausente) possam ser exercitados sem banco.
+
+    `teto_id` é o que permite editar e excluir o teto direto da tabela. Sem ele
+    a tela tinha "Definir teto" para área sem teto e ação nenhuma para área COM
+    teto — ou seja, o Financeiro não conseguia alterar o que já existia.
+    """
     sem_teto = teto is None
 
     if sem_teto:
@@ -181,6 +186,7 @@ def _linha_do_teto(area, rotulos, teto, gasto):
         'area': area,
         'nome': rotulos.get(area, SEM_AREA),
         'teto': teto,
+        'teto_id': teto_id,
         'gasto': gasto,
         'disponivel': disponivel,
         'percentual': percentual,
@@ -205,7 +211,9 @@ def situacao_dos_tetos(referencia):
     inicio, fim = limites_do_semestre(referencia)
     rotulos = dict(LISTA_AREAS)
 
-    tetos = {teto.area: teto.valor for teto in TetoArea.objects.all()}
+    # O objeto inteiro, não só o valor: a linha precisa levar o id para a tela
+    # conseguir editar e excluir. Continua UMA consulta.
+    tetos = {teto.area: teto for teto in TetoArea.objects.all()}
     gastos = {
         linha['area']: (linha['valor_total'] or Decimal('0'))
         for linha in _despesa_agrupada_por_area(inicio, fim)
@@ -215,7 +223,12 @@ def situacao_dos_tetos(referencia):
     }
 
     linhas = [
-        _linha_do_teto(area, rotulos, tetos.get(area), gastos.get(area, Decimal('0')))
+        _linha_do_teto(
+            area, rotulos,
+            tetos[area].valor if area in tetos else None,
+            gastos.get(area, Decimal('0')),
+            teto_id=tetos[area].pk if area in tetos else None,
+        )
         for area in set(tetos) | set(gastos)
     ]
     linhas.sort(key=_ordem_do_teto)
