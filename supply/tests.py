@@ -369,3 +369,99 @@ class PainelMateriaisMostraFechamentoTests(TestCase):
         fechamento = self.FechamentoSabado.do_sabado(self.sabado)
         fechamento.marcar("materiais", self.ana)
         self.assertIn("Ana", self._html())
+
+
+class AcessoAoPainelDeMateriaisTests(TestCase):
+    """Abrir o painel e confirmar o fechamento sao permissoes DIFERENTES.
+
+    O ADM/FIN entrou no painel porque passou a lancar o gasto do Supply na mao
+    e precisa chegar no numero. Mas o check existe para o Supply avisar a ADM:
+    se a ADM pudesse marcar, confirmaria para si mesma e o aviso deixaria de
+    significar "o Supply conferiu".
+    """
+
+    def setUp(self):
+        from django.test import RequestFactory
+        from supply.models import FechamentoSabado
+        self.FechamentoSabado = FechamentoSabado
+        self.fabrica = RequestFactory()
+        self.sabado = Sabado.objects.create(
+            data=date(2026, 9, 12), tema="Tema", descricao="d")
+        self.supply = Voluntario.objects.create_user(
+            username="sup_acesso", password="pw", area="SUPPLY")
+        self.financeiro = Voluntario.objects.create_user(
+            username="fin_acesso", password="pw", area="ADM/FIN")
+        self.amarelo = Voluntario.objects.create_user(
+            username="amr_acesso", password="pw", area="AMARELO")
+        self.chefe = Voluntario.objects.create_superuser(
+            username="chefe_acesso", password="pw", email="c@pcf.org", area="MARKETING")
+
+    def _abrir(self, usuario):
+        from django.contrib.messages.storage.fallback import FallbackStorage
+        from supply.views import painel_materiais
+        requisicao = self.fabrica.get(
+            f"/supply/painel_materiais/?sabado={self.sabado.pk}")
+        requisicao.user = usuario
+        # O caminho de recusa chama messages.error, e RequestFactory nao passa
+        # pelo middleware que instala o storage.
+        requisicao.session = {}
+        requisicao._messages = FallbackStorage(requisicao)
+        return painel_materiais(requisicao)
+
+    # ── Quem abre ──
+
+    def test_supply_abre(self):
+        self.assertEqual(self._abrir(self.supply).status_code, 200)
+
+    def test_financeiro_abre(self):
+        """Era o bug relatado: ADM/FIN batia em 'sem permissao'."""
+        self.assertEqual(self._abrir(self.financeiro).status_code, 200)
+
+    def test_superusuario_abre(self):
+        """A checagem olhava so a area, sem excecao para superusuario — quem
+        administra o sistema ficava de fora da propria tela."""
+        self.assertEqual(self._abrir(self.chefe).status_code, 200)
+
+    def test_area_de_fora_continua_barrada(self):
+        resposta = self._abrir(self.amarelo)
+        self.assertEqual(resposta.status_code, 302)
+        self.assertEqual(resposta.url, "/supply/")
+
+    def test_deslogado_vai_para_o_login_e_nao_para_erro(self):
+        """AnonymousUser nao tem `.area`: antes isto era AttributeError, ou
+        seja, 500 em vez de tela de login."""
+        resposta = self.client.get(
+            reverse("supply:painel_materiais"), {"sabado": self.sabado.pk})
+        self.assertEqual(resposta.status_code, 302)
+        self.assertIn("/login/", resposta.url)
+
+    # ── Quem confirma ──
+
+    def test_financeiro_nao_ve_botao_de_marcar(self):
+        html = self._abrir(self.financeiro).content.decode()
+        self.assertNotIn("Marcar como atualizado", html)
+        self.assertIn("Quem confirma é o Supply", html)
+
+    def test_supply_ve_botao_de_marcar(self):
+        self.assertIn("Marcar como atualizado", self._abrir(self.supply).content.decode())
+
+    def test_financeiro_ve_quem_conferiu(self):
+        """Sem botao, mas com a informacao — que e o que a ADM veio buscar."""
+        self.FechamentoSabado.do_sabado(self.sabado).marcar("materiais", self.supply)
+        html = self._abrir(self.financeiro).content.decode()
+        self.assertIn("sup_acesso", html)
+
+    def test_financeiro_nao_marca_nem_pelo_post_direto(self):
+        """Esconder o botao nao e permissao: a view tem que recusar tambem."""
+        self.client.force_login(self.financeiro)
+        resposta = self.client.post(reverse("supply:marcar_fechamento"), {
+            "sabado": self.sabado.pk, "etapa": "materiais", "acao": "marcar"})
+        self.assertEqual(resposta.status_code, 403)
+        self.assertFalse(self.FechamentoSabado.objects.exists())
+
+    def test_superusuario_marca(self):
+        self.client.force_login(self.chefe)
+        self.client.post(reverse("supply:marcar_fechamento"), {
+            "sabado": self.sabado.pk, "etapa": "materiais", "acao": "marcar"})
+        self.assertTrue(
+            self.FechamentoSabado.objects.get(sabado=self.sabado).materiais_conferidos)

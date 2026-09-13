@@ -47,8 +47,15 @@
           <div>
             <p class="pm-fech-t">Gastos reais de {{ sabado }}</p>
             <p class="pm-fech-s">
-              Marque depois de atualizar os valores com o que realmente foi usado e
-              comprado. O Financeiro lança a partir disto.
+              {% if pode_fechar %}
+                Marque depois de atualizar os valores com o que realmente foi usado e
+                comprado. O Financeiro lança a partir disto.
+              {% else %}
+                {% comment %} Quem não marca precisa saber por que não vê botão — senão
+                   parece tela quebrada. Quem confirma é quem atualizou. {% endcomment %}
+                Quem confirma é o Supply, depois de atualizar os valores com o que
+                realmente foi usado e comprado.
+              {% endif %}
             </p>
           </div>
           {% if fechamento.completo %}
@@ -71,6 +78,7 @@
                 <p class="pm-fech-quem pendente">Ainda não conferido</p>
               {% endif %}
             </div>
+            {% if pode_fechar %}
             <form method="post" action="{% url 'supply:marcar_fechamento' %}">
               {% csrf_token %}
               <input type="hidden" name="sabado" value="{{ sabado.pk }}">
@@ -83,6 +91,7 @@
                 <button type="submit" name="acao" value="marcar" class="pcf-btn pcf-btn-outline pcf-btn-sm">Marcar como atualizado</button>
               {% endif %}
             </form>
+            {% endif %}
           </div>
 
           <div class="pm-fech-item {% if fechamento.pedidos_conferidos %}pm-fech-ok{% endif %}">
@@ -97,6 +106,7 @@
                 <p class="pm-fech-quem pendente">Ainda não conferido</p>
               {% endif %}
             </div>
+            {% if pode_fechar %}
             <form method="post" action="{% url 'supply:marcar_fechamento' %}">
               {% csrf_token %}
               <input type="hidden" name="sabado" value="{{ sabado.pk }}">
@@ -109,6 +119,7 @@
                 <button type="submit" name="acao" value="marcar" class="pcf-btn pcf-btn-outline pcf-btn-sm">Marcar como atualizado</button>
               {% endif %}
             </form>
+            {% endif %}
           </div>
         </div>
       </div>

@@ -344,8 +344,21 @@ diferentes, às vezes de pessoas diferentes.
 
 Existe porque o ADM passou a lançar o gasto do Supply na mão, e precisava saber
 se os números da tela já eram os reais ou ainda os do planejamento. Era pergunta
-no grupo toda semana. Quem marca: **SUPPLY e TRIADE** (`AREAS_DO_PAINEL` em
-`supply/views.py`), os mesmos que já editam o painel de materiais.
+no grupo toda semana.
+
+**Abrir o painel e confirmar o fechamento são permissões DIFERENTES**, e são
+duas listas em `supply/views.py`:
+
+- `AREAS_DO_PAINEL` = SUPPLY, TRIADE, **ADM/FIN** — quem abre e edita. O
+  Financeiro entrou porque lança o gasto do Supply na mão e precisa chegar no
+  número, não só ouvir falar dele.
+- `AREAS_DO_FECHAMENTO` = SUPPLY, TRIADE — quem confirma. Menor de propósito: o
+  check existe para o Supply **avisar** a ADM; se a ADM pudesse marcar,
+  confirmaria para si mesma e o aviso deixaria de significar "o Supply
+  conferiu".
+
+Superusuário passa nas duas. Na tela, `pode_fechar` esconde os botões de quem
+não confirma — e o texto explica por quê, senão parece tela quebrada.
 
 - **Não há campo booleano: a DATA preenchida É o check.** Booleano mais data são
   duas verdades sobre o mesmo fato; na primeira vez que uma for gravada sem a

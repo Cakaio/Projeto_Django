@@ -31,10 +31,24 @@ from .forms import ItemForm, LocalForm, MeuMaterialForm, MeuPedidoForm, PedidoFo
 from .models import FechamentoSabado, Item, Local, Movimentacao, Pedido
 
 
-# Quem edita o painel de materiais — e, por consequencia, quem confirma que os
-# gastos do sabado ja foram atualizados. E a mesma lista de proposito: quem
-# atualiza o numero e quem garante que atualizou.
-AREAS_DO_PAINEL = ("SUPPLY", "TRIADE")
+# Quem abre e EDITA o painel de materiais. ADM/FIN entrou porque o Financeiro
+# passou a lancar o gasto do Supply na mao (ver `adm/signals.py`) e precisa
+# chegar no numero, nao so ouvir falar dele.
+AREAS_DO_PAINEL = ("SUPPLY", "TRIADE", "ADM/FIN")
+
+# Quem CONFIRMA que os gastos reais do sabado ja foram atualizados. E uma lista
+# menor de proposito: o check existe para o Supply avisar a ADM. Se a propria
+# ADM pudesse marcar, ela confirmaria para si mesma e o aviso deixaria de
+# significar "o Supply conferiu" — que e a unica coisa que ele deveria dizer.
+AREAS_DO_FECHAMENTO = ("SUPPLY", "TRIADE")
+
+
+def pode_abrir_painel(usuario):
+    return bool(usuario.is_superuser or getattr(usuario, "area", None) in AREAS_DO_PAINEL)
+
+
+def pode_fechar_sabado(usuario):
+    return bool(usuario.is_superuser or getattr(usuario, "area", None) in AREAS_DO_FECHAMENTO)
 
 
 VALOR_TOTAL_EXPRESSION = ExpressionWrapper(
@@ -105,8 +119,9 @@ class CadastroLocalView(LoginRequiredMixin, CreateView):
         return response
 
 
+@login_required
 def painel_materiais(request):
-    if request.user.area not in AREAS_DO_PAINEL:
+    if not pode_abrir_painel(request.user):
         messages.error(request, "Você não tem permissão para acessar esta página.")
         return redirect("/supply/")
     
@@ -186,6 +201,7 @@ def painel_materiais(request):
             "sabados": sabados,
             "sabado": sabado,
             "fechamento": fechamento,
+            "pode_fechar": pode_fechar_sabado(request.user),
             "local_id": local_id,
             "tipo_painel": tipo_painel,
             "locais": Local.objects.filter(ativo=True),
@@ -239,6 +255,7 @@ def painel_materiais(request):
         "sabados": sabados,
         "sabado": sabado,
         "fechamento": fechamento,
+        "pode_fechar": pode_fechar_sabado(request.user),
         "local_id": local_id,
         "tipo_painel": tipo_painel,
         "locais": Local.objects.filter(ativo=True),
@@ -254,7 +271,7 @@ def painel_materiais(request):
 def gerenciar_item_painel(request):
     if request.method != "POST":
         return redirect("supply:painel_materiais")
-    if request.user.area not in AREAS_DO_PAINEL:
+    if not pode_abrir_painel(request.user):
         messages.error(request, "Você não tem permissão para realizar esta ação.")
         return redirect("/supply/")
 
@@ -761,7 +778,7 @@ def marcar_fechamento(request):
     if request.method != "POST":
         return redirect("supply:painel_materiais")
 
-    if not (request.user.is_superuser or request.user.area in AREAS_DO_PAINEL):
+    if not pode_fechar_sabado(request.user):
         raise PermissionDenied
 
     sabado = get_object_or_404(Sabado, pk=request.POST.get("sabado"))
