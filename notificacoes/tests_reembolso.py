@@ -113,12 +113,16 @@ class ReembolsoChegouTest(TestCase):
         view.request = RequestFactory().post("/forms/reembolso/")
         view.request.user = self.pediu
 
+        # `destino` e `voluntario` entraram quando o formulário passou a
+        # perguntar de quem é o gasto: a área do pedido deixou de sair
+        # automaticamente da área do solicitante.
         form = PedidoReembolsoForm(data={
             "valor": "75.50",
             "descricao": "Uber",
             "data_gasto": timezone.localdate().isoformat(),
             "categoria": self.categoria.pk,
-        })
+            "destino": "AREA",
+        }, voluntario=self.pediu)
         self.assertTrue(form.is_valid(), form.errors)
 
         with patch("notificacoes.services.threading.Thread", ThreadSincrona):
