@@ -51,7 +51,7 @@
           <thead>
             <tr>
               <th>Solicitante</th>
-              <th>Área</th>
+              <th title="De quem é o gasto — é isto que decide qual teto encolhe">Desconta de</th>
               <th>Categoria</th>
               <th>Data Gasto</th>
               <th class="rmb-th-right">Valor</th>
@@ -64,7 +64,19 @@
             {% for p in pedidos %}
             <tr>
               <td class="rmb-td-bold">{{ p.solicitante.get_full_name|default:p.solicitante.username }}</td>
-              <td><span class="pcf-badge brand rmb-area">{{ p.solicitante.area }}</span></td>
+              {% comment %} Mostra o dono do GASTO, não a área de quem pediu. Os dois
+                 deixaram de ser a mesma coisa quando o solicitante passou a poder dizer
+                 "isto é de um evento" ou "é do projeto" — e é o dono do gasto que decide
+                 qual teto encolhe. {% endcomment %}
+              <td>
+                {% if p.area %}
+                  <span class="pcf-badge brand rmb-area">{{ p.get_area_display }}</span>
+                {% elif p.evento %}
+                  <span class="pcf-badge outline rmb-area">{{ p.evento.nome }}</span>
+                {% else %}
+                  <span class="pcf-badge outline rmb-area" title="Não desconta o teto de nenhuma área">Projeto</span>
+                {% endif %}
+              </td>
               <td>{{ p.categoria.nome }}</td>
               <td class="rmb-td-muted">{{ p.data_gasto|date:"d/m/Y" }}</td>
               <td class="rmb-th-right rmb-td-bold rmb-valor">R$ {{ p.valor|floatformat:2 }}</td>
@@ -85,8 +97,28 @@
               {% if status_ativo == 'PENDENTE' %}
               <td class="rmb-td-actions">
                 <div class="rmb-actions">
-                  <form method="post" action="{% url 'forms_pcf:reembolso_aprovar' p.pk %}" style="display:inline">
+                  {% comment %} Área e evento vão DENTRO do formulário de aprovar porque é
+                     na aprovação que o lançamento nasce. Corrigir só no pagamento deixava o
+                     teto da área errada encolhido no intervalo — e para sempre, se a ADM
+                     esquecesse. O solicitante já respondeu isso; aqui a ADM confirma. {% endcomment %}
+                  <form method="post" action="{% url 'forms_pcf:reembolso_aprovar' p.pk %}" class="rmb-aprovar">
                     {% csrf_token %}
+                    <div class="rmb-dono-adm">
+                      <label class="rmb-dono-lab" for="area-{{ p.pk }}">Desconta do teto de</label>
+                      <select id="area-{{ p.pk }}" name="area" class="rmb-dono-sel">
+                        <option value="" {% if not p.area %}selected{% endif %}>Nenhuma área</option>
+                        {% for codigo, rotulo in areas %}
+                        <option value="{{ codigo }}" {% if p.area == codigo %}selected{% endif %}>{{ rotulo }}</option>
+                        {% endfor %}
+                      </select>
+                      <label class="rmb-dono-lab" for="evento-{{ p.pk }}">Evento</label>
+                      <select id="evento-{{ p.pk }}" name="evento" class="rmb-dono-sel">
+                        <option value="">Nenhum</option>
+                        {% for evento in eventos %}
+                        <option value="{{ evento.pk }}" {% if p.evento_id == evento.pk %}selected{% endif %}>{{ evento.nome }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
                     <button type="submit" class="rmb-act rmb-act-approve">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
                       Aprovar
@@ -183,6 +215,18 @@ function toggleRejeitar(id) {
   .rmb-td-motivo { max-width: 220px; word-break: break-word; }
   .rmb-valor { color: #b03636; font-variant-numeric: tabular-nums; }
   .rmb-area { white-space: nowrap; }
+
+  /* Escolha do dono do gasto, dentro do formulário de aprovar */
+  .rmb-aprovar { display: inline-flex; flex-direction: column; gap: .35rem; }
+  .rmb-dono-adm { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .25rem .4rem;
+                  align-items: center; margin-bottom: .15rem; }
+  .rmb-dono-lab { font-size: .68rem; font-weight: 700; letter-spacing: .02em;
+                  color: hsl(var(--muted-foreground)); white-space: nowrap; }
+  .rmb-dono-sel { width: 100%; max-width: 11rem; padding: .28rem .45rem; font-size: .76rem;
+                  border: 1px solid #f0dfd3; border-radius: 8px; background: #fff;
+                  color: var(--ink); font-family: inherit; }
+  .rmb-dono-sel:focus { outline: none; border-color: #f7c9a8;
+                        box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
   .rmb-link { display: inline-flex; align-items: center; gap: .3rem; color: #2f5296; font-weight: 600; font-size: .82rem; text-decoration: none; }
   .rmb-link:hover { text-decoration: underline; }
   /* Comprovante virou opcional, e esta é a tela onde a ADM decide aprovar. Um
@@ -194,7 +238,9 @@ function toggleRejeitar(id) {
 
   /* ── Ações ── */
   .rmb-td-actions { white-space: nowrap; min-width: 180px; }
-  .rmb-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+  /* align-items no topo: o formulário de aprovar agora tem dois selects em cima
+     do botão, e sem isto o botão de rejeitar esticaria até a altura dele. */
+  .rmb-actions { display: flex; gap: .4rem; flex-wrap: wrap; align-items: flex-start; }
   .rmb-act { display: inline-flex; align-items: center; gap: .3rem; font-size: .78rem; font-weight: 700; padding: .35rem .75rem; border-radius: 999px; border: 1px solid transparent; cursor: pointer; transition: all .15s; font-family: inherit; }
   .rmb-act-approve { background: #eaf7ef; color: #1f7a49; border-color: #c9ecd6; }
   .rmb-act-approve:hover { background: #d6efe0; }

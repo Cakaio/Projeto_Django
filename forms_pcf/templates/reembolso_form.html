@@ -23,12 +23,37 @@
       {% endif %}
 
       {% for field in form %}
-      <div class="pcf-field rmb-field">
-        <label class="pcf-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<p class="rmb-help">{{ field.help_text }}</p>{% endif %}
-        {% if field.errors %}<p class="rmb-error">{{ field.errors|join:", " }}</p>{% endif %}
-      </div>
+        {% if field.name == 'destino' %}
+        {% comment %} Rádio em fieldset, não no laço genérico: um <label for> apontando
+           para o primeiro rádio faria o leitor de tela anunciar o grupo inteiro como se
+           fosse a primeira opção. {% endcomment %}
+        <fieldset class="pcf-field rmb-field rmb-dono">
+          <legend class="pcf-label">{{ field.label }}</legend>
+          {% for opcao in field %}
+          <label class="rmb-radio">{{ opcao.tag }}<span>{{ opcao.choice_label }}</span></label>
+          {% endfor %}
+          {% if field.errors %}<p class="rmb-error">{{ field.errors|join:", " }}</p>{% endif %}
+          <p class="rmb-help">
+            Gasolina, correio e compras que servem o projeto inteiro não são gasto da sua
+            área — marcar aqui evita descontar o teto dela por engano. A ADM confere.
+          </p>
+        </fieldset>
+
+        {% elif field.name == 'evento' %}
+        <div class="pcf-field rmb-field rmb-so-evento" id="rmb-campo-evento">
+          <label class="pcf-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}<p class="rmb-error">{{ field.errors|join:", " }}</p>{% endif %}
+        </div>
+
+        {% else %}
+        <div class="pcf-field rmb-field">
+          <label class="pcf-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="rmb-help">{{ field.help_text }}</p>{% endif %}
+          {% if field.errors %}<p class="rmb-error">{{ field.errors|join:", " }}</p>{% endif %}
+        </div>
+        {% endif %}
       {% endfor %}
 
       <div class="rmb-actions">
@@ -52,6 +77,21 @@
   .rmb-card { padding: clamp(1.25rem, 4vw, 1.85rem); }
   .rmb-field { margin-bottom: 1.25rem; }
 
+  /* De quem é o gasto */
+  .rmb-dono { border: 0; padding: 0; margin-inline: 0; }
+  .rmb-dono legend { padding: 0; margin-bottom: .5rem; }
+  .rmb-radio { display: flex; align-items: center; gap: .6rem; padding: .6rem .8rem;
+               margin-bottom: .4rem; border: 1px solid #f0dfd3; border-radius: 12px;
+               background: #fff; font-size: .92rem; color: var(--ink); cursor: pointer;
+               transition: border-color .15s, background .15s; }
+  .rmb-radio:hover { border-color: #f7c9a8; }
+  .rmb-radio input { width: auto; margin: 0; accent-color: #f26b21; flex-shrink: 0; }
+  .rmb-radio:has(input:checked) { border-color: #f7c9a8; background: #fff7f1; }
+  /* O select do evento só existe depois de a pessoa escolher "de um evento".
+     Começa escondido e o JS abaixo acende; sem JS, ele aparece — melhor um
+     campo a mais que um campo obrigatório inalcançável. */
+  .rmb-so-evento.rmb-escondido { display: none; }
+
   /* Widgets renderizados pelo Django (form-control / form-select) → visual pcf-input */
   .rmb-card input[type="text"],
   .rmb-card input[type="number"],
@@ -68,6 +108,7 @@
   .rmb-card textarea:focus { outline: none; border-color: #f7c9a8; box-shadow: 0 0 0 3px rgba(242, 107, 33, .15); }
   .rmb-card textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
   .rmb-card input[type="file"] { padding: .5rem .8rem; }
+  .rmb-card .rmb-radio input[type="radio"] { width: auto; padding: 0; border-radius: 50%; }
 
   .rmb-help { margin: .35rem 0 0; font-size: .8rem; line-height: 1.45; color: hsl(var(--muted-foreground)); }
   .rmb-error { margin: .35rem 0 0; font-size: .8rem; font-weight: 600; color: #b03636; }
@@ -81,4 +122,23 @@
     .rmb-actions .pcf-btn { width: 100%; }
   }
 </style>
+
+<script>
+  // O select do evento só faz sentido depois de "De um evento". Roda também no
+  // carregamento porque a página volta com a escolha marcada quando há erro de
+  // validação — e aí o campo do evento precisa já estar aberto.
+  (function () {
+    var campo = document.getElementById('rmb-campo-evento');
+    if (!campo) return;
+    var radios = document.querySelectorAll('input[name="destino"]');
+
+    function ajustar() {
+      var marcado = document.querySelector('input[name="destino"]:checked');
+      campo.classList.toggle('rmb-escondido', !marcado || marcado.value !== 'EVENTO');
+    }
+
+    radios.forEach(function (radio) { radio.addEventListener('change', ajustar); });
+    ajustar();
+  })();
+</script>
 {% endblock %}

@@ -13,6 +13,7 @@ from functools import wraps
 from .models import FeedbackArea, PedidoReembolso, ReceptorNotificacaoReembolso
 from .forms import FeedbackAreaForm, PedidoReembolsoForm, ReceptorNotificacaoReembolsoForm
 from adm.models import Lancamento
+from voluntario.models import LISTA_AREAS
 
 FEEDBACK_AREAS = {'PROJETOS', 'TRIADE'}
 
@@ -49,6 +50,33 @@ class FeedbackInboxView(LoginRequiredMixin, ListView):
 REEMBOLSO_AREAS = {'ADM/FIN'}
 
 
+def _aplicar_destino_da_adm(pedido, dados):
+    """Deixa a ADM corrigir área e evento NA APROVAÇÃO, antes do lançamento.
+
+    É aqui que o lançamento nasce, então é aqui que a área precisa estar certa.
+    Antes só dava para corrigir na tela de pagamento: entre aprovar e pagar o
+    teto da área errada ficava encolhido, e se a ADM esquecesse de trocar,
+    ficava errado para sempre — o número só parecia um pouco maior.
+
+    Ausência de chave é "não mexi", string vazia é "tirei a área". São coisas
+    diferentes: o botão de aprovar sozinho não pode apagar o que o solicitante
+    escolheu.
+    """
+    from adm.models import Evento
+
+    if 'area' in dados:
+        area = (dados.get('area') or '').strip()
+        if area == '' or area in dict(LISTA_AREAS):
+            pedido.area = area
+        # Área fora da lista é POST torto: ignora e mantém o que veio do pedido.
+
+    if 'evento' in dados:
+        evento_id = (dados.get('evento') or '').strip()
+        pedido.evento = (
+            Evento.objects.filter(pk=evento_id).first() if evento_id else None
+        )
+
+
 def sincronizar_lancamento_do_reembolso(pedido, usuario=None):
     """Garante o lançamento de despesa do reembolso carregando área, evento e
     conta do pedido.
@@ -72,7 +100,10 @@ def sincronizar_lancamento_do_reembolso(pedido, usuario=None):
     lancamento = Lancamento.objects.create(
         categoria=pedido.categoria,
         valor=pedido.valor,
-        data=timezone.now().date(),
+        # localdate, não now().date(): `now()` é UTC, e depois das 21h em São
+        # Paulo ele já virou o dia seguinte. Numa virada de semestre isso joga
+        # o reembolso no semestre errado e some do teto que devia consumir.
+        data=timezone.localdate(),
         descricao=f'Reembolso: {pedido.descricao}',
         origem='REEMBOLSO',
         criado_por=usuario,
@@ -93,18 +124,19 @@ class EnviarReembolsoView(LoginRequiredMixin, FormView):
         kwargs = super().get_form_kwargs()
         if self.request.method in ('POST', 'PUT'):
             kwargs['files'] = self.request.FILES
+        # O formulário precisa do voluntário para rotular "Da minha área" com o
+        # nome da área e para traduzir a escolha em `area`.
+        kwargs['voluntario'] = self.request.user
         return kwargs
 
     def form_valid(self, form):
         pedido = form.save(commit=False)
         pedido.solicitante = self.request.user
-        # A área sai de quem está pedindo — o formulário não pergunta de
-        # propósito. Sem isso o pedido chegava na fila da ADM como "sem área
-        # nem evento", e o gasto só era atribuído no momento do pagamento: até
-        # lá ninguém sabia de qual teto aquele dinheiro ia sair. A ADM continua
-        # podendo trocar na hora de pagar, que é quando se sabe se o gasto era
-        # de um evento e não da área da pessoa.
-        pedido.area = getattr(self.request.user, 'area', '') or ''
+        # Quem pede diz de quem é o gasto. A área SAIA automaticamente da área
+        # do solicitante, e isso mentia: quem é do Amarelo e abastece o carro
+        # para buscar material não gastou dinheiro do Amarelo — mas o teto da
+        # salinha encolhia assim mesmo. A ADM confere na aprovação.
+        pedido.area = form.area_escolhida()
         pedido.status = 'PENDENTE'
         pedido.save()
         self._enviar_email(pedido)
@@ -186,12 +218,18 @@ class ReembolsoInboxView(LoginRequiredMixin, ListView):
         if status not in ('PENDENTE', 'APROVADO', 'REJEITADO'):
             status = 'PENDENTE'
         return PedidoReembolso.objects.filter(status=status).select_related(
-            'solicitante', 'categoria', 'aprovado_por'
+            'solicitante', 'categoria', 'aprovado_por', 'evento'
         )
 
     def get_context_data(self, **kwargs):
+        from adm.models import Evento
+
         ctx = super().get_context_data(**kwargs)
         ctx['status_ativo'] = self.request.GET.get('status', 'PENDENTE')
+        # Para a ADM confirmar ou corrigir o dono do gasto na hora de aprovar —
+        # que é quando o lançamento nasce e o teto se mexe.
+        ctx['areas'] = LISTA_AREAS
+        ctx['eventos'] = Evento.objects.filter(ativo=True)
         ctx['contagem_pendente'] = PedidoReembolso.objects.filter(status='PENDENTE').count()
         ctx['contagem_aprovado'] = PedidoReembolso.objects.filter(status='APROVADO').count()
         ctx['contagem_rejeitado'] = PedidoReembolso.objects.filter(status='REJEITADO').count()
@@ -284,6 +322,7 @@ class AprovarReembolsoView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
         pedido = get_object_or_404(PedidoReembolso, pk=pk, status='PENDENTE')
+        _aplicar_destino_da_adm(pedido, request.POST)
         sincronizar_lancamento_do_reembolso(pedido, request.user)
         pedido.status = 'APROVADO'
         pedido.aprovado_por = request.user

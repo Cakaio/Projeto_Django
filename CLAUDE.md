@@ -306,6 +306,36 @@ Se um dia o Supply registrar o custo REAL (nota em mãos, não orçamento),
 religar o espelho volta a fazer sentido — mas o gatilho aí é a conferência do
 sábado, não o salvamento do pedido.
 
+### De quem é o gasto do reembolso
+
+O formulário PERGUNTA, e a resposta tem três saídas que o modelo já sabia
+representar:
+
+| Escolha | Grava | Teto |
+|---------|-------|------|
+| Da minha área | `area` = a do solicitante | desconta o dela |
+| De um evento | `evento` = X, `area` **vazia** | não desconta nenhum |
+| Do projeto em geral | os dois vazios | não desconta nenhum |
+
+A área saía automaticamente da área do solicitante, e isso mentia: quem é do
+Amarelo e abastece o carro para buscar material não gastou dinheiro do Amarelo.
+O teto da salinha encolhia por causa de gasolina.
+
+**Evento deixa a área VAZIA de propósito.** Gasolina da Festa Junina não é
+gasto do Amarelo e também não é da equipe de EVENTOS, que é um time e não o
+evento. Área vazia não conta em teto nenhum — `_despesa_agrupada_por_area`
+ignora. Se a liderança quiser que evento caia no teto de EVENTOS, é a ADM que
+marca isso na aprovação; não é automático.
+
+**A ADM escolhe área e evento na APROVAÇÃO**, não só no pagamento, porque é na
+aprovação que o lançamento nasce. Enquanto a correção só existia no pagamento,
+o teto da área errada ficava encolhido no intervalo — e para sempre, se a ADM
+esquecesse, porque o número só parecia um pouco maior.
+
+Em `_aplicar_destino_da_adm`, **chave ausente é "não mexi" e string vazia é
+"tirei a área"**. São coisas diferentes: o botão de aprovar sozinho não pode
+apagar o que o solicitante escolheu.
+
 ## Tetos de área (Financeiro)
 
 Quem mexe no teto é **ADM/FIN** (e superusuário), em QUALQUER área — não só na

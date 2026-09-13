@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from decimal import Decimal
 from forms_pcf.models import FeedbackArea, PedidoReembolso, ReceptorNotificacaoReembolso
-from adm.models import Categoria, Lancamento
+from adm.models import Categoria, Evento, Lancamento
 
 User = get_user_model()
 
@@ -116,6 +116,7 @@ class EnviarReembolsoViewTest(TestCase):
             'data_gasto': timezone.now().date().isoformat(),
             'categoria': self.cat.pk,
             'comprovante': arquivo,
+            'destino': 'AREA',
         })
         self.assertRedirects(resp, reverse('forms_pcf:reembolso_sucesso'))
         self.assertEqual(PedidoReembolso.objects.count(), 1)
@@ -142,6 +143,7 @@ class EnviarReembolsoViewTest(TestCase):
             'data_gasto': timezone.now().date().isoformat(),
             'categoria': self.cat.pk,
             'comprovante': arquivo,
+            'destino': 'AREA',
         })
         pedido = PedidoReembolso.objects.get()
         self.assertEqual(pedido.area, 'MARKETING')
@@ -163,6 +165,7 @@ class EnviarReembolsoViewTest(TestCase):
             'data_gasto': timezone.now().date().isoformat(),
             'categoria': self.cat.pk,
             'comprovante': arquivo,
+            'destino': 'AREA',
         })
         pedido = PedidoReembolso.objects.get()
 
@@ -198,6 +201,7 @@ class EnviarReembolsoViewTest(TestCase):
             'descricao': 'Estacionamento, sem nota',
             'data_gasto': timezone.now().date().isoformat(),
             'categoria': self.cat.pk,
+            'destino': 'AREA',
         })
         pedido = PedidoReembolso.objects.get()
         self.assertEqual(pedido.status, 'PENDENTE')
@@ -451,3 +455,219 @@ class ReembolsoSemComprovanteTest(TestCase):
         self.pedido.refresh_from_db()
         self.assertEqual(self.pedido.status, 'APROVADO')
         self.assertIsNotNone(self.pedido.lancamento)
+
+
+class DonoDoGastoNoReembolsoTest(TestCase):
+    """Nem todo gasto de quem pede e gasto da AREA de quem pede.
+
+    Gasolina para buscar material, taxa de correio, compra que serve o projeto
+    inteiro: antes tudo isso descontava o teto da salinha de quem adiantou o
+    dinheiro, porque a area era preenchida automaticamente e ninguem era
+    perguntado. A unica correcao possivel estava na tela de pagamento — e se a
+    ADM nao lembrasse, ficava errado para sempre.
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.solicitante = User.objects.create_user(
+            username='amarelo_vol', password='pw', area='AMARELO')
+        self.client.force_login(self.solicitante)
+        self.categoria = Categoria.objects.create(nome='Transporte', tipo='DESPESA')
+        self.evento = Evento.objects.create(nome='Festa Junina 2026', ativo=True)
+
+    def _enviar(self, **extras):
+        dados = {
+            'valor': '87.40',
+            'descricao': 'gasolina para buscar material',
+            'data_gasto': timezone.localdate().isoformat(),
+            'categoria': self.categoria.pk,
+            'destino': 'AREA',
+        }
+        dados.update(extras)
+        with patch('forms_pcf.views.send_mail'):
+            resposta = self.client.post(reverse('forms_pcf:reembolso'), dados)
+        return resposta, PedidoReembolso.objects.order_by('-pk').first()
+
+    def test_padrao_continua_sendo_a_area_de_quem_pede(self):
+        _, pedido = self._enviar()
+        self.assertEqual(pedido.area, 'AMARELO')
+        self.assertIsNone(pedido.evento)
+
+    def test_gasto_de_evento_nao_desconta_area_nenhuma(self):
+        """Gasolina da Festa Junina nao e gasto do Amarelo — nem da equipe de
+        Eventos, que e um time e nao o evento."""
+        _, pedido = self._enviar(destino='EVENTO', evento=self.evento.pk)
+        self.assertEqual(pedido.evento, self.evento)
+        self.assertEqual(pedido.area, '')
+
+    def test_gasto_do_projeto_nao_desconta_area_nenhuma(self):
+        _, pedido = self._enviar(destino='GERAL')
+        self.assertEqual(pedido.area, '')
+        self.assertIsNone(pedido.evento)
+
+    def test_evento_e_obrigatorio_quando_a_escolha_e_evento(self):
+        """Direto no formulário: a resposta de erro renderiza template, e o
+        test client quebra ao copiar o contexto neste ambiente."""
+        from forms_pcf.forms import PedidoReembolsoForm
+        formulario = PedidoReembolsoForm({
+            'valor': '87.40', 'descricao': 'gasolina',
+            'data_gasto': timezone.localdate().isoformat(),
+            'categoria': self.categoria.pk, 'destino': 'EVENTO', 'evento': '',
+        }, voluntario=self.solicitante)
+        self.assertFalse(formulario.is_valid())
+        self.assertIn('evento', formulario.errors)
+
+    def test_evento_escolhido_por_engano_some_quando_o_destino_e_outro(self):
+        """O radio muda, o select fica preenchido. Sem limpar, o pedido sairia
+        marcado com um evento que a pessoa nao quis."""
+        _, pedido = self._enviar(destino='AREA', evento=self.evento.pk)
+        self.assertIsNone(pedido.evento)
+        self.assertEqual(pedido.area, 'AMARELO')
+
+    def test_gasto_geral_aprovado_nao_entra_em_teto_nenhum(self):
+        """O encontro das pontas: sem area, nao ha teto contra o que comparar."""
+        from adm.models import TetoArea
+        from adm.servicos import situacao_dos_tetos
+        TetoArea.objects.create(area='AMARELO', valor='500.00')
+        _, pedido = self._enviar(destino='GERAL')
+
+        adm = User.objects.create_user(username='adm_geral', password='pw', area='ADM/FIN')
+        self.client.force_login(adm)
+        with patch('forms_pcf.views.send_mail'):
+            self.client.post(reverse('forms_pcf:reembolso_aprovar', args=[pedido.pk]))
+
+        linha = next(l for l in situacao_dos_tetos(timezone.localdate())
+                     if l['area'] == 'AMARELO')
+        self.assertEqual(linha['gasto'], Decimal('0'))
+
+
+class AdmEscolheAreaNaAprovacaoTest(TestCase):
+    """O lancamento nasce na APROVACAO, entao e la que a area precisa estar
+    certa. Antes so dava para corrigir no pagamento: entre aprovar e pagar, o
+    teto da area errada ficava encolhido, e se a ADM esquecesse, para sempre.
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.adm = User.objects.create_user(username='adm_apr', password='pw', area='ADM/FIN')
+        self.solicitante = User.objects.create_user(
+            username='vol_apr', password='pw', area='AMARELO')
+        self.categoria = Categoria.objects.create(nome='Transporte', tipo='DESPESA')
+        self.evento = Evento.objects.create(nome='Festa Junina 2026', ativo=True)
+        self.pedido = PedidoReembolso.objects.create(
+            solicitante=self.solicitante, valor=Decimal('87.40'),
+            descricao='gasolina', data_gasto=timezone.localdate(),
+            categoria=self.categoria, status='PENDENTE', area='AMARELO',
+        )
+        self.client.force_login(self.adm)
+
+    def _aprovar(self, **dados):
+        with patch('forms_pcf.views.send_mail'):
+            return self.client.post(
+                reverse('forms_pcf:reembolso_aprovar', args=[self.pedido.pk]), dados)
+
+    def test_adm_corrige_a_area_na_aprovacao(self):
+        self._aprovar(area='SUPPLY')
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.area, 'SUPPLY')
+        self.assertEqual(self.pedido.lancamento.area, 'SUPPLY')
+
+    def test_adm_tira_a_area_na_aprovacao(self):
+        self._aprovar(area='')
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.area, '')
+        self.assertEqual(self.pedido.lancamento.area, '')
+
+    def test_adm_marca_evento_na_aprovacao(self):
+        self._aprovar(area='', evento=self.evento.pk)
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.evento, self.evento)
+        self.assertEqual(self.pedido.lancamento.evento, self.evento)
+
+    def test_aprovar_sem_mexer_mantem_o_que_o_pedido_trouxe(self):
+        """O botao de aprovar sozinho, sem tocar nos selects, nao pode limpar a
+        area que o solicitante escolheu."""
+        self._aprovar()
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.area, 'AMARELO')
+        self.assertEqual(self.pedido.lancamento.area, 'AMARELO')
+
+    def test_area_invalida_no_post_nao_e_gravada(self):
+        self._aprovar(area='NAO_EXISTE')
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.area, 'AMARELO')
+
+    def test_data_do_lancamento_usa_o_fuso_de_sao_paulo(self):
+        """`timezone.now().date()` e UTC: depois das 21h em Sao Paulo ele ja
+        virou o dia seguinte, e numa virada de semestre isso joga o reembolso
+        no semestre errado."""
+        from datetime import date, datetime, timezone as tz
+        with patch('forms_pcf.views.timezone.localdate', return_value=date(2026, 6, 30)), \
+             patch('forms_pcf.views.timezone.now',
+                   return_value=datetime(2026, 7, 1, 1, 0, tzinfo=tz.utc)):
+            self._aprovar()
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.lancamento.data, date(2026, 6, 30))
+
+
+class TelasDoDonoDoGastoTest(TestCase):
+    """As duas telas de verdade, renderizadas.
+
+    RequestFactory, nao o Client: o test client quebra ao copiar o contexto do
+    template neste ambiente (Python 3.14).
+    """
+
+    def setUp(self):
+        from django.test import RequestFactory
+        self.fabrica = RequestFactory()
+        self.categoria = Categoria.objects.create(nome='Transporte', tipo='DESPESA')
+        self.evento = Evento.objects.create(nome='Festa Junina 2026', ativo=True)
+        Evento.objects.create(nome='Evento encerrado', ativo=False)
+        self.solicitante = User.objects.create_user(
+            username='amarelo_tela', password='pw', area='AMARELO')
+        self.adm = User.objects.create_user(
+            username='adm_tela', password='pw', area='ADM/FIN')
+
+    def _pedir(self, url, usuario):
+        requisicao = self.fabrica.get(url)
+        requisicao.user = usuario
+        return requisicao
+
+    def test_formulario_pergunta_de_quem_e_o_gasto(self):
+        from forms_pcf.views import EnviarReembolsoView
+        resposta = EnviarReembolsoView.as_view()(
+            self._pedir('/forms/reembolso/', self.solicitante))
+        html = resposta.rendered_content
+        self.assertIn('name="destino"', html)
+        self.assertIn('Da minha área — Amarelo', html)
+        self.assertIn('Do projeto em geral', html)
+        # Evento inativo nao pode ser oferecido: o gasto iria parar num evento
+        # que ninguem acompanha mais.
+        self.assertIn('Festa Junina 2026', html)
+        self.assertNotIn('Evento encerrado', html)
+
+    def test_caixa_da_adm_deixa_escolher_area_e_evento_ao_aprovar(self):
+        from forms_pcf.views import ReembolsoInboxView
+        pedido = PedidoReembolso.objects.create(
+            solicitante=self.solicitante, valor=Decimal('87.40'),
+            descricao='gasolina', data_gasto=timezone.localdate(),
+            categoria=self.categoria, status='PENDENTE', area='AMARELO',
+        )
+        resposta = ReembolsoInboxView.as_view()(
+            self._pedir('/forms/reembolsos/', self.adm))
+        html = resposta.rendered_content
+        self.assertIn(f'name="area"', html)
+        self.assertIn(f'id="evento-{pedido.pk}"', html)
+        # A area do pedido ja vem marcada, senao aprovar sem mexer a apagaria.
+        self.assertIn('<option value="AMARELO" selected>Amarelo</option>', html)
+
+    def test_a_coluna_mostra_o_dono_do_gasto_e_nao_a_area_de_quem_pediu(self):
+        from forms_pcf.views import ReembolsoInboxView
+        PedidoReembolso.objects.create(
+            solicitante=self.solicitante, valor=Decimal('87.40'),
+            descricao='gasolina do passeio', data_gasto=timezone.localdate(),
+            categoria=self.categoria, status='PENDENTE', area='', evento=self.evento,
+        )
+        html = ReembolsoInboxView.as_view()(
+            self._pedir('/forms/reembolsos/', self.adm)).rendered_content
+        self.assertIn('Festa Junina 2026', html)
