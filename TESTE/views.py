@@ -81,6 +81,8 @@ def _paginas_do_usuario(user):
         ("Painel do Sábado", "sabado:resumo_sabado", "Disponibilidade dos voluntários", True),
         ("Semanários", "semanario:semanario_view", "Planejamento por sala", True),
         ("Rondas do Sábado", "ronda:ronda_publica", "Escala de rondas", True),
+        ("Ajudas do Sábado", "ajudas:escala_publicada", "Ajudas por área e horário", True),
+        ("Gestão de Ajudas", "ajudas:painel", "Organizar e publicar ajudas", area == "TRIADE"),
         ("Relatório Pedagógico", "semanario:relatorio_pedagogico", "Competências e dimensões", True),
         ("Atendidos", "atendido:atendido_view", "Visão geral dos atendidos", True),
         ("Atendidos matriculados", "atendido:lista_atendidos", "Lista completa", True),
@@ -253,6 +255,8 @@ class inicio(LoginRequiredMixin, TemplateView):
         request = getattr(self, "request", None)
         usuario = getattr(request, "user", None)
         if usuario is not None and usuario.is_authenticated:
+            from ajudas.selectors import card_inicio
+            context["minhas_ajudas"] = card_inicio(usuario)
             # Import local evita acoplar a inicialização das views do projeto ao
             # app de pautas e mantém uma única regra de visibilidade/pendência.
             from gerenciamento.services import pautas_pendentes_de_ciencia

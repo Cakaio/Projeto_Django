@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # seria I/O à toa e mudaria o carimbo por causa de uma imagem qualquer,
 # derrubando o cache de tudo sem motivo.
 ARQUIVOS_OBSERVADOS = ('css/pcf.css', 'js/pcf-fx.js', 'js/pcf-estudio.js',
-                       'js/pcf-combo.js')
+                       'js/pcf-combo.js', 'css/ajudas.css', 'js/ajudas.js')
 
 _carimbo = None
 

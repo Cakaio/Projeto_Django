@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block titulo %}Gestão de ajudas{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/ajudas.css' %}?v={{ ESTATICO_V }}">{% endblock %}
+{% block content %}
+<div class="pcf-container aj-page">
+  <header class="pcf-page-head">
+    <div><span class="pcf-eyebrow">Sábado · Tríade</span><h1 class="pcf-page-title">Gestão de ajudas</h1><p class="pcf-page-sub">Uma equipe, muitas formas de ajudar. Organize os horários de cada sábado.</p></div>
+    <a class="pcf-btn pcf-btn-outline" href="{% url 'ajudas:escala_publicada' %}">Ver escala publicada</a>
+  </header>
+  <div class="aj-saturday-list">
+    {% for sabado in sabados %}
+    <article class="pcf-card aj-saturday">
+      <div class="aj-date"><strong>{{ sabado.data|date:'d' }}</strong><span>{{ sabado.data|date:'M Y' }}</span></div>
+      <div class="aj-grow"><h2>{{ sabado.tema }}</h2><p class="aj-muted">{{ sabado.hora_inicio|time:'H:i' }}–{{ sabado.hora_fim|time:'H:i' }}{% if sabado.data < hoje %} · Sábado anterior{% endif %}</p></div>
+      {% if sabado.escala_ajudas.status == 'PUBLICADA' %}<span class="pcf-badge outline ok">Publicada</span>{% elif sabado.escala_ajudas %}<span class="pcf-badge outline brand">Rascunho</span>{% else %}<span class="pcf-badge outline">A configurar</span>{% endif %}
+      <a class="pcf-btn pcf-btn-outline pcf-btn-sm" href="{% url 'ajudas:organizar' sabado.pk %}">{% if sabado.escala_ajudas %}Abrir quadro{% else %}Configurar ajudas{% endif %} →</a>
+    </article>
+    {% empty %}<div class="pcf-card aj-empty">Nenhum sábado cadastrado. Cadastre um sábado no painel administrativo para começar.</div>{% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+<section class="pcf-tile pcf-col-2" aria-label="Suas ajudas">
+  <div class="pcf-kpi">
+    <div class="pcf-kpi-top"><span class="pcf-kpi-label">Suas ajudas{% if minhas_ajudas %} · {{ minhas_ajudas.sabado.data|date:'d/m' }}{% endif %}</span></div>
+    {% if minhas_ajudas %}
+      <strong style="display:block;font-size:1.4rem;line-height:1.15;margin:.6rem 0 .3rem;color:var(--brand)">{{ minhas_ajudas.principal.get_area_destino_display }}</strong>
+      <span style="font-size:.82rem;color:var(--ink-soft)">{{ minhas_ajudas.principal.hora_inicio|time:'H:i' }} às {{ minhas_ajudas.principal.hora_fim|time:'H:i' }}</span>
+      {% if minhas_ajudas.outras %}<details style="margin-top:.45rem;font-size:.78rem"><summary>+{{ minhas_ajudas.outras|length }} ajuda{{ minhas_ajudas.outras|pluralize }}</summary>{% for ajuda in minhas_ajudas.outras %}<p style="margin:.4rem 0 0"><strong>{{ ajuda.get_area_destino_display }}</strong> · {{ ajuda.hora_inicio|time:'H:i' }}–{{ ajuda.hora_fim|time:'H:i' }}</p>{% endfor %}</details>{% endif %}
+      <a href="{% url 'ajudas:detalhe' minhas_ajudas.sabado.pk %}" style="display:block;margin-top:.65rem;font-size:.78rem;color:var(--brand)">Ver escala completa →</a>
+    {% else %}
+      <p style="font-size:.85rem;margin:.8rem 0;color:var(--ink-soft)">Nenhuma ajuda externa atribuída na próxima escala.</p>
+      <a href="{% url 'ajudas:escala_publicada' %}" style="font-size:.78rem;color:var(--brand)">Consultar ajudas →</a>
+    {% endif %}
+  </div>
+</section>

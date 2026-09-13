@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block titulo %}Organizar ajudas · {{ sabado.data|date:'d/m' }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/ajudas.css' %}?v={{ ESTATICO_V }}">{% endblock %}
+{% block content %}
+<div class="pcf-container aj-page" id="aj-quadro"
+     data-salvar="{% url 'ajudas:salvar' sabado.pk %}" data-publicar="{% url 'ajudas:publicar' sabado.pk %}" data-reabrir="{% url 'ajudas:reabrir' sabado.pk %}">
+  {% csrf_token %}
+  <header class="pcf-page-head">
+    <div><a class="aj-back" href="{% url 'ajudas:painel' %}">← Gestão de ajudas</a><h1 class="pcf-page-title">Ajudas do sábado</h1><p class="pcf-page-sub"><strong>{{ sabado.data|date:'d/m/Y' }}</strong> · {{ sabado.tema }}</p></div>
+    <div class="aj-actions"><span class="pcf-badge outline brand" id="aj-status">Rascunho</span><a id="aj-ver-publicada" class="pcf-btn pcf-btn-outline pcf-btn-sm" href="{% url 'ajudas:detalhe' sabado.pk %}" hidden>Ver publicação</a></div>
+  </header>
+  <noscript><p class="aj-alert">Ative o JavaScript para organizar as ajudas. A consulta de escalas publicadas funciona sem JavaScript.</p></noscript>
+  <fieldset class="aj-fieldset" id="aj-controles">
+    <div class="pcf-card aj-toolbar">
+      <div class="aj-actions"><span class="aj-section-label">Período do sábado</span><label class="aj-time-label">Início<input id="aj-inicio" class="pcf-input" type="time" required></label><span aria-hidden="true">—</span><label class="aj-time-label">Término<input id="aj-fim" class="pcf-input" type="time" required></label></div>
+      <div class="aj-actions"><span id="aj-salvo" class="aj-muted" aria-live="polite"></span><button type="button" id="aj-salvar" class="pcf-btn pcf-btn-outline pcf-btn-sm">Salvar rascunho</button><button type="button" id="aj-publicar" class="pcf-btn pcf-btn-primary pcf-btn-sm">Publicar escala</button><button type="button" id="aj-reabrir" class="pcf-btn pcf-btn-primary pcf-btn-sm" hidden>Reabrir para editar</button></div>
+    </div>
+    <div id="aj-feedback" class="aj-alert" role="status" tabindex="-1" hidden></div>
+    <div id="aj-conflitos" class="aj-alert aj-alert-error" role="alert" hidden></div>
+    <div class="aj-summary" id="aj-resumo" aria-live="polite"></div>
+    <div class="aj-layout">
+      <section aria-labelledby="aj-areas-titulo">
+        <div class="aj-section-head"><div><h2 id="aj-areas-titulo">Áreas & horários</h2><p class="aj-muted">Arraste uma pessoa para uma área ou use “Alocar”.</p></div><button type="button" class="pcf-btn pcf-btn-outline pcf-btn-sm" id="aj-adicionar">+ Necessidade</button></div>
+        <div id="aj-areas" class="aj-board"></div>
+      </section>
+      <aside class="pcf-card aj-roster" aria-labelledby="aj-equipe-titulo">
+        <div class="aj-section-head"><h2 id="aj-equipe-titulo">Equipe confirmada</h2><span id="aj-total-equipe" class="pcf-badge outline"></span></div>
+        <label class="pcf-label" for="aj-busca">Buscar pessoa ou área</label><input class="pcf-input" id="aj-busca" type="search" placeholder="Nome ou área…">
+        <label class="pcf-label" for="aj-destino-filtro">Disponibilidade para</label><select class="pcf-input" id="aj-destino-filtro"><option value="">Todos os horários</option></select>
+        <p class="aj-muted aj-hint">A equipe própria já conta em sua área. Ajudas externas aparecem junto ao nome.</p>
+        <div id="aj-equipe" class="aj-people"></div>
+      </aside>
+    </div>
+  </fieldset>
+
+  <dialog id="aj-dialog-ajuda" class="aj-dialog" aria-labelledby="aj-ajuda-titulo">
+    <form id="aj-form-ajuda">
+      <h2 id="aj-ajuda-titulo">Alocar ajuda</h2><p class="aj-muted">Escolha a área e o período desta ajuda.</p>
+      <label class="pcf-label" for="aj-pessoa">Voluntário</label><select id="aj-pessoa" class="pcf-input" required></select>
+      <label class="pcf-label" for="aj-necessidade">Área e necessidade</label><select id="aj-necessidade" class="pcf-input" required></select>
+      <div class="aj-two-fields"><label class="pcf-label">Início<input id="aj-ajuda-inicio" class="pcf-input" type="time" required></label><label class="pcf-label">Término<input id="aj-ajuda-fim" class="pcf-input" type="time" required></label></div>
+      <p id="aj-ajuda-erro" class="aj-form-error" role="alert"></p>
+      <div class="aj-actions aj-dialog-actions"><button type="button" class="pcf-btn pcf-btn-ghost" data-fechar>Cancelar</button><button class="pcf-btn pcf-btn-primary" type="submit">Confirmar ajuda</button></div>
+    </form>
+  </dialog>
+  <dialog id="aj-dialog-necessidade" class="aj-dialog" aria-labelledby="aj-necessidade-titulo">
+    <form id="aj-form-necessidade">
+      <h2 id="aj-necessidade-titulo">Nova necessidade</h2><p class="aj-muted">Qualquer área do projeto pode receber ajuda.</p>
+      <label class="pcf-label" for="aj-n-area">Área</label><select id="aj-n-area" class="pcf-input" required></select>
+      <div class="aj-two-fields"><label class="pcf-label">Início<input id="aj-n-inicio" class="pcf-input" type="time" required></label><label class="pcf-label">Término<input id="aj-n-fim" class="pcf-input" type="time" required></label></div>
+      <label class="pcf-label" for="aj-n-quantidade">Total de pessoas necessárias</label><input id="aj-n-quantidade" class="pcf-input" type="number" min="0" max="100000" required>
+      <p id="aj-necessidade-erro" class="aj-form-error" role="alert"></p>
+      <div class="aj-actions aj-dialog-actions"><button type="button" class="pcf-btn pcf-btn-ghost" data-fechar>Cancelar</button><button class="pcf-btn pcf-btn-primary" type="submit">Confirmar necessidade</button></div>
+    </form>
+  </dialog>
+  <dialog id="aj-dialog-publicar" class="aj-dialog" aria-labelledby="aj-publicar-titulo">
+    <h2 id="aj-publicar-titulo">Publicar escala?</h2><p>As ajudas ficarão disponíveis para os voluntários e aparecerão no início de quem foi alocado.</p><p id="aj-revisao-publicacao" class="aj-muted"></p>
+    <div class="aj-actions aj-dialog-actions"><button type="button" class="pcf-btn pcf-btn-ghost" data-fechar>Revisar mais</button><button type="button" id="aj-confirmar-publicacao" class="pcf-btn pcf-btn-primary">Publicar escala</button></div>
+  </dialog>
+  <dialog id="aj-dialog-reabrir" class="aj-dialog" aria-labelledby="aj-reabrir-titulo">
+    <h2 id="aj-reabrir-titulo">Reabrir como rascunho?</h2><p>A escala sairá da consulta dos voluntários e do card do início até ser publicada novamente. As alocações serão preservadas para edição.</p>
+    <div class="aj-actions aj-dialog-actions"><button type="button" class="pcf-btn pcf-btn-ghost" data-fechar>Cancelar</button><button type="button" id="aj-confirmar-reabertura" class="pcf-btn pcf-btn-primary">Reabrir escala</button></div>
+  </dialog>
+</div>
+{{ quadro|json_script:'aj-dados' }}
+<script src="{% static 'js/ajudas.js' %}?v={{ ESTATICO_V }}" defer></script>
+{% endblock %}

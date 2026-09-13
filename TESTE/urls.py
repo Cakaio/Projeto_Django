@@ -42,6 +42,7 @@ urlpatterns = [
     path('voluntario/', include('voluntario.urls', namespace='voluntario')),
     path('semanario/', include('semanario.urls', namespace='semanario')),
     path('sabado/', include('sabado.urls', namespace='sabado')),
+    path('ajudas/', include('ajudas.urls', namespace='ajudas')),
     path('supply/', include('supply.urls', namespace='supply')),
     path('adm/', include('adm.urls', namespace='adm')),
     path('forms/', include('forms_pcf.urls', namespace='forms_pcf')),
