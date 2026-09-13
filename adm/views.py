@@ -162,7 +162,7 @@ def completar_lancamento(request, pk):
     """
     lan = get_object_or_404(Lancamento, pk=pk)
     if lan.origem not in ORIGENS_AUTOMATICAS:
-        messages.info(request, 'Este lançamento é manual: edite normalmente.')
+        messages.info(request, 'Este lançamento não vem de outro registro: edite normalmente.')
         return redirect('adm:editar_lancamento', pk=lan.pk)
 
     form = CompletarLancamentoForm(request.POST or None, instance=lan)

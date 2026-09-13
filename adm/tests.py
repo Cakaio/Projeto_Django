@@ -23,7 +23,8 @@ from adm.servicos import (
 from adm.views import (
     AdmAcessoMixin, AdmEscritaMixin, _periodo_prestacao_contas, _semestre_escolhido,
     completar_lancamento,
-    contas as view_contas, onde_investimos, recargas as view_recargas,
+    contas as view_contas, lista_lancamentos, onde_investimos,
+    recargas as view_recargas,
     reembolso_pagar, teto_deletar, teto_form, tetos as view_tetos,
 )
 from forms_pcf.forms import PagamentoReembolsoForm
@@ -149,14 +150,31 @@ class LancamentoViewTest(TestCase):
         self.assertEqual(resp.url, '/adm/lancamentos/')
         self.assertTrue(Lancamento.objects.filter(descricao='Doação teste').exists())
 
-    def test_nao_edita_lancamento_supply(self):
+    def test_nao_edita_lancamento_de_reembolso(self):
+        """A fonte da verdade é o pedido de reembolso; editar aqui deixaria os
+        dois lados divergentes."""
         lan = Lancamento.objects.create(
-            categoria=self.cat, valor='100', data=timezone.now().date(), origem='SUPPLY'
+            categoria=self.cat, valor='100', data=timezone.localdate(), origem='REEMBOLSO'
         )
         self.client.login(username='adm2', password='pass')
         resp = self.client.get(f'/adm/lancamentos/{lan.pk}/editar/', follow=False)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(resp.url, '/adm/lancamentos/')
+
+    def test_edita_lancamento_antigo_de_supply(self):
+        """Não há mais dois lados: o espelho do Supply foi desligado e estes
+        lançamentos passaram a ser registro do ADM.
+
+        RequestFactory, não o Client: a tela de edição renderiza template, e o
+        test client quebra ao copiar o contexto neste ambiente.
+        """
+        from adm.views import editar_lancamento
+        lan = Lancamento.objects.create(
+            categoria=self.cat, valor='100', data=timezone.localdate(), origem='SUPPLY'
+        )
+        requisicao = RequestFactory().get(f'/adm/lancamentos/{lan.pk}/editar/')
+        requisicao.user = User.objects.get(username='adm2')
+        self.assertEqual(editar_lancamento(requisicao, pk=lan.pk).status_code, 200)
 
 
 class FluxoCaixaTest(TestCase):
@@ -185,50 +203,88 @@ class FluxoCaixaTest(TestCase):
         self.assertIn('text/csv', resp['Content-Type'])
 
 
-class SupplySignalTest(TestCase):
+class SupplyNaoLancaNoFinanceiroTest(TestCase):
+    """O Supply não fala mais com o Financeiro — decisão da coordenação.
+
+    O jeito como o Supply registra pedido nem sempre é o que foi gasto de
+    verdade: quantidade estimada, valor de orçamento, item trocado na hora da
+    compra. Espelhar isso automaticamente fazia o teto da área mentir com
+    número de orçamento. Quem lança agora é o ADM, na mão, depois do sábado,
+    olhando a nota.
+    """
+
     def setUp(self):
-        # Criar a categoria padrão que o signal usa
-        self.cat_supply = Categoria.objects.create(
-            nome='Materiais Supply', tipo='DESPESA', ativo=True
-        )
-        # Criar Sabado e Pedido via ORM direto
         from sabado.models import Sabado
-        from supply.models import Pedido
+        from supply.models import Item, Pedido
 
-        self.user = User.objects.create_user(
-            username='sup_user', password='pass', area='SUPPLY',
-            first_name='Sup', last_name='User'
-        )
-        self.sabado = Sabado.objects.create(
-            data=timezone.now().date(), tema='Teste', descricao='Teste'
-        )
         self.Pedido = Pedido
-
-    def test_pedido_com_valor_cria_lancamento(self):
-        pedido = self.Pedido.objects.create(
-            nome='Tinta azul', quantidade=2, valor='45.00',
-            sabado=self.sabado, area='SUPPLY'
+        self.item = Item.objects.create(nome='Tinta azul')
+        self.sabado = Sabado.objects.create(
+            data=timezone.localdate(), tema='Teste', descricao='Teste'
         )
-        self.assertTrue(Lancamento.objects.filter(pedido=pedido).exists())
-        lan = Lancamento.objects.get(pedido=pedido)
-        self.assertEqual(lan.valor, Decimal('45.00'))
-        self.assertEqual(lan.origem, 'SUPPLY')
 
-    def test_pedido_sem_valor_nao_cria_lancamento(self):
-        pedido = self.Pedido.objects.create(
-            nome='Tinta sem valor', quantidade=1,
-            sabado=self.sabado, area='SUPPLY'
-        )
-        self.assertFalse(Lancamento.objects.filter(pedido=pedido).exists())
+    def _pedido(self, **extras):
+        dados = {'item': self.item, 'quantidade': 2, 'valor': '45.00',
+                 'sabado': self.sabado, 'area': 'SUPPLY'}
+        dados.update(extras)
+        return self.Pedido.objects.create(**dados)
 
-    def test_deletar_pedido_remove_lancamento(self):
-        pedido = self.Pedido.objects.create(
-            nome='Item para deletar', quantidade=1, valor='10.00',
-            sabado=self.sabado, area='SUPPLY'
+    def test_pedido_com_valor_nao_cria_lancamento(self):
+        self._pedido()
+        self.assertEqual(Lancamento.objects.count(), 0)
+
+    def test_alterar_o_valor_do_pedido_nao_mexe_no_financeiro(self):
+        pedido = self._pedido()
+        pedido.valor = Decimal('999.00')
+        pedido.save()
+        self.assertEqual(Lancamento.objects.count(), 0)
+
+    def test_deletar_pedido_nao_apaga_lancamento_do_financeiro(self):
+        """Os lançamentos antigos, criados quando o espelho existia, ficaram no
+        banco e agora são registro do ADM. Apagar o pedido no Supply não pode
+        reescrever o Financeiro pelas costas."""
+        categoria = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        pedido = self._pedido()
+        lancamento = Lancamento.objects.create(
+            categoria=categoria, valor='90.00', data=timezone.localdate(),
+            area='SUPPLY', origem='SUPPLY', pedido=pedido,
         )
-        pk = pedido.pk
         pedido.delete()
-        self.assertFalse(Lancamento.objects.filter(pedido_id=pk).exists())
+        lancamento.refresh_from_db()
+        self.assertIsNone(lancamento.pedido_id)
+        self.assertEqual(lancamento.valor, Decimal('90.00'))
+
+    def test_adm_pode_editar_e_excluir_lancamento_antigo_de_supply(self):
+        """Enquanto o Supply gerava sozinho, a tela travava esses lançamentos
+        para os dois lados não divergirem. Não há mais dois lados."""
+        from adm.models import ORIGENS_AUTOMATICAS
+        self.assertNotIn('SUPPLY', ORIGENS_AUTOMATICAS)
+        self.assertIn('REEMBOLSO', ORIGENS_AUTOMATICAS)
+        self.assertIn('DOACAO', ORIGENS_AUTOMATICAS)
+
+    def test_a_lista_oferece_editar_para_lancamento_antigo_de_supply(self):
+        """A lista decidia por `origem == 'MANUAL'`. Sem trocar esse teste os
+        lançamentos de Supply ficariam sem botão de editar para sempre, mesmo
+        depois de saírem de ORIGENS_AUTOMATICAS."""
+        categoria = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
+        antigo = Lancamento.objects.create(
+            categoria=categoria, valor='90.00', data=timezone.localdate(),
+            area='SUPPLY', origem='SUPPLY',
+        )
+        reembolso = Lancamento.objects.create(
+            categoria=categoria, valor='50.00', data=timezone.localdate(),
+            area='SUPPLY', origem='REEMBOLSO',
+        )
+        self.assertFalse(antigo.e_automatico)
+        self.assertTrue(reembolso.e_automatico)
+
+        fabrica = RequestFactory()
+        requisicao = fabrica.get('/adm/lancamentos/')
+        requisicao.user = User.objects.create_user(
+            username='fin_lista', password='pw', area='ADM/FIN')
+        html = lista_lancamentos(requisicao).content.decode()
+        self.assertIn(f'/adm/lancamentos/{antigo.pk}/editar/', html)
+        self.assertNotIn(f'/adm/lancamentos/{reembolso.pk}/editar/', html)
 
 
 class DRETest(TestCase):
@@ -1287,77 +1343,22 @@ class DoacaoLevaContaTest(TestCase):
         self.assertEqual(contribuicao.lancamento.tipo, 'RECEITA')
 
 
-class SupplyEntraNoFinanceiroTest(TestCase):
-    """O pedido do Supply é a maior fonte de gasto do projeto. Três defeitos
-    aqui deixavam dinheiro invisível — todos travados abaixo."""
+class GastoDeSupplyLancadoNaMaoTest(TestCase):
+    """O caminho que substituiu o espelho: o ADM lanca, e o teto responde.
 
-    def setUp(self):
-        from supply.models import Item
-        self.item = Item.objects.create(nome='Papel A4', unidade='UN')
-        self.pedinte = User.objects.create_user(
-            username='pede', password='x', area='SUPPLY')
+    O que o desligamento matou foi o GATILHO, nao o destino — gasto de Supply
+    continua tendo que aparecer no teto da area. So que agora com o valor que
+    a ADM conferiu depois do sabado, e nao com o orcamento do pedido.
+    """
 
-    def _pedido(self, **campos):
-        from supply.models import Pedido
-        campos.setdefault('nome', 'Papel A4')
-        campos.setdefault('quantidade', Decimal('10'))
-        campos.setdefault('valor', Decimal('5.00'))
-        campos.setdefault('area', 'SUPPLY')
-        return Pedido.objects.create(item=self.item, requisitado_por=self.pedinte, **campos)
-
-    def test_entra_mesmo_sem_a_categoria_existir(self):
-        """Antes o sinal desistia em silêncio: o pedido era salvo, o dinheiro
-        saía e nada aparecia no Financeiro — sem erro para ninguém notar."""
-        Categoria.objects.filter(nome='Materiais Supply').delete()
-
-        pedido = self._pedido()
-
-        lancamento = Lancamento.objects.filter(pedido=pedido).first()
-        self.assertIsNotNone(lancamento, 'gasto do Supply não pode sumir por falta de categoria')
-        self.assertEqual(lancamento.origem, 'SUPPLY')
-        self.assertEqual(lancamento.tipo, 'DESPESA')
-
-    def test_lanca_o_valor_TOTAL_e_nao_o_unitario(self):
-        """`valor` é o unitário. Lançar ele em vez de `valor_total` fazia um
-        pedido de 10 unidades a R$ 5 entrar como R$ 5 — dez vezes menos."""
-        pedido = self._pedido(quantidade=Decimal('10'), valor=Decimal('5.00'))
-
-        lancamento = Lancamento.objects.get(pedido=pedido)
-        self.assertEqual(lancamento.valor, Decimal('50.00'))
-        self.assertEqual(lancamento.valor, pedido.valor_total)
-
-    def test_leva_a_area_do_pedido(self):
-        """Sem a área, o gasto do Supply não contava no teto do Supply."""
-        pedido = self._pedido(area='RECREACAO')
-        self.assertEqual(Lancamento.objects.get(pedido=pedido).area, 'RECREACAO')
-
-    def test_pedido_sem_area_nao_inventa_uma(self):
-        pedido = self._pedido(area=None)
-        self.assertEqual(Lancamento.objects.get(pedido=pedido).area, '')
-
-    def test_editar_o_pedido_corrige_o_lancamento(self):
-        pedido = self._pedido(quantidade=Decimal('10'))
-        pedido.quantidade = Decimal('20')
-        pedido.area = 'AZUL'
-        pedido.save()
-
-        lancamento = Lancamento.objects.get(pedido=pedido)
-        self.assertEqual(lancamento.valor, Decimal('100.00'))
-        self.assertEqual(lancamento.area, 'AZUL')
-
-    def test_tirar_o_valor_remove_o_lancamento(self):
-        pedido = self._pedido()
-        pedido.valor = None
-        pedido.save()
-        self.assertFalse(Lancamento.objects.filter(pedido=pedido).exists())
-
-    def test_gasto_do_supply_conta_no_teto_da_area(self):
-        """O encontro das duas pontas: pedido do Supply vira gasto no teto."""
+    def test_lancamento_manual_com_area_conta_no_teto(self):
         from adm.models import TetoArea
+        categoria = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
         TetoArea.objects.create(area='SUPPLY', valor='500.00')
-        pedido = self._pedido(quantidade=Decimal('10'), valor=Decimal('5.00'),
-                              sabado=None)
-        Lancamento.objects.filter(pedido=pedido).update(data=timezone.localdate())
+        Lancamento.objects.create(
+            categoria=categoria, valor='50.00', data=timezone.localdate(),
+            area='SUPPLY', descricao='Papel A4 do sabado',
+        )
 
         linha = next(l for l in situacao_dos_tetos(timezone.localdate())
                      if l['area'] == 'SUPPLY')
@@ -1365,23 +1366,14 @@ class SupplyEntraNoFinanceiroTest(TestCase):
         self.assertEqual(linha['gasto'], Decimal('50.00'))
         self.assertEqual(linha['disponivel'], Decimal('450.00'))
 
-    def test_categoria_desativada_nao_esconde_o_gasto(self):
-        """Alguém desativar a categoria pela tela não pode fazer o gasto
-        desaparecer do Financeiro."""
-        Categoria.objects.update_or_create(
-            nome='Materiais Supply', defaults={'tipo': 'RECEITA', 'ativo': False})
-
-        pedido = self._pedido()
-
-        lancamento = Lancamento.objects.get(pedido=pedido)
-        self.assertEqual(lancamento.tipo, 'DESPESA')
-        self.assertTrue(lancamento.categoria.ativo)
-
 
 class CompletarLancamentoAutomaticoTest(TestCase):
     """Lançamento automático não se edita — mas alguém precisa poder dizer de
-    qual cartão saiu o dinheiro, senão o gasto do Supply fica para sempre sem
-    banco e o pedido do ADM ("toda entrada e saída com o banco") não fecha."""
+    qual cartão saiu o dinheiro, senão o reembolso fica para sempre sem banco e
+    o pedido do ADM ("toda entrada e saída com o banco") não fecha.
+
+    O exemplo aqui é REEMBOLSO. Já foi Supply, que deixou de ser automático
+    quando o espelho do Supply foi desligado."""
 
     def setUp(self):
         self.financeiro = User.objects.create_user(
@@ -1392,7 +1384,7 @@ class CompletarLancamentoAutomaticoTest(TestCase):
         categoria = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
         self.automatico = Lancamento.objects.create(
             categoria=categoria, valor=Decimal('40.00'),
-            data=timezone.localdate(), origem='SUPPLY')
+            data=timezone.localdate(), origem='REEMBOLSO')
         self.manual = Lancamento.objects.create(
             categoria=categoria, valor=Decimal('10.00'),
             data=timezone.localdate(), origem='MANUAL')

@@ -147,7 +147,7 @@
               </td>
               <td><span class="pcf-badge">{{ lan.get_origem_display }}</span></td>
               <td class="lan-td-right">
-                {% if lan.origem == 'MANUAL' %}
+                {% if not lan.e_automatico %}
                 <span class="lan-actions">
                   <a href="{% url 'adm:editar_lancamento' lan.pk %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Editar</a>
                   <form method="post" action="{% url 'adm:deletar_lancamento' lan.pk %}" class="lan-del-form" onsubmit="return confirm('Remover permanentemente este lançamento?');">
@@ -158,9 +158,9 @@
                 {% else %}
                 {% comment %}
                   Automático não se edita — valor, data e categoria vêm da
-                  origem. Mas quem sabe de qual cartão saiu o dinheiro é o ADM,
-                  não o voluntário que pediu o material: sem este atalho o gasto
-                  do Supply ficava para sempre sem banco.
+                  origem (reembolso, doação de parceiro). Mas quem sabe de qual
+                  cartão saiu o dinheiro é o ADM, não o voluntário que pediu:
+                  sem este atalho o gasto ficava para sempre sem banco.
                 {% endcomment %}
                 <span class="lan-actions">
                   <a href="{% url 'adm:completar_lancamento' lan.pk %}"

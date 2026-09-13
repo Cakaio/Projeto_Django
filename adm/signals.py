@@ -1,66 +1,26 @@
-from django.db.models.signals import post_save, post_delete
-from django.dispatch import receiver
-from django.utils import timezone
+"""Sinais do Financeiro.
 
+VAZIO DE PROPÓSITO — e a explicação importa mais que o código que havia aqui.
 
-@receiver(post_save, sender='supply.Pedido')
-def sync_lancamento_do_pedido(sender, instance, created, **kwargs):
-    """Espelha o pedido do Supply como despesa no Financeiro.
+Até setembro/2026 este módulo espelhava cada `supply.Pedido` como despesa no
+Financeiro: criava o Lançamento no `post_save` e o apagava no `post_delete`.
+A coordenação pediu para desligar. O motivo não é técnico:
 
-    Três coisas aqui já custaram dinheiro invisível e valem explicação:
+    o jeito como o Supply registra pedido nem sempre é o que foi gasto de
+    verdade — quantidade estimada, valor de orçamento, item trocado na hora da
+    compra, lanche que custou outro preço no mercado.
 
-    1. O valor lançado é o TOTAL (`valor_total` = unitário x quantidade). Antes
-       era `valor`, o unitário: um pedido de 10 unidades a R$ 5 entrava como
-       R$ 5 em vez de R$ 50, e o Financeiro subnotificava dez vezes.
-    2. A `area` do pedido é copiada. Sem ela o gasto do Supply não contava no
-       teto do Supply — e acompanhar teto por área era metade do pedido do ADM.
-    3. A categoria é criada se não existir. Antes o sinal desistia em silêncio
-       quando ela faltava: o pedido era salvo, o dinheiro saía e nada aparecia
-       no Financeiro, sem erro nenhum para ninguém notar.
-    """
-    from .models import Categoria, Lancamento
+Espelhar isso automaticamente fazia o teto da área encolher com número de
+orçamento, e ninguém tinha como saber quais linhas eram reais. Agora quem
+lança gasto de Supply é o ADM, na mão, depois do sábado, olhando a nota. O
+`valor` e a `area` continuam no Pedido, para o Supply se planejar — só não
+atravessam mais para o Financeiro.
 
-    if not instance.valor:
-        # Valor removido: o lançamento não tem mais o que representar.
-        Lancamento.objects.filter(pedido=instance).delete()
-        return
+O que continua automático: reembolso (`forms_pcf/views.py`) e contribuição de
+parceiro (`parceiros/signals.py`). Nos dois, o valor que entra no Financeiro é
+o valor que de fato saiu ou entrou, conferido por quem aprovou.
 
-    categoria, _ = Categoria.objects.get_or_create(
-        nome='Materiais Supply',
-        defaults={'tipo': 'DESPESA', 'ativo': True},
-    )
-    if categoria.tipo != 'DESPESA' or not categoria.ativo:
-        # Alguém desativou ou trocou o tipo da categoria pela tela. Corrigir na
-        # mão é melhor que deixar o gasto fora do Financeiro em silêncio.
-        categoria.tipo = 'DESPESA'
-        categoria.ativo = True
-        categoria.save(update_fields=['tipo', 'ativo'])
-
-    valores = {
-        'valor': instance.valor_total,
-        'categoria': categoria,
-        'area': instance.area or '',
-    }
-
-    existente = Lancamento.objects.filter(pedido=instance).first()
-    if existente:
-        # `update()` de propósito: não dispara save() nem sinal, e aqui só
-        # mudam campos calculados a partir do pedido.
-        Lancamento.objects.filter(pk=existente.pk).update(**valores)
-        return
-
-    Lancamento.objects.create(
-        data=instance.sabado.data if instance.sabado else timezone.now().date(),
-        descricao=f'Pedido: {instance.nome}',
-        origem='SUPPLY',
-        pedido=instance,
-        **valores,
-    )
-
-
-@receiver(post_delete, sender='supply.Pedido')
-def deletar_lancamento_do_pedido(sender, instance, **kwargs):
-    """Remove Lancamento vinculado quando Pedido é deletado."""
-    from .models import Lancamento
-
-    Lancamento.objects.filter(pedido=instance).delete()
+Se um dia o Supply passar a registrar o custo REAL (nota em mãos, não
+orçamento), reativar o espelho volta a fazer sentido — mas aí o gatilho é a
+conferência do sábado, não o salvamento do pedido.
+"""

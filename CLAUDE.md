@@ -274,6 +274,38 @@ de atendimento se explica sozinha quando nao ha edicao aberta.
 
 FALTA: o modo de contingencia (ficha fisica impressa e lancamento posterior).
 
+## O que entra no Financeiro sozinho (e o que não entra)
+
+Três coisas podiam virar `Lancamento` sem ninguém digitar. Hoje são duas:
+
+| Origem | Automático? | Quando nasce | Área |
+|--------|-------------|--------------|------|
+| Reembolso | **sim** | na **aprovação** | a de quem pediu, salvo escolha em contrário |
+| Contribuição de parceiro | **sim** | ao registrar | nenhuma (é receita) |
+| Pedido do Supply | **NÃO** — desligado em 09/2026 | — | — |
+
+**O Supply não lança mais no Financeiro.** O espelho (`post_save` em
+`adm/signals.py`) morreu a pedido da coordenação, e o motivo não é técnico: o
+jeito como o Supply registra pedido nem sempre é o que foi gasto de verdade —
+quantidade estimada, valor de orçamento, item trocado na hora da compra. O teto
+da área encolhia com número de orçamento e ninguém sabia quais linhas eram
+reais. Agora o ADM lança na mão, depois do sábado, olhando a nota. `valor` e
+`area` continuam no `Pedido` para o Supply se planejar; só não atravessam.
+
+Consequências que vieram junto e não são opcionais:
+- **`SUPPLY` saiu de `ORIGENS_AUTOMATICAS`.** Essa tupla trava editar e excluir
+  pela tela. Mantê-lo lá deixaria os lançamentos do tempo do espelho
+  congelados — a ADM não conseguiria corrigir nem apagar o que ficou errado.
+- **`Lancamento.pedido` é `SET_NULL`, não `CASCADE`.** Apagar um pedido antigo
+  no Supply apagaria dinheiro do Financeiro, e o teto da área mudaria sozinho.
+- **A lista usa `lan.e_automatico`, não `origem == 'MANUAL'`.** Os lançamentos
+  antigos continuam com `origem='SUPPLY'` no banco; comparar com 'MANUAL' os
+  deixaria sem botão de editar para sempre.
+
+Se um dia o Supply registrar o custo REAL (nota em mãos, não orçamento),
+religar o espelho volta a fazer sentido — mas o gatilho aí é a conferência do
+sábado, não o salvamento do pedido.
+
 ## Tetos de área (Financeiro)
 
 Quem mexe no teto é **ADM/FIN** (e superusuário), em QUALQUER área — não só na

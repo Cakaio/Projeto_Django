@@ -19,9 +19,14 @@ ORIGEM_CHOICES = (
 )
 
 # Lançamentos gerados por outra área do sistema: a fonte da verdade é o
-# registro de origem (pedido do Supply, reembolso, contribuição de parceiro).
-# Editar/remover pela tela do Financeiro deixaria os dois lados divergentes.
-ORIGENS_AUTOMATICAS = ('SUPPLY', 'REEMBOLSO', 'DOACAO')
+# registro de origem (reembolso, contribuição de parceiro). Editar/remover pela
+# tela do Financeiro deixaria os dois lados divergentes.
+#
+# 'SUPPLY' saiu daqui quando o espelho automático do Supply foi desligado (ver
+# `adm/signals.py`). Nada mais gera esses lançamentos, então não há segundo
+# lado para divergir — e mantê-los travados deixaria o ADM sem conseguir
+# corrigir nem apagar o que ficou do tempo do espelho.
+ORIGENS_AUTOMATICAS = ('REEMBOLSO', 'DOACAO')
 
 
 class Categoria(models.Model):
@@ -47,8 +52,12 @@ class Lancamento(models.Model):
     data = models.DateField()
     descricao = models.TextField(blank=True)
     origem = models.CharField(max_length=10, choices=ORIGEM_CHOICES, default='MANUAL')
+    # SET_NULL, não CASCADE: estes lançamentos vieram do espelho automático do
+    # Supply, que não existe mais, e hoje são registro do ADM. Apagar um pedido
+    # antigo lá não pode apagar dinheiro daqui — o Financeiro mudaria sozinho,
+    # e o teto da área junto, sem ninguém saber por quê.
     pedido = models.OneToOneField(
-        'supply.Pedido', on_delete=models.CASCADE,
+        'supply.Pedido', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='lancamento'
     )
     # Os três campos abaixo são opcionais porque o histórico já gravado não tem
@@ -76,6 +85,17 @@ class Lancamento(models.Model):
         ordering = ['-data', '-criado_em']
         verbose_name = 'Lançamento'
         verbose_name_plural = 'Lançamentos'
+
+    @property
+    def e_automatico(self):
+        """True quando outro registro do sistema é a fonte da verdade.
+
+        A tela consulta isto em vez de comparar com 'MANUAL': os lançamentos
+        de Supply ficaram com `origem='SUPPLY'` mesmo depois de o espelho ser
+        desligado, e compará-los com 'MANUAL' os deixaria sem botão de editar
+        para sempre.
+        """
+        return self.origem in ORIGENS_AUTOMATICAS
 
     def save(self, *args, **kwargs):
         self.tipo = self.categoria.tipo
