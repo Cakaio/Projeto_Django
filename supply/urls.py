@@ -13,6 +13,7 @@ urlpatterns = [
     path("painel_materiais/", painel_materiais, name="painel_materiais"),
     path("painel_materiais/salvar-lote/", views.salvar_materiais_lote, name="salvar_materiais_lote"),
     path("painel_materiais/gerenciar-item/", views.gerenciar_item_painel, name="gerenciar_item_painel"),
+    path("painel_materiais/fechamento/", views.marcar_fechamento, name="marcar_fechamento"),
     path("painel_materiais/visualizacao/", views.painel_materiais_visualizacao, name="painel_materiais_visualizacao"),
     path("pedidos/adicionar/", adicionar_pedidos, name="adicionar_pedidos"),
     path("meus_pedidos/", meus_pedidos, name="meus_pedidos"),

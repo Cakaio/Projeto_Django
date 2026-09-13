@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import (
     Count,
@@ -28,7 +28,13 @@ from semanario.models import LISTA_SALAS, PEDIDO, Material
 from voluntario.models import Voluntario, LISTA_AREAS
 
 from .forms import ItemForm, LocalForm, MeuMaterialForm, MeuPedidoForm, PedidoFormSet
-from .models import Item, Local, Movimentacao, Pedido
+from .models import FechamentoSabado, Item, Local, Movimentacao, Pedido
+
+
+# Quem edita o painel de materiais — e, por consequencia, quem confirma que os
+# gastos do sabado ja foram atualizados. E a mesma lista de proposito: quem
+# atualiza o numero e quem garante que atualizou.
+AREAS_DO_PAINEL = ("SUPPLY", "TRIADE")
 
 
 VALOR_TOTAL_EXPRESSION = ExpressionWrapper(
@@ -100,7 +106,7 @@ class CadastroLocalView(LoginRequiredMixin, CreateView):
 
 
 def painel_materiais(request):
-    if request.user.area not in ["SUPPLY","TRIADE",]:
+    if request.user.area not in AREAS_DO_PAINEL:
         messages.error(request, "Você não tem permissão para acessar esta página.")
         return redirect("/supply/")
     
@@ -114,6 +120,16 @@ def painel_materiais(request):
         sabado = get_object_or_404(Sabado, pk=sabado_id)
     else:
         sabado = Sabado.objects.order_by("-data").first()
+
+    # `filter().first()`, nao `do_sabado()`: abrir a tela e GET, e GET nao grava.
+    # Sem isto, so navegar pelos 40 sabados do seletor criaria 40 registros.
+    # Ausente significa "as duas etapas em aberto", que e o que o template mostra.
+    fechamento = (
+        FechamentoSabado.objects.select_related(
+            "materiais_conferidos_por", "pedidos_conferidos_por"
+        ).filter(sabado=sabado).first()
+        if sabado else None
+    )
 
     if sabado is None:
         return render(request, "painel_materiais.html", {
@@ -169,6 +185,7 @@ def painel_materiais(request):
         return render(request, "painel_materiais.html", {
             "sabados": sabados,
             "sabado": sabado,
+            "fechamento": fechamento,
             "local_id": local_id,
             "tipo_painel": tipo_painel,
             "locais": Local.objects.filter(ativo=True),
@@ -221,6 +238,7 @@ def painel_materiais(request):
     return render(request, "painel_materiais.html", {
         "sabados": sabados,
         "sabado": sabado,
+        "fechamento": fechamento,
         "local_id": local_id,
         "tipo_painel": tipo_painel,
         "locais": Local.objects.filter(ativo=True),
@@ -236,7 +254,7 @@ def painel_materiais(request):
 def gerenciar_item_painel(request):
     if request.method != "POST":
         return redirect("supply:painel_materiais")
-    if request.user.area not in ["SUPPLY", "TRIADE"]:
+    if request.user.area not in AREAS_DO_PAINEL:
         messages.error(request, "Você não tem permissão para realizar esta ação.")
         return redirect("/supply/")
 
@@ -726,3 +744,50 @@ def meus_pedidos(request):
         "material_formset": material_formset,
         "itens": Item.objects.filter(ativo=True).order_by("nome"),
     })
+
+
+@login_required
+def marcar_fechamento(request):
+    """Registra que os gastos reais daquele sábado já foram atualizados.
+
+    Só POST: marcar muda estado, e estado não pode mudar porque alguém abriu
+    uma URL — um link colado no grupo marcaria o sábado como conferido em nome
+    de quem clicasse.
+
+    403, e não redirect com mensagem, para quem é de fora: isto grava o nome de
+    uma pessoa como responsável pelo número, então recusar precisa ser recusa,
+    não um desvio silencioso.
+    """
+    if request.method != "POST":
+        return redirect("supply:painel_materiais")
+
+    if not (request.user.is_superuser or request.user.area in AREAS_DO_PAINEL):
+        raise PermissionDenied
+
+    sabado = get_object_or_404(Sabado, pk=request.POST.get("sabado"))
+    etapa = request.POST.get("etapa", "")
+    destino = (
+        f"{reverse('supply:painel_materiais')}?sabado={sabado.pk}"
+        f"&local={_normalizar_id_filtro(request.POST.get('local'))}"
+        f"&painel={request.POST.get('painel', 'material')}"
+    )
+
+    if etapa not in FechamentoSabado.ETAPAS:
+        messages.error(request, "Etapa desconhecida.")
+        return redirect(destino)
+
+    fechamento = FechamentoSabado.do_sabado(sabado)
+    rotulo = "Materiais" if etapa == FechamentoSabado.MATERIAIS else "Pedidos"
+
+    if request.POST.get("acao") == "desmarcar":
+        fechamento.desmarcar(etapa)
+        messages.success(request, f"{rotulo} de {sabado} voltaram para pendente.")
+    else:
+        fechamento.marcar(etapa, request.user)
+        messages.success(
+            request,
+            f"{rotulo} de {sabado} marcados como atualizados. "
+            "O Financeiro já vê isso no painel."
+        )
+
+    return redirect(destino)

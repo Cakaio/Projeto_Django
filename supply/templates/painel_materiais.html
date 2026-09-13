@@ -35,6 +35,84 @@
       </div>
     {% else %}
 
+      <!-- ══════ Gastos reais do sábado ══════ -->
+      {% comment %}
+        Depois do sábado o Supply corrige os números com o que de fato saiu e foi
+        comprado. Sem esta faixa a ADM não tinha como saber se o que está na tela já
+        é o real ou ainda é o planejado — e perguntava no grupo toda semana.
+        O que a ADM vê no painel do Financeiro sai daqui.
+      {% endcomment %}
+      <div class="pcf-card pm-fechamento">
+        <div class="pm-fech-cab">
+          <div>
+            <p class="pm-fech-t">Gastos reais de {{ sabado }}</p>
+            <p class="pm-fech-s">
+              Marque depois de atualizar os valores com o que realmente foi usado e
+              comprado. O Financeiro lança a partir disto.
+            </p>
+          </div>
+          {% if fechamento.completo %}
+            <span class="pcf-badge ok">Sábado fechado</span>
+          {% else %}
+            <span class="pcf-badge warn">Falta conferir</span>
+          {% endif %}
+        </div>
+
+        <div class="pm-fech-itens">
+          <div class="pm-fech-item {% if fechamento.materiais_conferidos %}pm-fech-ok{% endif %}">
+            <div class="pm-fech-info">
+              <p class="pm-fech-nome">Materiais das salinhas</p>
+              {% if fechamento.materiais_conferidos %}
+                <p class="pm-fech-quem">
+                  Conferido por {{ fechamento.materiais_conferidos_por.get_full_name|default:fechamento.materiais_conferidos_por.username|default:"—" }},
+                  em {{ fechamento.materiais_conferidos_em|date:"d/m/Y" }} às {{ fechamento.materiais_conferidos_em|date:"H:i" }}
+                </p>
+              {% else %}
+                <p class="pm-fech-quem pendente">Ainda não conferido</p>
+              {% endif %}
+            </div>
+            <form method="post" action="{% url 'supply:marcar_fechamento' %}">
+              {% csrf_token %}
+              <input type="hidden" name="sabado" value="{{ sabado.pk }}">
+              <input type="hidden" name="local" value="{{ local_id }}">
+              <input type="hidden" name="painel" value="{{ tipo_painel|default:'material' }}">
+              <input type="hidden" name="etapa" value="materiais">
+              {% if fechamento.materiais_conferidos %}
+                <button type="submit" name="acao" value="desmarcar" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Desfazer</button>
+              {% else %}
+                <button type="submit" name="acao" value="marcar" class="pcf-btn pcf-btn-outline pcf-btn-sm">Marcar como atualizado</button>
+              {% endif %}
+            </form>
+          </div>
+
+          <div class="pm-fech-item {% if fechamento.pedidos_conferidos %}pm-fech-ok{% endif %}">
+            <div class="pm-fech-info">
+              <p class="pm-fech-nome">Pedidos e compras</p>
+              {% if fechamento.pedidos_conferidos %}
+                <p class="pm-fech-quem">
+                  Conferido por {{ fechamento.pedidos_conferidos_por.get_full_name|default:fechamento.pedidos_conferidos_por.username|default:"—" }},
+                  em {{ fechamento.pedidos_conferidos_em|date:"d/m/Y" }} às {{ fechamento.pedidos_conferidos_em|date:"H:i" }}
+                </p>
+              {% else %}
+                <p class="pm-fech-quem pendente">Ainda não conferido</p>
+              {% endif %}
+            </div>
+            <form method="post" action="{% url 'supply:marcar_fechamento' %}">
+              {% csrf_token %}
+              <input type="hidden" name="sabado" value="{{ sabado.pk }}">
+              <input type="hidden" name="local" value="{{ local_id }}">
+              <input type="hidden" name="painel" value="{{ tipo_painel|default:'material' }}">
+              <input type="hidden" name="etapa" value="pedidos">
+              {% if fechamento.pedidos_conferidos %}
+                <button type="submit" name="acao" value="desmarcar" class="pcf-btn pcf-btn-ghost pcf-btn-sm">Desfazer</button>
+              {% else %}
+                <button type="submit" name="acao" value="marcar" class="pcf-btn pcf-btn-outline pcf-btn-sm">Marcar como atualizado</button>
+              {% endif %}
+            </form>
+          </div>
+        </div>
+      </div>
+
       <!-- Filtros -->
       <div class="pcf-card pm-filters">
         <form method="get" class="pm-filter-form">
@@ -441,6 +519,26 @@
   .pm-empty-sub { margin: 0; font-size: .9rem; color: hsl(var(--muted-foreground)); }
 
   /* Filtros */
+  /* ── Fechamento do sábado ── */
+  .pm-fechamento { margin-bottom: 1rem; border-left: 4px solid var(--brand); }
+  .pm-fech-cab { display: flex; align-items: flex-start; justify-content: space-between;
+                 gap: .75rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .pm-fech-t { margin: 0; font-size: .95rem; font-weight: 800; color: var(--ink); }
+  .pm-fech-s { margin: .2rem 0 0; max-width: 60ch; font-size: .82rem; line-height: 1.55;
+               color: hsl(var(--muted-foreground)); }
+  .pm-fech-itens { display: grid; gap: .6rem; }
+  .pm-fech-item { display: flex; align-items: center; justify-content: space-between;
+                  gap: .75rem; flex-wrap: wrap; padding: .7rem .9rem;
+                  border: 1px solid hsl(var(--border)); border-radius: 12px;
+                  background: hsl(var(--muted)); }
+  .pm-fech-item.pm-fech-ok { border-color: #c9ecd6; background: #f3fbf6; }
+  .pm-fech-info { min-width: 0; }
+  .pm-fech-nome { margin: 0; font-size: .87rem; font-weight: 700; color: var(--ink); }
+  .pm-fech-quem { margin: .15rem 0 0; font-size: .78rem; line-height: 1.5;
+                  color: hsl(var(--muted-foreground)); }
+  .pm-fech-quem.pendente { color: #8a6a10; font-weight: 600; }
+  @media (min-width: 820px) { .pm-fech-itens { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
   .pm-filters { margin-bottom: 1rem; }
   .pm-filter-form { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
   .pm-filter-field { flex: 1 1 240px; min-width: 0; }

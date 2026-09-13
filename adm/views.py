@@ -82,6 +82,7 @@ def painel(request):
     ultimos = Lancamento.objects.select_related('categoria').order_by('-data', '-criado_em')[:10]
     PedidoReembolso = apps.get_model('forms_pcf', 'PedidoReembolso')
     reembolsos_pendentes = PedidoReembolso.objects.filter(status='PENDENTE').count()
+    sabado_do_supply, fechamento = _fechamento_do_ultimo_sabado()
 
     return render(request, 'painel_adm.html', {
         'saldo': saldo,
@@ -89,7 +90,39 @@ def painel(request):
         'total_despesas': total_despesas,
         'ultimos': ultimos,
         'reembolsos_pendentes': reembolsos_pendentes,
+        # Se o Supply já atualizou os gastos reais daquele sábado. O ADM lança
+        # o gasto do Supply na mão (ver `adm/signals.py`), então precisa saber
+        # se o número da tela já é o real — era pergunta no grupo toda semana.
+        'sabado_do_supply': sabado_do_supply,
+        'supply_pendente': fechamento.pendentes if fechamento else ['materiais', 'pedidos'],
+        'supply_fechado': bool(fechamento and fechamento.completo),
     })
+
+
+def _fechamento_do_ultimo_sabado():
+    """O último sábado que JÁ PASSOU, e a conferência dele se existir.
+
+    Sábado futuro não entra: ninguém conferiu gasto que ainda não aconteceu, e
+    a linha viraria uma cobrança falsa toda semana.
+
+    Devolve (sabado, fechamento). Fechamento ausente significa nada conferido —
+    a tela não pode depender de alguém ter cadastrado o registro antes.
+    """
+    Sabado = apps.get_model('sabado', 'Sabado')
+    FechamentoSabado = apps.get_model('supply', 'FechamentoSabado')
+
+    sabado = (Sabado.objects
+              .filter(data__lte=timezone.localdate())
+              .order_by('-data')
+              .first())
+    if sabado is None:
+        return None, None
+
+    fechamento = (FechamentoSabado.objects
+                  .select_related('materiais_conferidos_por', 'pedidos_conferidos_por')
+                  .filter(sabado=sabado)
+                  .first())
+    return sabado, fechamento
 
 
 @adm_acesso_required

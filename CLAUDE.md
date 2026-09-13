@@ -336,6 +336,33 @@ Em `_aplicar_destino_da_adm`, **chave ausente é "não mexi" e string vazia é
 "tirei a área"**. São coisas diferentes: o botão de aprovar sozinho não pode
 apagar o que o solicitante escolheu.
 
+### Fechamento do sábado no Supply
+
+`supply.FechamentoSabado`, um por sábado, com duas etapas: **materiais** (o que
+saiu do estoque) e **pedidos** (o que foi comprado). São dois trabalhos
+diferentes, às vezes de pessoas diferentes.
+
+Existe porque o ADM passou a lançar o gasto do Supply na mão, e precisava saber
+se os números da tela já eram os reais ou ainda os do planejamento. Era pergunta
+no grupo toda semana. Quem marca: **SUPPLY e TRIADE** (`AREAS_DO_PAINEL` em
+`supply/views.py`), os mesmos que já editam o painel de materiais.
+
+- **Não há campo booleano: a DATA preenchida É o check.** Booleano mais data são
+  duas verdades sobre o mesmo fato; na primeira vez que uma for gravada sem a
+  outra, ninguém sabe qual vale. Desmarcar limpa os DOIS campos.
+- **A tela lê com `filter().first()`, não com `do_sabado()`.** Abrir o painel é
+  GET, e GET não grava — senão só navegar pelos 40 sábados do seletor criaria
+  40 registros. Fechamento ausente significa "as duas etapas em aberto".
+- **`marcar_fechamento` é só POST e responde 403 a quem é de fora.** Isso grava
+  o nome de uma pessoa como responsável pelo número: um link colado no grupo
+  não pode marcar em nome de quem clicar, e recusar precisa ser recusa, não um
+  desvio silencioso.
+- **O painel do Financeiro olha o último sábado que JÁ PASSOU.** Sábado futuro
+  viraria cobrança falsa toda semana.
+- **Materiais não têm valor em R$** (`Movimentacao` controla quantidade). O
+  check diz "conferi"; o número que a ADM lança continua vindo da nota. Se um
+  dia a ADM precisar ler o valor real na tela, falta um campo de custo ali.
+
 ## Tetos de área (Financeiro)
 
 Quem mexe no teto é **ADM/FIN** (e superusuário), em QUALQUER área — não só na

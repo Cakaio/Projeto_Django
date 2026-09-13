@@ -133,6 +133,43 @@
       </div>
     </section>
 
+    <!-- ─────────────────── GASTOS DO SUPPLY NO ÚLTIMO SÁBADO ─────────────────── -->
+    {% comment %}
+      O Supply não lança mais no Financeiro sozinho (ver adm/signals.py): quem lança
+      é o ADM, na mão, olhando a nota. Isto aqui responde a pergunta que a ADM fazia
+      no grupo toda semana — "já atualizaram os gastos do sábado?" — sem precisar
+      perguntar. Quem marca é o Supply, no painel de materiais.
+    {% endcomment %}
+    {% if sabado_do_supply %}
+    <section class="fin-section" data-reveal>
+      <div class="pcf-card fin-supply {% if supply_fechado %}fin-supply-ok{% endif %}">
+        <span class="pcf-icon-tile {% if supply_fechado %}tint-green{% else %}tint-gold{% endif %}" aria-hidden="true">
+          {% if supply_fechado %}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          {% else %}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+          {% endif %}
+        </span>
+        <div class="fin-supply-body">
+          <p class="fin-supply-title">
+            Gastos do Supply — sábado {{ sabado_do_supply.data|date:"d/m/Y" }}
+          </p>
+          <p class="fin-supply-desc">
+            {% if supply_fechado %}
+              Materiais e pedidos já conferidos pelo Supply. Os valores da tela são os reais.
+            {% else %}
+              Falta o Supply conferir:
+              <strong>{{ supply_pendente|join:" e " }}</strong>.
+              Até lá, os números podem ser os do planejamento, não os do que foi gasto.
+            {% endif %}
+          </p>
+        </div>
+        <a href="{% url 'supply:painel_materiais' %}?sabado={{ sabado_do_supply.pk }}"
+           class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver no Supply</a>
+      </div>
+    </section>
+    {% endif %}
+
     <!-- ─────────────────────── ÚLTIMAS MOVIMENTAÇÕES ─────────────────────── -->
     <section class="fin-section fin-section-last" data-reveal>
       <div class="fin-section-head">
@@ -237,6 +274,17 @@
   /* ── Seções ── */
   .fin-section { margin-bottom: 2.5rem; }
   .fin-section-last { margin-bottom: 0; }
+
+  /* Conferência dos gastos do Supply */
+  .fin-supply { display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap;
+                border-left: 4px solid #b8860b; }
+  .fin-supply.fin-supply-ok { border-left-color: #1f7a49; }
+  .fin-supply-body { flex: 1; min-width: 14rem; }
+  .fin-supply-title { margin: 0; font-size: .92rem; font-weight: 800; color: var(--ink); }
+  .fin-supply-desc { margin: .25rem 0 0; max-width: 68ch; font-size: .83rem; line-height: 1.55;
+                     color: hsl(var(--muted-foreground)); }
+  .fin-supply-desc strong { color: #8a6a10; }
+  .fin-supply-ok .fin-supply-desc strong { color: #1f7a49; }
   .fin-section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
   .fin-section-head-text { display: flex; flex-direction: column; gap: .2rem; }
   .fin-section-title { margin: 0; font-size: clamp(1.15rem, 2.4vw, 1.4rem); font-weight: 800; letter-spacing: -.02em; color: var(--ink); }

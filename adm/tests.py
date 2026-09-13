@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model
 from django.template import TemplateDoesNotExist
 from django.urls import reverse
 from unittest.mock import MagicMock, patch
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -23,7 +23,7 @@ from adm.servicos import (
 from adm.views import (
     AdmAcessoMixin, AdmEscritaMixin, _periodo_prestacao_contas, _semestre_escolhido,
     completar_lancamento,
-    contas as view_contas, lista_lancamentos, onde_investimos,
+    contas as view_contas, lista_lancamentos, onde_investimos, painel,
     recargas as view_recargas,
     reembolso_pagar, teto_deletar, teto_form, tetos as view_tetos,
 )
@@ -1486,3 +1486,67 @@ class SelectComBuscaTest(TestCase):
 
         self.assertIn('<select', html)
         self.assertIn('name="item"', html)
+
+
+class PainelVeFechamentoDoSupplyTest(TestCase):
+    """A ADM precisa saber se os numeros do sabado ja sao os reais antes de
+    lancar. Era pergunta no grupo toda semana."""
+
+    def setUp(self):
+        from sabado.models import Sabado
+        self.fabrica = RequestFactory()
+        self.financeiro = User.objects.create_user(
+            username='fin_painel', password='pw', area='ADM/FIN')
+        self.ana = User.objects.create_user(
+            username='ana_conf', password='pw', area='SUPPLY', first_name='Ana')
+        hoje = timezone.localdate()
+        self.passado = Sabado.objects.create(
+            data=hoje - timedelta(days=1), tema='Passado', descricao='d')
+        # Um sabado futuro nao interessa: ninguem conferiu gasto que ainda nao
+        # aconteceu, e a linha viraria uma cobranca falsa.
+        self.futuro = Sabado.objects.create(
+            data=hoje + timedelta(days=7), tema='Futuro', descricao='d')
+
+    def _contexto(self):
+        requisicao = self.fabrica.get('/adm/')
+        requisicao.user = self.financeiro
+        with patch('adm.views.render') as render_falso:
+            painel(requisicao)
+        return render_falso.call_args[0][2]
+
+    def test_olha_o_ultimo_sabado_que_ja_passou(self):
+        contexto = self._contexto()
+        self.assertEqual(contexto['sabado_do_supply'], self.passado)
+
+    def test_sem_conferencia_aponta_as_duas_etapas(self):
+        self.assertEqual(self._contexto()['supply_pendente'], ['materiais', 'pedidos'])
+
+    def test_conferencia_parcial_aponta_so_o_que_falta(self):
+        from supply.models import FechamentoSabado
+        FechamentoSabado.do_sabado(self.passado).marcar('materiais', self.ana)
+        self.assertEqual(self._contexto()['supply_pendente'], ['pedidos'])
+
+    def test_sabado_fechado_nao_tem_pendencia(self):
+        from supply.models import FechamentoSabado
+        fechamento = FechamentoSabado.do_sabado(self.passado)
+        fechamento.marcar('materiais', self.ana)
+        fechamento.marcar('pedidos', self.ana)
+        contexto = self._contexto()
+        self.assertEqual(contexto['supply_pendente'], [])
+        self.assertTrue(contexto['supply_fechado'])
+
+    def test_sem_sabado_nenhum_a_linha_nao_aparece(self):
+        from sabado.models import Sabado
+        Sabado.objects.all().delete()
+        contexto = self._contexto()
+        self.assertIsNone(contexto['sabado_do_supply'])
+
+    def test_a_tela_mostra_o_que_falta(self):
+        html = self._render_painel()
+        self.assertIn('Supply', html)
+        self.assertIn('pedidos', html)
+
+    def _render_painel(self):
+        requisicao = self.fabrica.get('/adm/')
+        requisicao.user = self.financeiro
+        return painel(requisicao).content.decode()
