@@ -43,7 +43,16 @@ def saldo_de(bazar, atendido):
 
 
 def ja_retirou_nesta_etapa(bazar, atendido):
-    """A trava contra passar duas vezes pela mesma fila."""
+    """A trava contra passar duas vezes pela mesma fila.
+
+    Só vale na 1ª ETAPA: na 2ª o objetivo declarado pela liderança é esvaziar o
+    estoque, e ali a família que volta na arara está certa — a trava só
+    produziria mensagem de erro para quem não errou, com a roupa na mão.
+
+    Visitante (sem ficha) não trava: travar por nome barraria dois xarás.
+    """
+    if atendido is None or bazar.etapa != Bazar.Etapa.PRIMEIRA:
+        return False
     return Retirada.objects.filter(
         bazar=bazar, atendido=atendido, etapa=bazar.etapa,
         finalizada_em__isnull=False,
@@ -76,7 +85,7 @@ def situacao_do_atendido(bazar, atendido):
     }
 
 
-def conferir_pedido(bazar, atendido, pedido):
+def conferir_pedido(bazar, atendido, pedido, sem_retirada=False):
     """Valida o carrinho antes de gravar. Devolve as linhas já calculadas.
 
     `pedido` é {categoria_id: quantidade}. Levanta RetiradaInvalida com um texto
@@ -89,6 +98,8 @@ def conferir_pedido(bazar, atendido, pedido):
     if ja_retirou_nesta_etapa(bazar, atendido):
         raise RetiradaInvalida(
             f"{atendido.nome} já finalizou a retirada desta etapa.")
+    # (ja_retirou_nesta_etapa devolve False quando atendido é None, então a
+    #  linha acima nunca desreferencia nulo.)
 
     linhas = []
     categorias = {
@@ -111,16 +122,33 @@ def conferir_pedido(bazar, atendido, pedido):
         })
 
     if not linhas:
+        # Vazio POR ENGANO e vazio DE PROPÓSITO são coisas diferentes. O segundo
+        # é comparecimento sem retirada — a criança veio, foi conferida e não
+        # achou nada do tamanho dela. É a evidência mais direta de que faltou
+        # tamanho, e a coordenação precisa enxergá-la.
+        if sem_retirada:
+            return [], 0
         raise RetiradaInvalida("Nenhuma peça foi registrada.")
+
+    if sem_retirada:
+        raise RetiradaInvalida(
+            'Ou marque "não levou nada", ou registre as peças — não os dois.')
 
     total = sum(linha["pontos_total"] for linha in linhas)
 
     if bazar.desconta_pontos:
-        saldo = saldo_de(bazar, atendido)
-        if total > saldo:
+        if atendido is not None:
+            saldo = saldo_de(bazar, atendido)
+            if total > saldo:
+                raise RetiradaInvalida(
+                    f"Pontos insuficientes. {atendido.nome} tem {saldo} "
+                    f"ponto{'s' if saldo != 1 else ''} e a sacola soma {total}.")
+        elif total > bazar.cota_inicial:
+            # Visitante não tem histórico para consultar: a cota inteira é o
+            # limite, porque é a primeira e única passagem dele.
             raise RetiradaInvalida(
-                f"Pontos insuficientes. {atendido.nome} tem {saldo} "
-                f"ponto{'s' if saldo != 1 else ''} e a sacola soma {total}.")
+                f"A cota é de {bazar.cota_inicial} pontos e a sacola soma "
+                f"{total}.")
 
     return linhas, total
 
@@ -148,14 +176,22 @@ def estoque_estourado(linhas):
 def finalizar_retirada(*, bazar, atendido, pedido, conferido_por,
                        sala=None, sala_do_bazar="",
                        retirado_por=Retirada.RetiradoPor.ATENDIDO,
-                       retirado_por_nome=""):
+                       retirado_por_nome="", sem_retirada=False,
+                       visitante_nome="", visitante_motivo=""):
     """Grava a retirada inteira de uma vez. Ou tudo, ou nada.
 
     Uma transação só porque meia retirada gravada é pior que nenhuma: os pontos
     sairiam sem as peças correspondentes, e ninguém saberia reconstruir o que
     faltou depois que a fila andou.
     """
-    linhas, total = conferir_pedido(bazar, atendido, pedido)
+    visitante_nome = (visitante_nome or "").strip()
+
+    if atendido is None and not visitante_nome:
+        raise RetiradaInvalida(
+            "Diga de quem é a retirada: escolha o atendido, ou escreva o nome "
+            "de quem veio sem cadastro.")
+
+    linhas, total = conferir_pedido(bazar, atendido, pedido, sem_retirada)
 
     # O alerta de estoque é medido ANTES de gravar. Depois do bulk_create os
     # itens desta retirada já contam como distribuídos, e quem consumisse
@@ -172,6 +208,9 @@ def finalizar_retirada(*, bazar, atendido, pedido, conferido_por,
         retirado_por=retirado_por,
         retirado_por_nome=retirado_por_nome.strip(),
         cota_no_momento=bazar.cota_inicial,
+        sem_retirada=sem_retirada,
+        visitante_nome=visitante_nome,
+        visitante_motivo=(visitante_motivo or "").strip(),
         finalizada_em=timezone.now(),
     )
 

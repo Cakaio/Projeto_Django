@@ -374,3 +374,119 @@ class SalaDoBazarTest(BaseBazar):
         SalaDoBazar.objects.create(bazar=outro, nome="Sala 1", ordem=1)
         outro.delete()
         self.assertEqual(SalaDoBazar.objects.filter(nome="Sala 1").count(), 0)
+
+
+class VisitanteTest(BaseBazar):
+    """Criança não cadastrada pode levar sacola, em registro SEPARADO.
+
+    Não vira Atendido: a regra de não existir segunda verdade sobre a mesma
+    criança continua valendo. O registro existe para o caso sair do escuro e
+    para dar para contar quantas exceções houve — que é uma estatística de
+    fechamento por si só.
+    """
+
+    def _visitante(self, pedido, **extras):
+        return finalizar_retirada(
+            bazar=self.bazar, atendido=None, pedido=pedido,
+            conferido_por=self.voluntario, **extras)
+
+    def test_visitante_grava_sem_atendido(self):
+        retirada, total, _ = self._visitante(
+            {self.camiseta.pk: 2},
+            visitante_nome="Irmão do João",
+            visitante_motivo="chegou com a mãe, não é matriculado")
+
+        self.assertIsNone(retirada.atendido)
+        self.assertTrue(retirada.e_visitante)
+        self.assertEqual(retirada.nome_de_quem_levou, "Irmão do João")
+        self.assertEqual(total, 2)
+
+    def test_visitante_sem_nome_e_recusado(self):
+        """Sem nome seria uma linha anônima que ninguém confere depois."""
+        with self.assertRaises(RetiradaInvalida):
+            self._visitante({self.camiseta.pk: 1}, visitante_nome="   ")
+
+    def test_visitante_respeita_a_cota(self):
+        """Sem histórico para consultar, a cota inteira é o limite."""
+        with self.assertRaises(RetiradaInvalida):
+            self._visitante({self.camiseta.pk: 99},
+                            visitante_nome="Irmão do João")
+
+    def test_dois_visitantes_diferentes_passam(self):
+        """A trava da etapa é feita em cima do atendido; visitante não tem
+        ficha para travar, e travar por NOME barraria dois xarás."""
+        self._visitante({self.camiseta.pk: 1}, visitante_nome="Irmão do João")
+        self._visitante({self.camiseta.pk: 1}, visitante_nome="Prima da Ana")
+        self.assertEqual(
+            Retirada.objects.filter(visitante_nome__gt="").count(), 2)
+
+    def test_str_da_retirada_de_visitante_nao_quebra(self):
+        """`__str__` usava `self.atendido.nome` — com atendido nulo, estoura no
+        admin e no log."""
+        retirada, _, _ = self._visitante(
+            {self.camiseta.pk: 1}, visitante_nome="Irmão do João")
+        self.assertIn("Irmão do João", str(retirada))
+
+
+class SegundaEtapaSemTravaTest(BaseBazar):
+    """Na 2ª etapa o objetivo declarado é esvaziar o estoque: ali a trava de
+    passagem única não protege ninguém e só produz erro para quem está certo.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.bazar.etapa = Bazar.Etapa.SEGUNDA
+        self.bazar.save()
+
+    def test_mesma_crianca_passa_duas_vezes_na_segunda_etapa(self):
+        self.retirar({self.camiseta.pk: 1})
+        self.retirar({self.camiseta.pk: 1})
+
+        self.assertEqual(
+            Retirada.objects.filter(bazar=self.bazar, atendido=self.joao,
+                                    finalizada_em__isnull=False).count(), 2)
+
+    def test_na_primeira_etapa_a_trava_continua(self):
+        self.bazar.etapa = Bazar.Etapa.PRIMEIRA
+        self.bazar.save()
+        self.retirar({self.camiseta.pk: 1})
+        with self.assertRaises(RetiradaInvalida):
+            self.retirar({self.camiseta.pk: 1})
+
+    def test_ja_retirou_responde_false_na_segunda_etapa(self):
+        self.retirar({self.camiseta.pk: 1})
+        self.assertFalse(ja_retirou_nesta_etapa(self.bazar, self.joao))
+
+
+class VeioENaoLevouNadaTest(BaseBazar):
+    """Quem chegou e não achou nada do tamanho dela é a evidência mais direta
+    de que faltou tamanho — e hoje é invisível, porque sacola vazia é recusada.
+    """
+
+    def test_registra_comparecimento_sem_peca(self):
+        retirada, total, _ = self.retirar({}, sem_retirada=True)
+
+        self.assertTrue(retirada.sem_retirada)
+        self.assertEqual(total, 0)
+        self.assertEqual(retirada.total_pecas, 0)
+        self.assertIsNotNone(retirada.finalizada_em)
+
+    def test_sacola_vazia_sem_marcar_continua_recusada(self):
+        """Vazio POR ENGANO e vazio DE PROPÓSITO são coisas diferentes."""
+        with self.assertRaises(RetiradaInvalida):
+            self.retirar({})
+
+    def test_marcar_os_dois_e_recusado(self):
+        """"Não levou nada" com peça marcada é contradição — e a contradição
+        viraria um número que ninguém consegue explicar no fim do dia."""
+        with self.assertRaises(RetiradaInvalida):
+            self.retirar({self.camiseta.pk: 1}, sem_retirada=True)
+
+    def test_comparecimento_sem_peca_nao_gasta_ponto(self):
+        self.retirar({}, sem_retirada=True)
+        self.assertEqual(saldo_de(self.bazar, self.joao), 5)
+
+    def test_comparecimento_sem_peca_ocupa_a_vez_na_primeira_etapa(self):
+        """Foi conferida: passar de novo na mesma etapa é a fila duas vezes."""
+        self.retirar({}, sem_retirada=True)
+        self.assertTrue(ja_retirou_nesta_etapa(self.bazar, self.joao))

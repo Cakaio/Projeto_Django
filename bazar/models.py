@@ -201,7 +201,11 @@ class Retirada(models.Model):
 
     bazar = models.ForeignKey(Bazar, on_delete=models.PROTECT,
                               related_name="retiradas")
+    # Nulo quando quem levou e VISITANTE: crianca que apareceu e nao e Atendido
+    # ativo. Registro separado de proposito — nao vira ficha, para nao criar
+    # segunda verdade sobre a mesma crianca.
     atendido = models.ForeignKey("atendido.Atendido", on_delete=models.PROTECT,
+                                 null=True, blank=True,
                                  related_name="retiradas_no_bazar")
     etapa = models.CharField(max_length=10, choices=Etapa.choices)
 
@@ -232,26 +236,65 @@ class Retirada(models.Model):
     # o histórico de quem já passou não pode ser reescrito.
     cota_no_momento = models.PositiveSmallIntegerField(default=0)
 
+    # Quem veio sem cadastro. O nome é escrito à mão porque não há ficha de onde
+    # tirar, e o motivo é obrigatório na prática: sem ele, a exceção vira um
+    # número no fim do dia que ninguém consegue explicar.
+    visitante_nome = models.CharField(max_length=120, blank=True)
+    visitante_motivo = models.CharField(
+        max_length=200, blank=True,
+        help_text="Por que foi atendida fora do cadastro.")
+
+    # Veio, foi conferida e não achou nada do tamanho dela. Conta como
+    # COMPARECIMENTO e não como retirada: são perguntas diferentes, e a criança
+    # que sai de mãos vazias é a evidência mais direta de que faltou tamanho.
+    sem_retirada = models.BooleanField(default=False)
+
     criado_em = models.DateTimeField(default=timezone.now)
     finalizada_em = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-criado_em", "-pk"]
         constraints = [
-            # Uma retirada FINALIZADA por atendido por etapa. É a trava contra
-            # passar duas vezes pela fila. Rascunhos não entram: `condition`
-            # limita a regra ao que já foi concluído.
+            # Uma retirada FINALIZADA por atendido, SÓ NA 1ª ETAPA.
+            #
+            # Rascunhos não entram: `condition` limita a regra ao que já foi
+            # concluído — e é por isso que cancelar (voltar a rascunho) reabre a
+            # trava sozinho, sem campo de status nenhum.
+            #
+            # Só na 1ª etapa porque na 2ª o objetivo declarado pela liderança é
+            # esvaziar o estoque: ali a família que volta na arara está certa, e
+            # a trava só produziria erro para quem não errou.
+            #
+            # `atendido__isnull=False` porque visitante não tem ficha para
+            # travar — e travar por nome barraria dois xarás.
             models.UniqueConstraint(
                 fields=["bazar", "atendido", "etapa"],
-                condition=models.Q(finalizada_em__isnull=False),
-                name="uma_retirada_finalizada_por_etapa",
+                condition=models.Q(finalizada_em__isnull=False,
+                                   etapa="PRIMEIRA",
+                                   atendido__isnull=False),
+                name="uma_retirada_finalizada_na_primeira_etapa",
             ),
         ]
         verbose_name = "Retirada"
         verbose_name_plural = "Retiradas"
 
     def __str__(self):
-        return f"{self.atendido.nome} — {self.get_etapa_display()}"
+        return f"{self.nome_de_quem_levou} — {self.get_etapa_display()}"
+
+    @property
+    def e_visitante(self):
+        return bool(self.visitante_nome)
+
+    @property
+    def nome_de_quem_levou(self):
+        """O nome que vale para tela e relatório, venha da ficha ou da mão.
+
+        `__str__` usava `self.atendido.nome` direto; com atendido nulo isso
+        estoura no admin e no log, longe de onde o erro foi cometido.
+        """
+        if self.atendido_id:
+            return self.atendido.nome
+        return self.visitante_nome or "—"
 
     @property
     def pontos_usados(self):
