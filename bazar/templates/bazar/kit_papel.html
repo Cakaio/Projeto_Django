@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+{% comment %}
+  Folha de impressão do Bazar — o plano B do evento.
+
+  HTML autônomo de propósito: não estende base.html, não carrega navbar,
+  sidebar, service worker nem JS do site. É a página que precisa abrir e
+  imprimir quando tudo o mais estiver fora do ar, e cada dependência a mais é
+  mais uma chance de não abrir.
+{% endcomment %}
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kit de papel — {{ bazar.nome }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 1.5rem; font-family: Arial, Helvetica, sans-serif;
+           color: #1c130e; font-size: 12px; }
+
+    .btn-imprimir { position: fixed; top: 1rem; right: 1rem; padding: .7rem 1.3rem;
+                    border: 0; border-radius: 8px; background: #e8560f; color: #fff;
+                    font-family: inherit; font-size: 14px; font-weight: 700;
+                    cursor: pointer; }
+    .aviso { max-width: 60ch; margin: 0 0 1.5rem; padding: .8rem 1rem;
+             border-left: 4px solid #e8560f; background: #fff4ec; font-size: 12px;
+             line-height: 1.6; }
+
+    .folha { page-break-after: always; }
+    .folha:last-child { page-break-after: auto; }
+
+    h1 { margin: 0 0 .2rem; font-size: 19px; font-weight: 800; letter-spacing: -.01em; }
+    h2 { margin: 1.4rem 0 .5rem; padding: .35rem .7rem; border-left: 4px solid #e8560f;
+         border-bottom: 2px solid #1c130e; font-size: 14px; font-weight: 700; }
+    .sub { margin: 0 0 .9rem; color: #5a4a41; font-size: 12px; }
+
+    .cota { display: inline-block; padding: .4rem .9rem; border: 2px solid #1c130e;
+            border-radius: 6px; font-size: 15px; font-weight: 800; }
+
+    .tabela-pontos { margin: .8rem 0 1.2rem; border-collapse: collapse; }
+    .tabela-pontos th, .tabela-pontos td { border: 1px solid #1c130e;
+                                           padding: .35rem .7rem; font-size: 13px; }
+    .tabela-pontos th { background: #fff0e6; font-weight: 700; }
+    .tabela-pontos td { text-align: center; font-weight: 800; }
+
+    table.ficha { width: 100%; border-collapse: collapse; }
+    table.ficha th, table.ficha td { border: 1px solid #1c130e; padding: .3rem .35rem;
+                                     font-size: 11px; text-align: left; }
+    table.ficha th { background: #fff0e6; font-weight: 700; text-align: center; }
+    table.ficha td.linha-branco { height: 30px; }
+    table.ficha td.num { width: 26px; text-align: center; font-weight: 700; }
+
+    table.lista { width: 100%; border-collapse: collapse; margin-bottom: 1.1rem; }
+    table.lista th, table.lista td { border: 1px solid #d8c7ba; padding: .3rem .45rem;
+                                     font-size: 11px; text-align: left; }
+    table.lista th { background: #fff0e6; font-weight: 700; }
+    table.lista td.marcar { width: 44px; text-align: center; }
+
+    @media print {
+      .btn-imprimir, .aviso { display: none; }
+      body { padding: 0; }
+      .tabela-pontos th, table.ficha th, table.lista th, .cota {
+        background: #fff0e6 !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="btn-imprimir" onclick="window.print()">Imprimir</button>
+
+  <p class="aviso">
+    <strong>Imprima antes do evento, não no dia.</strong>
+    Este kit é o que funciona se o site cair, a internet acabar ou o celular
+    descarregar. Uma <strong>ficha do caixa</strong> por sala (leve várias vias)
+    e uma <strong>lista de elegíveis</strong> por salinha.
+    Depois do Bazar, a coordenação lança as fichas no sistema.
+  </p>
+
+  <!-- ══════ Folha 1: a ficha do caixa ══════ -->
+  <div class="folha">
+    <h1>{{ bazar.nome }} — ficha do caixa</h1>
+    <p class="sub">
+      {{ bazar.data|date:"d/m/Y" }}
+      · Sala: ______________________
+      · Conferido por: ______________________
+    </p>
+
+    <p><span class="cota">Cota da 1ª etapa: {{ bazar.cota_inicial }} ponto{{ bazar.cota_inicial|pluralize }} por criança</span></p>
+
+    <table class="tabela-pontos">
+      <tr>
+        <th>Categoria</th>
+        {% for categoria in categorias %}<th>{{ categoria.nome }}</th>{% endfor %}
+      </tr>
+      <tr>
+        <th>Pontos</th>
+        {% for categoria in categorias %}<td>{{ categoria.pontos }}</td>{% endfor %}
+      </tr>
+    </table>
+
+    {% comment %}
+      Uma linha por CRIANÇA, não por peça: à mão, com fila, linha por peça é
+      lentidão garantida.
+    {% endcomment %}
+    <table class="ficha">
+      <thead>
+        <tr>
+          <th class="num">Nº</th>
+          <th style="width:24%">Nome do atendido</th>
+          <th style="width:11%">Salinha</th>
+          {% for categoria in categorias %}<th>{{ categoria.nome }}</th>{% endfor %}
+          <th style="width:8%">Total pts</th>
+          <th style="width:12%">Quem levou</th>
+          <th style="width:7%">Hora</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for numero in linhas_em_branco %}
+          <tr>
+            <td class="num">{{ forloop.counter }}</td>
+            <td class="linha-branco"></td>
+            <td class="linha-branco"></td>
+            {% for categoria in categorias %}<td class="linha-branco"></td>{% endfor %}
+            <td class="linha-branco"></td>
+            <td class="linha-branco"></td>
+            <td class="linha-branco"></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════ Folha 2 em diante: elegíveis por salinha ══════ -->
+  {% for grupo in por_salinha %}
+    <div class="folha">
+      <h1>Salinha {{ grupo.rotulo }}</h1>
+      <p class="sub">
+        {{ grupo.atendidos|length }} criança{{ grupo.atendidos|length|pluralize:"s" }}
+        · {{ bazar.nome }} — {{ bazar.data|date:"d/m/Y" }}
+      </p>
+
+      {% comment %}
+        Idade e numerações ao lado do nome: é o que resolve homônimo no papel,
+        do mesmo jeito que resolve na tela.
+      {% endcomment %}
+      <table class="lista">
+        <thead>
+          <tr>
+            <th class="marcar">Passou</th>
+            <th>Nome</th>
+            <th style="width:9%">Idade</th>
+            <th style="width:11%">Camisa</th>
+            <th style="width:11%">Calça</th>
+            <th style="width:11%">Calçado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pessoa in grupo.atendidos %}
+            <tr>
+              <td class="marcar">☐</td>
+              <td>{{ pessoa.nome }}</td>
+              <td>{% if pessoa.idade is not None %}{{ pessoa.idade }}{% else %}—{% endif %}</td>
+              <td>{{ pessoa.camisa|default:"—" }}</td>
+              <td>{{ pessoa.calca|default:"—" }}</td>
+              <td>{{ pessoa.calcado|default:"—" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endfor %}
+</body>
+</html>

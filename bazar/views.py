@@ -26,6 +26,7 @@ from django.views.decorators.http import require_POST
 from atendido.models import Atendido
 
 from .models import Bazar, Categoria, ItemRetirada, Retirada, SalaDoBazar
+from .papelaria import folhas_do_kit, planilha_do_kit
 from .regras import (MINUTOS_PARA_DESFAZER, RetiradaInvalida,
                      cancelar_retirada, finalizar_retirada, numeros_do_bazar,
                      por_salinha, recado_de_ja_retirou, situacao_do_atendido)
@@ -361,4 +362,31 @@ def relatorio(request, pk):
             timezone.localtime(retirada.finalizada_em).strftime("%d/%m/%Y %H:%M"),
         ])
 
+    return resposta
+
+
+# ────────────────────────────── Kit de papel ──────────────────────────────
+@login_required(login_url="/login/")
+def kit_papel(request, pk):
+    """As folhas para imprimir ANTES do evento.
+
+    Aberto a qualquer voluntário logado, e não só à coordenação: quem está no
+    caixa é que precisa do papel na mão, e o único CSV que existia ficava atrás
+    de TRÍADE/EVENTOS — ou seja, inalcançável justamente para quem usaria.
+    """
+    bazar = get_object_or_404(Bazar, pk=pk)
+    return render(request, "bazar/kit_papel.html", folhas_do_kit(bazar))
+
+
+@login_required(login_url="/login/")
+def kit_planilha(request, pk):
+    """O mesmo conteúdo em .xlsx, para quem prefere digitar no Excel depois."""
+    bazar = get_object_or_404(Bazar, pk=pk)
+
+    resposta = HttpResponse(
+        planilha_do_kit(bazar),
+        content_type="application/vnd.openxmlformats-officedocument."
+                     "spreadsheetml.sheet")
+    resposta["Content-Disposition"] = (
+        f'attachment; filename="kit-bazar-{bazar.data:%Y-%m-%d}.xlsx"')
     return resposta

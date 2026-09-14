@@ -15,4 +15,8 @@ urlpatterns = [
     path("painel/", views.painel, name="painel"),
     path("<int:pk>/etapa/", views.mudar_etapa, name="mudar_etapa"),
     path("<int:pk>/relatorio/", views.relatorio, name="relatorio"),
+    # O kit de papel e aberto a qualquer voluntario logado: quem esta no
+    # caixa e que precisa imprimir.
+    path("<int:pk>/kit/", views.kit_papel, name="kit_papel"),
+    path("<int:pk>/kit.xlsx", views.kit_planilha, name="kit_planilha"),
 ]
