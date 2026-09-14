@@ -14,7 +14,8 @@ from atendido.models import Atendido
 from voluntario.models import Voluntario
 
 from .models import Bazar, Categoria, ItemRetirada, Retirada
-from .regras import (RetiradaInvalida, conferir_pedido, estoque_estourado,
+from .regras import (RetiradaInvalida, cancelar_retirada, conferir_pedido,
+                     estoque_estourado,
                      finalizar_retirada, ja_retirou_nesta_etapa,
                      numeros_do_bazar, por_salinha, saldo_de,
                      situacao_do_atendido)
@@ -490,3 +491,97 @@ class VeioENaoLevouNadaTest(BaseBazar):
         """Foi conferida: passar de novo na mesma etapa é a fila duas vezes."""
         self.retirar({}, sem_retirada=True)
         self.assertTrue(ja_retirou_nesta_etapa(self.bazar, self.joao))
+
+
+class TokenDeIdempotenciaTest(BaseBazar):
+    """Resposta perdida na rede não pode virar acusação contra a criança.
+
+    Sem token, o reenvio bate na trava e devolve "já finalizou a retirada desta
+    etapa" — que é mentira: quem repetiu foi o clique, não a criança. E o
+    voluntário, com a sacola na mão, não tem como saber se gravou ou não.
+    """
+
+    def test_mesmo_token_devolve_a_mesma_retirada(self):
+        primeira, _, _ = self.retirar({self.camiseta.pk: 1}, token="abc-123")
+        segunda, total, _ = self.retirar({self.camiseta.pk: 1}, token="abc-123")
+
+        self.assertEqual(primeira.pk, segunda.pk)
+        self.assertEqual(Retirada.objects.count(), 1)
+        self.assertEqual(total, 1)
+
+    def test_reenvio_nao_gasta_ponto_de_novo(self):
+        self.retirar({self.camiseta.pk: 3}, token="abc-123")
+        self.retirar({self.camiseta.pk: 3}, token="abc-123")
+        self.assertEqual(saldo_de(self.bazar, self.joao), 2)
+
+    def test_token_diferente_na_primeira_etapa_ainda_bate_na_trava(self):
+        """Token protege contra clique repetido, não contra passar duas vezes."""
+        self.retirar({self.camiseta.pk: 1}, token="abc-123")
+        with self.assertRaises(RetiradaInvalida):
+            self.retirar({self.camiseta.pk: 1}, token="outro-456")
+
+    def test_sem_token_o_comportamento_e_o_de_sempre(self):
+        self.retirar({self.camiseta.pk: 1})
+        with self.assertRaises(RetiradaInvalida):
+            self.retirar({self.camiseta.pk: 1})
+
+    def test_o_mesmo_token_em_outro_bazar_nao_se_confunde(self):
+        self.retirar({self.camiseta.pk: 1}, token="abc-123")
+        self.assertEqual(
+            Retirada.objects.filter(bazar=self.bazar, token="abc-123").count(), 1)
+
+
+class CancelarRetiradaTest(BaseBazar):
+    """Cancelar devolve a retirada ao RASCUNHO — o modelo já sabe fazer isso.
+
+    Rascunho não consome saldo nem estoque, e a UniqueConstraint tem
+    `condition`, então a trava da etapa reabre sozinha. Não é preciso inventar
+    campo de status: `finalizada_em` nulo já É o rascunho que a docstring do
+    modelo promete e que ninguém criava.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.retirada, _, _ = self.retirar({self.camiseta.pk: 3})
+
+    def test_cancelar_devolve_o_saldo(self):
+        self.assertEqual(saldo_de(self.bazar, self.joao), 2)
+        cancelar_retirada(self.retirada, self.voluntario, "marquei errado")
+        self.assertEqual(saldo_de(self.bazar, self.joao), 5)
+
+    def test_cancelar_reabre_a_trava_da_etapa(self):
+        cancelar_retirada(self.retirada, self.voluntario, "marquei errado")
+        self.assertFalse(ja_retirou_nesta_etapa(self.bazar, self.joao))
+        # E a criança consegue mesmo passar de novo.
+        self.retirar({self.camiseta.pk: 1})
+
+    def test_cancelar_guarda_quem_e_por_que(self):
+        cancelar_retirada(self.retirada, self.voluntario, "marquei errado")
+        self.retirada.refresh_from_db()
+
+        self.assertIsNone(self.retirada.finalizada_em)
+        self.assertIsNotNone(self.retirada.cancelada_em)
+        self.assertEqual(self.retirada.cancelada_por, self.voluntario)
+        self.assertEqual(self.retirada.motivo_cancelamento, "marquei errado")
+
+    def test_cancelar_sem_motivo_e_recusado(self):
+        """Cancelamento sem motivo vira número que ninguém sabe explicar."""
+        with self.assertRaises(RetiradaInvalida):
+            cancelar_retirada(self.retirada, self.voluntario, "   ")
+
+    def test_cancelar_o_que_ja_foi_cancelado_e_recusado(self):
+        cancelar_retirada(self.retirada, self.voluntario, "primeiro")
+        with self.assertRaises(RetiradaInvalida):
+            cancelar_retirada(self.retirada, self.voluntario, "segundo")
+
+    def test_estoque_volta_com_o_cancelamento(self):
+        """Peça cancelada não pode continuar contando como distribuída."""
+        self.assertEqual(self.camiseta.distribuido, 3)
+        cancelar_retirada(self.retirada, self.voluntario, "marquei errado")
+        self.assertEqual(self.camiseta.distribuido, 0)
+
+    def test_cancelada_sai_dos_numeros_do_dia(self):
+        antes = numeros_do_bazar(self.bazar)["atendidos"]
+        cancelar_retirada(self.retirada, self.voluntario, "marquei errado")
+        depois = numeros_do_bazar(self.bazar)["atendidos"]
+        self.assertEqual(antes - depois, 1)

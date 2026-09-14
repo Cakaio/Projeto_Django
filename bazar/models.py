@@ -249,8 +249,23 @@ class Retirada(models.Model):
     # que sai de mãos vazias é a evidência mais direta de que faltou tamanho.
     sem_retirada = models.BooleanField(default=False)
 
+    # Chave do atendimento, gerada pela tela. Reenvio com o MESMO token devolve
+    # o mesmo recibo, em vez de bater na trava da etapa — que acusaria a criança
+    # de ter passado duas vezes quando quem repetiu foi o clique.
+    token = models.CharField(max_length=40, blank=True, db_index=True)
+
     criado_em = models.DateTimeField(default=timezone.now)
     finalizada_em = models.DateTimeField(null=True, blank=True)
+
+    # Desfazer = voltar ao rascunho. Não existe campo de status: `finalizada_em`
+    # nulo já É o rascunho, e a UniqueConstraint tem `condition`, então a trava
+    # da etapa reabre sozinha. Estes três campos existem para o cancelamento
+    # não ser invisível no fim do dia.
+    cancelada_em = models.DateTimeField(null=True, blank=True)
+    cancelada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+        blank=True, related_name="retiradas_canceladas")
+    motivo_cancelamento = models.CharField(max_length=200, blank=True)
 
     class Meta:
         ordering = ["-criado_em", "-pk"]

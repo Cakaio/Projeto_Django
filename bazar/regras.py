@@ -15,6 +15,12 @@ from django.utils import timezone
 from .models import Bazar, Categoria, ItemRetirada, Retirada
 
 
+# Quanto tempo quem acabou de gravar pode desfazer sozinho. Depois disso é a
+# coordenação que corrige — pela tela do Bazar, não pelo admin do Django num
+# celular, que o voluntário nem acessa.
+MINUTOS_PARA_DESFAZER = 2
+
+
 class RetiradaInvalida(Exception):
     """O que o voluntário tentou não pode ser feito, e a mensagem explica por quê."""
 
@@ -177,7 +183,7 @@ def finalizar_retirada(*, bazar, atendido, pedido, conferido_por,
                        sala=None, sala_do_bazar="",
                        retirado_por=Retirada.RetiradoPor.ATENDIDO,
                        retirado_por_nome="", sem_retirada=False,
-                       visitante_nome="", visitante_motivo=""):
+                       visitante_nome="", visitante_motivo="", token=""):
     """Grava a retirada inteira de uma vez. Ou tudo, ou nada.
 
     Uma transação só porque meia retirada gravada é pior que nenhuma: os pontos
@@ -190,6 +196,15 @@ def finalizar_retirada(*, bazar, atendido, pedido, conferido_por,
         raise RetiradaInvalida(
             "Diga de quem é a retirada: escolha o atendido, ou escreva o nome "
             "de quem veio sem cadastro.")
+
+    token = (token or "").strip()
+    if token:
+        # Reenvio depois de resposta perdida na rede: devolve o mesmo recibo em
+        # vez de gravar de novo (ou de acusar a criança pela trava da etapa).
+        ja_gravada = Retirada.objects.filter(
+            bazar=bazar, token=token, finalizada_em__isnull=False).first()
+        if ja_gravada is not None:
+            return ja_gravada, ja_gravada.pontos_usados, []
 
     linhas, total = conferir_pedido(bazar, atendido, pedido, sem_retirada)
 
@@ -208,6 +223,7 @@ def finalizar_retirada(*, bazar, atendido, pedido, conferido_por,
         retirado_por=retirado_por,
         retirado_por_nome=retirado_por_nome.strip(),
         cota_no_momento=bazar.cota_inicial,
+        token=token,
         sem_retirada=sem_retirada,
         visitante_nome=visitante_nome,
         visitante_motivo=(visitante_motivo or "").strip(),
@@ -276,3 +292,31 @@ def por_salinha(bazar):
         {"sala": rotulo, "total": contagem.get(codigo, 0)}
         for codigo, rotulo in LISTA_SALAS
     ]
+
+
+def cancelar_retirada(retirada, por, motivo):
+    """Devolve a retirada ao estado de rascunho.
+
+    Não existe campo de status: `finalizada_em` nulo JÁ é o rascunho que o
+    modelo prevê, e a UniqueConstraint tem `condition`, então a trava da etapa
+    reabre sozinha. Os itens ficam onde estão — `Categoria.distribuido` só conta
+    retirada finalizada, então o estoque volta sem ninguém apagar nada.
+
+    O motivo é obrigatório porque cancelamento sem explicação vira, no fim do
+    dia, um número que ninguém sabe defender.
+    """
+    motivo = (motivo or "").strip()
+    if not motivo:
+        raise RetiradaInvalida(
+            "Escreva o motivo do cancelamento. Sem ele, o número do fim do dia "
+            "fica sem explicação.")
+    if retirada.finalizada_em is None:
+        raise RetiradaInvalida("Esta retirada já estava cancelada.")
+
+    retirada.finalizada_em = None
+    retirada.cancelada_em = timezone.now()
+    retirada.cancelada_por = por
+    retirada.motivo_cancelamento = motivo
+    retirada.save(update_fields=["finalizada_em", "cancelada_em",
+                                 "cancelada_por", "motivo_cancelamento"])
+    return retirada
