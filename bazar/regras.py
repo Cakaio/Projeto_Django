@@ -146,7 +146,8 @@ def estoque_estourado(linhas):
 
 @transaction.atomic
 def finalizar_retirada(*, bazar, atendido, pedido, conferido_por,
-                       sala_do_bazar="", retirado_por=Retirada.RetiradoPor.ATENDIDO,
+                       sala=None, sala_do_bazar="",
+                       retirado_por=Retirada.RetiradoPor.ATENDIDO,
                        retirado_por_nome=""):
     """Grava a retirada inteira de uma vez. Ou tudo, ou nada.
 
@@ -165,6 +166,7 @@ def finalizar_retirada(*, bazar, atendido, pedido, conferido_por,
         bazar=bazar,
         atendido=atendido,
         etapa=bazar.etapa,
+        sala=sala,
         sala_do_bazar=sala_do_bazar,
         conferido_por=conferido_por,
         retirado_por=retirado_por,

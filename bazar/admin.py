@@ -9,7 +9,7 @@ frente. Essa não cabe no admin.
 """
 from django.contrib import admin
 
-from .models import Bazar, Categoria, ItemRetirada, Retirada
+from .models import Bazar, Categoria, ItemRetirada, Retirada, SalaDoBazar
 
 
 class CategoriaInline(admin.TabularInline):
@@ -19,11 +19,24 @@ class CategoriaInline(admin.TabularInline):
     ordering = ("ordem", "nome")
 
 
+class SalaDoBazarInline(admin.TabularInline):
+    """As salas físicas, configuradas junto do Bazar.
+
+    Sem nenhuma cadastrada, a tela de atendimento não oferece escolha e a
+    coluna "sala" do relatório volta a ficar vazia — que é o problema que a
+    lista veio resolver.
+    """
+    model = SalaDoBazar
+    extra = 3          # três é o número que a coordenação usa na prática
+    fields = ("ordem", "nome", "ativo")
+    ordering = ("ordem", "nome")
+
+
 @admin.register(Bazar)
 class BazarAdmin(admin.ModelAdmin):
     list_display = ("nome", "data", "etapa", "cota_inicial", "total_retiradas")
     list_filter = ("etapa", "data")
-    inlines = [CategoriaInline]
+    inlines = [CategoriaInline, SalaDoBazarInline]
     readonly_fields = ("criado_por", "criado_em")
 
     @admin.display(description="Retiradas")

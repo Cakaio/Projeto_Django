@@ -149,6 +149,38 @@ class Categoria(models.Model):
         return restante <= max(3, self.estoque_inicial // 10)
 
 
+class SalaDoBazar(models.Model):
+    """As salas físicas onde se confere, no dia.
+
+    Existe para o voluntário TOCAR em vez de digitar. O campo de texto livre
+    que isto substitui era redigitado a cada criança: na prática era preenchido
+    nas cinco primeiras e ficava vazio no resto da manhã — e a coluna do
+    relatório que serve para achar a origem de uma divergência vinha vazia
+    justamente quando era necessária.
+
+    CASCADE porque sala só existe dentro de uma edição: guardar "Sala 1" órfã
+    depois que o Bazar de 2026 sumiu não serve a ninguém.
+    """
+    bazar = models.ForeignKey(Bazar, on_delete=models.CASCADE,
+                              related_name="salas")
+    nome = models.CharField(max_length=30, help_text="Ex.: Sala 1, Recepção.")
+    ordem = models.PositiveSmallIntegerField(
+        default=0, help_text="Ordem dos botões na tela.")
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["ordem", "nome"]
+        constraints = [
+            models.UniqueConstraint(fields=["bazar", "nome"],
+                                    name="uma_sala_por_nome_no_bazar"),
+        ]
+        verbose_name = "Sala do Bazar"
+        verbose_name_plural = "Salas do Bazar"
+
+    def __str__(self):
+        return self.nome
+
+
 class Retirada(models.Model):
     """Uma passagem do atendido pela conferência.
 
@@ -173,11 +205,17 @@ class Retirada(models.Model):
                                  related_name="retiradas_no_bazar")
     etapa = models.CharField(max_length=10, choices=Etapa.choices)
 
-    # Qual das salas físicas do Bazar atendeu. Serve para achar a origem de uma
+    # A sala escolhida na lista, com um toque. Serve para achar a origem de uma
     # divergência depois do evento.
+    sala = models.ForeignKey(
+        SalaDoBazar, on_delete=models.PROTECT, null=True, blank=True,
+        related_name="retiradas")
+
+    # O texto livre de antes de existir lista. Fica como HISTÓRICO: apagá-lo
+    # reescreveria relatório que já foi lido. Nada novo escreve aqui.
     sala_do_bazar = models.CharField(
         max_length=30, blank=True,
-        help_text="Sala física da conferência. Ex.: Sala 1.")
+        help_text="Sala digitada à mão, antes de as salas virarem lista.")
 
     conferido_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,

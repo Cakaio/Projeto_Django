@@ -320,3 +320,57 @@ class UmBazarAbertoTest(TestCase):
         Bazar.objects.create(nome="Velho", etapa=Bazar.Etapa.ENCERRADO)
         aberto = Bazar.objects.create(nome="Hoje", etapa=Bazar.Etapa.SEGUNDA)
         self.assertEqual(Bazar.em_andamento(), aberto)
+
+
+class SalaDoBazarTest(BaseBazar):
+    """A sala vira lista fixa: o voluntário toca uma vez, não digita 80 vezes.
+
+    O campo de texto livre que isto substitui era redigitado a cada criança —
+    na prática era preenchido nas cinco primeiras e ficava vazio no resto da
+    manhã, e a coluna do relatório que serve para achar a origem de uma
+    divergência vinha vazia justamente quando era necessária.
+    """
+
+    def test_salas_sao_por_bazar_e_saem_na_ordem_configurada(self):
+        from .models import SalaDoBazar
+        SalaDoBazar.objects.create(bazar=self.bazar, nome="Recepção", ordem=2)
+        SalaDoBazar.objects.create(bazar=self.bazar, nome="Sala 1", ordem=1)
+
+        self.assertEqual(
+            [sala.nome for sala in SalaDoBazar.objects.filter(bazar=self.bazar)],
+            ["Sala 1", "Recepção"])
+
+    def test_duas_salas_com_o_mesmo_nome_no_mesmo_bazar_nao_entram(self):
+        from django.db import IntegrityError
+        from .models import SalaDoBazar
+        SalaDoBazar.objects.create(bazar=self.bazar, nome="Sala 1", ordem=1)
+        with self.assertRaises(IntegrityError):
+            SalaDoBazar.objects.create(bazar=self.bazar, nome="Sala 1", ordem=2)
+
+    def test_o_mesmo_nome_em_outro_bazar_pode(self):
+        """Cada edição tem as suas salas; "Sala 1" existe todo ano."""
+        from .models import SalaDoBazar
+        outro = Bazar.objects.create(nome="Bazar 2027", cota_inicial=5)
+        SalaDoBazar.objects.create(bazar=self.bazar, nome="Sala 1", ordem=1)
+        SalaDoBazar.objects.create(bazar=outro, nome="Sala 1", ordem=1)
+        self.assertEqual(SalaDoBazar.objects.filter(nome="Sala 1").count(), 2)
+
+    def test_a_retirada_guarda_a_sala_escolhida(self):
+        from .models import SalaDoBazar
+        sala = SalaDoBazar.objects.create(bazar=self.bazar, nome="Sala 2", ordem=1)
+        retirada, _, _ = self.retirar({self.camiseta.pk: 1}, sala=sala)
+        self.assertEqual(retirada.sala, sala)
+
+    def test_o_texto_livre_antigo_continua_existindo(self):
+        """A migração não apaga histórico: o CharField vira registro do que foi
+        digitado antes de existir lista."""
+        campo = Retirada._meta.get_field("sala_do_bazar")
+        self.assertTrue(campo.blank)
+
+    def test_apagar_o_bazar_leva_as_salas_junto(self):
+        """Sala só existe dentro de uma edição — não faz sentido sobreviver."""
+        from .models import SalaDoBazar
+        outro = Bazar.objects.create(nome="Bazar 2027", cota_inicial=5)
+        SalaDoBazar.objects.create(bazar=outro, nome="Sala 1", ordem=1)
+        outro.delete()
+        self.assertEqual(SalaDoBazar.objects.filter(nome="Sala 1").count(), 0)
