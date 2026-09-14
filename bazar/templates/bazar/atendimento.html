@@ -5,75 +5,142 @@
 {% block head %}
 <style>
   {% comment %}
-  Tela usada em pé, com fila na frente, muitas vezes num celular ou tablet.
-  Tudo aqui é grande de propósito: alvo de toque generoso, número de saldo
-  legível a um braço de distância, e o botão de finalizar impossível de errar.
-  {% endcomment %}
-  .bz-page { min-height: 90vh; padding-block: clamp(1rem, 3vw, 2rem) 4rem; background: linear-gradient(180deg, #fffaf6 0, hsl(var(--background)) 12rem); }
-  .bz-shell { width: min(100%, 940px); margin-inline: auto; padding-inline: clamp(.8rem, 3vw, 1.5rem); }
+  A tela é um CAIXA DE LOJA, que é a única interface que todo mundo já operou.
+  Três passos numerados, o saldo sempre à vista descendo, e nada grava sem uma
+  conferência com o nome da criança na frente.
 
-  .bz-etapa { display: inline-flex; align-items: center; gap: .45rem; padding: .35rem .8rem; border-radius: 999px; font-size: .74rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+  Usada em pé, com fila, no celular de quem nunca viu o sistema. Tudo aqui é
+  grande de propósito, e nenhum campo fica abaixo de 16px — abaixo disso o iOS
+  dá zoom sozinho ao focar e desalinha a tela no meio do atendimento.
+  {% endcomment %}
+
+  .bz-page { min-height: 100dvh; padding-block: .8rem 0; background: hsl(var(--background)); }
+  .bz-shell { width: min(100%, 940px); margin-inline: auto; padding-inline: clamp(.8rem, 3vw, 1.5rem); }
+  /* O espaço que o rodapé fixo ocupa. Sem isto o último bloco de peça fica
+     embaixo dele e o voluntário nunca descobre que existe mais categoria. */
+  .bz-corpo { padding-bottom: 15rem; }
+
+  /* ── Cabeçalho ── */
+  .bz-topo { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .bz-etapa { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .75rem; border-radius: 999px; font-size: .74rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
   .bz-etapa.primeira { background: #fff0e5; color: #a83b08; }
   .bz-etapa.segunda { background: #eee9ff; color: #5b35a6; }
-  .bz-etapa.fechado { background: #f1eeec; color: #6b5a51; }
+  .bz-nome-bazar { margin: .35rem 0 0; font-size: 1.05rem; font-weight: 850; letter-spacing: -.02em; color: var(--ink); }
+  .bz-caixa-chip { display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; padding: .4rem .8rem; border: 1px solid #eadbd0; border-radius: 999px; background: #fff; color: var(--ink); font-size: .82rem; font-weight: 700; cursor: pointer; }
+  .bz-caixa-chip b { font-weight: 850; }
 
-  .bz-busca { position: relative; margin: 1rem 0 1.25rem; }
-  .bz-busca input { width: 100%; padding: 1rem 1.1rem; border: 2px solid #e8d8cd; border-radius: 15px; background: #fff; color: var(--ink); font: inherit; font-size: 1.1rem; font-weight: 600; }
+  /* ── Passo ── */
+  .bz-passo { margin: 0 0 .55rem; font-size: .72rem; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; color: #a8642f; }
+
+  /* ── Busca ── */
+  .bz-busca { position: relative; margin-bottom: 1.1rem; }
+  /* 1.05rem = 16.8px. Nunca abaixo de 1rem aqui. */
+  .bz-busca input { width: 100%; min-height: 56px; padding: 1rem 1.05rem; border: 2px solid #e8d8cd; border-radius: 15px; background: #fff; color: var(--ink); font-family: inherit; font-size: 1.05rem; font-weight: 650; }
   .bz-busca input:focus { border-color: #e8560f; outline: none; box-shadow: 0 0 0 4px rgba(232,86,15,.13); }
-  .bz-sugestoes { position: absolute; z-index: 20; right: 0; left: 0; margin-top: .35rem; overflow: hidden; border: 1px solid #e8d8cd; border-radius: 14px; background: #fff; box-shadow: 0 18px 40px rgba(48,28,16,.16); }
-  .bz-sugestao { display: flex; align-items: baseline; justify-content: space-between; gap: .8rem; width: 100%; padding: .85rem 1rem; border: 0; border-bottom: 1px solid #f4ece7; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .bz-sugestoes { position: absolute; z-index: 30; right: 0; left: 0; max-height: 55vh; margin-top: .3rem; overflow-y: auto; border: 1px solid #eadbd0; border-radius: 14px; background: #fff; box-shadow: 0 18px 40px rgba(48,28,16,.18); }
+  .bz-sugestao { display: block; width: 100%; min-height: 56px; padding: .8rem 1rem; border: 0; border-bottom: 1px solid #f4ece7; background: none; color: inherit; font-family: inherit; text-align: left; cursor: pointer; }
   .bz-sugestao:last-child { border-bottom: 0; }
   .bz-sugestao:hover, .bz-sugestao:focus-visible { background: #fff6f0; outline: none; }
-  .bz-sugestao strong { font-size: 1rem; font-weight: 750; }
-  .bz-sugestao span { color: var(--ink-muted); font-size: .8rem; }
+  .bz-sugestao-nome { display: block; font-size: 1rem; font-weight: 800; color: var(--ink); }
+  .bz-sugestao-sub { display: block; margin-top: .12rem; font-size: .8rem; color: var(--ink-muted); }
+  .bz-estado-busca { padding: .9rem 1rem; font-size: .88rem; color: var(--ink-soft); }
+  .bz-estado-busca button { min-height: 44px; margin-top: .5rem; }
 
-  .bz-pessoa { padding: 1.1rem 1.2rem; border: 1px solid #eadbd0; border-radius: 18px; background: #fff; box-shadow: 0 10px 28px rgba(66,43,29,.07); }
-  .bz-pessoa-nome { margin: 0; font-size: clamp(1.3rem, 4vw, 1.85rem); font-weight: 880; letter-spacing: -.03em; line-height: 1.1; }
-  .bz-pessoa-sala { color: var(--ink-muted); font-size: .88rem; font-weight: 650; }
-
-  /* O saldo é o número que o voluntário olha o tempo todo. */
-  .bz-saldo { display: flex; align-items: baseline; gap: .5rem; margin-top: .8rem; padding: .8rem 1rem; border-radius: 14px; background: #effcf5; color: #0f6b46; }
-  .bz-saldo.pouco { background: #fff7ed; color: #a93e08; }
-  .bz-saldo.zerado { background: #fff0f0; color: #b42323; }
-  .bz-saldo.livre { background: #eee9ff; color: #5b35a6; }
-  .bz-saldo b { font-size: clamp(1.8rem, 6vw, 2.6rem); font-weight: 900; line-height: 1; }
-
-  .bz-tamanhos { display: flex; gap: .45rem; flex-wrap: wrap; margin-top: .7rem; }
-  .bz-tamanho { padding: .3rem .6rem; border: 1px solid #eadbd0; border-radius: 8px; background: #fffaf7; font-size: .74rem; font-weight: 700; }
+  /* ── Ficha da criança ── */
+  .bz-ficha { padding: .95rem 1.05rem; border: 1px solid #eadbd0; border-radius: 16px; background: #fff; box-shadow: 0 8px 22px rgba(66,43,29,.06); }
+  .bz-ficha.ja-passou { border-color: #f2d9b4; background: #fffaf0; }
+  .bz-ficha-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: .7rem; }
+  .bz-ficha-nome { margin: 0; font-size: clamp(1.25rem, 5vw, 1.6rem); font-weight: 880; letter-spacing: -.03em; line-height: 1.12; color: var(--ink); }
+  .bz-ficha-sub { margin: .2rem 0 0; font-size: .85rem; font-weight: 650; color: var(--ink-muted); }
+  .bz-trocar { min-height: 44px; padding: .4rem .7rem; border: 1px solid #eadbd0; border-radius: 10px; background: #fff; color: var(--ink-soft); font-family: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .bz-tamanhos { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .6rem; }
+  .bz-tamanho { padding: .3rem .6rem; border: 1px solid #eadbd0; border-radius: 8px; background: #fffaf7; font-size: .8rem; font-weight: 750; color: var(--ink); }
   .bz-tamanho span { color: var(--ink-muted); font-weight: 600; }
+  .bz-ja-passou-frase { margin: .7rem 0 0; padding: .8rem .9rem; border-radius: 12px; background: #fdf3dd; color: #8a6a10; font-size: .9rem; font-weight: 700; line-height: 1.5; }
 
-  .bz-aviso { margin-top: .85rem; padding: .85rem 1rem; border-radius: 12px; font-size: .86rem; font-weight: 700; }
-  .bz-aviso.bloqueio { background: #fff7ed; color: #92400e; }
-  .bz-aviso.erro { background: #fff0f0; color: #b42323; }
-  .bz-aviso.ok { background: #effcf5; color: #0f6b46; }
+  /* ── Grade de peças ── */
+  .bz-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: .6rem; margin-top: 1rem; }
+  .bz-bloco { position: relative; display: flex; min-height: 92px; overflow: hidden; border: 2px solid #eadbd0; border-radius: 14px; background: #fff; }
+  .bz-bloco.tem { border-color: #e8560f; background: #fff6f0; }
+  /* A faixa do "−": 44px de largura, ALTURA INTEIRA do bloco, e só existe
+     quando já há peça marcada. Assim o "+" continua sendo o bloco inteiro, que
+     é onde o leigo toca, e o "−" ganha borda própria. Antes o "−" era um span
+     de 32px DENTRO do botão que soma: errar o alvo adicionava peça. */
+  .bz-menos { display: none; flex: 0 0 44px; align-items: center; justify-content: center; border: 0; border-right: 2px solid #f0c9ae; background: #ffe9da; color: #a83b08; font-family: inherit; font-size: 1.5rem; font-weight: 900; line-height: 1; cursor: pointer; }
+  .bz-bloco.tem .bz-menos { display: flex; }
+  .bz-menos:active { background: #ffd9c2; }
+  .bz-mais { flex: 1; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: .12rem; min-width: 0; padding: .7rem .8rem; border: 0; background: none; color: var(--ink); font-family: inherit; text-align: left; cursor: pointer; }
+  .bz-mais:active { background: rgba(232,86,15,.06); }
+  .bz-mais-nome { font-size: .95rem; font-weight: 820; letter-spacing: -.01em; }
+  .bz-mais-pontos { font-size: .78rem; font-weight: 650; color: var(--ink-muted); }
+  .bz-mais-estoque { font-size: .7rem; color: var(--ink-muted); }
+  .bz-mais-estoque.baixo { color: #b45309; font-weight: 800; }
+  /* Impossibilidade vira FRASE dentro do botão, nunca cinza mudo: botão
+     desligado em silêncio é tela quebrada para quem nunca usou o sistema. */
+  .bz-mais-recusa { display: none; font-size: .74rem; font-weight: 800; color: #b42323; }
+  .bz-bloco.nao-cabe .bz-mais-recusa { display: block; }
+  .bz-bloco.nao-cabe .bz-mais-estoque { display: none; }
+  .bz-bloco.nao-cabe .bz-mais { opacity: .75; }
+  .bz-conta { position: absolute; top: .4rem; right: .4rem; display: grid; min-width: 1.9rem; height: 1.9rem; place-items: center; border-radius: 999px; background: #e8560f; color: #fff; font-size: .95rem; font-weight: 900; }
+  .bz-bloco:not(.tem) .bz-conta { display: none; }
 
-  /* Botões de categoria: alvo grande, contagem visível sem abrir nada. */
-  .bz-categorias { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .7rem; margin-top: 1.25rem; }
-  .bz-categoria { position: relative; display: flex; min-height: 5.5rem; flex-direction: column; align-items: flex-start; justify-content: center; gap: .2rem; padding: .9rem 1rem; border: 2px solid #eadbd0; border-radius: 16px; background: #fff; color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, background .15s, transform .1s; }
-  .bz-categoria:hover { border-color: #d9bda9; }
-  .bz-categoria:active { transform: scale(.98); }
-  .bz-categoria.tem { border-color: #e8560f; background: #fff6f0; }
-  .bz-categoria-nome { font-size: 1rem; font-weight: 800; letter-spacing: -.01em; }
-  .bz-categoria-pontos { color: var(--ink-muted); font-size: .78rem; font-weight: 650; }
-  .bz-categoria-estoque { color: var(--ink-muted); font-size: .68rem; }
-  .bz-categoria-estoque.baixo { color: #b45309; font-weight: 800; }
-  .bz-conta { position: absolute; top: .5rem; right: .5rem; display: grid; min-width: 2rem; height: 2rem; place-items: center; border-radius: 999px; background: #e8560f; color: #fff; font-size: 1rem; font-weight: 900; }
-  .bz-menos { position: absolute; right: .5rem; bottom: .5rem; width: 2rem; height: 2rem; border: 1px solid #eadbd0; border-radius: 999px; background: #fff; color: var(--ink-soft); font-size: 1.2rem; font-weight: 800; line-height: 1; cursor: pointer; }
+  /* ── Ações fora da grade ── */
+  .bz-outras { display: grid; gap: .5rem; margin-top: .9rem; }
+  .bz-outra { min-height: 48px; padding: .7rem .9rem; border: 1px dashed #dcc6b6; border-radius: 12px; background: #fff; color: var(--ink-soft); font-family: inherit; font-size: .88rem; font-weight: 700; cursor: pointer; }
+  .bz-outra:active { background: #fff6f0; }
 
-  .bz-resumo { position: sticky; bottom: 0; margin-top: 1.25rem; padding: 1rem 1.1rem; border: 1px solid #eadbd0; border-radius: 18px 18px 0 0; background: #fff; box-shadow: 0 -10px 30px rgba(66,43,29,.1); }
-  .bz-resumo-linha { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .3rem; font-size: .88rem; }
-  .bz-resumo-total { font-size: 1.05rem; font-weight: 850; }
-  .bz-finalizar { width: 100%; margin-top: .8rem; padding: 1.05rem; border: 0; border-radius: 14px; background: #16845b; color: #fff; font: inherit; font-size: 1.1rem; font-weight: 850; letter-spacing: .01em; cursor: pointer; }
-  .bz-finalizar:disabled { background: #cdc5c0; cursor: not-allowed; }
+  /* ── Rodapé fixo: o saldo, a sacola e o botão ── */
+  /* fixed + dvh + safe-area: sticky bottom:0 se ancora no viewport de LAYOUT do
+     iOS, que não encolhe com o teclado — o botão verde ia parar atrás dele. */
+  .bz-rodape { position: fixed; right: 0; bottom: 0; left: 0; z-index: 20; padding: .75rem clamp(.8rem, 3vw, 1.5rem) calc(.75rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid #eadbd0; background: #fff; box-shadow: 0 -8px 26px rgba(66,43,29,.12); }
+  .bz-rodape-in { width: min(100%, 940px); margin-inline: auto; }
+  .bz-saldo-linha { display: flex; align-items: baseline; gap: .5rem; }
+  .bz-saldo-numero { font-size: clamp(2rem, 8vw, 2.6rem); font-weight: 900; line-height: 1; letter-spacing: -.04em; color: #0f6b46; }
+  .bz-saldo-texto { font-size: .92rem; font-weight: 750; color: var(--ink-soft); }
+  .bz-rodape.pouco .bz-saldo-numero { color: #a93e08; }
+  .bz-rodape.zerado .bz-saldo-numero { color: #b42323; }
+  .bz-rodape.livre .bz-saldo-numero { color: #5b35a6; }
+  .bz-barra { position: relative; height: 8px; margin: .45rem 0 .5rem; overflow: hidden; border-radius: 999px; background: #f1e6dd; }
+  .bz-barra span { display: block; height: 100%; border-radius: 999px; background: #16845b; transition: width .18s ease; }
+  .bz-rodape.pouco .bz-barra span { background: #d97706; }
+  .bz-rodape.zerado .bz-barra span { background: #b42323; }
+  .bz-sacola { display: flex; align-items: center; justify-content: space-between; gap: .6rem; font-size: .88rem; font-weight: 700; color: var(--ink); }
+  .bz-desfazer { min-height: 44px; padding: .35rem .7rem; border: 1px solid #eadbd0; border-radius: 10px; background: #fff; color: var(--ink-soft); font-family: inherit; font-size: .82rem; font-weight: 750; cursor: pointer; }
+  .bz-conferir { width: 100%; min-height: 60px; margin-top: .55rem; padding: 1rem; border: 0; border-radius: 14px; background: #16845b; color: #fff; font-family: inherit; font-size: 1.08rem; font-weight: 850; cursor: pointer; }
+  .bz-conferir:disabled { background: #cdc5c0; cursor: not-allowed; }
+  .bz-levou { margin: .5rem 0 0; font-size: .8rem; color: var(--ink-muted); }
+  .bz-levou button { min-height: 44px; padding: .2rem .5rem; border: 0; background: none; color: #a8642f; font-family: inherit; font-size: .8rem; font-weight: 800; text-decoration: underline; cursor: pointer; }
 
-  .bz-extra { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .6rem; margin-top: .9rem; }
-  .bz-extra label { display: block; margin-bottom: .25rem; color: var(--ink-muted); font-size: .7rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
-  .bz-extra select, .bz-extra input { width: 100%; padding: .6rem .7rem; border: 1px solid #e8d8cd; border-radius: 10px; background: #fff; color: var(--ink); font: inherit; font-size: .88rem; }
+  /* ── Recados: NUNCA apagados por quem redesenha a tela ── */
+  .bz-recado { margin-top: .6rem; padding: .8rem .9rem; border-radius: 12px; font-size: .9rem; font-weight: 700; line-height: 1.5; }
+  .bz-recado.erro { background: #fdeaea; color: #b42323; }
+  .bz-recado.ok { background: #effcf5; color: #0f6b46; }
+  .bz-recado.aviso { background: #fdf3dd; color: #8a6a10; }
+  .bz-recado button { min-height: 44px; margin-top: .45rem; padding: .35rem .75rem; border: 1px solid currentColor; border-radius: 9px; background: #fff; color: inherit; font-family: inherit; font-size: .84rem; font-weight: 800; cursor: pointer; }
 
-  .bz-historico { margin-top: .9rem; padding-top: .8rem; border-top: 1px dashed #eadbd0; font-size: .82rem; }
-  .bz-historico li { margin-bottom: .3rem; color: var(--ink-soft); }
+  /* ── Folha de conferência e diálogos ── */
+  .bz-folha { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; padding: 0; background: rgba(40,24,14,.45); }
+  .bz-folha-in { width: min(100%, 560px); max-height: 92dvh; overflow-y: auto; padding: 1.2rem 1.15rem calc(1.2rem + env(safe-area-inset-bottom, 0px)); border-radius: 20px 20px 0 0; background: #fff; }
+  .bz-folha-titulo { margin: 0 0 .15rem; font-size: .72rem; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; color: #a8642f; }
+  .bz-folha-nome { margin: 0 0 .8rem; font-size: clamp(1.3rem, 5vw, 1.7rem); font-weight: 880; letter-spacing: -.03em; color: var(--ink); }
+  .bz-folha-linha { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: .5rem 0; border-bottom: 1px solid #f4ece7; font-size: .95rem; }
+  .bz-folha-total { padding-top: .6rem; font-size: 1.05rem; font-weight: 850; color: var(--ink); }
+  .bz-folha-sobra { margin: .3rem 0 0; font-size: .9rem; font-weight: 750; color: #0f6b46; }
+  .bz-campo { margin-top: .9rem; }
+  .bz-campo label { display: block; margin-bottom: .3rem; font-size: .78rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); }
+  /* 1rem = 16px. Nunca menos, ou o iOS dá zoom ao focar. */
+  .bz-campo select, .bz-campo input { width: 100%; min-height: 52px; padding: .7rem .8rem; border: 1px solid #e8d8cd; border-radius: 11px; background: #fff; color: var(--ink); font-family: inherit; font-size: 1rem; }
+  .bz-folha-acoes { display: grid; gap: .5rem; margin-top: 1.1rem; }
+  .bz-confirmar { width: 100%; min-height: 60px; border: 0; border-radius: 14px; background: #16845b; color: #fff; font-family: inherit; font-size: 1.08rem; font-weight: 850; cursor: pointer; }
+  .bz-confirmar:disabled { background: #cdc5c0; }
+  .bz-voltar { width: 100%; min-height: 52px; border: 1px solid #eadbd0; border-radius: 12px; background: #fff; color: var(--ink-soft); font-family: inherit; font-size: .95rem; font-weight: 750; cursor: pointer; }
 
-  .bz-vazio { padding: 3rem 1.5rem; border: 1.5px dashed #e8cbb8; border-radius: 20px; background: rgba(255,255,255,.7); text-align: center; }
+  /* ── Vazio ── */
+  .bz-vazio { padding: 2.5rem 1.4rem; border: 1.5px dashed #e8cbb8; border-radius: 18px; background: #fff; text-align: center; }
+  .bz-vazio h1 { margin: 0 0 .5rem; font-size: 1.3rem; font-weight: 880; letter-spacing: -.03em; color: var(--ink); }
+  .bz-vazio p { margin: 0 auto 1rem; max-width: 44ch; font-size: .92rem; line-height: 1.6; color: var(--ink-muted); }
+
+  @media (min-width: 640px) { .bz-folha { align-items: center; } .bz-folha-in { border-radius: 20px; } }
 </style>
 {% endblock %}
 
@@ -83,111 +150,219 @@
 
     {% if not bazar %}
       <div class="bz-vazio">
-        <h1 style="font-weight:880;letter-spacing:-.03em">Nenhum Bazar aberto</h1>
-        <p style="color:var(--ink-muted)">
+        <h1>O Bazar ainda não abriu</h1>
+        <p>
           A coordenação precisa abrir a 1ª etapa para o atendimento começar.
+          Se o Bazar já devia estar acontecendo, procure quem está coordenando.
         </p>
         {% if pode_coordenar %}
           <a href="{% url 'bazar:painel' %}" class="pcf-btn pcf-btn-primary">Abrir o painel do Bazar</a>
         {% endif %}
       </div>
     {% else %}
-      <header style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+
+      <!-- ══════ Cabeçalho ══════ -->
+      <header class="bz-topo">
         <div>
-          <span class="bz-etapa {% if bazar.etapa == 'PRIMEIRA' %}primeira{% elif bazar.etapa == 'SEGUNDA' %}segunda{% else %}fechado{% endif %}">
-            {{ bazar.get_etapa_display }}
+          <span class="bz-etapa {% if bazar.etapa == 'PRIMEIRA' %}primeira{% else %}segunda{% endif %}">
+            {% if bazar.etapa == 'PRIMEIRA' %}
+              1ª etapa · cada criança tem {{ bazar.cota_inicial }} ponto{{ bazar.cota_inicial|pluralize }}
+            {% else %}
+              2ª etapa · sem limite de pontos
+            {% endif %}
           </span>
-          <h1 style="margin:.5rem 0 0;font-size:clamp(1.5rem,4vw,2.1rem);font-weight:900;letter-spacing:-.04em">{{ bazar.nome }}</h1>
+          <p class="bz-nome-bazar">{{ bazar.nome }}</p>
         </div>
-        {% if pode_coordenar %}
-          <a href="{% url 'bazar:painel' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Painel</a>
-        {% endif %}
+        <div style="display:flex;gap:.4rem;align-items:center">
+          {% if salas %}
+            <button type="button" class="bz-caixa-chip" data-abrir-caixa>
+              Caixa: <b data-caixa-nome>escolher</b>
+            </button>
+          {% endif %}
+          {% if pode_coordenar %}
+            <a href="{% url 'bazar:painel' %}" class="pcf-btn pcf-btn-outline pcf-btn-sm">Painel</a>
+          {% endif %}
+        </div>
       </header>
 
-      <div class="bz-busca">
-        <label class="sr-only" for="bz-nome">Buscar o atendido pelo nome</label>
-        <input type="search" id="bz-nome" data-busca autocomplete="off"
-               placeholder="Digite o nome do atendido">
-        <div class="bz-sugestoes" data-sugestoes hidden></div>
-      </div>
+      <div class="bz-corpo">
 
-      <section data-pessoa hidden>
-        <div class="bz-pessoa">
-          <p class="bz-pessoa-nome" data-nome></p>
-          <p class="bz-pessoa-sala" data-sala></p>
+        <!-- ══════ Passo 1 ══════ -->
+        <section data-passo-busca>
+          <p class="bz-passo">Passo 1 de 3 — quem é o próximo da fila?</p>
+          <div class="bz-busca">
+            <label class="sr-only" for="bz-nome">Nome do atendido</label>
+            <input type="search" id="bz-nome" data-busca autocomplete="off"
+                   enterkeyhint="search" placeholder="Digite o nome da criança">
+            <div class="bz-sugestoes" data-sugestoes hidden></div>
+          </div>
+          <div class="bz-recado" data-recado-busca hidden></div>
+        </section>
 
-          <div class="bz-saldo" data-saldo>
-            <b data-saldo-numero>—</b>
-            <span data-saldo-texto></span>
+        <!-- ══════ Passo 2 ══════ -->
+        <section data-passo-pecas hidden>
+          <div class="bz-ficha" data-ficha>
+            <div class="bz-ficha-topo">
+              <div style="min-width:0">
+                <p class="bz-ficha-nome" data-nome></p>
+                <p class="bz-ficha-sub" data-sub></p>
+              </div>
+              <button type="button" class="bz-trocar" data-trocar>Trocar</button>
+            </div>
+            <div class="bz-tamanhos" data-tamanhos hidden></div>
+            <p class="bz-ja-passou-frase" data-ja-passou hidden></p>
           </div>
 
-          <div class="bz-tamanhos" data-tamanhos hidden></div>
-          <div class="bz-aviso bloqueio" data-bloqueio hidden></div>
-          <ul class="bz-historico" data-historico hidden style="list-style:none;padding:0;margin-top:.9rem"></ul>
-        </div>
+          <p class="bz-passo" style="margin-top:1rem" data-titulo-pecas>
+            Passo 2 de 3 — marque as peças
+          </p>
 
-        <div class="bz-categorias" data-categorias>
-          {% for categoria in categorias %}
-            <button type="button" class="bz-categoria" data-categoria="{{ categoria.pk }}"
-                    data-pontos="{{ categoria.pontos }}">
-              <span class="bz-categoria-nome">{{ categoria.nome }}</span>
-              <span class="bz-categoria-pontos">{{ categoria.pontos }} ponto{{ categoria.pontos|pluralize }}</span>
-              {% if categoria.estoque_inicial %}
-                <span class="bz-categoria-estoque {% if categoria.estoque_baixo %}baixo{% endif %}">
-                  {{ categoria.restante }} em estoque
-                </span>
-              {% endif %}
-              <span class="bz-conta" data-conta hidden>0</span>
-              <span class="bz-menos" data-menos hidden aria-label="Tirar uma">−</span>
+          <div class="bz-grade" data-grade>
+            {% for categoria in categorias %}
+              <div class="bz-bloco" data-bloco data-categoria="{{ categoria.pk }}"
+                   data-pontos="{{ categoria.pontos }}">
+                <button type="button" class="bz-menos" data-menos
+                        aria-label="Tirar uma {{ categoria.nome }}">−</button>
+                <button type="button" class="bz-mais" data-mais
+                        aria-label="Somar uma {{ categoria.nome }}">
+                  <span class="bz-mais-nome">{{ categoria.nome }}</span>
+                  <span class="bz-mais-pontos">{{ categoria.pontos }} ponto{{ categoria.pontos|pluralize }}</span>
+                  {% if categoria.estoque_inicial %}
+                    <span class="bz-mais-estoque {% if categoria.estoque_baixo %}baixo{% endif %}">
+                      restam {{ categoria.restante }}
+                    </span>
+                  {% endif %}
+                  <span class="bz-mais-recusa" data-recusa></span>
+                </button>
+                <span class="bz-conta" data-conta>0</span>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="bz-outras">
+            <button type="button" class="bz-outra" data-sem-retirada>
+              Veio e não levou nada — registrar mesmo assim
             </button>
-          {% endfor %}
-        </div>
-
-        <div class="bz-resumo">
-          <div data-linhas></div>
-          <div class="bz-resumo-linha bz-resumo-total">
-            <span>Total</span>
-            <span><b data-total>0</b> pontos · <span data-pecas>0</span> peça(s)</span>
           </div>
-
-          <div class="bz-extra">
-            <div>
-              <label for="bz-retirado-por">Quem levou</label>
-              <select id="bz-retirado-por" data-retirado-por>
-                {% for codigo, rotulo in opcoes_retirado_por %}
-                  <option value="{{ codigo }}">{{ rotulo }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div data-nome-de-quem hidden>
-              <label for="bz-quem-nome">Nome de quem levou</label>
-              <input type="text" id="bz-quem-nome" data-retirado-nome autocomplete="off">
-            </div>
-            <div>
-              <label for="bz-sala">Sala do Bazar</label>
-              <input type="text" id="bz-sala" data-sala-bazar autocomplete="off" placeholder="Ex.: Sala 1">
-            </div>
-          </div>
-
-          <div class="bz-aviso erro" data-erro hidden></div>
-          <button type="button" class="bz-finalizar" data-finalizar disabled>
-            Finalizar retirada
-          </button>
-        </div>
-      </section>
-
-      <div class="bz-aviso ok" data-sucesso hidden style="margin-top:1rem"></div>
+        </section>
+      </div>
     {% endif %}
   </div>
 </div>
 
 {% if bazar %}
+<!-- ══════ Rodapé fixo ══════ -->
+<div class="bz-rodape" data-rodape hidden>
+  <div class="bz-rodape-in">
+    <div class="bz-saldo-linha">
+      <span class="bz-saldo-numero" data-saldo-numero>—</span>
+      <span class="bz-saldo-texto" data-saldo-texto></span>
+    </div>
+    <div class="bz-barra" aria-hidden="true"><span data-barra style="width:0"></span></div>
+    <div class="bz-sacola">
+      <span data-ultimo>Sacola vazia</span>
+      <button type="button" class="bz-desfazer" data-desfazer hidden>↶ Desfazer</button>
+    </div>
+    <div class="bz-sacola" style="margin-top:.25rem">
+      <span>Sacola</span>
+      <span><b data-total>0</b> ponto(s) · <span data-pecas>0</span> peça(s)</span>
+    </div>
+    <button type="button" class="bz-conferir" data-conferir disabled>
+      Conferir e entregar
+    </button>
+    <p class="bz-levou">
+      Levou: <b data-levou-texto>o próprio atendido</b>
+    </p>
+  </div>
+</div>
+
+<!-- ══════ Folha de conferência (Passo 3) ══════ -->
+<div class="bz-folha" data-folha hidden>
+  <div class="bz-folha-in">
+    <p class="bz-folha-titulo">Passo 3 de 3 — confira antes de entregar</p>
+    <p class="bz-folha-nome" data-folha-nome></p>
+
+    <div data-folha-linhas></div>
+    <div class="bz-folha-linha bz-folha-total">
+      <span>Total</span>
+      <span><b data-folha-total>0</b> ponto(s)</span>
+    </div>
+    <p class="bz-folha-sobra" data-folha-sobra></p>
+
+    <div class="bz-campo">
+      <label for="bz-levou">Quem levou a sacola</label>
+      <select id="bz-levou" data-levou>
+        {% for codigo, rotulo in opcoes_retirado_por %}
+          <option value="{{ codigo }}">{{ rotulo }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="bz-campo" data-campo-nome hidden>
+      <label for="bz-levou-nome">Nome de quem levou</label>
+      <input type="text" id="bz-levou-nome" data-levou-nome autocomplete="off">
+    </div>
+
+    <div class="bz-recado erro" data-recado-folha hidden></div>
+
+    <div class="bz-folha-acoes">
+      <button type="button" class="bz-confirmar" data-confirmar>Confirmar a entrega</button>
+      <button type="button" class="bz-voltar" data-voltar>Voltar e corrigir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ Visitante ══════ -->
+<div class="bz-folha" data-visitante hidden>
+  <div class="bz-folha-in">
+    <p class="bz-folha-titulo">Fora do cadastro</p>
+    <p class="bz-folha-nome">Quem veio sem cadastro?</p>
+    <p style="margin:0 0 .3rem;font-size:.9rem;line-height:1.55;color:var(--ink-muted)">
+      Isto NÃO cria ficha no projeto. Fica registrado como exceção, para a
+      coordenação resolver depois do evento.
+    </p>
+
+    <div class="bz-campo">
+      <label for="bz-vis-nome">Nome da criança</label>
+      <input type="text" id="bz-vis-nome" data-visitante-nome autocomplete="off">
+    </div>
+    <div class="bz-campo">
+      <label for="bz-vis-motivo">Por que está fora do cadastro</label>
+      <input type="text" id="bz-vis-motivo" data-visitante-motivo autocomplete="off"
+             placeholder="Ex.: irmão que não é matriculado">
+    </div>
+
+    <div class="bz-recado erro" data-recado-visitante hidden></div>
+
+    <div class="bz-folha-acoes">
+      <button type="button" class="bz-confirmar" data-visitante-ok>Continuar</button>
+      <button type="button" class="bz-voltar" data-visitante-cancelar>Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ Escolher o caixa ══════ -->
+<div class="bz-folha" data-caixa hidden>
+  <div class="bz-folha-in">
+    <p class="bz-folha-titulo">Uma vez por aparelho</p>
+    <p class="bz-folha-nome">Em qual caixa você está?</p>
+    <div class="bz-folha-acoes">
+      {% for sala in salas %}
+        <button type="button" class="bz-voltar" data-sala="{{ sala.pk }}"
+                style="font-size:1.05rem;font-weight:800;min-height:60px">{{ sala.nome }}</button>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
 <script>
   window.BAZAR = {
     urlBusca: "{% url 'bazar:buscar' %}",
     urlSituacao: "{% url 'bazar:situacao' 0 %}",
     urlFinalizar: "{% url 'bazar:finalizar' %}",
+    urlCancelar: "{% url 'bazar:cancelar' 0 %}",
     descontaPontos: {{ bazar.desconta_pontos|yesno:"true,false" }},
+    cota: {{ bazar.cota_inicial }},
+    minutosParaDesfazer: {{ minutos_para_desfazer }},
     csrf: "{{ csrf_token }}"
   };
 </script>

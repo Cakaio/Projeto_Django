@@ -145,6 +145,13 @@ def situacao(request, pk):
         "id": atendido.pk,
         "nome": atendido.nome,
         "sala": atendido.get_sala_display(),
+        "idade": idade_de(atendido),
+        # A frase inteira de quem já passou: hora, sala e quem conferiu. "Já
+        # passou" sozinho não diz a quem perguntar, que é o que o voluntário
+        # precisa saber com a roupa na mão.
+        "recado_ja_retirou": (
+            recado_de_ja_retirou(bazar, atendido) if dados["ja_retirou"] else ""
+        ),
         "saldo": dados["saldo"],
         "cota": dados["cota"],
         "ja_retirou": dados["ja_retirou"],

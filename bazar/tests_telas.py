@@ -61,8 +61,10 @@ class AtendimentoTest(BaseTela):
         html = views.atendimento(
             self.pedido("/bazar/", self.voluntario)).content.decode()
 
-        self.assertIn("Nenhum Bazar aberto", html)
-        self.assertNotIn("Finalizar retirada", html)
+        # "Nenhum Bazar aberto" parecia defeito para quem abriu a tela. Agora
+        # diz o que falta e a quem pedir.
+        self.assertIn("ainda não abriu", html)
+        self.assertNotIn("data-conferir", html)
 
     def test_os_botoes_mostram_o_valor_em_pontos(self):
         """O voluntário não pode precisar decorar a tabela de preços."""
@@ -434,3 +436,129 @@ class CancelarPelaTelaTest(BaseTela):
         resposta = views.cancelar(
             self.pedido("/bazar/cancelar/", self.voluntario), pk=retirada.pk)
         self.assertIsInstance(resposta, HttpResponseNotAllowed)
+
+
+class TelaDoCaixaTest(BaseTela):
+    """A tela renderizada de verdade.
+
+    Cada teste aqui trava um defeito que estava na tela antiga e que foi o
+    motivo do redesenho — não são preferências de layout.
+    """
+
+    def _html(self, usuario=None):
+        return views.atendimento(
+            self.pedido("/bazar/", usuario or self.voluntario)).content.decode()
+
+    def test_diz_o_que_fazer_antes_de_escolher_alguem(self):
+        """A tela abria com um campo de busca solto e nada mais: quem nunca viu
+        não tem como saber que o primeiro passo é digitar o nome."""
+        self.assertIn("PASSO 1", self._html().upper())
+
+    def test_o_menos_e_botao_proprio_e_nao_span_dentro_do_botao(self):
+        """O `−` era um <span> de 32px DENTRO do <button> que soma: errar o
+        alvo não era neutro, adicionava peça. E <span> não é focável, então
+        dava para somar pelo teclado e não dava para tirar."""
+        html = self._html()
+        self.assertNotIn('<span class="bz-menos"', html)
+        self.assertIn('data-menos', html)
+        # O menos é um botão de verdade.
+        trecho = html[html.index('data-menos') - 200:html.index('data-menos')]
+        self.assertIn('<button', trecho)
+
+    def test_nenhum_campo_de_digitacao_abaixo_de_16px(self):
+        """Abaixo de 16px o iOS dá zoom sozinho ao focar e desalinha a tela no
+        meio do atendimento. Vale para CAMPO, não para texto: legenda de
+        estoque a 0.7rem está certa e não pode ser arrastada junto."""
+        import re
+        html = self._html()
+        bloco = html[html.index("<style>"):html.index("</style>")]
+
+        for seletor, corpo in re.findall(r'([^{}]+)\{([^{}]*)\}', bloco):
+            if not re.search(r'\b(input|select|textarea)\b', seletor):
+                continue
+            for tamanho in re.findall(r'font-size:\s*([\d.]+)rem', corpo):
+                with self.subTest(seletor=seletor.strip()):
+                    self.assertGreaterEqual(
+                        float(tamanho) * 16, 15.99,
+                        f"{seletor.strip()} tem font-size {tamanho}rem — "
+                        "abaixo de 16px o iOS dá zoom ao focar")
+
+    def test_o_rodape_fixo_traz_saldo_sacola_e_o_botao(self):
+        """O saldo morava num cartão no topo, que sai da tela exatamente
+        enquanto se marca peça."""
+        html = self._html()
+        self.assertIn("data-saldo-numero", html)
+        self.assertIn("data-total", html)
+        self.assertIn("data-conferir", html)
+
+    def test_o_rodape_respeita_a_barra_do_iphone(self):
+        """sticky/fixed bottom:0 se ancora no viewport de layout do iOS: sem
+        safe-area o botão fica atrás da barra de gestos."""
+        html = self._html()
+        self.assertIn("safe-area-inset-bottom", html)
+
+    def test_o_botao_verde_confere_antes_de_gravar(self):
+        """Um toque acidental no botão que ocupa a largura inteira gravava e
+        travava a criança naquela etapa."""
+        html = self._html()
+        self.assertIn("data-folha", html)
+        self.assertIn("data-confirmar", html)
+
+    def test_oferece_o_caminho_de_quem_nao_esta_cadastrado(self):
+        self.assertIn("data-visitante", self._html())
+
+    def test_oferece_veio_e_nao_levou_nada(self):
+        self.assertIn("data-sem-retirada", self._html())
+
+    def test_lista_as_salas_do_bazar(self):
+        from .models import SalaDoBazar
+        SalaDoBazar.objects.create(bazar=self.bazar, nome="Sala 1", ordem=1)
+        self.assertIn("Sala 1", self._html())
+
+    def test_diz_a_cota_da_etapa_por_extenso(self):
+        """O primeiro número grande da tela é "5 pontos": ou a tela explica, ou
+        o voluntário chuta."""
+        self.assertIn("5", self._html())
+
+    def test_sem_bazar_aberto_a_tela_explica_em_vez_de_parecer_erro(self):
+        self.bazar.etapa = Bazar.Etapa.NAO_COMECOU
+        self.bazar.save()
+        html = self._html()
+        self.assertIn("coordena", html.lower())
+
+    def test_o_js_carrega_com_carimbo_de_versao(self):
+        """Sem o `?v=`, publicar uma correção não entrega nada a quem já abriu
+        o site — o endereço não muda e o navegador serve o arquivo velho."""
+        self.assertIn("bazar-atendimento.js?v=", self._html())
+
+
+class SituacaoCompletaTest(BaseTela):
+    """O que a tela precisa saber sobre a criança, de uma vez só."""
+
+    def _situacao(self):
+        resposta = views.situacao(
+            self.pedido(f"/bazar/situacao/{self.joao.pk}/", self.voluntario),
+            pk=self.joao.pk)
+        return json.loads(resposta.content)
+
+    def test_devolve_a_idade(self):
+        self.assertIsNotNone(self._situacao()["idade"])
+
+    def test_quem_ja_passou_recebe_a_frase_inteira(self):
+        """"Já passou" sem hora nem sala não diz a quem perguntar — e é isso
+        que o voluntário precisa saber, com a roupa na mão."""
+        from .models import SalaDoBazar
+        from .regras import finalizar_retirada
+        sala = SalaDoBazar.objects.create(bazar=self.bazar, nome="Sala 2")
+        finalizar_retirada(bazar=self.bazar, atendido=self.joao,
+                           pedido={self.camiseta.pk: 1},
+                           conferido_por=self.coordenacao, sala=sala)
+
+        dados = self._situacao()
+
+        self.assertTrue(dados["ja_retirou"])
+        self.assertIn("Sala 2", dados["recado_ja_retirou"])
+        self.assertIn("lia", dados["recado_ja_retirou"])
+
+    def test_quem_nao_passou_nao_recebe_frase(self):
+        self.assertEqual(self._situacao()["recado_ja_retirou"], "")
