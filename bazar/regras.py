@@ -48,6 +48,33 @@ def saldo_de(bazar, atendido):
     return max(0, bazar.cota_inicial - usados)
 
 
+def recado_de_ja_retirou(bazar, atendido):
+    """A frase inteira para quem chegou com a sacola e ouviu "já passou".
+
+    "Já finalizou a retirada desta etapa" não basta quando a roupa está na mão
+    de outra sala: o voluntário precisa saber a quem perguntar. Vive aqui, e
+    não na view, porque os dois caminhos que produzem esta recusa — a checagem
+    antes de gravar e a corrida entre duas salas — têm que dizer a MESMA coisa.
+    """
+    nome = atendido.nome if atendido is not None else "esta criança"
+    anterior = (Retirada.objects
+                .filter(bazar=bazar, atendido=atendido, etapa=bazar.etapa,
+                        finalizada_em__isnull=False)
+                .select_related("conferido_por", "sala")
+                .first())
+
+    recado = f"A sacola de {nome} já foi registrada"
+    if anterior is not None:
+        recado += f" às {timezone.localtime(anterior.finalizada_em):%H:%M}"
+        if anterior.sala:
+            recado += f", na {anterior.sala.nome}"
+        if anterior.conferido_por:
+            quem = (anterior.conferido_por.get_full_name()
+                    or anterior.conferido_por.username)
+            recado += f", por {quem}"
+    return recado + ". Nada foi gravado duas vezes."
+
+
 def ja_retirou_nesta_etapa(bazar, atendido):
     """A trava contra passar duas vezes pela mesma fila.
 
@@ -102,10 +129,7 @@ def conferir_pedido(bazar, atendido, pedido, sem_retirada=False):
         raise RetiradaInvalida("O Bazar não está aberto para retirada.")
 
     if ja_retirou_nesta_etapa(bazar, atendido):
-        raise RetiradaInvalida(
-            f"{atendido.nome} já finalizou a retirada desta etapa.")
-    # (ja_retirou_nesta_etapa devolve False quando atendido é None, então a
-    #  linha acima nunca desreferencia nulo.)
+        raise RetiradaInvalida(recado_de_ja_retirou(bazar, atendido))
 
     linhas = []
     categorias = {

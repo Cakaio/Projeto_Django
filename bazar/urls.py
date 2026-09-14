@@ -10,6 +10,7 @@ urlpatterns = [
     path("buscar/", views.buscar_atendido, name="buscar"),
     path("situacao/<int:pk>/", views.situacao, name="situacao"),
     path("finalizar/", views.finalizar, name="finalizar"),
+    path("cancelar/<int:pk>/", views.cancelar, name="cancelar"),
     # Coordenação.
     path("painel/", views.painel, name="painel"),
     path("<int:pk>/etapa/", views.mudar_etapa, name="mudar_etapa"),

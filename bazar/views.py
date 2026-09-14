@@ -16,6 +16,7 @@ from functools import wraps
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db import IntegrityError
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -24,9 +25,10 @@ from django.views.decorators.http import require_POST
 
 from atendido.models import Atendido
 
-from .models import Bazar, Categoria, ItemRetirada, Retirada
-from .regras import (RetiradaInvalida, finalizar_retirada, numeros_do_bazar,
-                     por_salinha, situacao_do_atendido)
+from .models import Bazar, Categoria, ItemRetirada, Retirada, SalaDoBazar
+from .regras import (MINUTOS_PARA_DESFAZER, RetiradaInvalida,
+                     cancelar_retirada, finalizar_retirada, numeros_do_bazar,
+                     por_salinha, recado_de_ja_retirou, situacao_do_atendido)
 
 # Quem configura e coordena o Bazar. Conferir na fila é outra coisa: qualquer
 # voluntário logado pode, porque são eles que estão escalados no dia.
@@ -35,6 +37,22 @@ AREAS_DE_COORDENACAO = {"TRIADE", "EVENTOS"}
 # Quantos nomes a busca devolve. Lista longa numa fila atrapalha mais que ajuda:
 # se vier muita coisa, o certo é digitar mais uma letra.
 LIMITE_DA_BUSCA = 8
+
+
+def idade_de(atendido):
+    """Idade em anos, ou None quando a ficha não tem data de nascimento.
+
+    Existe para a busca separar homônimos: sem ela, duas "Maria Eduarda" do
+    Amarelo são duas linhas idênticas na lista e o voluntário escolhe no chute.
+    Errar aqui é o único erro sem conserto fácil do sistema, porque a trava da
+    etapa depois barra a criança certa.
+    """
+    nascimento = getattr(atendido, "data_nascimento", None)
+    if not nascimento:
+        return None
+    hoje = timezone.localdate()
+    return hoje.year - nascimento.year - (
+        (hoje.month, hoje.day) < (nascimento.month, nascimento.day))
 
 
 def coordenacao_required(view):
@@ -64,8 +82,12 @@ def atendimento(request):
         "categorias": (
             Categoria.objects.filter(bazar=bazar, ativo=True) if bazar else []
         ),
+        "salas": (
+            SalaDoBazar.objects.filter(bazar=bazar, ativo=True) if bazar else []
+        ),
         "pode_coordenar": pode_coordenar(request.user),
         "opcoes_retirado_por": Retirada.RetiradoPor.choices,
+        "minutos_para_desfazer": MINUTOS_PARA_DESFAZER,
     })
 
 
@@ -95,6 +117,15 @@ def buscar_atendido(request):
             "id": atendido.pk,
             "nome": atendido.nome,
             "sala": atendido.get_sala_display(),
+            # Idade e numerações vão JUNTO do nome, e não numa segunda tela: é
+            # o que separa homônimo na hora de escolher, e é o dado que mais
+            # economiza tempo na fila de um bazar de roupa.
+            "idade": idade_de(atendido),
+            "numeracoes": {
+                "camisa": atendido.numeracao_camisa or "",
+                "calca": atendido.numeracao_calca or "",
+                "calcado": atendido.numeracao_calcado or "",
+            },
         }
         for atendido in encontrados
     ]})
@@ -143,8 +174,17 @@ def finalizar(request):
     if bazar is None:
         return JsonResponse({"erro": "Nenhum Bazar aberto."}, status=409)
 
-    atendido = get_object_or_404(
-        Atendido, pk=request.POST.get("atendido"), ativo=True)
+    # Ou a criança tem ficha, ou é visitante. Quem decide é a tela; aqui só se
+    # traduz o que veio no POST.
+    atendido = None
+    if request.POST.get("atendido"):
+        atendido = get_object_or_404(
+            Atendido, pk=request.POST["atendido"], ativo=True)
+
+    sala = None
+    if request.POST.get("sala"):
+        sala = SalaDoBazar.objects.filter(
+            bazar=bazar, pk=request.POST["sala"]).first()
 
     pedido = {}
     for chave, valor in request.POST.items():
@@ -163,15 +203,25 @@ def finalizar(request):
             atendido=atendido,
             pedido=pedido,
             conferido_por=request.user,
-            sala_do_bazar=(request.POST.get("sala_do_bazar") or "").strip(),
+            sala=sala,
             retirado_por=request.POST.get("retirado_por")
                          or Retirada.RetiradoPor.ATENDIDO,
             retirado_por_nome=request.POST.get("retirado_por_nome") or "",
+            sem_retirada=bool(request.POST.get("sem_retirada")),
+            visitante_nome=request.POST.get("visitante_nome") or "",
+            visitante_motivo=request.POST.get("visitante_motivo") or "",
+            token=request.POST.get("token") or "",
         )
     except RetiradaInvalida as erro:
         # 409 e não 400: não é requisição malformada, é uma regra do Bazar que
         # não permitiu. A tela mostra o texto como está, sem traduzir.
         return JsonResponse({"erro": str(erro)}, status=409)
+    except IntegrityError:
+        # Duas salas conferindo a mesma criança ao mesmo tempo. A checagem
+        # acontece ANTES da gravação, então a corrida existe de verdade — e sem
+        # este bloco ela vira 500 no celular, com a sacola já na mão.
+        return JsonResponse({"erro": recado_de_ja_retirou(bazar, atendido)},
+                            status=409)
 
     return JsonResponse({
         "ok": True,
@@ -179,8 +229,31 @@ def finalizar(request):
         "total": total,
         "pecas": retirada.total_pecas,
         "alertas": alertas,
-        "nome": atendido.nome,
+        "nome": retirada.nome_de_quem_levou,
+        "sem_retirada": retirada.sem_retirada,
+        "minutos_para_desfazer": MINUTOS_PARA_DESFAZER,
     })
+
+
+@login_required(login_url="/login/")
+@require_POST
+def cancelar(request, pk):
+    """Desfaz uma retirada, devolvendo-a ao rascunho.
+
+    Só POST: desfazer muda estado, e estado não pode mudar porque alguém abriu
+    uma URL. Aberto a qualquer voluntário logado de propósito — quem errou está
+    no caixa com a fila andando, e mandá-lo procurar a coordenação para corrigir
+    um toque é o que faz a correção não acontecer.
+    """
+    retirada = get_object_or_404(Retirada, pk=pk)
+
+    try:
+        cancelar_retirada(retirada, request.user,
+                          request.POST.get("motivo") or "")
+    except RetiradaInvalida as erro:
+        return JsonResponse({"erro": str(erro)}, status=409)
+
+    return JsonResponse({"ok": True, "retirada": retirada.pk})
 
 
 # ────────────────────────────── Coordenação ──────────────────────────────

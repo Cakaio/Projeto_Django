@@ -144,7 +144,23 @@ class RetiradaDuplicadaTest(BaseBazar):
         self.retirar({self.camiseta.pk: 1})
         with self.assertRaises(RetiradaInvalida) as erro:
             self.retirar({self.camiseta.pk: 1})
-        self.assertIn("já finalizou", str(erro.exception))
+        self.assertIn("já foi registrada", str(erro.exception))
+
+    def test_a_recusa_diz_quando_e_quem_registrou(self):
+        """"Já finalizou a retirada desta etapa" não basta quando a roupa está
+        na mão de outra sala: o voluntário precisa saber a quem perguntar."""
+        from .models import SalaDoBazar
+        sala = SalaDoBazar.objects.create(bazar=self.bazar, nome="Sala 2")
+        self.retirar({self.camiseta.pk: 1}, sala=sala)
+
+        with self.assertRaises(RetiradaInvalida) as erro:
+            self.retirar({self.camiseta.pk: 1})
+
+        recado = str(erro.exception)
+        self.assertIn("João", recado)
+        self.assertIn("Sala 2", recado)
+        self.assertIn("maria", recado)
+        self.assertIn("Nada foi gravado duas vezes", recado)
 
     def test_mesmo_com_saldo_sobrando_nao_passa_de_novo(self):
         """Sobrar ponto não dá direito a uma segunda passagem na 1ª etapa."""

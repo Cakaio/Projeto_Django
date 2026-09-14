@@ -157,20 +157,23 @@ class FinalizarTest(BaseTela):
             {"atendido": self.joao.pk, f"qtd_{self.camiseta.pk}": 1})
 
         self.assertEqual(codigo, 409)
-        self.assertIn("já finalizou", corpo["erro"])
+        self.assertIn("já foi registrada", corpo["erro"])
 
     def test_registra_quem_conferiu_e_quem_levou(self):
+        """A sala virou lista: a tela manda o id, não o texto digitado."""
+        from .models import SalaDoBazar
+        sala = SalaDoBazar.objects.create(bazar=self.bazar, nome="Sala 2")
         self.finalizar({
             "atendido": self.joao.pk,
             f"qtd_{self.camiseta.pk}": 1,
             "retirado_por": Retirada.RetiradoPor.PAI_MAE,
             "retirado_por_nome": "Ana",
-            "sala_do_bazar": "Sala 2",
+            "sala": sala.pk,
         })
         retirada = Retirada.objects.get()
         self.assertEqual(retirada.conferido_por, self.voluntario)
         self.assertEqual(retirada.retirado_por_nome, "Ana")
-        self.assertEqual(retirada.sala_do_bazar, "Sala 2")
+        self.assertEqual(retirada.sala, sala)
 
     def test_estoque_estourado_registra_e_avisa(self):
         """Avisa, não bloqueia: a peça já está na mão do voluntário."""
@@ -272,3 +275,162 @@ class RelatorioTest(BaseTela):
             views.relatorio(
                 self.pedido(f"/bazar/{self.bazar.pk}/relatorio/", self.voluntario),
                 self.bazar.pk)
+
+
+class BuscaComIdadeTest(BaseTela):
+    """Duas "Maria Eduarda" do Amarelo são hoje duas linhas idênticas na lista,
+    e a retirada vai para a criança errada — erro que a trava da etapa depois
+    torna caro de desfazer, porque a criança certa passa a ser barrada.
+    """
+
+    def test_busca_devolve_idade_e_numeracoes(self):
+        self.joao.numeracao_camisa = "10"
+        self.joao.numeracao_calca = "8"
+        self.joao.save()
+
+        resposta = views.buscar_atendido(
+            self.pedido("/bazar/buscar/?q=Jo", self.voluntario))
+        linha = json.loads(resposta.content)["resultados"][0]
+
+        self.assertEqual(linha["nome"], "João Pedro Silva")
+        self.assertIn("idade", linha)
+        self.assertEqual(linha["numeracoes"]["camisa"], "10")
+        self.assertEqual(linha["numeracoes"]["calca"], "8")
+
+    def test_ficha_sem_nascimento_nao_derruba_a_busca(self):
+        """`data_nascimento` é NOT NULL hoje, mas a busca não pode depender
+        disso: o dia em que o campo virar opcional, a fila não pode parar."""
+        class FichaSemData:
+            data_nascimento = None
+
+        self.assertIsNone(views.idade_de(FichaSemData()))
+
+    def test_idade_conta_o_aniversario_que_ainda_nao_chegou(self):
+        from datetime import timedelta
+        from django.utils import timezone as tz
+
+        class Ficha:
+            pass
+
+        hoje = tz.localdate()
+        amanha = hoje + timedelta(days=1)
+        ficha = Ficha()
+        ficha.data_nascimento = date(hoje.year - 10, amanha.month, amanha.day)
+        # Faz 10 amanhã, então hoje tem 9.
+        self.assertEqual(views.idade_de(ficha), 9)
+
+
+class ColisaoEntreDuasSalasTest(BaseTela):
+    """Duas salas conferindo a mesma criança ao mesmo tempo.
+
+    A checagem acontece antes da gravação, então a corrida existe. Hoje o
+    IntegrityError da constraint sobe cru e vira 500 no celular do voluntário,
+    com a sacola já na mão.
+    """
+
+    def test_colisao_responde_409_e_nao_estoura(self):
+        from .regras import finalizar_retirada
+        finalizar_retirada(bazar=self.bazar, atendido=self.joao,
+                           pedido={self.camiseta.pk: 1},
+                           conferido_por=self.coordenacao)
+
+        resposta = views.finalizar(self.pedido(
+            "/bazar/finalizar/", self.voluntario, metodo="post",
+            dados={"atendido": self.joao.pk, f"qtd_{self.camiseta.pk}": 1}))
+
+        self.assertEqual(resposta.status_code, 409)
+        self.assertIn("erro", json.loads(resposta.content))
+
+    def test_o_recado_diz_quando_e_quem_registrou(self):
+        from .regras import finalizar_retirada
+        finalizar_retirada(bazar=self.bazar, atendido=self.joao,
+                           pedido={self.camiseta.pk: 1},
+                           conferido_por=self.coordenacao)
+
+        resposta = views.finalizar(self.pedido(
+            "/bazar/finalizar/", self.voluntario, metodo="post",
+            dados={"atendido": self.joao.pk, f"qtd_{self.camiseta.pk}": 1}))
+
+        recado = json.loads(resposta.content)["erro"]
+        self.assertIn("João Pedro Silva", recado)
+        self.assertIn("lia", recado)
+        self.assertIn("Nada foi gravado duas vezes", recado)
+
+
+class FinalizarComOsCamposNovosTest(BaseTela):
+    def test_visitante_pela_tela(self):
+        resposta = views.finalizar(self.pedido(
+            "/bazar/finalizar/", self.voluntario, metodo="post",
+            dados={"visitante_nome": "Irmão do João",
+                   "visitante_motivo": "veio com a mãe",
+                   f"qtd_{self.camiseta.pk}": 2}))
+
+        self.assertEqual(resposta.status_code, 200)
+        retirada = Retirada.objects.get()
+        self.assertIsNone(retirada.atendido)
+        self.assertEqual(retirada.visitante_nome, "Irmão do João")
+
+    def test_veio_e_nao_levou_nada_pela_tela(self):
+        resposta = views.finalizar(self.pedido(
+            "/bazar/finalizar/", self.voluntario, metodo="post",
+            dados={"atendido": self.joao.pk, "sem_retirada": "1"}))
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertTrue(Retirada.objects.get().sem_retirada)
+
+    def test_a_sala_escolhida_e_gravada(self):
+        from .models import SalaDoBazar
+        sala = SalaDoBazar.objects.create(bazar=self.bazar, nome="Sala 2")
+        views.finalizar(self.pedido(
+            "/bazar/finalizar/", self.voluntario, metodo="post",
+            dados={"atendido": self.joao.pk, f"qtd_{self.camiseta.pk}": 1,
+                   "sala": sala.pk}))
+        self.assertEqual(Retirada.objects.get().sala, sala)
+
+    def test_reenvio_com_o_mesmo_token_nao_duplica(self):
+        dados = {"atendido": self.joao.pk, f"qtd_{self.camiseta.pk}": 1,
+                 "token": "abc-123"}
+        views.finalizar(self.pedido("/bazar/finalizar/", self.voluntario,
+                                    metodo="post", dados=dados))
+        resposta = views.finalizar(self.pedido("/bazar/finalizar/", self.voluntario,
+                                               metodo="post", dados=dados))
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(Retirada.objects.count(), 1)
+
+
+class CancelarPelaTelaTest(BaseTela):
+    def _gravar(self):
+        from .regras import finalizar_retirada
+        retirada, _, _ = finalizar_retirada(
+            bazar=self.bazar, atendido=self.joao,
+            pedido={self.camiseta.pk: 1}, conferido_por=self.voluntario)
+        return retirada
+
+    def test_quem_conferiu_cancela_e_a_trava_reabre(self):
+        from .regras import ja_retirou_nesta_etapa
+        retirada = self._gravar()
+
+        resposta = views.cancelar(
+            self.pedido("/bazar/cancelar/", self.voluntario, metodo="post",
+                        dados={"motivo": "marquei errado"}),
+            pk=retirada.pk)
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertFalse(ja_retirou_nesta_etapa(self.bazar, self.joao))
+
+    def test_cancelar_sem_motivo_responde_409(self):
+        retirada = self._gravar()
+        resposta = views.cancelar(
+            self.pedido("/bazar/cancelar/", self.voluntario, metodo="post",
+                        dados={"motivo": ""}),
+            pk=retirada.pk)
+        self.assertEqual(resposta.status_code, 409)
+
+    def test_get_nao_cancela(self):
+        """Cancelar muda estado: não pode acontecer por alguém abrir uma URL."""
+        from django.http import HttpResponseNotAllowed
+        retirada = self._gravar()
+        resposta = views.cancelar(
+            self.pedido("/bazar/cancelar/", self.voluntario), pk=retirada.pk)
+        self.assertIsInstance(resposta, HttpResponseNotAllowed)
