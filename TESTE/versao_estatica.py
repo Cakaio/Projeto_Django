@@ -24,11 +24,18 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# Só o que é compartilhado por todas as telas. Não vale varrer a pasta inteira:
-# seria I/O à toa e mudaria o carimbo por causa de uma imagem qualquer,
-# derrubando o cache de tudo sem motivo.
+# O CSS compartilhado e TODO JavaScript que alguma tela carrega. Não vale varrer
+# a pasta inteira: seria I/O à toa e mudaria o carimbo por causa de uma imagem
+# qualquer, derrubando o cache de tudo sem motivo.
+#
+# Um JS de fora desta lista é publicado e NÃO chega a quem já visitou o site —
+# o endereço não muda, então o navegador serve o arquivo velho. Foi o que
+# aconteceu com o Bazar e com os três JS das pautas, que ficaram de fora sem
+# ninguém notar. `TESTE/tests_estaticos.py` agora reclama quando esquecem.
 ARQUIVOS_OBSERVADOS = ('css/pcf.css', 'js/pcf-fx.js', 'js/pcf-estudio.js',
-                       'js/pcf-combo.js')
+                       'js/pcf-combo.js', 'js/bazar-atendimento.js',
+                       'js/competencias_dynamic.js', 'js/pauta-detalhes.js',
+                       'js/pauta-filtros.js', 'js/pauta-pessoas.js')
 
 _carimbo = None
 

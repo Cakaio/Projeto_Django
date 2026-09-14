@@ -27,6 +27,10 @@ module.exports = {
     "../editais/**/*.html",
     "../revista/**/*.html",
     "../projetos/**/*.html",
+    "../acervo/**/*.html",
+    "../bazar/**/*.html",
+    "../estudio/**/*.html",
+    "../notificacoes/**/*.html",
   ],
   theme: {
     extend: {
