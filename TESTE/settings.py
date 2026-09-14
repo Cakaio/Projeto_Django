@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'voluntario',
     'semanario',
     'sabado',
+    'ajudas',
     'supply',
     'adm',
     'forms_pcf',

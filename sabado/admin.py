@@ -17,15 +17,15 @@ class DisponibilidadeVoluntarioResource(resources.ModelResource):
 # Register your models here.
 @admin.register(Sabado)
 class SabadoAdmin(admin.ModelAdmin):
-    list_display = ['data', 'tema']
+    list_display = ['data', 'tema', 'hora_inicio', 'hora_fim']
     search_fields = ['tema']
 
     def save_model(self, request, obj, form, change):
         """Cadastrar o sábado é o que 'abre o formulário' — e agora avisa todo mundo.
 
         Fica em `save_model` e não num signal `post_save` de propósito: o admin é
-        o único caminho de escrita de Sabado em produção (não existe view nem
-        ModelForm, e o SabadoAdmin nem é ImportExportModelAdmin), enquanto um
+        o caminho de criação de Sabado em produção (o quadro de ajudas apenas
+        edita seus horários, e o SabadoAdmin nem é ImportExportModelAdmin), enquanto um
         signal pegaria também as dez criações do `seed_sabado` e as dezenas
         espalhadas pelos testes de ronda, revista e adm — disparando push em
         todas.

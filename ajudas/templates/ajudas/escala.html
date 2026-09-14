@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block titulo %}Ajudas do sábado{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/ajudas.css' %}?v={{ ESTATICO_V }}">{% endblock %}
+{% block content %}
+<div class="pcf-container aj-page">
+  <header class="pcf-page-head"><div><span class="pcf-eyebrow">Nossa equipe em movimento</span><h1 class="pcf-page-title">Ajudas do sábado</h1><p class="pcf-page-sub">Confira quem estará ajudando cada área.</p></div>{% if user.area == 'TRIADE' %}<a href="{% url 'ajudas:painel' %}" class="pcf-btn pcf-btn-outline">Organizar ajudas</a>{% endif %}</header>
+  <nav class="aj-date-nav" aria-label="Sábados com escala publicada">{% for item in escalas %}<a class="pcf-btn pcf-btn-sm {% if item.pk == escala.pk %}pcf-btn-primary{% else %}pcf-btn-outline{% endif %}" href="{% url 'ajudas:detalhe' item.sabado_id %}" {% if item.pk == escala.pk %}aria-current="page"{% endif %}>{{ item.sabado.data|date:'d/m/Y' }}</a>{% endfor %}</nav>
+  {% if escala %}
+  <div class="pcf-card aj-toolbar"><div><h2>{{ escala.sabado.data|date:'d/m/Y' }} · {{ escala.sabado.tema }}</h2><p class="aj-muted">{{ escala.sabado.hora_inicio|time:'H:i' }}–{{ escala.sabado.hora_fim|time:'H:i' }}</p></div><span class="pcf-badge outline ok">Publicada</span></div>
+  <div class="aj-board aj-public-board">
+    {% for area in areas %}<section class="pcf-card aj-area"><header class="aj-section-head"><h2>{{ area.necessidade.get_area_display }}</h2><span class="aj-time">{{ area.necessidade.hora_inicio|time:'H:i' }}–{{ area.necessidade.hora_fim|time:'H:i' }}</span></header>
+      {% for segmento in area.segmentos %}<div class="aj-public-segment"><div class="aj-section-head"><span class="aj-muted">{{ segmento.hora_inicio|time:'H:i' }}–{{ segmento.hora_fim|time:'H:i' }}</span><span class="aj-count {% if segmento.faltam %}aj-short{% elif segmento.excesso %}aj-over{% else %}aj-met{% endif %}">{{ segmento.total }} / {{ area.necessidade.quantidade }} pessoas</span></div>
+        <p class="aj-section-label">Ajudando nesta área</p><ul class="aj-public-helpers">{% for voluntario in segmento.extras %}<li {% if voluntario.pk == user.pk %}class="aj-you"{% endif %}><strong>{{ voluntario }}</strong><span class="aj-muted">{{ voluntario.get_area_display }}{% if voluntario.pk == user.pk %} · Você{% endif %}</span></li>{% empty %}<li class="aj-muted">Nenhuma ajuda externa neste período.</li>{% endfor %}</ul>
+        <details class="aj-own-details"><summary>{{ segmento.proprios|length }} da própria área</summary><div class="aj-chips">{% for voluntario in segmento.proprios %}<span class="aj-chip">{{ voluntario }}</span>{% endfor %}</div></details>
+      </div>{% endfor %}
+    </section>{% empty %}<div class="pcf-card aj-empty">Este sábado não possui necessidades de ajuda configuradas.</div>{% endfor %}
+  </div>
+  {% else %}<div class="pcf-card aj-empty">As ajudas ainda estão sendo organizadas. A escala aparecerá aqui quando for publicada.</div>{% endif %}
+</div>
+{% endblock %}

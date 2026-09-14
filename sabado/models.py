@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
 import datetime
@@ -18,7 +19,29 @@ class Sabado(models.Model):
     data = models.DateField(unique=True, default=proximo_sabado)
     tema = models.CharField(max_length=200)
     descricao = models.TextField()
+    hora_inicio = models.TimeField("horário de início", default=datetime.time(6, 0))
+    hora_fim = models.TimeField("horário de término", default=datetime.time(12, 30))
     criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(check=models.Q(hora_inicio__lt=models.F("hora_fim")),
+                                   name="sabado_horarios_em_ordem"),
+        ]
+
+    def clean(self):
+        super().clean()
+        if not isinstance(self.hora_inicio, datetime.time) or not isinstance(self.hora_fim, datetime.time):
+            return  # Os TimeFields informam valores ausentes/inválidos.
+        if self.hora_inicio >= self.hora_fim:
+            raise ValidationError({"hora_fim": "O término deve ser posterior ao início."})
+        # O admin também edita sábados. Não deixe encurtar o dia sobre uma escala salva.
+        if self.pk:
+            from ajudas.models import Ajuda, NecessidadeAjuda
+            fora = models.Q(hora_inicio__lt=self.hora_inicio) | models.Q(hora_fim__gt=self.hora_fim)
+            if (Ajuda.objects.filter(escala__sabado_id=self.pk).filter(fora).exists()
+                    or NecessidadeAjuda.objects.filter(escala__sabado_id=self.pk).filter(fora).exists()):
+                raise ValidationError("Ajuste primeiro as necessidades e ajudas que ficariam fora do sábado.")
 
     def __str__(self):
         return self.data.strftime('%d/%m/%Y')
