@@ -245,6 +245,17 @@
             </button>
           </div>
         </section>
+
+        {% comment %}
+          O kit de papel fica alcançável DAQUI, e não só do painel: quem está no
+          caixa é que precisa imprimir, e o painel é da coordenação.
+        {% endcomment %}
+        <p style="margin:1.6rem 0 0;text-align:center;font-size:.82rem">
+          <a href="{% url 'bazar:kit_papel' bazar.pk %}" target="_blank" rel="noopener"
+             style="color:var(--ink-muted);text-decoration:underline">
+            Imprimir a ficha de papel
+          </a>
+        </p>
       </div>
     {% endif %}
   </div>

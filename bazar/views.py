@@ -279,7 +279,7 @@ def painel(request):
             "ultimas": (
                 Retirada.objects
                 .filter(bazar=bazar, finalizada_em__isnull=False)
-                .select_related("atendido", "conferido_por")
+                .select_related("atendido", "conferido_por", "sala")
                 .prefetch_related("itens__categoria")[:15]
             ),
             "etapas": Bazar.Etapa.choices,
@@ -342,20 +342,24 @@ def relatorio(request, pk):
     itens = (
         ItemRetirada.objects
         .filter(retirada__bazar=bazar, retirada__finalizada_em__isnull=False)
-        .select_related("retirada__atendido", "retirada__conferido_por", "categoria")
+        .select_related("retirada__atendido", "retirada__conferido_por",
+                        "retirada__sala", "categoria")
         .order_by("retirada__finalizada_em", "pk")
     )
     for item in itens:
         retirada = item.retirada
         escritor.writerow([
-            retirada.atendido.nome,
-            retirada.atendido.get_sala_display(),
+            # `nome_de_quem_levou`, não `atendido.nome`: atendido aceita nulo
+            # desde que visitante existe, e ler direto estourava aqui.
+            retirada.nome_de_quem_levou,
+            (retirada.atendido.get_sala_display() if retirada.atendido_id
+             else "fora do cadastro"),
             retirada.get_etapa_display(),
             item.categoria.nome,
             item.quantidade,
             item.pontos_unitarios,
             item.pontos_total,
-            retirada.sala_do_bazar,
+            retirada.sala.nome if retirada.sala else retirada.sala_do_bazar,
             retirada.get_retirado_por_display(),
             retirada.retirado_por_nome,
             retirada.conferido_por.get_full_name() or retirada.conferido_por.username,

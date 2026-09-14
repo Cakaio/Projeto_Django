@@ -25,6 +25,21 @@
   .bzp-tabela td { padding: .45rem .5rem; border-bottom: 1px solid #f7f0eb; }
   .bzp-tabela td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
   .bzp-baixo { color: #b45309; font-weight: 850; }
+
+  /* Cartão do kit de papel */
+  .bzp-kit { display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap;
+             margin-bottom: 1.25rem; border-left: 4px solid var(--brand); }
+  .bzp-kit-texto { flex: 1; min-width: 15rem; }
+  .bzp-kit-t { margin: 0; font-size: .95rem; font-weight: 850; color: var(--ink); }
+  .bzp-kit-s { margin: .25rem 0 0; max-width: 62ch; font-size: .83rem;
+               line-height: 1.55; color: hsl(var(--muted-foreground)); }
+
+  /* A coluna "Resta" do estoque ficava fora da tela no celular, que é o único
+     aparelho que a coordenação tem na mão no dia. */
+  .bzp-tabela { font-size: .86rem; }
+  @media (max-width: 560px) {
+    .bzp-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
 </style>
 {% endblock %}
 
@@ -39,27 +54,53 @@
       </p>
       <a href="/admin/bazar/bazar/add/" class="pcf-btn pcf-btn-primary">Criar o Bazar</a>
     {% else %}
-      <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+      <header class="pcf-page-head">
         <div>
           <span class="bzp-etapa-atual">{{ bazar.get_etapa_display }}</span>
-          <h1 style="margin:.55rem 0 0;font-size:clamp(1.7rem,4vw,2.5rem);font-weight:900;letter-spacing:-.045em">{{ bazar.nome }}</h1>
-          <p style="margin:.2rem 0 0;color:var(--ink-muted);font-size:.88rem">
+          <h1 class="pcf-page-title" style="margin-top:.55rem">{{ bazar.nome }}</h1>
+          <p class="pcf-page-sub">
             {{ bazar.data|date:"d/m/Y" }} · cota de {{ bazar.cota_inicial }} ponto{{ bazar.cota_inicial|pluralize }}
           </p>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <a href="{% url 'bazar:atendimento' %}" class="pcf-btn pcf-btn-outline">Tela de atendimento</a>
-          <a href="{% url 'bazar:relatorio' bazar.pk %}" class="pcf-btn pcf-btn-outline">Baixar relatório (CSV)</a>
+          <a href="{% url 'bazar:relatorio' bazar.pk %}" class="pcf-btn pcf-btn-outline">Relatório (CSV)</a>
           <a href="/admin/bazar/bazar/{{ bazar.pk }}/change/" class="pcf-btn pcf-btn-outline">Configurar</a>
         </div>
       </header>
 
+      {% comment %}
+        O kit de papel vem ANTES dos números, e em destaque, porque só vale se
+        for impresso na véspera — lembrado às 9h05 do sábado não serve de nada.
+        A rota é aberta a qualquer voluntário logado: quem está no caixa é que
+        precisa do papel na mão.
+      {% endcomment %}
+      <div class="pcf-card bzp-kit">
+        <span class="pcf-icon-tile tint-orange" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+        </span>
+        <div class="bzp-kit-texto">
+          <p class="bzp-kit-t">Imprima o kit de papel antes do evento</p>
+          <p class="bzp-kit-s">
+            Ficha do caixa com a tabela de pontos e a lista de elegíveis por
+            salinha. É o que funciona se o site cair, a internet acabar ou o
+            celular descarregar.
+          </p>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <a href="{% url 'bazar:kit_papel' bazar.pk %}" target="_blank" rel="noopener"
+             class="pcf-btn pcf-btn-primary pcf-btn-sm">Abrir para imprimir</a>
+          <a href="{% url 'bazar:kit_planilha' bazar.pk %}"
+             class="pcf-btn pcf-btn-outline pcf-btn-sm">Baixar .xlsx</a>
+        </div>
+      </div>
+
       <div class="bzp-numeros">
-        <div class="bzp-numero"><b>{{ numeros.atendidos }}<span style="font-size:1rem;font-weight:700;color:var(--ink-muted)">/{{ numeros.elegiveis }}</span></b><span>atendidos</span></div>
-        <div class="bzp-numero"><b>{{ numeros.pecas }}</b><span>peças distribuídas</span></div>
-        <div class="bzp-numero"><b>{{ numeros.pontos }}</b><span>pontos utilizados</span></div>
-        <div class="bzp-numero"><b>{{ numeros.primeira }}</b><span>na 1ª etapa</span></div>
-        <div class="bzp-numero"><b>{{ numeros.segunda }}</b><span>na 2ª etapa</span></div>
+        <div class="pcf-card pcf-kpi bzp-numero"><b>{{ numeros.atendidos }}<span style="font-size:1rem;font-weight:700;color:var(--ink-muted)">/{{ numeros.elegiveis }}</span></b><span>atendidos</span></div>
+        <div class="pcf-card pcf-kpi bzp-numero"><b>{{ numeros.pecas }}</b><span>peças distribuídas</span></div>
+        <div class="pcf-card pcf-kpi bzp-numero"><b>{{ numeros.pontos }}</b><span>pontos utilizados</span></div>
+        <div class="pcf-card pcf-kpi bzp-numero"><b>{{ numeros.primeira }}</b><span>na 1ª etapa</span></div>
+        <div class="pcf-card pcf-kpi bzp-numero"><b>{{ numeros.segunda }}</b><span>na 2ª etapa</span></div>
       </div>
 
       <div class="bzp-chave">
@@ -82,7 +123,7 @@
         <section class="bzp-bloco">
           <h2>Estoque por categoria</h2>
           <div class="pcf-scroll-x">
-            <table class="bzp-tabela" style="min-width:26rem">
+            <table class="pcf-table bzp-tabela" style="min-width:26rem">
               <thead><tr><th>Categoria</th><th class="num">Inicial</th><th class="num">Saiu</th><th class="num">Resta</th></tr></thead>
               <tbody>
                 {% for categoria in categorias %}
@@ -103,7 +144,7 @@
         <section class="bzp-bloco">
           <h2>Atendimentos por salinha</h2>
           <div class="pcf-scroll-x">
-            <table class="bzp-tabela" style="min-width:18rem">
+            <table class="pcf-table bzp-tabela" style="min-width:18rem">
               <tbody>
                 {% for linha in salinhas %}
                   <tr><td>{{ linha.sala }}</td><td class="num">{{ linha.total }}</td></tr>
@@ -116,14 +157,19 @@
         <section class="bzp-bloco" style="grid-column:1/-1">
           <h2>Últimas retiradas</h2>
           <div class="pcf-scroll-x">
-            <table class="bzp-tabela" style="min-width:40rem">
+            <table class="pcf-table bzp-tabela" style="min-width:40rem">
               <thead><tr><th>Hora</th><th>Atendido</th><th>Salinha</th><th>Etapa</th><th>Peças</th><th class="num">Pontos</th><th>Conferiu</th></tr></thead>
               <tbody>
                 {% for retirada in ultimas %}
                   <tr>
                     <td>{{ retirada.finalizada_em|date:"H:i" }}</td>
-                    <td>{{ retirada.atendido.nome }}</td>
-                    <td>{{ retirada.atendido.get_sala_display }}</td>
+                    {% comment %} nome_de_quem_levou, nao atendido.nome: visitante
+                       nao tem ficha, e ler direto devolvia celula vazia. {% endcomment %}
+                    <td>{{ retirada.nome_de_quem_levou }}</td>
+                    <td>
+                      {% if retirada.atendido %}{{ retirada.atendido.get_sala_display }}
+                      {% else %}<span class="pcf-badge outline">fora do cadastro</span>{% endif %}
+                    </td>
                     <td>{{ retirada.get_etapa_display }}</td>
                     <td>{% for item in retirada.itens.all %}{{ item.categoria.nome }} × {{ item.quantidade }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
                     <td class="num">{{ retirada.pontos_usados }}</td>

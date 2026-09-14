@@ -562,3 +562,57 @@ class SituacaoCompletaTest(BaseTela):
 
     def test_quem_nao_passou_nao_recebe_frase(self):
         self.assertEqual(self._situacao()["recado_ja_retirou"], "")
+
+
+class VisitanteNoPainelEnoRelatorioTest(BaseTela):
+    """`atendido` passou a aceitar nulo. Todo lugar que lia `atendido.nome`
+    direto precisa saber disso — no CSV isso estoura de verdade."""
+
+    def setUp(self):
+        super().setUp()
+        from .regras import finalizar_retirada
+        finalizar_retirada(
+            bazar=self.bazar, atendido=None, pedido={self.camiseta.pk: 1},
+            conferido_por=self.voluntario, visitante_nome="Irmão do João",
+            visitante_motivo="veio com a mãe")
+
+    def test_o_painel_mostra_o_nome_do_visitante(self):
+        html = views.painel(
+            self.pedido("/bazar/painel/", self.coordenacao)).content.decode()
+        self.assertIn("Irmão do João", html)
+
+    def test_o_relatorio_csv_nao_estoura_com_visitante(self):
+        resposta = views.relatorio(
+            self.pedido(f"/bazar/{self.bazar.pk}/relatorio/", self.coordenacao),
+            pk=self.bazar.pk)
+        corpo = resposta.content.decode("utf-8")
+        self.assertEqual(resposta.status_code, 200)
+        self.assertIn("Irmão do João", corpo)
+
+
+class PainelUsaODesignDoProjetoTest(BaseTela):
+    """O painel reinventava borda, raio e sombra próprios — é parte do "não
+    parece do mesmo sistema"."""
+
+    def _html(self):
+        return views.painel(
+            self.pedido("/bazar/painel/", self.coordenacao)).content.decode()
+
+    def test_usa_as_classes_do_projeto(self):
+        html = self._html()
+        for classe in ("pcf-page-head", "pcf-kpi", "pcf-table"):
+            with self.subTest(classe=classe):
+                self.assertIn(classe, html)
+
+    def test_o_kit_de_papel_e_alcancavel(self):
+        """O plano B não vale nada se ninguém achar onde imprimir."""
+        self.assertIn(f"/bazar/{self.bazar.pk}/kit/", self._html())
+
+
+class KitAlcancavelDoCaixaTest(BaseTela):
+    def test_a_tela_de_atendimento_leva_ao_kit_de_papel(self):
+        """Quem está no caixa é que precisa imprimir — e o painel é da
+        coordenação, que ele não abre."""
+        html = views.atendimento(
+            self.pedido("/bazar/", self.voluntario)).content.decode()
+        self.assertIn(f"/bazar/{self.bazar.pk}/kit/", html)

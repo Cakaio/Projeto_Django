@@ -269,10 +269,94 @@ Decisoes que ja custaram pensamento:
   salinha ou etapa sem desmontar nada) e comeca com BOM, senao o Excel abre
   "Joao" como "JoA£o".
 
-O link do Bazar fica fixo na sidebar e na busca global (a pedido). A tela
-de atendimento se explica sozinha quando nao ha edicao aberta.
+O link do Bazar fica fixo na sidebar e na busca global (a pedido).
 
-FALTA: o modo de contingencia (ficha fisica impressa e lancamento posterior).
+### A tela de atendimento e um CAIXA (redesenho de 09/2026)
+
+Tres passos numerados, o saldo sempre a vista DESCENDO, todo toque com volta, e
+nada grava sem uma conferencia com o nome da crianca na frente. Spec e plano em
+`docs/superpowers/specs/2026-09-13-bazar-caixa-design.md`.
+
+**A regra de ouro de `static/js/bazar-atendimento.js`, escrita no topo do
+arquivo: NENHUMA FUNCAO QUE REDESENHA ESCONDE UM RECADO.** Na versao anterior
+`redesenharCarrinho()` fazia `elErro.hidden = true` e era chamado no `.finally`
+do envio — logo depois de a mensagem ser escrita. Efeito: "ja finalizou a
+retirada desta etapa" e "falha de conexao" NUNCA eram vistos. O voluntario
+apertava, a tela nao respondia, e ele apertava de novo. Mostrar e esconder
+recado e de quem SABE o que aconteceu, nunca de quem desenha.
+
+Outras armadilhas da tela, todas com teste:
+- **O saldo desce.** Era escrito uma vez e congelava, enquanto o total da sacola
+  subia noutro bloco — dois numeros grandes competindo, e o leigo olhando para o
+  errado.
+- **O `-` e botao proprio**, faixa de 44px com a altura inteira do bloco, e so
+  aparece com peca marcada. Era um `<span>` de 32px DENTRO do botao que soma:
+  errar o alvo ADICIONAVA peca, e `<span>` nem e focavel.
+- **Nenhum campo abaixo de 16px.** Abaixo disso o iOS da zoom ao focar e
+  desalinha a tela no meio do atendimento. O teste varre o CSS e so cobra de
+  `input`/`select`/`textarea` — legenda a 0.7rem esta certa.
+- **O rodape e `fixed` + `dvh` + `env(safe-area-inset-bottom)`.** `sticky
+  bottom:0` se ancora no viewport de LAYOUT do iOS, que nao encolhe com o
+  teclado: o botao verde ia parar atras dele.
+- **Crianca que ja passou tem a grade NAO DESENHADA**, com uma frase inteira no
+  lugar (hora, sala e quem conferiu). Antes os botoes ficavam `disabled`,
+  identicos aos clicaveis, e o leigo concluia que travou.
+- **Impossibilidade vira frase dentro do botao** ("nao cabe: falta 1 ponto"),
+  nunca cinza mudo.
+- **"Quem levou" volta ao padrao a cada crianca.** Nao era limpo: uma vez
+  marcado "Outra pessoa — Maria", a manha inteira saia com a Maria colada em
+  quem veio sozinha.
+
+### Regras que mudaram com o redesenho
+
+- **A trava de uma retirada por etapa vale so na 1a ETAPA**, e so para quem tem
+  ficha (`atendido__isnull=False` na `condition`). Na 2a o objetivo declarado e
+  esvaziar o estoque: ali a familia que volta na arara esta certa.
+- **`atendido` aceita NULO**: e o VISITANTE, crianca que apareceu e nao e
+  Atendido ativo. Registro separado, com nome a mao e motivo — nao vira ficha,
+  para nao criar segunda verdade sobre a mesma crianca. **Todo lugar que lia
+  `retirada.atendido.nome` precisa usar `nome_de_quem_levou`**; no CSV do
+  relatorio ler direto estourava com AttributeError.
+- **`sem_retirada`**: veio, foi conferida e nao achou nada do tamanho dela.
+  Conta como comparecimento e nao como retirada. Vazio por engano continua
+  recusado, e marcar os dois e recusado tambem.
+- **`token` de idempotencia**: reenvio depois de resposta perdida devolve o
+  MESMO recibo, em vez de acusar a crianca pela trava. Token diferente continua
+  batendo na trava — ele protege contra clique repetido, nao contra passar duas
+  vezes.
+- **Cancelar = voltar ao RASCUNHO.** `finalizada_em` nulo ja E o rascunho, e a
+  UniqueConstraint tem `condition`, entao a trava reabre sozinha e o estoque
+  volta sem apagar item nenhum. Nenhum campo de status foi inventado. O motivo e
+  obrigatorio.
+- **`recado_de_ja_retirou` vive em `regras.py`**, nao na view: os dois caminhos
+  que produzem essa recusa — a checagem antes de gravar e a corrida entre duas
+  salas — precisam dizer a MESMA coisa.
+- **`finalizar` captura `IntegrityError`.** Duas salas conferindo a mesma
+  crianca viravam 500 no celular, com a sacola na mao.
+- **As salas fisicas sao lista (`SalaDoBazar`)**, escolhida uma vez por
+  aparelho. Era `CharField` livre redigitado a cada crianca: preenchido nas
+  cinco primeiras e vazio no resto da manha. O CharField antigo fica como
+  historico e nada novo escreve nele.
+
+### Kit de papel (`bazar/papelaria.py`)
+
+O plano B, e a unica camada que funciona sem servidor, sem rede e sem bateria.
+**Aberto a QUALQUER voluntario logado** — quem esta no caixa e que precisa
+imprimir, e o CSV antigo ficava atras de TRIADE/EVENTOS. Alcancavel da tela de
+atendimento E do painel.
+
+- Ficha do caixa: **uma linha por CRIANCA, nao por peca**. A mao, com fila,
+  linha por peca e lentidao garantida. Traz a tabela de pontos no cabecalho.
+- Lista de elegiveis por salinha, com idade e numeracoes ao lado do nome —
+  resolve homonimo no papel do mesmo jeito que na tela. Salinha vazia nao vira
+  folha.
+- `kit_papel.html` NAO estende `base.html`: e a pagina que precisa abrir quando
+  tudo o mais estiver fora do ar.
+- Tambem sai em `.xlsx` (`openpyxl`, import local).
+
+FALTA: lancar as fichas de papel depois do evento (hoje impossivel —
+`finalizada_em` e `timezone.now()` fixo e a etapa vem do bazar), o fechamento
+com estatisticas, e a tela abrir sem rede.
 
 ## O que entra no Financeiro sozinho (e o que não entra)
 
