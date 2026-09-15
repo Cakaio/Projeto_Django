@@ -69,3 +69,85 @@ class CarimboDeVersaoTest(SimpleTestCase):
             f'JS referenciado em template e fora de ARQUIVOS_OBSERVADOS: '
             f'{faltando}. Publicar uma correção nesses arquivos não entrega '
             'nada a quem já abriu o site.')
+
+
+class ColetaDesatualizadaTest(SimpleTestCase):
+    """O `collectstatic` esquecido quebra tela em silêncio, e já quebrou.
+
+    Em produção quem serve `/static/` é o WhiteNoise, a partir de STATIC_ROOT —
+    não do código-fonte. E ele casa pelo CAMINHO, ignorando o `?v=`. Resultado
+    de um deploy sem `collectstatic`: template novo e JavaScript velho, servidos
+    juntos, sem erro nenhum. Foi exatamente o que aconteceu com a tela do Bazar.
+    """
+
+    def _rodar(self, raiz_coleta):
+        from TESTE.checks import coleta_de_estaticos_esta_atualizada
+        return coleta_de_estaticos_esta_atualizada(
+            app_configs=None, static_root=raiz_coleta)
+
+    def test_sem_static_root_nao_reclama(self):
+        """Máquina de desenvolvimento nunca rodou collectstatic, e não precisa:
+        reclamar aqui seria barulho em todo `manage.py` do dia."""
+        import tempfile
+        from pathlib import Path
+        inexistente = Path(tempfile.gettempdir()) / 'pcf-coleta-que-nao-existe'
+        self.assertEqual(self._rodar(inexistente), [])
+
+    def test_copia_mais_velha_que_a_fonte_e_denunciada(self):
+        import os
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as pasta:
+            coleta = Path(pasta) / 'staticfiles'
+            (coleta / 'js').mkdir(parents=True)
+            # Todas em dia, MENOS uma: é o caso real de um deploy que
+            # coletou uma vez e depois esqueceu.
+            for observado in ARQUIVOS_OBSERVADOS:
+                destino = coleta / observado
+                destino.parent.mkdir(parents=True, exist_ok=True)
+                destino.write_text('ok', encoding='utf-8')
+                os.utime(destino, None)
+
+            copia = coleta / 'js' / 'pcf-combo.js'
+            fonte = Path(settings.BASE_DIR) / 'static' / 'js' / 'pcf-combo.js'
+            os.utime(copia, (os.path.getmtime(fonte) - 600,) * 2)
+
+            avisos = self._rodar(coleta)
+
+        self.assertEqual(len(avisos), 1, avisos)
+        self.assertIn('pcf-combo.js', avisos[0].msg)
+        # Só a atrasada é denunciada; as em dia não viram barulho.
+        self.assertNotIn('pcf-fx.js', avisos[0].msg)
+        self.assertIn('collectstatic', avisos[0].hint)
+
+    def test_copia_em_dia_nao_reclama(self):
+        import os
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as pasta:
+            coleta = Path(pasta) / 'staticfiles'
+            (coleta / 'js').mkdir(parents=True)
+            for observado in ARQUIVOS_OBSERVADOS:
+                destino = coleta / observado
+                destino.parent.mkdir(parents=True, exist_ok=True)
+                destino.write_text('novo', encoding='utf-8')
+                os.utime(destino, None)   # agora
+
+            self.assertEqual(self._rodar(coleta), [])
+
+    def test_arquivo_que_nunca_foi_coletado_e_denunciado(self):
+        """Arquivo novo entra no repositório e o deploy esquece o collectstatic:
+        o navegador recebe 404 e a tela perde o comportamento inteiro."""
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as pasta:
+            coleta = Path(pasta) / 'staticfiles'
+            coleta.mkdir(parents=True)     # existe, mas está vazia
+            avisos = self._rodar(coleta)
+
+        self.assertTrue(avisos)
+        self.assertIn('nunca coletado', avisos[0].msg)
+        self.assertIn('collectstatic', avisos[0].hint)

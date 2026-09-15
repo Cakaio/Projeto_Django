@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'import_export',
+    # O proprio projeto, so para registrar as checagens de TESTE/checks.py.
+    'TESTE.apps.NucleoConfig',
     'atendido',
     'voluntario',
     'semanario',

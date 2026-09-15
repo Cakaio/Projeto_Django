@@ -35,7 +35,8 @@ logger = logging.getLogger(__name__)
 ARQUIVOS_OBSERVADOS = ('css/pcf.css', 'js/pcf-fx.js', 'js/pcf-estudio.js',
                        'js/pcf-combo.js', 'js/bazar-atendimento.js',
                        'js/competencias_dynamic.js', 'js/pauta-detalhes.js',
-                       'js/pauta-filtros.js', 'js/pauta-pessoas.js')
+                       'js/pauta-filtros.js', 'js/pauta-pessoas.js',
+                       'js/ajudas.js')
 
 _carimbo = None
 

@@ -115,8 +115,24 @@ Ordem obrigatória para ligar (a segunda depende da primeira):
    no `.env`. Gerar de novo invalida TODAS as inscrições e obriga cada voluntário
    a reativar as notificações no aparelho.
 3. `migrate`, `collectstatic --noinput`, Reload.
-4. Uma **Scheduled Task diária** chamando `manage.py lembrete_disponibilidade`.
-   Sem ela o lembrete da enquete nunca roda. Use `--dry-run` para conferir antes.
+4. Uma **Scheduled Task** chamando `manage.py lembrete_disponibilidade`.
+   Sem ela o lembrete da enquete NUNCA roda — o comando não tem relógio próprio,
+   só dispara quando alguém o chama. Use `--dry-run` para conferir antes.
+
+   **Para cobrar de 8 em 8 horas são TRÊS tarefas**, não uma. O comando não tem
+   trava de frequência, então rodar três vezes é seguro: o push usa tag por
+   sábado (`enquete-{pk}`) e o lembrete de agora SUBSTITUI o de quatro horas
+   atrás na bandeja. O e-mail não tem essa colapsagem — três por dia, todo dia,
+   ensinam a equipe a ignorar os três. Por isso o arranjo é uma rodada completa
+   e duas só com push:
+
+   ```
+   11:00 UTC (08:00 SP)  manage.py lembrete_disponibilidade
+   19:00 UTC (16:00 SP)  manage.py lembrete_disponibilidade --so-push
+   03:00 UTC (00:00 SP)  manage.py lembrete_disponibilidade --so-push
+   ```
+
+   Horário de Scheduled Task no PythonAnywhere é **UTC** (São Paulo = UTC−3).
 
 Gatilhos ligados hoje: abertura da enquete (`SabadoAdmin.save_model`), lembrete
 diário da enquete (comando), novo pedido de reembolso e reembolso aprovado
@@ -134,6 +150,34 @@ Regras que já custaram bug:
   (`enquete-{pk}`) quando o novo aviso deve mesmo substituir o antigo.
 - O service worker é `templates/sw.js`, servido pelo Django — **não** está em
   `/static/`. Editá-lo exige bumpar `const VERSAO`, não `collectstatic`.
+
+## Estáticos: o `collectstatic` esquecido quebra tela em silêncio
+
+Já quebrou. Em 09/2026 a tela do Bazar subiu com o template NOVO e o JavaScript
+VELHO: clicar num nome não fazia nada, e o console não dizia por quê.
+
+**Em produção quem serve `/static/` é o WhiteNoise, a partir de `STATIC_ROOT`**
+— não do código-fonte — **e ele casa pelo CAMINHO, ignorando o `?v=`**. Um
+deploy com `git pull` + `migrate` mas sem `collectstatic` entrega, portanto,
+HTML novo com JS velho. Sem erro, sem 404, sem aviso.
+
+Duas defesas, e as duas são necessárias:
+
+1. **`TESTE/checks.py`** (`pcf.W001`) compara o mtime de cada arquivo de
+   `ARQUIVOS_OBSERVADOS` no código com a cópia em `STATIC_ROOT`, e reclama por
+   nome quando a cópia está atrás. Roda junto de `manage.py check`, `migrate` e
+   `runserver` — ou seja, no meio do deploy. Só reclama se `STATIC_ROOT`
+   EXISTIR: pasta ausente é máquina de desenvolvimento, e avisar ali seria
+   barulho em todo comando do dia. Registrada por `TESTE/apps.py`, que existe
+   só para isso (`'TESTE.apps.NucleoConfig'` em INSTALLED_APPS; sem models, sem
+   templates, sem migrations).
+2. **`TESTE/tests_estaticos.py`** varre os templates atrás de
+   `{% static 'js/...' %}` e cobra que todo JS esteja em `ARQUIVOS_OBSERVADOS`.
+   Fora dela, o `?v=` não muda quando o arquivo muda e o navegador de quem já
+   visitou continua com o velho. Esse teste já pegou cinco arquivos esquecidos
+   de uma vez, incluindo os três das pautas e o `js/ajudas.js`.
+
+**Ao criar um JS novo, acrescente-o a `ARQUIVOS_OBSERVADOS` na mesma hora.**
 
 ## Acervo ← Google Drive
 

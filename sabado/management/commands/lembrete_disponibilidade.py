@@ -1,7 +1,13 @@
-"""Cobra, todo dia, quem ainda não respondeu a enquete do próximo sábado.
+"""Cobra quem ainda não respondeu a enquete do próximo sábado.
 
-Feito para rodar em tarefa agendada no PythonAnywhere, UMA vez por dia — mesmo
-padrão de `editais/management/commands/buscar_editais.py`.
+Feito para rodar em tarefa agendada no PythonAnywhere. Pode rodar VÁRIAS vezes
+por dia: não há trava de frequência, e o push usa tag por sábado, então o
+lembrete de agora SUBSTITUI o de quatro horas atrás na bandeja em vez de
+empilhar.
+
+O e-mail não tem essa colapsagem. Três e-mails por dia, todo dia, ensinam a
+equipe a ignorar os três — por isso `--so-push`, para as rodadas extras. O
+arranjo pensado é uma rodada completa por dia e as outras só com push.
 
 Antes este comando disparava em um único dia por sábado (a condição era uma
 igualdade exata: `hoje == data - 4 dias`) e o texto dizia "fecha amanhã" —
@@ -20,7 +26,8 @@ from sabado.notificacoes import (TITULO_LEMBRETE, corpo_do_lembrete,
 
 class Command(BaseCommand):
     help = ('Cobra quem ainda não respondeu a enquete de disponibilidade do '
-            'próximo sábado. Roda todo dia enquanto a enquete estiver aberta.')
+            'próximo sábado. Pode rodar várias vezes por dia enquanto a '
+            'enquete estiver aberta.')
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -28,9 +35,16 @@ class Command(BaseCommand):
             help='Mostra quem receberia e não envia nada. Use para conferir em '
                  'produção sem cobrar a equipe.',
         )
+        parser.add_argument(
+            '--so-push', action='store_true',
+            help='Manda só a notificação no celular, sem e-mail. Use nas '
+                 'rodadas extras do dia: o push substitui o anterior na '
+                 'bandeja, o e-mail empilha na caixa.',
+        )
 
     def handle(self, *args, **options):
         seco = options['dry_run']
+        so_push = options['so_push']
 
         sabado = sabado_da_vez()
         if sabado is None:
@@ -48,10 +62,13 @@ class Command(BaseCommand):
             return
 
         if seco:
+            if so_push:
+                self.stdout.write(self.style.WARNING(
+                    'Rodada de só push: nenhum e-mail sairia nesta.'))
             for voluntario in pendentes:
                 nome = voluntario.get_full_name() or voluntario.username
                 canais = []
-                if voluntario.email:
+                if voluntario.email and not so_push:
                     canais.append('e-mail')
                 if voluntario.inscricoes_push.exists():
                     canais.append('push')
@@ -78,6 +95,10 @@ class Command(BaseCommand):
             tag=tag_da_enquete(sabado),
         )
         self.stdout.write(self.style.SUCCESS(f'{enviados} push enviado(s).'))
+
+        if so_push:
+            self.stdout.write('Só push nesta rodada: e-mail não foi enviado.')
+            return
 
         sem_canal = 0
         falhas = 0

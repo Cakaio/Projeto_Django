@@ -205,3 +205,48 @@ class LembreteTests(TestCase):
         destinatarios = {e for msg in mail.outbox for e in msg.recipients()}
         self.assertEqual(destinatarios, {'ativo@pcf.org'})
         self.assertTrue(sabado.enquete_aberta)
+
+
+class LembreteSoPushTests(TestCase):
+    """Para cobrar de 8 em 8 horas sem encher a caixa de e-mail.
+
+    O push tem tag por sábado, então o lembrete de agora SUBSTITUI o de quatro
+    horas atrás na bandeja — três por dia não empilham. E-mail empilha: três por
+    dia viram três mensagens, todo dia, e a equipe aprende a ignorar as três.
+    """
+
+    def setUp(self):
+        self.sabado = Sabado.objects.create(
+            data=datetime.datetime.now().date() + datetime.timedelta(days=4),
+            tema='T', descricao='—')
+        criar_voluntario('ativo', email='ativo@pcf.org')
+
+    def _rodar(self, *argumentos):
+        from django.core.management import call_command
+        from io import StringIO
+        saida = StringIO()
+        call_command('lembrete_disponibilidade', *argumentos, stdout=saida)
+        return saida.getvalue()
+
+    def test_sem_a_flag_o_email_sai_como_sempre(self):
+        from django.core import mail
+        self._rodar()
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_com_so_push_nenhum_email_sai(self):
+        from django.core import mail
+        self._rodar('--so-push')
+        self.assertEqual(mail.outbox, [])
+
+    def test_com_so_push_o_push_continua_saindo(self):
+        from unittest.mock import patch
+        with patch('sabado.management.commands.lembrete_disponibilidade.enviar_push') as push:
+            push.return_value = 1
+            self._rodar('--so-push')
+        self.assertEqual(push.call_count, 1)
+
+    def test_o_dry_run_avisa_que_o_email_esta_desligado(self):
+        """Quem confere em produção precisa ver que aquela rodada não manda
+        e-mail — senão agenda três iguais sem perceber."""
+        saida = self._rodar('--dry-run', '--so-push')
+        self.assertIn('só push', saida.lower())
