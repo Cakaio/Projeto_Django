@@ -8,7 +8,7 @@ from .models import (
     ADVERTENCIAS_PARA_OBSERVACAO, MAX_ALERTAS_DISPLAY,
 )
 from .forms import GrupoForm, MeuPerfilForm
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.utils.timezone import localdate
@@ -967,29 +967,80 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por, notific
 
 
 # ─────────────────── Entrar com a conta Google da organização ───────────────────
-@require_POST
-def entrar_com_google(request):
-    """Recebe o token do botão do Google, confere e entra.
+#
+# Import de `google_login` SEMPRE local dentro das views. No topo ele entraria
+# na cadeia de carregamento do app, e uma dependência faltando derrubaria o
+# site inteiro em vez de só desligar o botão. Mesmo motivo do `notificacoes` —
+# e já custou um 500 na tela de login em produção.
 
-    Só POST: entrar muda estado, e estado não pode mudar porque alguém abriu
-    uma URL. Toda recusa volta para a tela de login com o motivo escrito — o
-    voluntário precisa saber se o problema é a conta dele ou o sistema.
+def _endereco_de_volta(request):
+    """O `redirect_uri`, que precisa bater LETRA POR LETRA com o do Console.
 
-    Import local de `google_login` de propósito: no topo ele entraria na cadeia
-    de carregamento do app, e uma dependência faltando derrubaria o site
-    inteiro em vez de só desligar o botão. Mesmo motivo do `notificacoes`.
+    `build_absolute_uri` devolve `https` em produção por causa do
+    `SECURE_PROXY_SSL_HEADER`; sem ele o PythonAnywhere entregaria `http` e o
+    Google recusaria com `redirect_uri_mismatch`, que é um erro que parece
+    problema de credencial e não é.
     """
-    from .google_login import LoginGoogleInvalido, verificar_credencial, voluntario_para
+    return request.build_absolute_uri(reverse('login_google'))
 
-    credencial = request.POST.get('credential') or ''
-    if not credencial:
-        messages.error(request, 'A entrada pelo Google não retornou nada. '
-                                'Tente de novo ou use seu usuário e senha.')
+
+def ir_para_google(request):
+    """Manda o voluntário para o Google.
+
+    É uma navegação de página inteira, de propósito. O widget do Google
+    (`gsi/client`) depende de iframe, cookie de terceiro e FedCM — três coisas
+    que o navegador do voluntário controla e que falham CALADAS. Em produção
+    ele travava em `/gsi/transform` sem erro nenhum, e no navegador de dentro
+    do WhatsApp isso é comum.
+    """
+    from . import google_login
+
+    if not google_login.configurado():
+        messages.error(request, 'A entrada pelo Google não está disponível '
+                                'neste servidor. Use seu usuário e senha.')
+        return redirect('login')
+
+    return redirect(google_login.endereco_de_ida(
+        request, _endereco_de_volta(request)))
+
+
+def entrar_com_google(request):
+    """A volta do Google: confere tudo e entra.
+
+    GET porque é assim que o Google devolve o voluntário, e porque
+    `SESSION_COOKIE_SAMESITE = 'Lax'` não manda o cookie de sessão num POST
+    vindo de outro site — sem sessão não haveria `state` nem `nonce` para
+    conferir. Quem protege esta entrada NÃO é o CSRF do Django (que não vale
+    numa volta de outro site) e sim o `state`, sorteado na ida e guardado na
+    sessão.
+
+    Toda recusa volta para a tela de login com o motivo escrito — o voluntário
+    precisa saber se o problema é a conta dele ou o sistema.
+    """
+    from . import google_login
+    from .google_login import LoginGoogleInvalido
+
+    # O Google devolve `error` quando a pessoa fecha a tela ou nega o acesso.
+    # Desistir não é falha: merece recado calmo, não mensagem de erro.
+    if request.GET.get('error'):
+        messages.info(request, 'Entrada pelo Google cancelada. '
+                               'Você pode entrar com usuário e senha.')
         return redirect('login')
 
     try:
-        dados = verificar_credencial(credencial)
-        voluntario, criado = voluntario_para(dados)
+        google_login.conferir_state(request, request.GET.get('state'))
+
+        codigo = request.GET.get('code') or ''
+        if not codigo:
+            raise LoginGoogleInvalido(
+                'A entrada pelo Google não retornou nada. Tente de novo.')
+
+        # O `nonce` também é consumido: vale para esta volta e só para ela.
+        nonce = request.session.pop(google_login.CHAVE_NONCE, None)
+        token = google_login.trocar_codigo_por_token(
+            codigo, _endereco_de_volta(request))
+        dados = google_login.verificar_credencial(token, nonce_esperado=nonce)
+        voluntario, criado = google_login.voluntario_para(dados)
     except LoginGoogleInvalido as erro:
         messages.error(request, str(erro))
         return redirect('login')
@@ -1012,9 +1063,12 @@ def entrar_com_google(request):
 class LoginPCF(LoginView):
     """A tela de login, com o botão do Google ao lado do formulário.
 
-    Existe só para levar o Client ID e o domínio ao template. `extra_context`
+    Existe só para dizer ao template se o botão pode aparecer. `extra_context`
     não serviria: ele é avaliado uma vez, na importação das rotas, e o teste
     que troca a configuração não veria a mudança.
+
+    O Client ID NÃO vai mais para o template: com o redirecionamento, quem
+    monta o endereço do Google é o servidor.
     """
     template_name = 'login.html'
     redirect_authenticated_user = True
@@ -1024,7 +1078,5 @@ class LoginPCF(LoginView):
 
         contexto = super().get_context_data(**kwargs)
         contexto['google_login_ativo'] = google_login.configurado()
-        contexto['google_client_id'] = getattr(
-            settings, 'GOOGLE_LOGIN_CLIENT_ID', '')
         contexto['google_dominio'] = google_login.dominio()
         return contexto

@@ -40,6 +40,7 @@ urlpatterns = [
     path('logout/', auth_view.LogoutView.as_view(next_page='login'), name='logout'),
     # Entrar com a conta Google da organizacao. O login por usuario e senha
     # acima continua existindo: se o Google cair, ninguem fica trancado fora.
+    path('login/google/ir/', voluntario_views.ir_para_google, name='login_google_ir'),
     path('login/google/', voluntario_views.entrar_com_google, name='login_google'),
 
     path('inicio/', inicio.as_view(), name='inicio'),

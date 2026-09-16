@@ -224,6 +224,12 @@ VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="")
 # o site nao quebra em maquina que nao tem a chave.
 GOOGLE_LOGIN_CLIENT_ID = config("GOOGLE_LOGIN_CLIENT_ID", default="")
 
+# O segredo e usado SERVIDOR A SERVIDOR, na troca do codigo pelo token — ele
+# nunca chega ao navegador. Sem ele o botao nao aparece (`configurado()`),
+# porque um botao que leva o voluntario ao Google e falha na volta e pior do
+# que botao nenhum.
+GOOGLE_LOGIN_CLIENT_SECRET = config("GOOGLE_LOGIN_CLIENT_SECRET", default="")
+
 # So contas deste dominio do Google Workspace entram pelo botao. A checagem e
 # feita no claim `hd` do token, e nao no final do e-mail: `hd` so existe em
 # conta Workspace de verdade, entao um Gmail comum com apelido parecido com o

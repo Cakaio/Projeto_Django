@@ -13,13 +13,48 @@ manhã.
 A REGRA que este módulo existe para garantir: só entra quem tem conta do
 Workspace da organização, e quem decide o acesso continua sendo o cadastro de
 voluntário — não o Google.
+
+## Por que REDIRECIONAMENTO e não o botão do Google
+
+A primeira versão usava o widget do Google (`accounts.google.com/gsi/client`).
+Em produção ele travava: o clique abria `/gsi/transform` e parava ali, sem erro
+e sem prosseguir, e o botão saía escrito em inglês apesar de `data-locale`.
+
+O widget depende de iframe, cookie de terceiro e FedCM — três coisas que o
+navegador do voluntário controla e nós não, e que falham CALADAS. No navegador
+de dentro do WhatsApp, por onde boa parte da equipe abre link, isso é comum.
+
+O redirecionamento não tem nada disso: é uma navegação de página inteira para o
+Google e outra de volta. Some a classe inteira de falha. De quebra, o texto do
+botão passa a ser nosso — o widget só aceitava quatro frases fixas, e nenhuma
+era a que a coordenação pediu.
+
+## Por que CÓDIGO e não `id_token` direto
+
+`SESSION_COOKIE_SAMESITE = 'Lax'`. Com Lax o cookie de sessão NÃO acompanha um
+POST vindo de outro site — só navegação de topo por GET. O modo `form_post` do
+Google, que devolveria o token direto, chegaria aqui SEM SESSÃO: sem `state` e
+sem `nonce` para conferir, ou seja, sem como saber se aquela volta é da pessoa
+que começou o fluxo.
+
+O fluxo de código volta por GET (a sessão vem junto) e o token é buscado pelo
+SERVIDOR, direto do Google. O token de identidade nunca passa pelo navegador.
 """
 import logging
+import secrets
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
 logger = logging.getLogger(__name__)
+
+URL_DE_AUTORIZACAO = 'https://accounts.google.com/o/oauth2/v2/auth'
+URL_DO_TOKEN = 'https://oauth2.googleapis.com/token'
+
+# Onde `state` e `nonce` ficam guardados entre a ida e a volta.
+CHAVE_STATE = 'google_login_state'
+CHAVE_NONCE = 'google_login_nonce'
 
 # ESTE MODULO E IMPORTADO PELA TELA DE LOGIN, e a tela de login e a unica que
 # precisa abrir mesmo quando todo o resto esta quebrado — sem ela ninguem entra
@@ -32,19 +67,24 @@ logger = logging.getLogger(__name__)
 # desligado, nunca tela fora do ar. Quem avisa que falta instalar e `pcf.W003`,
 # no meio do deploy.
 try:
+    import requests as http
     from google.auth.transport import requests as transporte_google
     from google.oauth2 import id_token
 except ImportError:                                  # pragma: no cover
-    transporte_google = id_token = None
-
-
-def biblioteca_instalada() -> bool:
-    """A biblioteca do Google esta disponivel neste servidor?"""
-    return id_token is not None
+    http = transporte_google = id_token = None
 
 
 class LoginGoogleInvalido(Exception):
     """A entrada foi recusada, e a mensagem explica por quê para a tela."""
+
+
+def biblioteca_instalada() -> bool:
+    """A biblioteca do Google está disponível neste servidor?"""
+    return id_token is not None and http is not None
+
+
+def dominio() -> str:
+    return getattr(settings, 'GOOGLE_LOGIN_DOMINIO', '') or ''
 
 
 def configurado() -> bool:
@@ -58,27 +98,127 @@ def configurado() -> bool:
     **Exige o domínio também**, e isso é a diferença entre uma porta e um
     buraco: sem `GOOGLE_LOGIN_DOMINIO`, a conferência do `hd` não tem com o que
     comparar e QUALQUER conta Google do planeta viraria voluntário ativo — com
-    a linha em branco no `.env` parecendo inofensiva. A falha aqui é fechada:
-    o botão não aparece, e `pcf.W002` diz por quê no meio do deploy.
+    a linha em branco no `.env` parecendo inofensiva.
 
-    **Exige a biblioteca também**: pior que não ter o botão é ter um botão que
+    **Exige o segredo também**: sem ele a troca do código pelo token falha, e o
+    voluntário só descobriria isso depois de ir ao Google e voltar.
+
+    **E exige a biblioteca**: pior que não ter o botão é ter um botão que
     estoura quando alguém toca nele.
+
+    A falha aqui é sempre FECHADA — o botão não aparece — e `pcf.W002` e
+    `pcf.W003` dizem no meio do deploy qual das peças está faltando.
     """
     return (bool(getattr(settings, 'GOOGLE_LOGIN_CLIENT_ID', ''))
+            and bool(getattr(settings, 'GOOGLE_LOGIN_CLIENT_SECRET', ''))
             and bool(dominio())
             and biblioteca_instalada())
 
 
-def dominio() -> str:
-    return getattr(settings, 'GOOGLE_LOGIN_DOMINIO', '') or ''
+def endereco_de_ida(request, redirect_uri):
+    """Monta o endereço do Google e guarda o que vai ser conferido na volta.
+
+    `state` e `nonce` são sorteados agora e ficam na SESSÃO. Na volta, os dois
+    precisam bater:
+
+    - **`state`** prova que esta volta pertence a quem começou a ida. Sem ele,
+      alguém poderia mandar para o voluntário um link de volta já pronto e
+      fazê-lo entrar na conta Google do atacante sem perceber — o cadastro do
+      PCF que ele usaria a partir dali seria de outra pessoa. É o que substitui
+      o CSRF do Django, que não vale numa volta vinda de outro site.
+    - **`nonce`** amarra o token a ESTE pedido. Um token de identidade válido,
+      capturado de outro lugar, não serve para entrar aqui.
+    """
+    state = secrets.token_urlsafe(32)
+    nonce = secrets.token_urlsafe(32)
+    request.session[CHAVE_STATE] = state
+    request.session[CHAVE_NONCE] = nonce
+
+    parametros = {
+        'client_id': settings.GOOGLE_LOGIN_CLIENT_ID,
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'redirect_uri': redirect_uri,
+        'state': state,
+        'nonce': nonce,
+        # Dica para o Google já filtrar a lista de contas. É conforto, não
+        # segurança: quem barra de verdade é a conferência do `hd` no servidor.
+        'hd': dominio(),
+        # Sem isto, quem já tem uma sessão Google entra direto com ela e não
+        # tem como trocar de conta — problema real em computador compartilhado,
+        # que é o caso do computador do projeto.
+        'prompt': 'select_account',
+    }
+    return f'{URL_DE_AUTORIZACAO}?{urlencode(parametros)}'
 
 
-def verificar_credencial(credencial):
+def conferir_state(request, state_recebido):
+    """A volta pertence a quem começou a ida?
+
+    O valor é CONSUMIDO: uma volta só vale uma vez. Reenviar o mesmo endereço
+    depois não entra de novo.
+    """
+    esperado = request.session.pop(CHAVE_STATE, None)
+    if not esperado or not state_recebido:
+        raise LoginGoogleInvalido(
+            'A entrada pelo Google expirou. Tente de novo.')
+    if not secrets.compare_digest(str(esperado), str(state_recebido)):
+        logger.warning('State do Google não confere — entrada recusada.')
+        raise LoginGoogleInvalido(
+            'Não consegui confirmar que esta entrada começou aqui. '
+            'Tente de novo.')
+
+
+def trocar_codigo_por_token(codigo, redirect_uri):
+    """Busca o token de identidade no Google, SERVIDOR A SERVIDOR.
+
+    É aqui que o segredo do cliente é usado, e é por isso que ele nunca chega
+    ao navegador: quem conversa com o Google é o Django.
+    """
+    if not biblioteca_instalada():
+        raise LoginGoogleInvalido(
+            'A entrada pelo Google não está disponível neste servidor. '
+            'Use seu usuário e senha.')
+
+    try:
+        resposta = http.post(URL_DO_TOKEN, timeout=10, data={
+            'code': codigo,
+            'client_id': settings.GOOGLE_LOGIN_CLIENT_ID,
+            'client_secret': settings.GOOGLE_LOGIN_CLIENT_SECRET,
+            'redirect_uri': redirect_uri,
+            'grant_type': 'authorization_code',
+        })
+    except Exception as erro:                        # pragma: no cover
+        # Rede caindo no meio do login não pode virar 500 na cara de quem
+        # está tentando entrar.
+        logger.error('Falha de rede ao falar com o Google: %s', erro)
+        raise LoginGoogleInvalido(
+            'Não consegui falar com o Google agora. '
+            'Tente de novo ou use seu usuário e senha.')
+
+    if resposta.status_code != 200:
+        # O corpo traz `error` e `error_description` e é o que diz, por
+        # exemplo, que o `redirect_uri` não bate com o cadastrado no Console.
+        logger.error('Google recusou a troca do código (%s): %s',
+                     resposta.status_code, resposta.text[:500])
+        raise LoginGoogleInvalido(
+            'O Google recusou esta entrada. Tente de novo ou fale com a '
+            'Gestão de Talentos.')
+
+    token = (resposta.json() or {}).get('id_token')
+    if not token:
+        logger.error('Resposta do Google veio sem id_token.')
+        raise LoginGoogleInvalido(
+            'A resposta do Google veio incompleta. Tente de novo.')
+    return token
+
+
+def verificar_credencial(credencial, nonce_esperado=None):
     """Confere o token com o Google e devolve o que ele afirma.
 
     `verify_oauth2_token` checa assinatura, emissor, validade e se o token foi
-    emitido para ESTE aplicativo (`aud`). Nada do que o navegador manda é
-    aceito sem essa volta.
+    emitido para ESTE aplicativo (`aud`). Nada do que chega de fora é aceito
+    sem essa volta.
     """
     if not biblioteca_instalada():
         logger.error('google-auth ausente no venv — entrada pelo Google desligada.')
@@ -86,7 +226,7 @@ def verificar_credencial(credencial):
             'A entrada pelo Google não está disponível neste servidor. '
             'Use seu usuário e senha.')
 
-    if not configurado():
+    if not getattr(settings, 'GOOGLE_LOGIN_CLIENT_ID', ''):
         raise LoginGoogleInvalido(
             'A entrada pelo Google não está configurada neste servidor.')
 
@@ -102,6 +242,16 @@ def verificar_credencial(credencial):
         logger.warning('Token do Google recusado: %s', erro)
         raise LoginGoogleInvalido(
             'Não consegui confirmar sua conta Google. Tente de novo.')
+
+    # `verify_oauth2_token` NÃO confere o nonce — isso é por nossa conta. Sem
+    # esta linha, um token de identidade válido obtido em outro lugar entraria.
+    if nonce_esperado is not None:
+        if not secrets.compare_digest(str(dados.get('nonce') or ''),
+                                      str(nonce_esperado)):
+            logger.warning('Nonce do Google não confere — entrada recusada.')
+            raise LoginGoogleInvalido(
+                'Esta entrada não corresponde ao pedido feito aqui. '
+                'Tente de novo.')
 
     if not dados.get('email_verified'):
         raise LoginGoogleInvalido(

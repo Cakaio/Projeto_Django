@@ -163,10 +163,54 @@ Acervo, e verificar um token de identidade é o que ele faz. O allauth traria
 tabelas, templates e um fluxo de login diferente para todo mundo — muito preço
 por pouca coisa.
 
-Configuração no `.env`: `GOOGLE_LOGIN_CLIENT_ID` (de um OAuth client do tipo
-**Aplicativo da Web**) e `GOOGLE_LOGIN_DOMINIO`. **Vazio = o botão não
-aparece** e o formulário de senha continua inteiro — mesmo padrão do VAPID e do
-Drive.
+Configuração no `.env`: `GOOGLE_LOGIN_CLIENT_ID`, `GOOGLE_LOGIN_CLIENT_SECRET`
+(os dois do MESMO OAuth client, do tipo **Aplicativo da Web**) e
+`GOOGLE_LOGIN_DOMINIO`. **Faltando qualquer um, o botão não aparece** e o
+formulário de senha continua inteiro — mesmo padrão do VAPID e do Drive. No
+Console, o cliente precisa ter `https://pcf.pythonanywhere.com/login/google/`
+em **URIs de redirecionamento autorizados**.
+
+### Redirecionamento, não o widget do Google
+
+A primeira versão usava `accounts.google.com/gsi/client`. Em produção o clique
+abria `/gsi/transform` e **parava ali** — sem erro, sem prosseguir — e o botão
+saía escrito em inglês apesar de `data-locale="pt-BR"`.
+
+O widget depende de **iframe, cookie de terceiro e FedCM**: três coisas que o
+navegador do voluntário controla e que falham CALADAS. No navegador de dentro
+do WhatsApp, por onde boa parte da equipe abre link, isso é rotina. Além disso
+o texto do botão só aceitava quatro frases fixas do Google, e nenhuma era a que
+a coordenação pediu.
+
+Hoje o botão é **HTML do projeto** (`pcf-btn`, igual ao "Entrar") apontando para
+`/login/google/ir/`, que redireciona. Página inteira indo, página inteira
+voltando. Nada que o navegador possa bloquear em silêncio, e o texto é nosso.
+
+### Por que CÓDIGO e não `id_token` direto
+
+`SESSION_COOKIE_SAMESITE = 'Lax'`. Com Lax o cookie de sessão **não acompanha
+um POST vindo de outro site** — só navegação de topo por GET. O modo
+`form_post`, que devolveria o token de uma vez, chegaria aqui **sem sessão**:
+sem `state` e sem `nonce` para conferir, ou seja, sem como saber se aquela
+volta é da pessoa que começou o fluxo.
+
+O fluxo de código volta por GET (a sessão vem junto) e o token é buscado pelo
+SERVIDOR. De quebra, o token de identidade nunca passa pelo navegador.
+
+- **`state`** é sorteado na ida, guardado na sessão e **consumido** na volta.
+  É ele que substitui o CSRF do Django, que não vale numa volta de outro site.
+  Sem ele, alguém poderia mandar ao voluntário um link de volta já pronto e
+  fazê-lo entrar na conta Google do atacante sem perceber.
+- **`nonce`** amarra o token a ESTE pedido. `verify_oauth2_token` **não confere
+  nonce** — isso é por nossa conta, e sem a linha um token válido obtido em
+  outro lugar entraria.
+- **`prompt=select_account`**: sem isso, quem já tem sessão Google entra direto
+  com ela e não consegue trocar de conta. O computador do projeto é
+  compartilhado.
+- **O `redirect_uri` sai de `build_absolute_uri`**, e só dá `https` por causa
+  do `SECURE_PROXY_SSL_HEADER`. Sem ele o PythonAnywhere entregaria `http`, o
+  Google recusaria com `redirect_uri_mismatch`, e o erro parece problema de
+  credencial sem ser.
 
 **Os DOIS são obrigatórios, e é aí que mora o único buraco possível.** Sem o
 domínio a conferência do `hd` fica sem com o que comparar, e qualquer conta
@@ -198,8 +242,8 @@ O que decide se isso é segurança ou teatro:
   parecido — e há teste para exatamente esse caso.
 - **A verificação é no SERVIDOR**, com a chave pública do Google, conferindo
   também `aud` (o token foi emitido para este aplicativo), emissor e validade.
-  Nada do que o navegador afirma é aceito. `data-hd` no HTML é só dica para o
-  seletor de contas.
+  Nada do que chega de fora é aceito. O `hd` que vai no endereço de ida é só
+  dica para o seletor de contas.
 - **`email_verified` é exigido.**
 - **Quem decide o acesso é o CADASTRO, não o Google.** Conta bloqueada
   (`is_active=False`) ou desligada (`data_saida` preenchido) não entra, mesmo

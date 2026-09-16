@@ -86,16 +86,29 @@ def entrada_pelo_google_tem_dominio(app_configs, **kwargs):
 
     if not getattr(cfg, 'GOOGLE_LOGIN_CLIENT_ID', ''):
         return []
-    if getattr(cfg, 'GOOGLE_LOGIN_DOMINIO', ''):
+
+    faltando = []
+    if not getattr(cfg, 'GOOGLE_LOGIN_DOMINIO', ''):
+        faltando.append(
+            'GOOGLE_LOGIN_DOMINIO (sem ele não há como conferir se a conta é '
+            'da organização, e deixar entrar qualquer conta Google seria pior '
+            'do que não ter o botão)')
+    if not getattr(cfg, 'GOOGLE_LOGIN_CLIENT_SECRET', ''):
+        faltando.append(
+            'GOOGLE_LOGIN_CLIENT_SECRET (sem ele a troca do código pelo token '
+            'falha DEPOIS de o voluntário ir ao Google e voltar)')
+
+    if not faltando:
         return []
 
     return [Warning(
-        'GOOGLE_LOGIN_CLIENT_ID está configurado, mas GOOGLE_LOGIN_DOMINIO '
-        'está vazio — o botão "Entrar com o Google" NÃO vai aparecer.',
-        hint=('Ponha `GOOGLE_LOGIN_DOMINIO=projetocriancafeliz.org` no `.env` '
-              'e recarregue o site. Sem o domínio não há como conferir se a '
-              'conta é da organização, e deixar entrar qualquer conta Google '
-              'seria pior do que não ter o botão.'),
+        'GOOGLE_LOGIN_CLIENT_ID está configurado, mas falta: '
+        + '; '.join(faltando)
+        + ' — o botão "Entrar com Google" NÃO vai aparecer.',
+        hint=('Complete as linhas no `.env` do servidor e recarregue o site. '
+              'O Client ID e o segredo saem do mesmo lugar no Google Cloud '
+              'Console (Credenciais → o cliente OAuth do tipo Aplicativo da '
+              'Web).'),
         id='pcf.W002',
     )]
 

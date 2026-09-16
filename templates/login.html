@@ -199,42 +199,33 @@
             <span style="flex:1;height:1px;background:hsl(var(--border))"></span>
           </div>
 
-          <div id="g_id_onload"
-               data-client_id="{{ google_client_id }}"
-               data-callback="pcfEntrarComGoogle"
-               data-auto_prompt="false"
-               data-hd="{{ google_dominio }}"></div>
           {% comment %}
-            `data-width` é PIXEL FIXO: o Google desenha o botão dentro de um
-            iframe que não encolhe. Num celular de 360px sobram 264px aqui
-            (40px do respiro da tela + 56px do cartão saem antes), então
-            qualquer valor acima disso empurra a página inteira para o lado e
-            a tela de login nasce com rolagem horizontal. O `overflow:hidden`
-            do embrulho é o cinto de segurança para o aparelho de 320px.
+            BOTAO NOSSO, NAO O WIDGET DO GOOGLE. O `gsi/client` desenha o botao
+            dentro de um iframe e depende de cookie de terceiro e FedCM — em
+            producao ele travava em `/gsi/transform` sem erro nenhum, e saia
+            escrito em ingles apesar do `data-locale`. Aqui e um link comum
+            para uma navegacao de pagina inteira: nao ha o que o navegador
+            possa bloquear em silencio, e o texto e o que a coordenacao pediu
+            (o widget so aceitava quatro frases fixas do Google).
+
+            O desenho do "G" e o oficial do Google, exigido pela diretriz de
+            marca deles para quem monta o proprio botao.
           {% endcomment %}
-          <div style="display:flex;justify-content:center;max-width:100%;overflow:hidden">
-            <div class="g_id_signin" data-type="standard" data-shape="rectangular"
-                 data-theme="outline" data-text="signin_with" data-size="large"
-                 data-locale="pt-BR" data-width="240"></div>
-          </div>
+          <a href="{% url 'login_google_ir' %}" class="pcf-btn pcf-btn-lg pcf-btn-block"
+             style="background:#fff;color:#1f1f1f;border:1px solid #dadce0;gap:.65rem;text-decoration:none">
+            <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" style="flex:none">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            Entrar com Google
+          </a>
 
           <p style="margin:.9rem 0 0;font-size:.8rem;line-height:1.55;text-align:center;color:hsl(var(--muted-foreground))">
             Só para contas <strong>@{{ google_dominio }}</strong>.
           </p>
 
-          <form id="pcf-form-google" method="post" action="{% url 'login_google' %}" style="display:none">
-            {% csrf_token %}
-            <input type="hidden" name="credential" id="pcf-credencial-google">
-          </form>
-
-          <script src="https://accounts.google.com/gsi/client" async defer></script>
-          <script>
-            // O Google devolve o token aqui; quem confere é o servidor.
-            function pcfEntrarComGoogle(resposta) {
-              document.getElementById('pcf-credencial-google').value = resposta.credential;
-              document.getElementById('pcf-form-google').submit();
-            }
-          </script>
         {% endif %}
       </div>
 

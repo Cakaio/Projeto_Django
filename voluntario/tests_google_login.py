@@ -6,6 +6,7 @@ e o sistema tem ficha de criança dentro.
 """
 import datetime
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -17,7 +18,10 @@ Voluntario = get_user_model()
 
 DOMINIO = 'projetocriancafeliz.org'
 CONFIG = dict(GOOGLE_LOGIN_CLIENT_ID='id-de-teste.apps.googleusercontent.com',
+              GOOGLE_LOGIN_CLIENT_SECRET='segredo-de-teste',
               GOOGLE_LOGIN_DOMINIO=DOMINIO)
+
+NONCE = 'nonce-de-teste'
 
 
 def carga(**extras):
@@ -26,6 +30,7 @@ def carga(**extras):
         'email': 'ana@projetocriancafeliz.org',
         'email_verified': True,
         'hd': DOMINIO,
+        'nonce': NONCE,
         'given_name': 'Ana',
         'family_name': 'Souza',
         'sub': '1234567890',
@@ -52,14 +57,28 @@ def soltar_a_trava_de_email():
                 f'ALTER TABLE voluntario_voluntario DROP CONSTRAINT {nome}')
 
 
+def pedido_com_sessao(fabrica_metodo, *args, **kwargs):
+    """Um request com sessão e caixa de recados, como o middleware faria."""
+    from django.contrib.auth.models import AnonymousUser
+    from django.contrib.messages.storage.fallback import FallbackStorage
+    from django.contrib.sessions.backends.db import SessionStore
+
+    pedido = fabrica_metodo(*args, **kwargs)
+    pedido.user = AnonymousUser()
+    pedido.session = SessionStore()
+    pedido._messages = FallbackStorage(pedido)
+    return pedido
+
+
 @override_settings(**CONFIG)
 class VerificacaoDoTokenTests(TestCase):
-    """Nada do que o navegador afirma é aceito: quem valida é o Google."""
+    """Nada do que chega de fora é aceito: quem valida é o Google."""
 
-    def _verificar(self, devolvido):
+    def _verificar(self, devolvido, nonce=NONCE):
         with patch('voluntario.google_login.id_token.verify_oauth2_token',
                    return_value=devolvido):
-            return google_login.verificar_credencial('token-qualquer')
+            return google_login.verificar_credencial('token-qualquer',
+                                                     nonce_esperado=nonce)
 
     def test_token_da_organizacao_passa(self):
         dados = self._verificar(carga())
@@ -85,6 +104,19 @@ class VerificacaoDoTokenTests(TestCase):
         with self.assertRaises(LoginGoogleInvalido):
             self._verificar(carga(email_verified=False))
 
+    def test_nonce_diferente_e_recusado(self):
+        """`verify_oauth2_token` NÃO confere o nonce — isso é por nossa conta.
+
+        Sem esta checagem, um token de identidade válido para este mesmo
+        aplicativo, obtido em outro lugar, entraria aqui.
+        """
+        with self.assertRaises(LoginGoogleInvalido):
+            self._verificar(carga(nonce='de-outro-pedido'))
+
+    def test_token_sem_nonce_e_recusado(self):
+        with self.assertRaises(LoginGoogleInvalido):
+            self._verificar(carga(nonce=None))
+
     def test_token_invalido_vira_recusa_e_nao_estouro(self):
         """`verify_oauth2_token` levanta ValueError para assinatura errada,
         token vencido ou `aud` de outro app. O voluntário não pode ver um 500."""
@@ -97,6 +129,166 @@ class VerificacaoDoTokenTests(TestCase):
         with override_settings(GOOGLE_LOGIN_CLIENT_ID=''):
             with self.assertRaises(LoginGoogleInvalido):
                 google_login.verificar_credencial('qualquer')
+
+
+@override_settings(**CONFIG)
+class IdaAoGoogleTests(TestCase):
+    """A ida: o que é sorteado agora é o que protege a volta."""
+
+    def _endereco(self):
+        from django.test import RequestFactory
+
+        pedido = pedido_com_sessao(RequestFactory().get, '/login/google/ir/')
+        endereco = google_login.endereco_de_ida(
+            pedido, 'https://pcf.pythonanywhere.com/login/google/')
+        return pedido, endereco, parse_qs(urlparse(endereco).query)
+
+    def test_pede_codigo_e_nao_token_direto(self):
+        """`SESSION_COOKIE_SAMESITE = 'Lax'` não manda o cookie de sessão num
+        POST vindo de outro site. O modo `form_post` chegaria SEM SESSÃO — sem
+        `state` nem `nonce` para conferir."""
+        _, _, parametros = self._endereco()
+        self.assertEqual(parametros['response_type'], ['code'])
+        self.assertNotIn('response_mode', parametros)
+
+    def test_state_e_nonce_ficam_na_sessao(self):
+        pedido, _, parametros = self._endereco()
+        self.assertEqual(pedido.session[google_login.CHAVE_STATE],
+                         parametros['state'][0])
+        self.assertEqual(pedido.session[google_login.CHAVE_NONCE],
+                         parametros['nonce'][0])
+
+    def test_cada_ida_sorteia_valores_novos(self):
+        _, _, primeira = self._endereco()
+        _, _, segunda = self._endereco()
+        self.assertNotEqual(primeira['state'], segunda['state'])
+        self.assertNotEqual(primeira['nonce'], segunda['nonce'])
+
+    def test_pede_para_escolher_a_conta(self):
+        """Sem `prompt=select_account`, quem já tem sessão Google entra direto
+        com ela e não consegue trocar — problema real no computador do
+        projeto, que é compartilhado."""
+        _, _, parametros = self._endereco()
+        self.assertEqual(parametros['prompt'], ['select_account'])
+
+    def test_leva_o_dominio_como_dica(self):
+        _, _, parametros = self._endereco()
+        self.assertEqual(parametros['hd'], [DOMINIO])
+
+    def test_o_segredo_nao_vai_no_endereco(self):
+        """O segredo é usado servidor a servidor. Se vazasse para a URL, ele
+        estaria no histórico do navegador e no log de qualquer proxy."""
+        _, endereco, _ = self._endereco()
+        self.assertNotIn('segredo-de-teste', endereco)
+
+
+@override_settings(**CONFIG)
+class VoltaDoGoogleTests(TestCase):
+    """A volta: aqui é onde alguém tentaria entrar sem ter começado."""
+
+    def setUp(self):
+        from django.test import RequestFactory
+        self.fabrica = RequestFactory()
+
+    def _voltar(self, parametros, state_na_sessao='abc', nonce_na_sessao=NONCE,
+                devolvido=None):
+        from voluntario.views import entrar_com_google
+
+        pedido = pedido_com_sessao(self.fabrica.get, '/login/google/',
+                                   parametros)
+        if state_na_sessao is not None:
+            pedido.session[google_login.CHAVE_STATE] = state_na_sessao
+        if nonce_na_sessao is not None:
+            pedido.session[google_login.CHAVE_NONCE] = nonce_na_sessao
+
+        with patch('voluntario.google_login.trocar_codigo_por_token',
+                   return_value='token'), \
+             patch('voluntario.google_login.id_token.verify_oauth2_token',
+                   return_value=devolvido or carga()):
+            return pedido, entrar_com_google(pedido)
+
+    def test_conta_da_organizacao_entra(self):
+        Voluntario.objects.create_user(
+            username='ana', password='x', area='MARKETING',
+            email='ana@projetocriancafeliz.org')
+
+        pedido, resposta = self._voltar({'code': 'c', 'state': 'abc'})
+
+        self.assertEqual(resposta.status_code, 302)
+        self.assertIn('_auth_user_id', pedido.session)
+
+    def test_state_errado_nao_entra(self):
+        """Sem isto, alguém poderia mandar ao voluntário um link de volta já
+        pronto e fazê-lo entrar na conta Google do atacante sem perceber."""
+        pedido, resposta = self._voltar({'code': 'c', 'state': 'outro'})
+
+        self.assertIn('/login/', resposta.url)
+        self.assertNotIn('_auth_user_id', pedido.session)
+
+    def test_volta_sem_ter_ido_nao_entra(self):
+        """Abrir o endereço de volta direto, sem `state` na sessão."""
+        pedido, resposta = self._voltar({'code': 'c', 'state': 'abc'},
+                                        state_na_sessao=None)
+
+        self.assertIn('/login/', resposta.url)
+        self.assertNotIn('_auth_user_id', pedido.session)
+
+    def test_a_mesma_volta_nao_vale_duas_vezes(self):
+        """O `state` é consumido: reenviar o mesmo endereço não entra de novo."""
+        from voluntario.views import entrar_com_google
+
+        Voluntario.objects.create_user(
+            username='ana', password='x', area='MARKETING',
+            email='ana@projetocriancafeliz.org')
+
+        pedido, primeira = self._voltar({'code': 'c', 'state': 'abc'})
+        self.assertIn('_auth_user_id', pedido.session)
+
+        # Mesmo request, mesma sessão, de novo.
+        pedido.session.pop('_auth_user_id', None)
+        with patch('voluntario.google_login.trocar_codigo_por_token',
+                   return_value='token'), \
+             patch('voluntario.google_login.id_token.verify_oauth2_token',
+                   return_value=carga()):
+            entrar_com_google(pedido)
+
+        self.assertNotIn('_auth_user_id', pedido.session)
+
+    def test_conta_de_fora_nao_entra(self):
+        pedido, resposta = self._voltar(
+            {'code': 'c', 'state': 'abc'},
+            devolvido=carga(hd='outraong.org', email='x@outraong.org'))
+
+        self.assertIn('/login/', resposta.url)
+        self.assertNotIn('_auth_user_id', pedido.session)
+
+    def test_desistir_no_google_nao_e_erro(self):
+        """Fechar a tela do Google é escolha, não falha. Merece recado calmo."""
+        from django.contrib.messages import get_messages
+        from voluntario.views import entrar_com_google
+
+        pedido = pedido_com_sessao(self.fabrica.get, '/login/google/',
+                                   {'error': 'access_denied'})
+        resposta = entrar_com_google(pedido)
+
+        recados = list(get_messages(pedido))
+        self.assertIn('/login/', resposta.url)
+        self.assertNotIn('error', ' '.join(m.level_tag for m in recados))
+
+    def test_volta_sem_codigo_nao_estoura(self):
+        pedido, resposta = self._voltar({'state': 'abc'})
+        self.assertEqual(resposta.status_code, 302)
+        self.assertNotIn('_auth_user_id', pedido.session)
+
+    def test_primeira_entrada_avisa_para_procurar_a_gt(self):
+        from django.contrib.messages import get_messages
+
+        pedido, _ = self._voltar({'code': 'c', 'state': 'abc'})
+
+        recados = ' '.join(str(m) for m in get_messages(pedido))
+        self.assertIn('Gestão de Talentos', recados)
+        self.assertTrue(Voluntario.objects.filter(
+            email='ana@projetocriancafeliz.org').exists())
 
 
 @override_settings(**CONFIG)
@@ -183,112 +375,62 @@ class QuemEntraTests(TestCase):
 class ConfiguracaoTests(TestCase):
 
     @override_settings(**CONFIG)
-    def test_configurado_quando_ha_client_id(self):
+    def test_configurado_com_tudo_no_lugar(self):
         self.assertTrue(google_login.configurado())
 
-    @override_settings(GOOGLE_LOGIN_CLIENT_ID='', GOOGLE_LOGIN_DOMINIO=DOMINIO)
+    @override_settings(**{**CONFIG, 'GOOGLE_LOGIN_CLIENT_ID': ''})
     def test_sem_client_id_nao_esta_configurado(self):
         """Máquina sem a chave não pode quebrar: o botão só não aparece."""
         self.assertFalse(google_login.configurado())
 
-
-@override_settings(**CONFIG)
-class ViewDeEntradaTests(TestCase):
-    """A porta propriamente dita."""
-
-    def setUp(self):
-        from django.test import RequestFactory
-        self.fabrica = RequestFactory()
-
-    def _entrar(self, credencial='token', devolvido=None, erro=None):
-        from django.contrib.messages.storage.fallback import FallbackStorage
-        from voluntario.views import entrar_com_google
-
-        pedido = self.fabrica.post('/login/google/', {'credential': credencial})
-        pedido.user = None
-        pedido.session = self.client.session
-        pedido._messages = FallbackStorage(pedido)
-
-        alvo = 'voluntario.google_login.id_token.verify_oauth2_token'
-        with patch(alvo, return_value=devolvido, side_effect=erro):
-            return pedido, entrar_com_google(pedido)
-
-    def test_conta_da_organizacao_entra(self):
-        Voluntario.objects.create_user(
-            username='ana', password='x', area='MARKETING',
-            email='ana@projetocriancafeliz.org')
-
-        pedido, resposta = self._entrar(devolvido=carga())
-
-        self.assertEqual(resposta.status_code, 302)
-        self.assertIn('_auth_user_id', pedido.session)
-
-    def test_conta_de_fora_nao_entra_e_volta_para_o_login(self):
-        pedido, resposta = self._entrar(
-            devolvido=carga(hd='outraong.org', email='x@outraong.org'))
-
-        self.assertEqual(resposta.status_code, 302)
-        self.assertIn('/login/', resposta.url)
-        self.assertNotIn('_auth_user_id', pedido.session)
-
-    def test_primeira_entrada_avisa_para_procurar_a_gt(self):
-        from django.contrib.messages import get_messages
-
-        pedido, _ = self._entrar(devolvido=carga())
-
-        recados = ' '.join(str(m) for m in get_messages(pedido))
-        self.assertIn('Gestão de Talentos', recados)
-        self.assertTrue(Voluntario.objects.filter(
-            email='ana@projetocriancafeliz.org').exists())
-
-    def test_get_nao_entra(self):
-        """Entrar muda estado: não pode acontecer por abrir uma URL."""
-        from django.http import HttpResponseNotAllowed
-        from voluntario.views import entrar_com_google
-
-        pedido = self.fabrica.get('/login/google/')
-        self.assertIsInstance(entrar_com_google(pedido), HttpResponseNotAllowed)
-
-    def test_post_sem_credencial_nao_estoura(self):
-        pedido, resposta = self._entrar(credencial='', devolvido=carga())
-        self.assertEqual(resposta.status_code, 302)
-        self.assertNotIn('_auth_user_id', pedido.session)
+    @override_settings(**{**CONFIG, 'GOOGLE_LOGIN_CLIENT_SECRET': ''})
+    def test_sem_segredo_nao_esta_configurado(self):
+        """Sem o segredo a troca do código falha DEPOIS de o voluntário ir ao
+        Google e voltar. Botão que leva a um beco é pior que botão nenhum."""
+        self.assertFalse(google_login.configurado())
 
 
 class TelaDeLoginTests(TestCase):
     """O botão, e o recado que o botão precisa poder mostrar."""
 
     def _pedido(self):
-        from django.contrib.auth.models import AnonymousUser
         from django.test import RequestFactory
-        pedido = RequestFactory().get('/login/')
-        pedido.session = self.client.session
-        # LoginView com redirect_authenticated_user lê request.user, e o
-        # RequestFactory não passa pelo middleware que o instala.
-        pedido.user = AnonymousUser()
-        return pedido
+        return pedido_com_sessao(RequestFactory().get, '/login/')
 
-    def _html(self):
+    def _html(self, pedido=None):
         from voluntario.views import LoginPCF
-        return LoginPCF.as_view()(self._pedido()).rendered_content
+        return LoginPCF.as_view()(pedido or self._pedido()).rendered_content
 
     @override_settings(**CONFIG)
-    def test_com_client_id_o_botao_aparece(self):
+    def test_o_botao_aparece_e_e_nosso(self):
         html = self._html()
-        self.assertIn('id-de-teste.apps.googleusercontent.com', html)
-        self.assertIn('accounts.google.com/gsi/client', html)
+        self.assertIn('Entrar com Google', html)
+        self.assertIn('/login/google/ir/', html)
 
-    @override_settings(GOOGLE_LOGIN_CLIENT_ID='', GOOGLE_LOGIN_DOMINIO=DOMINIO)
+    @override_settings(**CONFIG)
+    def test_o_widget_do_google_nao_volta(self):
+        """O `gsi/client` desenha o botão num iframe e depende de cookie de
+        terceiro e FedCM. Em produção travava em `/gsi/transform` sem erro
+        nenhum, e saía escrito em inglês apesar do `data-locale`."""
+        html = self._html()
+        self.assertNotIn('gsi/client', html)
+        self.assertNotIn('g_id_onload', html)
+
+    @override_settings(**CONFIG)
+    def test_o_client_id_nao_vai_para_a_pagina(self):
+        """Com o redirecionamento quem monta o endereço é o servidor. O que
+        não precisa sair daqui, não sai."""
+        self.assertNotIn(CONFIG['GOOGLE_LOGIN_CLIENT_ID'], self._html())
+
+    @override_settings(**{**CONFIG, 'GOOGLE_LOGIN_CLIENT_ID': ''})
     def test_sem_client_id_o_botao_nao_aparece(self):
         """Máquina sem a chave: o formulário de senha continua inteiro."""
         html = self._html()
-        self.assertNotIn('accounts.google.com/gsi/client', html)
+        self.assertNotIn('Entrar com Google', html)
         self.assertIn('name="username"', html)
 
     @override_settings(**CONFIG)
-    def test_o_dominio_vai_como_dica_para_o_seletor_de_conta(self):
-        """`data-hd` faz o Google já filtrar a lista de contas. É conforto, não
-        segurança: quem barra de verdade é a checagem no servidor."""
+    def test_a_tela_diz_de_quem_e_a_entrada(self):
         self.assertIn(DOMINIO, self._html())
 
     @override_settings(**CONFIG)
@@ -297,17 +439,12 @@ class TelaDeLoginTests(TestCase):
         Google seria escrita e nunca vista — o mesmo defeito que a tela do
         Bazar tinha: o voluntário aperta, nada aparece, e ele aperta de novo.
         """
-        from django.contrib.messages.storage.fallback import FallbackStorage
         from django.contrib import messages as django_messages
-        from voluntario.views import LoginPCF
 
         pedido = self._pedido()
-        pedido._messages = FallbackStorage(pedido)
         django_messages.error(pedido, 'RECADO DE TESTE PARA O VOLUNTARIO')
 
-        html = LoginPCF.as_view()(pedido).rendered_content
-
-        self.assertIn('RECADO DE TESTE PARA O VOLUNTARIO', html)
+        self.assertIn('RECADO DE TESTE PARA O VOLUNTARIO', self._html(pedido))
 
 
 class EmailUnicoTests(TestCase):
@@ -398,31 +535,6 @@ class MigrationDoEmailUnicoTests(TestCase):
         self.assertIn('Nada foi alterado no banco', recado)
 
 
-class BotaoNoCelularTests(TestCase):
-    """O botão do Google não pode alargar a tela de login."""
-
-    def test_a_largura_fixa_cabe_no_celular(self):
-        """`data-width` é pixel fixo dentro de um iframe que não encolhe.
-
-        Conta do espaço útil num aparelho de 360px: 360 − 40 (respiro da
-        `.lg-main`) − 56 (recheio do cartão) = 264px. Valor maior que isso põe
-        rolagem horizontal na tela de entrada, no aparelho de todo mundo.
-        """
-        import re
-        from pathlib import Path
-        from django.conf import settings
-
-        html = (Path(settings.BASE_DIR) / 'templates' / 'login.html'
-                ).read_text(encoding='utf-8')
-        larguras = [int(v) for v in re.findall(r'data-width="(\d+)"', html)]
-
-        self.assertTrue(larguras, 'O botão do Google perdeu o data-width.')
-        for largura in larguras:
-            self.assertLessEqual(
-                largura, 264,
-                f'data-width={largura} não cabe em celular de 360px.')
-
-
 class DominioVazioTests(TestCase):
     """A única forma de este recurso virar um buraco.
 
@@ -431,15 +543,13 @@ class DominioVazioTests(TestCase):
     em branco no `.env`, que não parece nada.
     """
 
-    CONFIG_SEM_DOMINIO = dict(
-        GOOGLE_LOGIN_CLIENT_ID='id-de-teste.apps.googleusercontent.com',
-        GOOGLE_LOGIN_DOMINIO='')
+    SEM_DOMINIO = {**CONFIG, 'GOOGLE_LOGIN_DOMINIO': ''}
 
-    @override_settings(**CONFIG_SEM_DOMINIO)
+    @override_settings(**SEM_DOMINIO)
     def test_sem_dominio_o_botao_nao_aparece(self):
         self.assertFalse(google_login.configurado())
 
-    @override_settings(**CONFIG_SEM_DOMINIO)
+    @override_settings(**SEM_DOMINIO)
     def test_sem_dominio_nem_um_gmail_comum_entra(self):
         """A recusa é repetida dentro de `verificar_credencial` de propósito:
         é a última linha antes de alguém entrar, e não pode depender de outra
@@ -447,9 +557,9 @@ class DominioVazioTests(TestCase):
         with patch('voluntario.google_login.id_token.verify_oauth2_token',
                    return_value=carga(hd=None, email='qualquer@gmail.com')):
             with self.assertRaises(LoginGoogleInvalido):
-                google_login.verificar_credencial('token')
+                google_login.verificar_credencial('token', nonce_esperado=NONCE)
 
-    @override_settings(**CONFIG_SEM_DOMINIO)
+    @override_settings(**SEM_DOMINIO)
     def test_o_deploy_avisa_por_que_o_botao_sumiu(self):
         """Falhar fechado em silêncio faz quem configurou procurar erro no
         Google Cloud Console. O aviso diz que é a linha do `.env`."""
@@ -459,7 +569,7 @@ class DominioVazioTests(TestCase):
 
         self.assertEqual(len(avisos), 1)
         self.assertEqual(avisos[0].id, 'pcf.W002')
-        self.assertIn('GOOGLE_LOGIN_DOMINIO', avisos[0].hint)
+        self.assertIn('GOOGLE_LOGIN_DOMINIO', avisos[0].msg)
 
     @override_settings(**CONFIG)
     def test_configuracao_completa_nao_avisa(self):
@@ -488,13 +598,10 @@ class SemABibliotecaDoGoogleTests(TestCase):
     """
 
     def test_a_tela_de_login_abre_sem_a_biblioteca(self):
-        from django.contrib.auth.models import AnonymousUser
         from django.test import RequestFactory
         from voluntario.views import LoginPCF
 
-        pedido = RequestFactory().get('/login/')
-        pedido.user = AnonymousUser()
-        pedido.session = self.client.session
+        pedido = pedido_com_sessao(RequestFactory().get, '/login/')
 
         with patch.object(google_login, 'id_token', None):
             html = LoginPCF.as_view()(pedido).rendered_content
@@ -529,3 +636,49 @@ class SemABibliotecaDoGoogleTests(TestCase):
     def test_com_a_biblioteca_nao_vira_barulho(self):
         from TESTE.checks import biblioteca_do_google_instalada
         self.assertEqual(biblioteca_do_google_instalada(app_configs=None), [])
+
+
+class BotaoNoCelularTests(TestCase):
+    """O botão do Google não pode alargar a tela de login."""
+
+    def test_nenhuma_largura_fixa_no_botao(self):
+        """O widget do Google exigia `data-width` em PIXEL, e 320 não cabia em
+        celular nenhum (num aparelho de 360px sobram 264px no cartão). Com
+        botão nosso o problema deixa de existir: ele acompanha a largura, igual
+        ao botão "Entrar". Este teste existe para não voltar."""
+        import re
+        from pathlib import Path
+        from django.conf import settings
+
+        html = (Path(settings.BASE_DIR) / 'templates' / 'login.html'
+                ).read_text(encoding='utf-8')
+
+        self.assertEqual(re.findall(r'data-width="(\d+)"', html), [])
+        self.assertIn('pcf-btn-block', html)
+
+
+class SegredoAusenteTests(TestCase):
+    """Client ID posto e segredo esquecido é a metade de configuração mais
+    provável — e a que falharia só na VOLTA do Google, longe da causa."""
+
+    @override_settings(**{**CONFIG, 'GOOGLE_LOGIN_CLIENT_SECRET': ''})
+    def test_o_deploy_diz_que_falta_o_segredo(self):
+        from TESTE.checks import entrada_pelo_google_tem_dominio
+
+        avisos = entrada_pelo_google_tem_dominio(app_configs=None)
+
+        self.assertEqual(len(avisos), 1)
+        self.assertIn('GOOGLE_LOGIN_CLIENT_SECRET', avisos[0].msg)
+        self.assertNotIn('GOOGLE_LOGIN_DOMINIO', avisos[0].msg)
+
+    @override_settings(**{**CONFIG, 'GOOGLE_LOGIN_CLIENT_SECRET': '',
+                          'GOOGLE_LOGIN_DOMINIO': ''})
+    def test_faltando_os_dois_o_aviso_cita_os_dois(self):
+        """Avisar de um por vez faria a pessoa recarregar o site duas vezes."""
+        from TESTE.checks import entrada_pelo_google_tem_dominio
+
+        avisos = entrada_pelo_google_tem_dominio(app_configs=None)
+
+        self.assertEqual(len(avisos), 1)
+        self.assertIn('GOOGLE_LOGIN_CLIENT_SECRET', avisos[0].msg)
+        self.assertIn('GOOGLE_LOGIN_DOMINIO', avisos[0].msg)
