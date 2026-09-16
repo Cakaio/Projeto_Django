@@ -35,8 +35,14 @@ def configurado() -> bool:
     aparece, e o formulário de usuário e senha continua lá. Mesmo padrão do
     VAPID e das credenciais do Drive — configuração faltando não pode derrubar
     o site.
+
+    **Exige o domínio também**, e isso é a diferença entre uma porta e um
+    buraco: sem `GOOGLE_LOGIN_DOMINIO`, a conferência do `hd` não tem com o que
+    comparar e QUALQUER conta Google do planeta viraria voluntário ativo — com
+    a linha em branco no `.env` parecendo inofensiva. A falha aqui é fechada:
+    o botão não aparece, e `pcf.W002` diz por quê no meio do deploy.
     """
-    return bool(getattr(settings, 'GOOGLE_LOGIN_CLIENT_ID', ''))
+    return bool(getattr(settings, 'GOOGLE_LOGIN_CLIENT_ID', '')) and bool(dominio())
 
 
 def dominio() -> str:
@@ -72,10 +78,17 @@ def verificar_credencial(credencial):
             'Este e-mail ainda não foi verificado pelo Google.')
 
     esperado = dominio()
+    if not esperado:
+        # `configurado()` já barra isto antes de o botão aparecer. A repetição
+        # é de propósito: esta é a última linha antes de alguém entrar, e ela
+        # não pode depender de outra função ter sido chamada.
+        raise LoginGoogleInvalido(
+            'A entrada pelo Google não está configurada neste servidor.')
+
     # `hd` (hosted domain) só existe em conta do Google Workspace. Conferir o
     # FINAL DO E-MAIL em vez disto deixaria passar um Gmail comum com apelido
     # parecido com o domínio — que é exatamente o ataque que esta linha barra.
-    if esperado and dados.get('hd') != esperado:
+    if dados.get('hd') != esperado:
         raise LoginGoogleInvalido(
             f'A entrada pelo Google é só para contas @{esperado}. '
             'Use seu usuário e senha, ou fale com a Gestão de Talentos.')

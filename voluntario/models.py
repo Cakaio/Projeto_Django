@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.db.models.functions import Lower
 
 from sabado.models import Sabado
 
@@ -178,6 +179,32 @@ class Voluntario(AbstractUser):
         help_text="Cargo/posição na hierarquia."
     )
 
+    class Meta(AbstractUser.Meta):
+        # Herdar de AbstractUser.Meta preserva `swappable = 'AUTH_USER_MODEL'`.
+        # Um `class Meta:` solto aqui tiraria isso, e o Django passaria a tratar
+        # o modelo de usuário do projeto como um modelo comum nas migrations.
+        constraints = [
+            # Dois cadastros com o mesmo e-mail travam a entrada pelo Google
+            # daquela pessoa PARA SEMPRE — `voluntario_para` recusa login
+            # ambíguo de propósito, porque entrar na conta errada dá acesso ao
+            # que a outra pessoa podia ver. A trava é aqui para a situação não
+            # nascer, em vez de ser descoberta por quem não consegue entrar.
+            #
+            # `Lower` porque a busca do login é `email__iexact`: sem isso,
+            # "ana@" e "Ana@" passariam pelo banco e continuariam ambíguos para
+            # quem importa. `condition` porque e-mail em branco é o normal em
+            # voluntário antigo — e um índice único sobre '' proibiria o
+            # segundo cadastro sem e-mail.
+            models.UniqueConstraint(
+                Lower('email'),
+                condition=~Q(email=''),
+                name='voluntario_email_unico_quando_preenchido',
+                violation_error_message=(
+                    'Já existe outro voluntário com este e-mail. Dois cadastros '
+                    'com o mesmo e-mail impedem a entrada pelo Google.'
+                ),
+            ),
+        ]
 
     @property
     def area_curta(self):

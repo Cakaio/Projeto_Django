@@ -34,6 +34,24 @@ def carga(**extras):
     return dados
 
 
+def soltar_a_trava_de_email():
+    """Deixa o banco de teste aceitar e-mail repetido.
+
+    É o estado do banco REAL antes da migration 0020: a duplicata existe, e é
+    justamente por isso que há código tratando dela. Sem isso, os testes da
+    ambiguidade não teriam como montar o cenário que precisam provar.
+    """
+    from django.db import connection
+
+    nome = 'voluntario_email_unico_quando_preenchido'
+    with connection.cursor() as cursor:
+        try:
+            cursor.execute(f'DROP INDEX {nome}')
+        except Exception:
+            cursor.execute(
+                f'ALTER TABLE voluntario_voluntario DROP CONSTRAINT {nome}')
+
+
 @override_settings(**CONFIG)
 class VerificacaoDoTokenTests(TestCase):
     """Nada do que o navegador afirma é aceito: quem valida é o Google."""
@@ -133,6 +151,7 @@ class QuemEntraTests(TestCase):
     def test_dois_cadastros_com_o_mesmo_email_recusam_o_login(self):
         """Login ambíguo é pior que login negado: entrar na conta errada dá
         acesso ao que aquela pessoa podia ver."""
+        soltar_a_trava_de_email()   # banco anterior a migration 0020
         for nome in ('ana1', 'ana2'):
             Voluntario.objects.create_user(
                 username=nome, password='x', area='MARKETING',
@@ -289,3 +308,167 @@ class TelaDeLoginTests(TestCase):
         html = LoginPCF.as_view()(pedido).rendered_content
 
         self.assertIn('RECADO DE TESTE PARA O VOLUNTARIO', html)
+
+
+class EmailUnicoTests(TestCase):
+    """A trava de banco que impede a ambiguidade de nascer.
+
+    `voluntario_para` já recusa login quando acha dois cadastros com o mesmo
+    e-mail — mas aí é tarde: a pessoa descobre no sábado, tentando entrar. A
+    constraint existe para a situação não chegar a existir.
+    """
+
+    def test_dois_cadastros_com_o_mesmo_email_sao_recusados_pelo_banco(self):
+        from django.db import IntegrityError, transaction
+
+        Voluntario.objects.create_user(username='a1', password='x',
+                                       area='MARKETING', email='ana@pcf.org')
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Voluntario.objects.create_user(username='a2', password='x',
+                                               area='MARKETING',
+                                               email='ana@pcf.org')
+
+    def test_a_trava_ignora_maiuscula(self):
+        """A busca do login é `email__iexact`. Uma trava sensível a caixa
+        deixaria 'Ana@' e 'ana@' entrarem e o login continuaria ambíguo."""
+        from django.db import IntegrityError, transaction
+
+        Voluntario.objects.create_user(username='a1', password='x',
+                                       area='MARKETING', email='ana@pcf.org')
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Voluntario.objects.create_user(username='a2', password='x',
+                                               area='MARKETING',
+                                               email='ANA@PCF.ORG')
+
+    def test_varios_sem_email_continuam_permitidos(self):
+        """Voluntário antigo sem e-mail é o normal. Um único sobre '' proibiria
+        o segundo cadastro sem e-mail — e aí ninguém cadastraria mais ninguém."""
+        for nome in ('b1', 'b2', 'b3'):
+            Voluntario.objects.create_user(username=nome, password='x',
+                                           area='MARKETING', email='')
+
+        self.assertEqual(Voluntario.objects.filter(email='').count(), 3)
+
+
+class MigrationDoEmailUnicoTests(TestCase):
+    """A conferência que roda ANTES de criar o índice.
+
+    Um `IntegrityError` no meio do `migrate` só diz "deu ruim". Quem está no
+    servidor precisa saber QUAIS cadastros brigaram, sem abrir o banco.
+    """
+
+    def _conferir(self):
+        import importlib
+        from django.apps import apps as apps_reais
+        # O nome do módulo começa com dígito: só dá para importar assim.
+        modulo = importlib.import_module(
+            'voluntario.migrations.0020_email_unico_por_voluntario')
+        return modulo.conferir_antes(apps_reais, None)
+
+    def test_banco_limpo_passa(self):
+        Voluntario.objects.create_user(username='a1', password='x',
+                                       area='MARKETING', email='ana@pcf.org')
+        Voluntario.objects.create_user(username='a2', password='x',
+                                       area='MARKETING', email='')
+        self.assertIsNone(self._conferir())
+
+    def test_duplicata_e_denunciada_com_nome_e_id(self):
+        """Sem os nomes, a mensagem manda procurar agulha em 300 cadastros."""
+        # A constraint já existe no banco de teste, então a duplicata precisa
+        # ser plantada por fora dela — é o estado que o servidor REAL pode ter
+        # hoje, antes da migration rodar.
+        soltar_a_trava_de_email()
+
+        Voluntario.objects.create_user(username='ana.silva', password='x',
+                                       area='MARKETING', email='ana@pcf.org')
+        Voluntario.objects.create_user(username='ana.souza', password='x',
+                                       area='MARKETING', email='ANA@pcf.org')
+
+        with self.assertRaises(Exception) as caixa:
+            self._conferir()
+
+        recado = str(caixa.exception)
+        self.assertIn('ana@pcf.org', recado)
+        self.assertIn('ana.silva', recado)
+        self.assertIn('ana.souza', recado)
+        self.assertIn('Nada foi alterado no banco', recado)
+
+
+class BotaoNoCelularTests(TestCase):
+    """O botão do Google não pode alargar a tela de login."""
+
+    def test_a_largura_fixa_cabe_no_celular(self):
+        """`data-width` é pixel fixo dentro de um iframe que não encolhe.
+
+        Conta do espaço útil num aparelho de 360px: 360 − 40 (respiro da
+        `.lg-main`) − 56 (recheio do cartão) = 264px. Valor maior que isso põe
+        rolagem horizontal na tela de entrada, no aparelho de todo mundo.
+        """
+        import re
+        from pathlib import Path
+        from django.conf import settings
+
+        html = (Path(settings.BASE_DIR) / 'templates' / 'login.html'
+                ).read_text(encoding='utf-8')
+        larguras = [int(v) for v in re.findall(r'data-width="(\d+)"', html)]
+
+        self.assertTrue(larguras, 'O botão do Google perdeu o data-width.')
+        for largura in larguras:
+            self.assertLessEqual(
+                largura, 264,
+                f'data-width={largura} não cabe em celular de 360px.')
+
+
+class DominioVazioTests(TestCase):
+    """A única forma de este recurso virar um buraco.
+
+    Sem `GOOGLE_LOGIN_DOMINIO` não há com o que comparar o `hd`, e qualquer
+    conta Google do planeta viraria voluntário ATIVO — por causa de uma linha
+    em branco no `.env`, que não parece nada.
+    """
+
+    CONFIG_SEM_DOMINIO = dict(
+        GOOGLE_LOGIN_CLIENT_ID='id-de-teste.apps.googleusercontent.com',
+        GOOGLE_LOGIN_DOMINIO='')
+
+    @override_settings(**CONFIG_SEM_DOMINIO)
+    def test_sem_dominio_o_botao_nao_aparece(self):
+        self.assertFalse(google_login.configurado())
+
+    @override_settings(**CONFIG_SEM_DOMINIO)
+    def test_sem_dominio_nem_um_gmail_comum_entra(self):
+        """A recusa é repetida dentro de `verificar_credencial` de propósito:
+        é a última linha antes de alguém entrar, e não pode depender de outra
+        função ter sido chamada antes."""
+        with patch('voluntario.google_login.id_token.verify_oauth2_token',
+                   return_value=carga(hd=None, email='qualquer@gmail.com')):
+            with self.assertRaises(LoginGoogleInvalido):
+                google_login.verificar_credencial('token')
+
+    @override_settings(**CONFIG_SEM_DOMINIO)
+    def test_o_deploy_avisa_por_que_o_botao_sumiu(self):
+        """Falhar fechado em silêncio faz quem configurou procurar erro no
+        Google Cloud Console. O aviso diz que é a linha do `.env`."""
+        from TESTE.checks import entrada_pelo_google_tem_dominio
+
+        avisos = entrada_pelo_google_tem_dominio(app_configs=None)
+
+        self.assertEqual(len(avisos), 1)
+        self.assertEqual(avisos[0].id, 'pcf.W002')
+        self.assertIn('GOOGLE_LOGIN_DOMINIO', avisos[0].hint)
+
+    @override_settings(**CONFIG)
+    def test_configuracao_completa_nao_avisa(self):
+        from TESTE.checks import entrada_pelo_google_tem_dominio
+        self.assertEqual(entrada_pelo_google_tem_dominio(app_configs=None), [])
+
+    @override_settings(GOOGLE_LOGIN_CLIENT_ID='', GOOGLE_LOGIN_DOMINIO='')
+    def test_servidor_sem_o_recurso_nao_vira_barulho(self):
+        """Máquina de desenvolvimento não tem nada disso, e não precisa ouvir
+        sobre isso em todo `manage.py` do dia."""
+        from TESTE.checks import entrada_pelo_google_tem_dominio
+        self.assertEqual(entrada_pelo_google_tem_dominio(app_configs=None), [])

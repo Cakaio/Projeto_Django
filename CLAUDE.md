@@ -168,6 +168,14 @@ Configuração no `.env`: `GOOGLE_LOGIN_CLIENT_ID` (de um OAuth client do tipo
 aparece** e o formulário de senha continua inteiro — mesmo padrão do VAPID e do
 Drive.
 
+**Os DOIS são obrigatórios, e é aí que mora o único buraco possível.** Sem o
+domínio a conferência do `hd` fica sem com o que comparar, e qualquer conta
+Google do planeta viraria voluntário ativo — por causa de uma linha em branco
+no `.env`, que não parece nada. Por isso `configurado()` exige os dois e a
+falha é FECHADA: o botão não aparece. Como sumir em silêncio faria quem
+configurou procurar erro no Google Cloud Console, `pcf.W002` (em
+`TESTE/checks.py`) diz no meio do deploy que o problema é o `.env`.
+
 O que decide se isso é segurança ou teatro:
 
 - **A checagem é no claim `hd`, não no final do e-mail.** `hd` (hosted domain)
@@ -182,9 +190,19 @@ O que decide se isso é segurança ou teatro:
 - **Quem decide o acesso é o CADASTRO, não o Google.** Conta bloqueada
   (`is_active=False`) ou desligada (`data_saida` preenchido) não entra, mesmo
   com token válido.
-- **Dois cadastros com o mesmo e-mail RECUSAM o login.** `email` não é único no
-  modelo; login ambíguo é pior que login negado, porque entrar na conta errada
-  dá acesso ao que aquela pessoa podia ver.
+- **Dois cadastros com o mesmo e-mail RECUSAM o login.** Login ambíguo é pior
+  que login negado, porque entrar na conta errada dá acesso ao que aquela
+  pessoa podia ver. A `UniqueConstraint` da migration `0020` existe para essa
+  situação não NASCER — sobre `Lower('email')`, porque a busca do login é
+  `iexact` e uma trava sensível a caixa deixaria "Ana@" e "ana@" conviverem; e
+  com `condition=~Q(email='')`, porque voluntário antigo sem e-mail é o normal
+  e um único sobre `''` proibiria o segundo cadastro em branco.
+  **A migration confere ANTES e nomeia os cadastros repetidos** (id e usuário)
+  em vez de estourar um `IntegrityError` seco no meio do deploy — quem está no
+  servidor precisa saber quais corrigir, não só que deu errado. Ela não altera
+  nada quando falha.
+  O `class Meta` do `Voluntario` herda de `AbstractUser.Meta` de propósito: um
+  `class Meta:` solto perderia `swappable = 'AUTH_USER_MODEL'`.
 - **Primeira entrada cria voluntário ATIVO e SEM ÁREA** (decisão da
   coordenação), com senha inutilizável e um recado mandando procurar a Gestão
   de Talentos. Sem área, ele não passa em nenhum gate de permissão. Mas

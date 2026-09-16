@@ -67,3 +67,34 @@ def coleta_de_estaticos_esta_atualizada(app_configs, static_root=None, **kwargs)
               'arquivo velho — sem erro e sem aviso.'),
         id='pcf.W001',
     )]
+
+
+@register()
+def entrada_pelo_google_tem_dominio(app_configs, **kwargs):
+    """Avisa quando o Client ID do Google está posto e o domínio não.
+
+    Essa combinação é a única forma de a entrada pelo Google virar um buraco: a
+    conferência do claim `hd` fica sem com o que comparar, e qualquer conta
+    Google do planeta passaria. O código FALHA FECHADO — `configurado()` devolve
+    False e o botão nem aparece — mas aí a tela de login some um botão sem dizer
+    nada, e quem configurou vai procurar erro no Google Cloud Console.
+
+    Este aviso existe para o deploy dizer a verdade: não é o Google, é a linha
+    em branco no `.env`.
+    """
+    from django.conf import settings as cfg
+
+    if not getattr(cfg, 'GOOGLE_LOGIN_CLIENT_ID', ''):
+        return []
+    if getattr(cfg, 'GOOGLE_LOGIN_DOMINIO', ''):
+        return []
+
+    return [Warning(
+        'GOOGLE_LOGIN_CLIENT_ID está configurado, mas GOOGLE_LOGIN_DOMINIO '
+        'está vazio — o botão "Entrar com o Google" NÃO vai aparecer.',
+        hint=('Ponha `GOOGLE_LOGIN_DOMINIO=projetocriancafeliz.org` no `.env` '
+              'e recarregue o site. Sem o domínio não há como conferir se a '
+              'conta é da organização, e deixar entrar qualquer conta Google '
+              'seria pior do que não ter o botão.'),
+        id='pcf.W002',
+    )]

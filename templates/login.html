@@ -204,9 +204,19 @@
                data-callback="pcfEntrarComGoogle"
                data-auto_prompt="false"
                data-hd="{{ google_dominio }}"></div>
-          <div class="g_id_signin" data-type="standard" data-shape="rectangular"
-               data-theme="outline" data-text="signin_with" data-size="large"
-               data-locale="pt-BR" data-width="320" style="display:flex;justify-content:center"></div>
+          {% comment %}
+            `data-width` é PIXEL FIXO: o Google desenha o botão dentro de um
+            iframe que não encolhe. Num celular de 360px sobram 264px aqui
+            (40px do respiro da tela + 56px do cartão saem antes), então
+            qualquer valor acima disso empurra a página inteira para o lado e
+            a tela de login nasce com rolagem horizontal. O `overflow:hidden`
+            do embrulho é o cinto de segurança para o aparelho de 320px.
+          {% endcomment %}
+          <div style="display:flex;justify-content:center;max-width:100%;overflow:hidden">
+            <div class="g_id_signin" data-type="standard" data-shape="rectangular"
+                 data-theme="outline" data-text="signin_with" data-size="large"
+                 data-locale="pt-BR" data-width="240"></div>
+          </div>
 
           <p style="margin:.9rem 0 0;font-size:.8rem;line-height:1.55;text-align:center;color:hsl(var(--muted-foreground))">
             Só para contas <strong>@{{ google_dominio }}</strong>.
