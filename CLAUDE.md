@@ -151,6 +151,51 @@ Regras que já custaram bug:
 - O service worker é `templates/sw.js`, servido pelo Django — **não** está em
   `/static/`. Editá-lo exige bumpar `const VERSAO`, não `collectstatic`.
 
+## Entrar com a conta Google da organização
+
+Botão na tela de login, **só para contas `@projetocriancafeliz.org`**. O login
+por usuário e senha continua ao lado, de propósito: se o Google cair, se alguém
+perder acesso à conta, ou se o voluntário não tiver conta da organização,
+ninguém fica trancado para fora num sábado de manhã.
+
+**Sem `django-allauth`.** O `google-auth` já estava no projeto por causa do
+Acervo, e verificar um token de identidade é o que ele faz. O allauth traria
+tabelas, templates e um fluxo de login diferente para todo mundo — muito preço
+por pouca coisa.
+
+Configuração no `.env`: `GOOGLE_LOGIN_CLIENT_ID` (de um OAuth client do tipo
+**Aplicativo da Web**) e `GOOGLE_LOGIN_DOMINIO`. **Vazio = o botão não
+aparece** e o formulário de senha continua inteiro — mesmo padrão do VAPID e do
+Drive.
+
+O que decide se isso é segurança ou teatro:
+
+- **A checagem é no claim `hd`, não no final do e-mail.** `hd` (hosted domain)
+  só existe em conta Google Workspace de verdade. Conferir
+  `email.endswith('@dominio')` deixaria passar um Gmail comum com apelido
+  parecido — e há teste para exatamente esse caso.
+- **A verificação é no SERVIDOR**, com a chave pública do Google, conferindo
+  também `aud` (o token foi emitido para este aplicativo), emissor e validade.
+  Nada do que o navegador afirma é aceito. `data-hd` no HTML é só dica para o
+  seletor de contas.
+- **`email_verified` é exigido.**
+- **Quem decide o acesso é o CADASTRO, não o Google.** Conta bloqueada
+  (`is_active=False`) ou desligada (`data_saida` preenchido) não entra, mesmo
+  com token válido.
+- **Dois cadastros com o mesmo e-mail RECUSAM o login.** `email` não é único no
+  modelo; login ambíguo é pior que login negado, porque entrar na conta errada
+  dá acesso ao que aquela pessoa podia ver.
+- **Primeira entrada cria voluntário ATIVO e SEM ÁREA** (decisão da
+  coordenação), com senha inutilizável e um recado mandando procurar a Gestão
+  de Talentos. Sem área, ele não passa em nenhum gate de permissão. Mas
+  **entra em `Voluntario.objects.ativos()`** — ou seja, já aparece na cobrança
+  da enquete do sábado e nas listas de presença.
+- **`LoginPCF` existe só para levar o Client ID ao template.** `extra_context`
+  não serviria: é avaliado uma vez, na importação das rotas.
+- **A tela de login passou a renderizar `messages`.** Ela não renderizava, e
+  toda recusa da entrada pelo Google seria escrita e nunca vista — o mesmo
+  defeito que a tela do Bazar tinha.
+
 ## Estáticos: o `collectstatic` esquecido quebra tela em silêncio
 
 Já quebrou. Em 09/2026 a tela do Bazar subiu com o template NOVO e o JavaScript

@@ -16,7 +16,10 @@ from django.contrib import messages
 from django.db.models import Count, Q, Case, When, IntegerField
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
+from django.contrib.auth import login as auth_login
+from django.contrib.auth.views import LoginView
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from sabado.models import Sabado
 import threading
 import json
@@ -961,3 +964,67 @@ def verificar_faltas_e_gerar_alertas(voluntario, sabado, registrado_por, notific
             url="/voluntario/saas/",
             tag=f"ocorrencia-{voluntario.pk}",
         )
+
+
+# ─────────────────── Entrar com a conta Google da organização ───────────────────
+@require_POST
+def entrar_com_google(request):
+    """Recebe o token do botão do Google, confere e entra.
+
+    Só POST: entrar muda estado, e estado não pode mudar porque alguém abriu
+    uma URL. Toda recusa volta para a tela de login com o motivo escrito — o
+    voluntário precisa saber se o problema é a conta dele ou o sistema.
+
+    Import local de `google_login` de propósito: no topo ele entraria na cadeia
+    de carregamento do app, e uma dependência faltando derrubaria o site
+    inteiro em vez de só desligar o botão. Mesmo motivo do `notificacoes`.
+    """
+    from .google_login import LoginGoogleInvalido, verificar_credencial, voluntario_para
+
+    credencial = request.POST.get('credential') or ''
+    if not credencial:
+        messages.error(request, 'A entrada pelo Google não retornou nada. '
+                                'Tente de novo ou use seu usuário e senha.')
+        return redirect('login')
+
+    try:
+        dados = verificar_credencial(credencial)
+        voluntario, criado = voluntario_para(dados)
+    except LoginGoogleInvalido as erro:
+        messages.error(request, str(erro))
+        return redirect('login')
+
+    # `backend` explícito porque o login não passou por `authenticate()`: quem
+    # autenticou foi o Google, e o Django precisa saber o que gravar na sessão.
+    auth_login(request, voluntario,
+               backend='django.contrib.auth.backends.ModelBackend')
+
+    if criado:
+        messages.success(
+            request,
+            f'Bem-vindo(a), {voluntario.first_name or voluntario.username}! '
+            'Seu acesso foi criado, mas ainda sem área definida — procure a '
+            'Gestão de Talentos para completar seu cadastro.')
+
+    return redirect('inicio')
+
+
+class LoginPCF(LoginView):
+    """A tela de login, com o botão do Google ao lado do formulário.
+
+    Existe só para levar o Client ID e o domínio ao template. `extra_context`
+    não serviria: ele é avaliado uma vez, na importação das rotas, e o teste
+    que troca a configuração não veria a mudança.
+    """
+    template_name = 'login.html'
+    redirect_authenticated_user = True
+
+    def get_context_data(self, **kwargs):
+        from . import google_login
+
+        contexto = super().get_context_data(**kwargs)
+        contexto['google_login_ativo'] = google_login.configurado()
+        contexto['google_client_id'] = getattr(
+            settings, 'GOOGLE_LOGIN_CLIENT_ID', '')
+        contexto['google_dominio'] = google_login.dominio()
+        return contexto

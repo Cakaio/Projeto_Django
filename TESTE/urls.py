@@ -19,6 +19,7 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from .views import inicio, LandingView, busca, midia
 from django.contrib.auth import views as auth_view
+from voluntario import views as voluntario_views
 from django.views.generic import TemplateView
 
 urlpatterns = [
@@ -35,8 +36,12 @@ urlpatterns = [
     ), name='service_worker'),
     path('', LandingView.as_view(), name='landing'),
     path('buscar/', busca, name='busca'),
-    path('login/', auth_view.LoginView.as_view(template_name='login.html', redirect_authenticated_user=True), name='login'),
+    path('login/', voluntario_views.LoginPCF.as_view(), name='login'),
     path('logout/', auth_view.LogoutView.as_view(next_page='login'), name='logout'),
+    # Entrar com a conta Google da organizacao. O login por usuario e senha
+    # acima continua existindo: se o Google cair, ninguem fica trancado fora.
+    path('login/google/', voluntario_views.entrar_com_google, name='login_google'),
+
     path('inicio/', inicio.as_view(), name='inicio'),
     path('atendido/', include('atendido.urls', namespace='atendido')),
     path('voluntario/', include('voluntario.urls', namespace='voluntario')),

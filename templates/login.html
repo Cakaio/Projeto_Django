@@ -124,6 +124,22 @@
           <p style="font-size:.87rem;color:hsl(var(--muted-foreground));margin-top:.25rem">Entre com suas credenciais para continuar</p>
         </div>
 
+        {% comment %}
+          Os recados precisam aparecer AQUI: a entrada pelo Google recusa
+          voltando para esta tela com a explicação em `messages`. Sem este
+          bloco, a pessoa aperta o botão, é recusada, e a tela não diz nada —
+          o mesmo defeito que a tela do Bazar tinha.
+        {% endcomment %}
+        {% if messages %}
+          {% for message in messages %}
+            <div role="alert" style="display:flex;align-items:flex-start;gap:.6rem;border-radius:12px;padding:.75rem .9rem;margin-bottom:1.1rem;
+                        {% if message.tags == 'success' %}background:#effcf5;border:1px solid #c9ecd6{% else %}background:#fdeaea;border:1px solid #f7d4d4{% endif %}">
+              <p style="font-size:.85rem;font-weight:600;line-height:1.45;margin:0;
+                        {% if message.tags == 'success' %}color:#0f6b46{% else %}color:#b03636{% endif %}">{{ message }}</p>
+            </div>
+          {% endfor %}
+        {% endif %}
+
         {% if form.errors %}
         <div role="alert" style="display:flex;align-items:flex-start;gap:.6rem;background:#fdeaea;border:1px solid #f7d4d4;border-radius:12px;padding:.75rem .9rem;margin-bottom:1.1rem">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b03636" stroke-width="2" style="flex-shrink:0;margin-top:1px" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -166,6 +182,50 @@
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </button>
         </form>
+
+        {% if google_login_ativo %}
+          {% comment %}
+            O botão fica DEPOIS do formulário de propósito: usuário e senha
+            continua sendo o caminho que funciona para todo mundo, inclusive
+            para quem não tem conta da organização.
+
+            `data-hd` é só dica para o Google já filtrar a lista de contas.
+            Quem barra de verdade é a conferência do token no servidor
+            (`voluntario/google_login.py`), no claim `hd`.
+          {% endcomment %}
+          <div style="display:flex;align-items:center;gap:.7rem;margin:1.4rem 0 1.1rem">
+            <span style="flex:1;height:1px;background:hsl(var(--border))"></span>
+            <span style="font-size:.76rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:hsl(var(--muted-foreground))">ou</span>
+            <span style="flex:1;height:1px;background:hsl(var(--border))"></span>
+          </div>
+
+          <div id="g_id_onload"
+               data-client_id="{{ google_client_id }}"
+               data-callback="pcfEntrarComGoogle"
+               data-auto_prompt="false"
+               data-hd="{{ google_dominio }}"></div>
+          <div class="g_id_signin" data-type="standard" data-shape="rectangular"
+               data-theme="outline" data-text="signin_with" data-size="large"
+               data-locale="pt-BR" data-width="320" style="display:flex;justify-content:center"></div>
+
+          <p style="margin:.9rem 0 0;font-size:.8rem;line-height:1.55;text-align:center;color:hsl(var(--muted-foreground))">
+            Só para contas <strong>@{{ google_dominio }}</strong>.
+          </p>
+
+          <form id="pcf-form-google" method="post" action="{% url 'login_google' %}" style="display:none">
+            {% csrf_token %}
+            <input type="hidden" name="credential" id="pcf-credencial-google">
+          </form>
+
+          <script src="https://accounts.google.com/gsi/client" async defer></script>
+          <script>
+            // O Google devolve o token aqui; quem confere é o servidor.
+            function pcfEntrarComGoogle(resposta) {
+              document.getElementById('pcf-credencial-google').value = resposta.credential;
+              document.getElementById('pcf-form-google').submit();
+            }
+          </script>
+        {% endif %}
       </div>
 
       <p style="text-align:center;font-size:.82rem;color:hsl(var(--muted-foreground));margin-top:1.25rem">

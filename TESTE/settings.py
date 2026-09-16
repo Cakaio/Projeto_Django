@@ -214,6 +214,23 @@ VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
 VAPID_PRIVATE_KEY = config("VAPID_PRIVATE_KEY", default="")
 VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="")
 
+# ─── Entrar com a conta Google da organizacao ───
+# Client ID de um "ID do cliente OAuth" do tipo APLICATIVO DA WEB, criado no
+# Google Cloud Console. E publico por natureza (vai no HTML da tela de login);
+# o que protege e a verificacao do token no servidor, contra a chave publica do
+# Google, conferindo tambem que o token foi emitido para ESTE `aud`.
+#
+# Vazio = o botao simplesmente nao aparece e o login por senha continua. Assim
+# o site nao quebra em maquina que nao tem a chave.
+GOOGLE_LOGIN_CLIENT_ID = config("GOOGLE_LOGIN_CLIENT_ID", default="")
+
+# So contas deste dominio do Google Workspace entram pelo botao. A checagem e
+# feita no claim `hd` do token, e nao no final do e-mail: `hd` so existe em
+# conta Workspace de verdade, entao um Gmail comum com apelido parecido com o
+# dominio nao passa.
+GOOGLE_LOGIN_DOMINIO = config("GOOGLE_LOGIN_DOMINIO",
+                              default="projetocriancafeliz.org")
+
 # ─── Acervo ← Google Drive ───
 # Conta de SERVIÇO, não OAuth de usuário: em app não verificado pelo Google, o
 # refresh token do OAuth expira em 7 dias e a sincronização pararia sozinha
