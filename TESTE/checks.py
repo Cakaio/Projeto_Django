@@ -98,3 +98,35 @@ def entrada_pelo_google_tem_dominio(app_configs, **kwargs):
               'seria pior do que não ter o botão.'),
         id='pcf.W002',
     )]
+
+
+@register()
+def biblioteca_do_google_instalada(app_configs, **kwargs):
+    """Avisa quando a entrada pelo Google está configurada e a lib não existe.
+
+    Em 09/2026 o `import` da biblioteca ficava no topo de
+    `voluntario/google_login.py` e o venv do servidor não a tinha: `/login/`
+    devolveu 500 — a única página que precisa abrir mesmo quando tudo o mais
+    está quebrado, porque sem ela ninguém entra para consertar nada.
+
+    Hoje o import é protegido e a falta vira recurso desligado. O preço é que
+    o botão some calado, e quem configurou vai procurar erro no Google Cloud
+    Console. Este aviso existe para o deploy dizer onde está o problema.
+    """
+    from django.conf import settings as cfg
+    from voluntario import google_login
+
+    if not getattr(cfg, 'GOOGLE_LOGIN_CLIENT_ID', ''):
+        return []
+    if google_login.biblioteca_instalada():
+        return []
+
+    return [Warning(
+        'A entrada pelo Google está configurada, mas a biblioteca `google-auth` '
+        'não está instalada neste ambiente — o botão NÃO vai aparecer.',
+        hint=('Rode `pip install -r requirements.txt` no virtualenv do site e '
+              'faça o Reload. A tela de login continua funcionando por usuário '
+              'e senha enquanto isso — a falta da biblioteca desliga o recurso, '
+              'não a página.'),
+        id='pcf.W003',
+    )]

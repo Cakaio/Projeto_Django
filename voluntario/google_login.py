@@ -18,10 +18,29 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from google.auth.transport import requests as transporte_google
-from google.oauth2 import id_token
 
 logger = logging.getLogger(__name__)
+
+# ESTE MODULO E IMPORTADO PELA TELA DE LOGIN, e a tela de login e a unica que
+# precisa abrir mesmo quando todo o resto esta quebrado — sem ela ninguem entra
+# para consertar nada. Um `from google... import` solto aqui em cima ja derrubou
+# `/login/` com 500 em producao, porque o venv do servidor nao tinha a
+# biblioteca. `acervo/drive.py` importa dentro da funcao pelo mesmo motivo, e o
+# CLAUDE.md ja registrava a regra para `notificacoes.services`.
+#
+# `except ImportError` e o ponto todo: falta de dependencia vira recurso
+# desligado, nunca tela fora do ar. Quem avisa que falta instalar e `pcf.W003`,
+# no meio do deploy.
+try:
+    from google.auth.transport import requests as transporte_google
+    from google.oauth2 import id_token
+except ImportError:                                  # pragma: no cover
+    transporte_google = id_token = None
+
+
+def biblioteca_instalada() -> bool:
+    """A biblioteca do Google esta disponivel neste servidor?"""
+    return id_token is not None
 
 
 class LoginGoogleInvalido(Exception):
@@ -41,8 +60,13 @@ def configurado() -> bool:
     comparar e QUALQUER conta Google do planeta viraria voluntário ativo — com
     a linha em branco no `.env` parecendo inofensiva. A falha aqui é fechada:
     o botão não aparece, e `pcf.W002` diz por quê no meio do deploy.
+
+    **Exige a biblioteca também**: pior que não ter o botão é ter um botão que
+    estoura quando alguém toca nele.
     """
-    return bool(getattr(settings, 'GOOGLE_LOGIN_CLIENT_ID', '')) and bool(dominio())
+    return (bool(getattr(settings, 'GOOGLE_LOGIN_CLIENT_ID', ''))
+            and bool(dominio())
+            and biblioteca_instalada())
 
 
 def dominio() -> str:
@@ -56,6 +80,12 @@ def verificar_credencial(credencial):
     emitido para ESTE aplicativo (`aud`). Nada do que o navegador manda é
     aceito sem essa volta.
     """
+    if not biblioteca_instalada():
+        logger.error('google-auth ausente no venv — entrada pelo Google desligada.')
+        raise LoginGoogleInvalido(
+            'A entrada pelo Google não está disponível neste servidor. '
+            'Use seu usuário e senha.')
+
     if not configurado():
         raise LoginGoogleInvalido(
             'A entrada pelo Google não está configurada neste servidor.')

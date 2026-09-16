@@ -472,3 +472,60 @@ class DominioVazioTests(TestCase):
         sobre isso em todo `manage.py` do dia."""
         from TESTE.checks import entrada_pelo_google_tem_dominio
         self.assertEqual(entrada_pelo_google_tem_dominio(app_configs=None), [])
+
+
+@override_settings(**CONFIG)
+class SemABibliotecaDoGoogleTests(TestCase):
+    """A tela de login NAO PODE cair por causa deste recurso.
+
+    Em 09/2026 ela caiu: `google_login.py` importava o `google` no topo do
+    módulo, e o venv do servidor não tinha a biblioteca. Resultado: 500 em
+    `/login/` — a única página que precisa abrir mesmo quando tudo o mais está
+    quebrado, porque sem ela ninguém entra para consertar nada.
+
+    `acervo/drive.py` já importava dentro da função. A regra do CLAUDE.md sobre
+    `notificacoes.services` é a mesma, escrita para outro módulo.
+    """
+
+    def test_a_tela_de_login_abre_sem_a_biblioteca(self):
+        from django.contrib.auth.models import AnonymousUser
+        from django.test import RequestFactory
+        from voluntario.views import LoginPCF
+
+        pedido = RequestFactory().get('/login/')
+        pedido.user = AnonymousUser()
+        pedido.session = self.client.session
+
+        with patch.object(google_login, 'id_token', None):
+            html = LoginPCF.as_view()(pedido).rendered_content
+
+        # A tela abre, e abre INTEIRA: o caminho de usuário e senha é o que
+        # continua funcionando quando o Google não está disponível.
+        self.assertIn('name="username"', html)
+        self.assertIn('name="password"', html)
+
+    def test_sem_a_biblioteca_o_botao_nao_aparece(self):
+        """Pior que não ter o botão é ter um botão que estoura ao ser tocado."""
+        with patch.object(google_login, 'id_token', None):
+            self.assertFalse(google_login.configurado())
+
+    def test_sem_a_biblioteca_ninguem_entra(self):
+        with patch.object(google_login, 'id_token', None):
+            with self.assertRaises(LoginGoogleInvalido):
+                google_login.verificar_credencial('token')
+
+    def test_o_deploy_avisa_que_falta_instalar(self):
+        """Sem isto, o botão some e quem configurou vai procurar erro no
+        Google Cloud Console — de novo."""
+        from TESTE.checks import biblioteca_do_google_instalada
+
+        with patch.object(google_login, 'id_token', None):
+            avisos = biblioteca_do_google_instalada(app_configs=None)
+
+        self.assertEqual(len(avisos), 1)
+        self.assertEqual(avisos[0].id, 'pcf.W003')
+        self.assertIn('requirements.txt', avisos[0].hint)
+
+    def test_com_a_biblioteca_nao_vira_barulho(self):
+        from TESTE.checks import biblioteca_do_google_instalada
+        self.assertEqual(biblioteca_do_google_instalada(app_configs=None), [])

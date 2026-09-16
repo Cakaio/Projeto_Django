@@ -176,6 +176,20 @@ falha é FECHADA: o botão não aparece. Como sumir em silêncio faria quem
 configurou procurar erro no Google Cloud Console, `pcf.W002` (em
 `TESTE/checks.py`) diz no meio do deploy que o problema é o `.env`.
 
+**A TELA DE LOGIN NÃO PODE CAIR POR CAUSA DESTE RECURSO, e já caiu.** Em
+09/2026 `google_login.py` importava o `google` no topo do módulo; o venv do
+servidor não tinha a biblioteca e `/login/` devolveu **500** — a única página
+que precisa abrir quando tudo o mais está quebrado, porque sem ela ninguém
+entra para consertar nada. O resto do site continuou de pé só porque
+`acervo/drive.py` importa o Google DENTRO da função.
+
+É a mesma regra que esta página já registrava para `notificacoes.services`, em
+outra forma. Hoje o import está em `try/except ImportError` e
+`configurado()` exige a biblioteca — **falta de dependência desliga o recurso,
+nunca a página** — e `pcf.W003` avisa no deploy para rodar
+`pip install -r requirements.txt`. Pior que não ter o botão é ter um botão que
+estoura quando alguém toca nele.
+
 O que decide se isso é segurança ou teatro:
 
 - **A checagem é no claim `hd`, não no final do e-mail.** `hd` (hosted domain)
