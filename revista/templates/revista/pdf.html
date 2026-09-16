@@ -83,6 +83,7 @@
     /* O respiro entre blocos vem de margin-top, nunca de padding num <div>:
        o xhtml2pdf traduz margem em espaço antes do parágrafo, mas ignora o
        padding vertical de div — com padding os blocos saem colados. */
+    .sala-titulo { font-size: 13pt; font-weight: bold; color: #1c130e; margin-bottom: 6pt; }
     .titulo-secao {
       font-size: 13pt;
       font-weight: bold;
@@ -272,6 +273,12 @@
     </tr>
   </table>
 
+  {% comment %}
+    DESLIGADO A PEDIDO (set/2026) — a revistinha, por enquanto, é só os textos
+    dos semanários agrupados por salinha. Tudo aqui embaixo continua inteiro;
+    para religar, apague esta linha de abertura e a de fechamento no fim do
+    trecho. As seções seguem gravadas uma por atividade, com sábado,
+    competência e foto — nada precisa ser remontado.
   {# ══════════════════ Carta de abertura ══════════════════ #}
   {% if revista.texto_abertura %}
     <table width="100%" cellpadding="0" cellspacing="0" class="caixa-prosa">
@@ -331,61 +338,27 @@
       {% endif %}
   {% endif %}
 
-  {# ══════════════════ Destaques ══════════════════ #}
-    <div class="titulo-secao">O que aconteceu nas salas</div>
-    <table class="regua" width="52" cellpadding="0" cellspacing="0"><tr><td>&nbsp;</td></tr></table>
-    <div class="sub-secao">
-      Cada destaque nasceu do semanário escrito pelos voluntários no dia da atividade.
-    </div>
+  {% endcomment %}
 
-    {% for secao in secoes %}
-      <table width="100%" cellpadding="0" cellspacing="0" class="destaque">
-        <tr>
-          {% if secao.foto %}
-            <td class="destaque-cel-foto">
-              {# Caminho absoluto em disco: sem link_callback na view, URL relativa não resolve. #}
-              <img src="{{ secao.foto.path }}" style="width:4.6cm;" alt="">
-            </td>
-          {% endif %}
-          <td class="destaque-cel-texto">
-            <div class="destaque-meta">
-              {% if secao.sala %}
-                {% if secao.sala == 'FAMILIA_FELIZ' %}FAMÍLIA FELIZ{% else %}SALA {{ secao.sala }}{% endif %}
-              {% endif %}
-              {% if secao.sala and secao.sabado %} &middot; {% endif %}
-              {% if secao.sabado %}{{ secao.sabado.data|date:"d/m/Y" }}{% endif %}
-            </div>
-            <div class="destaque-titulo">{{ secao.titulo }}</div>
-            {% if secao.texto %}
-              <div class="destaque-texto">{{ secao.texto|linebreaks }}</div>
-            {% endif %}
-            {% if secao.competencia %}
-              <div class="destaque-competencia">
-                Competência trabalhada: {{ secao.competencia }}
-              </div>
-            {% endif %}
-          </td>
-        </tr>
-      </table>
-      {% if not forloop.last %}
-        <table width="100%" cellpadding="0" cellspacing="0">
-          <tr><td class="separador"></td></tr>
-        </table>
-      {% endif %}
+  {# ══════════════════ Os textos dos semanários, por salinha ══════════════════ #}
+  <div class="titulo-secao">O que aconteceu em cada salinha</div>
+  <table class="regua" width="52" cellpadding="0" cellspacing="0"><tr><td>&nbsp;</td></tr></table>
 
-    {% empty %}
-      <table width="100%" cellpadding="0" cellspacing="0" class="vazio">
-        <tr>
-          <td>
-            <div class="vazio-titulo">Esta edição ainda não tem destaques</div>
-            Abra a revista em "Montar", clique em "Trazer do semanário" e marque
-            as atividades que devem aparecer aqui. Só entram atividades com
-            descrição preenchida no semanário.
-          </td>
-        </tr>
-      </table>
-    {% endfor %}
+  {% for bloco in blocos_por_salinha %}
+    <table width="100%" cellpadding="0" cellspacing="0" class="caixa-prosa">
+      <tr>
+        <td class="prosa">
+          <div class="sala-titulo">{{ bloco.rotulo }}</div>
+          {% for texto in bloco.textos %}
+            {{ texto|linebreaks }}
+          {% endfor %}
+        </td>
+      </tr>
+    </table>
+  {% endfor %}
 
+  {% comment %} DESLIGADO A PEDIDO (set/2026) — ver a nota acima. {% endcomment %}
+  {% comment %}
   {# ══════════════════ Onde o dinheiro foi aplicado ══════════════════ #}
   {% if financeiro %}
       <div class="titulo-secao">Onde o dinheiro foi aplicado</div>
@@ -446,6 +419,8 @@
       </tr>
     </table>
   {% endif %}
+
+  {% endcomment %}
 
   <div class="assinatura">
     Obrigado por caminhar com o Projeto Criança Feliz. Cada número desta

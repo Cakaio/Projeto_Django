@@ -653,3 +653,224 @@ class EstudioDesligadoTests(TestCase):
         html = self._ver()
         self.assertIn('Baixar PDF', html)
         self.assertIn('Imprimir', html)
+
+
+# ─────────────────────── Textos agrupados por salinha ───────────────────────
+class TextosPorSalinhaTests(BaseRevista):
+    """A revista passa a ser só os textos dos semanários, juntos por salinha.
+
+    O agrupamento acontece na EXIBIÇÃO, não no modelo: as seções continuam
+    gravadas uma por atividade, com sábado, competência e foto. É o que permite
+    descomentar o resto no futuro sem remontar nada.
+    """
+
+    def setUp(self):
+        super().setUp()
+        montar_secoes(self.revista)
+
+    def _blocos(self):
+        from .servicos import textos_por_salinha
+        return textos_por_salinha(self.revista)
+
+    def test_cada_salinha_vira_um_bloco(self):
+        blocos = self._blocos()
+        self.assertEqual([bloco['sala'] for bloco in blocos], ['VIOLETA', 'AZUL'])
+
+    def test_o_bloco_traz_o_nome_da_salinha_por_extenso(self):
+        """O código cru ("FAMILIA_FELIZ") não vai para a página do doador."""
+        self.assertEqual(self._blocos()[0]['rotulo'], 'Violeta')
+
+    def test_o_bloco_traz_os_textos_do_semanario(self):
+        blocos = self._blocos()
+        self.assertEqual(blocos[0]['textos'],
+                         ['As crianças contaram o que é ser amigo.'])
+
+    def test_varios_textos_da_mesma_salinha_ficam_juntos(self):
+        Atividade.objects.create(
+            semanario=self.sem_violeta, atividade='Pintura',
+            descricao='Pintamos o painel da sala.', competencia='Criatividade')
+        montar_secoes(self.revista)
+
+        violeta = self._blocos()[0]
+        self.assertEqual(len(violeta['textos']), 2)
+        self.assertIn('Pintamos o painel da sala.', violeta['textos'])
+
+    def test_a_ordem_e_a_oficial_das_salinhas_e_nao_a_alfabetica(self):
+        """Violeta → Vermelho, Família Feliz por último. Alfabético colocaria
+        Amarelo antes de Anil e Azul antes de Violeta."""
+        for sala in ('FAMILIA_FELIZ', 'AMARELO'):
+            semanario = Semanario.objects.create(
+                sala=sala, data=self.sabado_1, tema='T')
+            Atividade.objects.create(
+                semanario=semanario, atividade='A',
+                descricao=f'Texto de {sala}.', competencia='C')
+        montar_secoes(self.revista)
+
+        self.assertEqual([bloco['sala'] for bloco in self._blocos()],
+                         ['VIOLETA', 'AZUL', 'AMARELO', 'FAMILIA_FELIZ'])
+
+    def test_secao_desmarcada_nao_entra(self):
+        """Desmarcar "incluir" é como o CR diz que aquilo não vai para o doador."""
+        secao = self.revista.secoes.get(sala='VIOLETA')
+        secao.incluir = False
+        secao.save()
+
+        self.assertEqual([bloco['sala'] for bloco in self._blocos()], ['AZUL'])
+
+    def test_secao_sem_texto_nao_vira_bloco_vazio(self):
+        """Seção criada à mão e deixada em branco sairia como uma salinha com
+        título e nada embaixo."""
+        SecaoRevista.objects.create(
+            revista=self.revista, sala='VERDE', titulo='Vazia', texto='   ')
+
+        self.assertNotIn('VERDE', [bloco['sala'] for bloco in self._blocos()])
+
+    def test_secao_sem_salinha_nao_derruba_o_agrupamento(self):
+        """Seção manual pode nascer sem sala. Ela entra num bloco próprio em
+        vez de sumir sem ninguém notar."""
+        SecaoRevista.objects.create(
+            revista=self.revista, sala='', titulo='Recado',
+            texto='Um recado que não é de salinha nenhuma.')
+
+        blocos = self._blocos()
+        rotulos = [bloco['rotulo'] for bloco in blocos]
+        self.assertIn('Outros', rotulos)
+        self.assertEqual(rotulos[-1], 'Outros')
+
+    def test_revista_sem_secao_devolve_lista_vazia(self):
+        self.revista.secoes.all().delete()
+        self.assertEqual(self._blocos(), [])
+
+
+class ContextoDeLeituraTests(BaseRevista):
+    """As quatro saídas leem o mesmo contexto — se divergirem, quem confere na
+    tela aprova uma coisa e o doador recebe outra."""
+
+    def test_o_contexto_traz_os_blocos_por_salinha(self):
+        montar_secoes(self.revista)
+        self.assertIn('blocos_por_salinha', _contexto_leitura(self.revista))
+
+
+class SaidasMostramSoOsTextosTests(BaseRevista):
+    """As quatro saídas renderizadas DE VERDADE, com os templates reais.
+
+    Sem `TEMPLATES_STUB` aqui de propósito: o que precisa ser provado é que o
+    `{% comment %}` fecha certo e que o bloco por salinha aparece — nada disso
+    um stub mostra.
+    """
+
+    def setUp(self):
+        super().setUp()
+        montar_secoes(self.revista)
+        self.revista.link_publico_ativo = True
+        self.revista.status = 'PUBLICADA'      # o link só abre publicada
+        self.revista.texto_abertura = 'CARTA QUE NAO DEVE APARECER'
+        self.revista.texto_fechamento = 'FECHAMENTO QUE NAO DEVE APARECER'
+        self.revista.save()
+        self.fabrica = RequestFactory()
+
+    def _publica(self):
+        pedido = self.fabrica.get(f'/r/{self.revista.token}/')
+        pedido.user = AnonymousUser()
+        return publica(pedido, token=self.revista.token).content.decode()
+
+    def _corpo(self):
+        """Só o que o doador vê.
+
+        O <style> da página tem comentários de CSS com os mesmos títulos das
+        seções ("Onde o dinheiro foi aplicado"), então procurar no arquivo
+        inteiro acusa seção desligada que na verdade não aparece.
+        """
+        html = self._publica()
+        return html[html.index('<body>'):]
+
+    def test_a_publica_mostra_os_textos_agrupados_por_salinha(self):
+        html = self._publica()
+        self.assertIn('Violeta', html)
+        self.assertIn('As crianças contaram o que é ser amigo.', html)
+        self.assertIn('Azul', html)
+        self.assertIn('Cada criança desenhou um colega.', html)
+
+    def test_a_publica_nao_mostra_mais_os_numeros_nem_o_financeiro(self):
+        html = self._corpo()
+        self.assertNotIn('O período em cinco linhas', html)
+        self.assertNotIn('Onde o dinheiro foi aplicado', html)
+
+    def test_a_publica_nao_mostra_carta_nem_fechamento(self):
+        html = self._corpo()
+        self.assertNotIn('CARTA QUE NAO DEVE APARECER', html)
+        self.assertNotIn('FECHAMENTO QUE NAO DEVE APARECER', html)
+
+    def test_a_publica_mantem_titulo_e_periodo(self):
+        """A identidade mínima fica: sem ela o link parece página quebrada."""
+        html = self._publica()
+        self.assertIn('Março no PCF', html)
+        self.assertIn('2026', html)
+
+    def test_o_comentario_do_template_nao_vaza_para_a_pagina(self):
+        """`{% comment %}` mal fechado deixa o HTML desligado visível como
+        texto solto — e o doador lê o código-fonte da revista."""
+        html = self._publica()
+        self.assertNotIn('DESLIGADO A PEDIDO', html)
+        self.assertNotIn('endcomment', html)
+
+
+class AsQuatroSaidasConcordamTests(BaseRevista):
+    """PDF, e-mail e tela interna renderizados de verdade.
+
+    As quatro saídas mostram a MESMA revista. Se divergirem, quem confere na
+    tela aprova uma coisa e o doador recebe outra — por isso o mesmo conjunto
+    de asserções vale para todas.
+    """
+
+    def setUp(self):
+        super().setUp()
+        montar_secoes(self.revista)
+        self.revista.texto_abertura = 'CARTA QUE NAO DEVE APARECER'
+        self.revista.texto_fechamento = 'FECHAMENTO QUE NAO DEVE APARECER'
+        self.revista.save()
+
+    def _render(self, template):
+        """PDF e e-mail são autônomos e renderizam sozinhos.
+
+        `ver.html` estende `base.html`, que lê `request.user` — sem requisição
+        ele nem compila. Por isso essa saída passa pela view.
+        """
+        if template == 'revista/ver.html':
+            from .views import ver
+            pedido = RequestFactory().get(f'/revista/{self.revista.pk}/')
+            pedido.user = self.fabio
+            return ver(pedido, pk=self.revista.pk).content.decode()
+
+        from django.template.loader import render_to_string
+        return render_to_string(template, _contexto_leitura(self.revista))
+
+    def _conferir(self, html, saida):
+        with self.subTest(saida=saida, o_que='textos por salinha'):
+            self.assertIn('Violeta', html)
+            self.assertIn('As crianças contaram o que é ser amigo.', html)
+            self.assertIn('Azul', html)
+            self.assertIn('Cada criança desenhou um colega.', html)
+        with self.subTest(saida=saida, o_que='carta e fechamento desligados'):
+            self.assertNotIn('CARTA QUE NAO DEVE APARECER', html)
+            self.assertNotIn('FECHAMENTO QUE NAO DEVE APARECER', html)
+        with self.subTest(saida=saida, o_que='comentário não vaza'):
+            self.assertNotIn('DESLIGADO A PEDIDO', html)
+            self.assertNotIn('endcomment', html)
+
+    def test_o_pdf_mostra_so_os_textos_por_salinha(self):
+        self._conferir(self._render('revista/pdf.html'), 'pdf')
+
+    def test_o_email_mostra_so_os_textos_por_salinha(self):
+        self._conferir(self._render('revista/email.html'), 'email')
+
+    def test_a_tela_interna_mostra_so_os_textos_por_salinha(self):
+        self._conferir(self._render('revista/ver.html'), 'ver')
+
+    def test_os_numeros_nao_aparecem_em_saida_nenhuma(self):
+        """`mostrar_numeros` continua ligado no modelo: o que desliga é o
+        template. Assim o CR não perde a preferência dele quando voltar."""
+        self.assertTrue(self.revista.mostrar_numeros)
+        for template in ('revista/pdf.html', 'revista/email.html', 'revista/ver.html'):
+            with self.subTest(saida=template):
+                self.assertNotIn('O período em', self._render(template))

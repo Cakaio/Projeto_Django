@@ -17,7 +17,8 @@ from django.utils.text import slugify
 
 from .forms import RevistaForm, SecaoRevistaFormSet
 from .models import Revista
-from .servicos import financeiro_do_periodo, montar_secoes, numeros_do_periodo
+from .servicos import (financeiro_do_periodo, montar_secoes,
+                       numeros_do_periodo, textos_por_salinha)
 
 AREAS_CRRE = {'CR/RE', 'TRIADE'}
 
@@ -37,6 +38,11 @@ def _contexto_leitura(revista):
     página pública leem exatamente o mesmo conteúdo."""
     contexto = {
         'revista': revista,
+        # A revista exibe os textos dos semanários agrupados por salinha. As
+        # seções soltas continuam no contexto porque os blocos hoje comentados
+        # nos templates (números, financeiro, fotos, competência) precisam
+        # delas quando voltarem.
+        'blocos_por_salinha': textos_por_salinha(revista),
         'secoes': revista.secoes_incluidas.select_related('atividade', 'sabado'),
         'numeros': None,
         'financeiro': None,

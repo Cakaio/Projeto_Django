@@ -504,6 +504,38 @@ não confirma — e o texto explica por quê, senão parece tela quebrada.
   check diz "conferi"; o número que a ADM lança continua vindo da nota. Se um
   dia a ADM precisar ler o valor real na tela, falta um campo de custo ali.
 
+## Revistinha: só os textos, por salinha (set/2026)
+
+A revista mostra **apenas os textos dos semanários agrupados por salinha**, mais
+o título e o período. Todo o resto — números do período, dimensões, carta de
+abertura, financeiro, fechamento, chamada para apoiar e as fotos — está
+**comentado nos templates**, a pedido, para voltar depois.
+
+**O agrupamento acontece na EXIBIÇÃO, não no modelo.** `SecaoRevista` continua
+gravada uma por atividade, com sábado, competência e foto; quem junta é
+`textos_por_salinha()` em `revista/servicos.py`, chamado de `_contexto_leitura`.
+Foi de propósito: mudar o modelo tornaria "descomentar no futuro" impossível
+sem remontar todas as edições.
+
+- A ordem é a **oficial das salinhas** (`LISTA_SALAS`: Violeta → Vermelho,
+  Família Feliz por último), não alfabética — alfabético põe Amarelo antes de
+  Anil e Azul antes de Violeta, que não é como o projeto fala das salas.
+- Seção **sem texto não vira bloco**: título de sala com nada embaixo parece
+  defeito. Seção **sem sala** cai num bloco "Outros" no fim, em vez de sumir.
+- `mostrar_numeros` e `mostrar_financeiro` continuam LIGADOS no modelo. Quem
+  desliga é o template, então a preferência do CR sobrevive ao religamento.
+- **São QUATRO saídas** — `publica.html`, `pdf.html`, `email.html` e
+  `ver.html` — e as quatro leem o mesmo `_contexto_leitura`. Mexer numa só faz
+  quem confere na tela aprovar uma coisa e o doador receber outra.
+- **`{% comment %}` NÃO aninha.** Cada trecho desligado é um bloco só, e o
+  texto da nota dentro dele não pode conter a sequência de fechamento. Há teste
+  que renderiza as quatro saídas e falha se o comentário vazar para a página.
+- `ver.html` estende `base.html` e lê `request.user`: em teste ele precisa
+  passar pela view, não por `render_to_string`.
+
+**PARA RELIGAR:** apagar a abertura e o fechamento de cada `{% comment %}` nos
+quatro templates. Nada mais.
+
 ## Tetos de área (Financeiro)
 
 Quem mexe no teto é **ADM/FIN** (e superusuário), em QUALQUER área — não só na

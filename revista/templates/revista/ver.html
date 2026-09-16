@@ -47,6 +47,10 @@
   .rv-bloco-titulo::before { content: ''; width: 18px; height: 2px; border-radius: 2px; background: var(--brand); flex-shrink: 0; }
 
   /* Carta de abertura e fechamento */
+  .rv-sala { padding: 1.1rem 1.2rem; margin-bottom: .8rem; border: 1px solid hsl(var(--border)); border-radius: 12px; }
+  .rv-sala-titulo { margin: 0 0 .6rem; font-size: 1.02rem; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+  .rv-sala-texto { margin: 0 0 .7rem; font-size: .95rem; line-height: 1.72; color: var(--ink-soft); }
+  .rv-sala-texto:last-child { margin-bottom: 0; }
   .rv-texto { font-size: clamp(.96rem, 2.6vw, 1.05rem); line-height: 1.75; color: var(--ink-soft); }
   .rv-texto p { margin: 0 0 .85rem; }
   .rv-texto p:last-child { margin-bottom: 0; }
@@ -285,6 +289,11 @@
       {% endif %}
     </header>
 
+    {% comment %}
+      DESLIGADO A PEDIDO (set/2026) — a revistinha, por enquanto, é só os textos
+      dos semanários agrupados por salinha. Tudo aqui embaixo continua inteiro;
+      para religar, apague esta abertura e o fechamento no fim do trecho. As
+      seções seguem gravadas uma por atividade — nada precisa ser remontado.
     <!-- Carta de abertura -->
     {% if revista.texto_abertura %}
       <section class="rv-bloco" aria-labelledby="rv-abertura-titulo">
@@ -342,59 +351,29 @@
       </section>
     {% endif %}
 
-    <!-- Destaques (seções) -->
-    <section class="rv-bloco" aria-labelledby="rv-secoes-titulo">
-      <h3 class="rv-bloco-titulo" id="rv-secoes-titulo">O que aconteceu</h3>
+    {% endcomment %}
 
-      <div class="rv-secoes">
-        {% for secao in secoes %}
-          <article class="rv-secao{% if secao.foto %} tem-foto{% endif %}">
-            {% if secao.foto %}
-              <figure class="rv-foto">
-                {# Sem loading="lazy": foto que ainda não carregou sai em branco na impressão. #}
-                <img src="{{ secao.foto.url }}" alt="Foto da atividade {{ secao.titulo }}">
-              </figure>
-            {% endif %}
+    <!-- Os textos dos semanários, por salinha -->
+    <section class="rv-bloco" aria-labelledby="rv-salas-titulo">
+      <h3 class="rv-bloco-titulo" id="rv-salas-titulo">O que aconteceu em cada salinha</h3>
 
-            <div class="rv-corpo">
-              <div class="rv-secao-meta">
-                {% if secao.sala %}
-                  <span class="pcf-badge brand">
-                    Sala {% if secao.sala == 'FAMILIA_FELIZ' %}Família Feliz{% else %}{{ secao.sala|title }}{% endif %}
-                  </span>
-                {% endif %}
-                {% if secao.competencia %}
-                  <span class="pcf-badge outline">{{ secao.competencia }}</span>
-                {% endif %}
-                {% if secao.sabado %}
-                  <time class="rv-secao-data" datetime="{{ secao.sabado.data|date:'Y-m-d' }}">{{ secao.sabado.data|date:"d/m/Y" }}</time>
-                {% endif %}
-              </div>
-
-              <h4 class="rv-secao-titulo">{{ secao.titulo }}</h4>
-
-              {% if secao.texto %}
-                <div class="rv-secao-texto">{{ secao.texto|linebreaks }}</div>
-              {% else %}
-                <p class="rv-secao-texto" style="color:hsl(var(--muted-foreground))">
-                  Este destaque ainda está sem texto. Escreva em “Editar seções” antes de enviar ao doador.
-                </p>
-              {% endif %}
-            </div>
-          </article>
-        {% empty %}
-          <div class="rv-vazio">
-            <span class="pcf-icon-tile lg" aria-hidden="true">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </span>
-            <p class="t">Nenhum destaque nesta edição</p>
-            <p class="s">A revista está sem seções marcadas para incluir. Abra a montagem para trazer as atividades do semanário do período e escolher o que entra.</p>
-            <a href="{% url 'revista:montar' revista.pk %}" class="pcf-btn pcf-btn-primary pcf-btn-sm rv-acoes" style="margin-top:.5rem">Montar as seções</a>
-          </div>
-        {% endfor %}
-      </div>
+      {% for bloco in blocos_por_salinha %}
+        <div class="rv-sala">
+          <h4 class="rv-sala-titulo">{{ bloco.rotulo }}</h4>
+          {% for texto in bloco.textos %}
+            <p class="rv-sala-texto">{{ texto|linebreaksbr }}</p>
+          {% endfor %}
+        </div>
+      {% empty %}
+        <p class="rv-texto" style="color:var(--ink-muted)">
+          Nenhum texto de semanário neste período. Use “Remontar do semanário”
+          para trazer as atividades com descrição preenchida.
+        </p>
+      {% endfor %}
     </section>
 
+    {% comment %} DESLIGADO — ver a nota acima. {% endcomment %}
+    {% comment %}
     <!-- Onde o dinheiro foi aplicado -->
     {% if revista.mostrar_financeiro %}
       <section class="rv-bloco" aria-labelledby="rv-financeiro-titulo">
@@ -469,6 +448,8 @@
         <div class="rv-texto">{{ revista.texto_fechamento|linebreaks }}</div>
       </section>
     {% endif %}
+
+    {% endcomment %}
 
     <footer class="rv-colofao">
       <p style="margin:0"><strong>Projeto Criança Feliz</strong> · {{ revista.titulo }}</p>

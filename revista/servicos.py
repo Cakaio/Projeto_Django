@@ -7,7 +7,7 @@ from django.db.models import Max
 
 from atendido.models import PresencaAtendido
 from sabado.models import Sabado
-from semanario.models import Atividade, Semanario
+from semanario.models import LISTA_SALAS, Atividade, Semanario
 from voluntario.models import PresencaVoluntario
 
 from .models import SecaoRevista
@@ -73,6 +73,51 @@ def montar_secoes(revista, substituir=False):
 
     SecaoRevista.objects.bulk_create(novas)
     return len(novas)
+
+
+# Onde entram as seções sem salinha. Seção criada à mão pode nascer sem sala, e
+# sumir em silêncio seria pior que aparecer num bloco próprio no fim.
+ROTULO_SEM_SALA = 'Outros'
+
+
+def textos_por_salinha(revista):
+    """Os textos dos semanários agrupados por salinha, para exibir.
+
+    O agrupamento acontece AQUI, na exibição, e não no modelo: as seções
+    continuam gravadas uma por atividade, com sábado, competência e foto. É o
+    que permite voltar ao formato antigo — ou acrescentar o que hoje está
+    comentado nos templates — sem remontar edição nenhuma.
+
+    A ordem é a OFICIAL das salinhas (Violeta → Vermelho, Família Feliz por
+    último), não a alfabética: alfabético colocaria Amarelo antes de Anil e
+    Azul antes de Violeta, que não é como o projeto fala das salas.
+
+    Devolve uma lista de dicts com `sala`, `rotulo` e `textos`. Salinha sem
+    texto não vira bloco: título de sala com nada embaixo parece defeito.
+    """
+    rotulos = dict(LISTA_SALAS)
+    posicao = {codigo: indice for indice, (codigo, _) in enumerate(LISTA_SALAS)}
+
+    agrupado = {}
+    for secao in revista.secoes_incluidas.order_by('ordem', 'pk'):
+        texto = (secao.texto or '').strip()
+        if not texto:
+            continue
+        agrupado.setdefault(secao.sala or '', []).append(texto)
+
+    def ordem_da_sala(codigo):
+        # Sala desconhecida (ou vazia) vai para o fim, e não para o meio da
+        # sequência das salinhas de verdade.
+        return posicao.get(codigo, len(posicao))
+
+    return [
+        {
+            'sala': codigo,
+            'rotulo': rotulos.get(codigo, ROTULO_SEM_SALA),
+            'textos': agrupado[codigo],
+        }
+        for codigo in sorted(agrupado, key=ordem_da_sala)
+    ]
 
 
 # O semanário carimba isto quando a competência da atividade não bate com

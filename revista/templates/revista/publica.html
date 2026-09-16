@@ -78,6 +78,10 @@
     .rvp-assinatura { margin: 1.1rem 0 0; font-size: .84rem; font-weight: 650; color: var(--ink); }
 
     /* ── Destaques (os "artigos" da revista) ── */
+    .rvp-sala { padding: 1.4rem 1.5rem; margin-bottom: 1rem; }
+    .rvp-sala-titulo { margin: 0 0 .85rem; font-size: clamp(1.1rem, 3vw, 1.35rem); font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+    .rvp-sala-texto { margin: 0 0 .9rem; font-size: 1rem; line-height: 1.75; color: var(--ink-soft); }
+    .rvp-sala-texto:last-child { margin-bottom: 0; }
     .rvp-artigo { padding: 0; overflow: hidden; }
     .rvp-artigo + .rvp-artigo { margin-top: 1.1rem; }
     .rvp-foto { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover;
@@ -182,6 +186,19 @@
       <div class="rvp-fio" aria-hidden="true"></div>
     </section>
 
+    {% comment %}
+      ══════════════════════════════════════════════════════════════════════
+      DESLIGADO A PEDIDO (set/2026) — a revistinha, por enquanto, é só os
+      textos dos semanários agrupados por salinha.
+
+      O que vem abaixo continua inteiro e funcionando: os números, as
+      dimensões, a carta de abertura, o financeiro, o fechamento e a chamada
+      para apoiar. As seções seguem gravadas uma por atividade, com sábado,
+      competência e foto — nada precisa ser remontado para voltar.
+
+      PARA RELIGAR: apague a linha de abertura acima e a de fechamento no fim
+      deste trecho. Nenhuma outra mudança é necessária.
+      ══════════════════════════════════════════════════════════════════════
     <!-- ══════ Os números do período ══════ -->
     {% if numeros %}
       <section class="rvp-bloco rvp-narrow" aria-labelledby="rvp-numeros-titulo">
@@ -270,58 +287,34 @@
       </section>
     {% endif %}
 
-    <!-- ══════ Destaques ══════ -->
-    <section class="rvp-bloco rvp-narrow" aria-labelledby="rvp-destaques-titulo">
+    {% endcomment %}
+
+    <!-- ══════ Os textos dos semanários, por salinha ══════ -->
+    <section class="rvp-bloco rvp-narrow" aria-labelledby="rvp-salas-titulo">
       <div class="rvp-sec-head">
-        <span class="pcf-eyebrow">Destaques</span>
-        <h2 class="rvp-sec-titulo" id="rvp-destaques-titulo">O que aconteceu nos sábados</h2>
-        <p class="rvp-sec-sub">Cada bloco é uma atividade que realmente rolou, escrita por quem conduziu a sala.</p>
+        <span class="pcf-eyebrow">Os sábados</span>
+        <h2 class="rvp-sec-titulo" id="rvp-salas-titulo">O que aconteceu em cada salinha</h2>
       </div>
 
-      {% for secao in secoes %}
-        <article class="pcf-card rvp-artigo {% if secao.foto %}tem-foto{% endif %} {% if forloop.counter|divisibleby:2 %}invertido{% endif %}">
-          {% if secao.foto %}
-            <img class="rvp-foto" src="{{ secao.foto.url }}" loading="lazy" decoding="async"
-                 alt="Foto da atividade {{ secao.titulo }}">
-          {% endif %}
-          <div class="rvp-corpo">
-            <div class="rvp-meta">
-              {% if secao.sala %}
-                <span class="pcf-badge brand">
-                  {% if secao.sala == 'FAMILIA_FELIZ' %}Família Feliz{% else %}Sala {{ secao.sala|title }}{% endif %}
-                </span>
-              {% endif %}
-              {% if secao.sabado %}
-                <span class="pcf-badge">{{ secao.sabado.data|date:"d/m/Y" }}</span>
-              {% endif %}
-              {% if secao.competencia %}
-                <span class="pcf-badge outline info">{{ secao.competencia }}</span>
-              {% endif %}
-            </div>
-
-            <h3 class="rvp-art-titulo">{{ secao.titulo }}</h3>
-
-            {% if secao.texto %}
-              <div class="rvp-art-texto">{{ secao.texto|linebreaks }}</div>
-            {% else %}
-              <p class="rvp-art-texto">Esta atividade entrou na edição sem relato escrito — a foto conta a história.</p>
-            {% endif %}
-          </div>
+      {% for bloco in blocos_por_salinha %}
+        <article class="pcf-card rvp-sala">
+          <h3 class="rvp-sala-titulo">{{ bloco.rotulo }}</h3>
+          {% for texto in bloco.textos %}
+            <p class="rvp-sala-texto">{{ texto|linebreaksbr }}</p>
+          {% endfor %}
         </article>
       {% empty %}
-        <div class="rvp-vazio">
-          <span class="pcf-icon-tile lg" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          </span>
-          <p class="t">Os destaques ainda não foram publicados</p>
-          <p class="s">
-            O time do projeto está fechando os relatos deste período. Guarde este mesmo link
-            e volte em alguns dias — ou fale com a gente pelo e-mail no rodapé desta página.
+        <div class="pcf-card" style="text-align:center;padding:2rem 1.25rem">
+          <p style="margin:0;color:var(--ink-muted)">
+            O time do projeto está fechando os relatos deste período. Guarde este
+            mesmo link e volte em alguns dias.
           </p>
         </div>
       {% endfor %}
     </section>
 
+    {% comment %} DESLIGADO A PEDIDO (set/2026) — ver a nota acima. {% endcomment %}
+    {% comment %}
     <!-- ══════ Onde o dinheiro foi aplicado ══════ -->
     {% if financeiro %}
       <section class="rvp-bloco rvp-narrow" aria-labelledby="rvp-fin-titulo">
@@ -434,6 +427,8 @@
     </section>
 
   </main>
+
+    {% endcomment %}
 
   <!-- ══════ Rodapé ══════ -->
   <footer class="rvp-rodape">
