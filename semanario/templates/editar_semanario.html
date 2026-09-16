@@ -291,9 +291,36 @@
   }
 </style>
 
+{{ itens_json|json_script:"dados-itens" }}
 <script>
   const materialsByIndex = {};
-  const itemUnits = { {% for item in itens %}"{{ item.pk }}": "{{ item.get_unidade_display|escapejs }}",{% endfor %} };
+  {# O catalogo chega como DADO. Ver `itens_para_o_modal` em semanario/views.py. #}
+  const ITENS = JSON.parse(document.getElementById('dados-itens').textContent);
+  const itemUnits = Object.fromEntries(
+    ITENS.map(i => [String(i.id), i.unidade || '—']));
+
+  function preencherItens(select, selecionado) {
+    // `new Option(texto, valor)` grava o nome como TEXTO. Nenhum caractere de
+    // nome de material — crase, aspas, `${`, ou uma tag de fechamento de
+    // script — pode quebrar a tela.
+    select.appendChild(new Option('Selecione um item', ''));
+    for (const item of ITENS) {
+      const opcao = new Option(item.nome, String(item.id));
+      if (String(item.id) === String(selecionado || '')) opcao.selected = true;
+      select.appendChild(opcao);
+    }
+  }
+
+  function avisarFalha(erro) {
+    // NENHUMA FALHA AQUI PODE SER CALADA. O modal nao abrir sem dizer nada foi
+    // o defeito que trouxe este arquivo para conserto: a pessoa clica, a tela
+    // nao responde, e ela clica de novo achando que travou.
+    console.error('[materiais]', erro);
+    const texto = 'Nao consegui abrir os materiais. Recarregue a pagina; '
+                + 'se continuar, avise a coordenacao. (' + erro.message + ')';
+    if (typeof showToast === 'function') showToast(texto, 'error');
+    else alert(texto);
+  }
   let currentAtividadeId   = null;
   let currentAtividadeIdx  = null;
 
@@ -303,37 +330,29 @@
       ?.split('=')[1] || '';
   }
 
-  function novaLinha(m = {}) {
-    const itemId = String(m.item_id || '');
-    const especificar = (m.especificar || '').replace(/"/g, '&quot;');
-    const link = (m.link || '').replace(/"/g, '&quot;');
-    const qtd  = m.quantidade || '';
-    const unit = itemUnits[itemId] || '—';
-    const pd   = m.pedido  || 'SUPPLY';
-    const sel  = (v, opt) => opt === v ? ' selected' : '';
-    return `<tr>
-      <td class="px-3 py-2"><select class="mat-item" onchange="atualizarUnidadeMaterial(this)">
-        <option value="">Selecione um item</option>
-        {% for item in itens %}<option value="{{ item.id }}">{{ item.nome|escapejs }}</option>{% endfor %}
-      </select></td>
+  // O molde nao carrega NENHUM dado: tudo entra depois, pelo DOM. Era aqui que
+  // `especificar` e o nome do item eram costurados na string, e um `${` vindo
+  // do banco derrubava a funcao inteira sem avisar ninguem.
+  const MOLDE_LINHA = `<tr>
+      <td class="px-3 py-2"><select class="mat-item" onchange="atualizarUnidadeMaterial(this)"></select></td>
       <td class="px-3 py-2">
         <details class="material-details">
           <summary>Especificar / imagem</summary>
           <div class="material-details-fields">
             <button type="button" class="details-modal-close" onclick="this.closest('details').removeAttribute('open')" aria-label="Fechar modal">Fechar ×</button>
-            <label>Especificar<textarea class="mat-especificar" rows="2" placeholder="Cor, tamanho, marca...">${especificar}</textarea></label>
-            <label>Link da imagem<input type="url" class="mat-link" value="${link}" placeholder="https://..."></label>
+            <label>Especificar<textarea class="mat-especificar" rows="2" placeholder="Cor, tamanho, marca..."></textarea></label>
+            <label>Link da imagem<input type="url" class="mat-link" placeholder="https://..."></label>
           </div>
         </details>
       </td>
-      <td class="px-3 py-2"><input type="number" class="mat-qtd" step="0.1" min="0" value="${qtd}"></td>
-      <td class="px-3 py-2 text-center"><span class="mat-unit inline-flex rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">${unit}</span></td>
+      <td class="px-3 py-2"><input type="number" class="mat-qtd" step="0.1" min="0"></td>
+      <td class="px-3 py-2 text-center"><span class="mat-unit inline-flex rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">—</span></td>
       <td class="px-3 py-2">
         <select class="mat-pedido">
-          <option value="SUPPLY"${sel(pd,'SUPPLY')}>Supply</option>
-          <option value="RECREA"${sel(pd,'RECREA')}>Recrea</option>
-          <option value="ZUERO"${sel(pd,'ZUERO')}>Zuero</option>
-          <option value="OUTROS"${sel(pd,'OUTROS')}>Outros</option>
+          <option value="SUPPLY">Supply</option>
+          <option value="RECREA">Recrea</option>
+          <option value="ZUERO">Zuero</option>
+          <option value="OUTROS">Outros</option>
         </select>
       </td>
       <td class="px-3 py-2 text-center">
@@ -344,7 +363,21 @@
           </svg>
         </button>
       </td>
-    </tr>`.replace(`value="${itemId}"`, `value="${itemId}" selected`);
+    </tr>`;
+
+  function novaLinha(m = {}) {
+    const tabela = document.getElementById('tabelaMateriais');
+    tabela.insertAdjacentHTML('beforeend', MOLDE_LINHA);
+    const linha = tabela.lastElementChild;
+
+    preencherItens(linha.querySelector('.mat-item'), m.item_id);
+    linha.querySelector('.mat-especificar').value = m.especificar || '';
+    linha.querySelector('.mat-link').value = m.link || '';
+    linha.querySelector('.mat-qtd').value = m.quantidade || '';
+    linha.querySelector('.mat-pedido').value = m.pedido || 'SUPPLY';
+    linha.querySelector('.mat-unit').textContent =
+      itemUnits[String(m.item_id || '')] || '—';
+    return linha;
   }
 
   function atualizarBadge(idx, count) {
@@ -353,6 +386,17 @@
   }
 
   function abrirMateriais(atividadeId, idx, nome) {
+    // O try/catch nao e zelo: sem ele, qualquer erro aqui dentro fazia o
+    // clique NAO FAZER NADA — sem modal, sem recado, sem pista. A pessoa
+    // conclui que o site travou e clica de novo.
+    try {
+      abrirMateriaisInterno(atividadeId, idx, nome);
+    } catch (erro) {
+      avisarFalha(erro);
+    }
+  }
+
+  function abrirMateriaisInterno(atividadeId, idx, nome) {
     currentAtividadeId  = atividadeId && atividadeId !== 'None' ? atividadeId : null;
     currentAtividadeIdx = String(idx);
     document.getElementById('atividadeNome').textContent = nome;
@@ -368,14 +412,21 @@
         .then(r => r.json())
         .then(data => {
           tabela.innerHTML = '';
-          (data.length ? data : [{}]).forEach(m => tabela.insertAdjacentHTML('beforeend', novaLinha(m)));
+          (data.length ? data : [{}]).forEach(m => novaLinha(m));
           atualizarBadge(idx, data.length);
         })
-        .catch(() => { tabela.innerHTML = ''; tabela.insertAdjacentHTML('beforeend', novaLinha()); });
+        .catch(erro => {
+          // A linha em branco mantem a tela usavel, mas o recado precisa
+          // aparecer: sem ele, "nao carregou" e "nao tinha material" ficam
+          // iguais na tela, e o voluntario regrava tudo do zero sem saber.
+          tabela.innerHTML = '';
+          novaLinha();
+          avisarFalha(erro);
+        });
     } else {
       tabela.innerHTML = '';
       const list = materialsByIndex[currentAtividadeIdx] || [];
-      (list.length ? list : [{}]).forEach(m => tabela.insertAdjacentHTML('beforeend', novaLinha(m)));
+      (list.length ? list : [{}]).forEach(m => novaLinha(m));
     }
   }
 
@@ -391,7 +442,7 @@
   }
 
   function adicionarLinha() {
-    document.getElementById('tabelaMateriais').insertAdjacentHTML('beforeend', novaLinha());
+    novaLinha();
   }
 
   function coletarMateriais() {

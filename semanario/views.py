@@ -23,6 +23,24 @@ from sabado.models import Sabado, DisponibilidadeVoluntario
 from supply.models import Item
 from django.db.models import Prefetch, Count
 
+def itens_para_o_modal():
+    """O catálogo de itens como DADO, não como pedaço de JavaScript.
+
+    A tela montava o `<option>` de cada item interpolando `{{ item.nome }}`
+    dentro de uma template string de JavaScript. `escapejs` protege aspas e
+    crase, mas NÃO protege `${`: um item chamado "Tinta ${cor}" virava
+    interpolação, a função estourava e o modal de materiais simplesmente não
+    abria — sem erro na tela, sem nada.
+
+    Passando por `json_script` + `new Option(...)`, o nome vira texto e ponto.
+    Nenhum caractere de nome de material pode mais quebrar a tela.
+    """
+    return [
+        {'id': item.pk, 'nome': item.nome, 'unidade': item.get_unidade_display()}
+        for item in Item.objects.filter(ativo=True).order_by('nome')
+    ]
+
+
 def criar_semanario(request):
     AtividadeFormSet = modelformset_factory(Atividade, form=AtividadeForm, extra=5, can_delete=False)
 
@@ -110,7 +128,7 @@ def criar_semanario(request):
     return render(request, "criar_semanario.html", {
         "semanario_form": semanario_form,
         "formset": formset,
-        "itens": Item.objects.filter(ativo=True).order_by("nome"),
+        "itens_json": itens_para_o_modal(),
     })
 
 
@@ -234,7 +252,7 @@ def editar_semanario(request, semanario_id):
         "semanario_form": semanario_form,
         "formset": formset,
         "semanario": semanario,
-        "itens": Item.objects.filter(ativo=True).order_by("nome"),
+        "itens_json": itens_para_o_modal(),
     })
 
 class SemanarioListView(LoginRequiredMixin, ListView):
