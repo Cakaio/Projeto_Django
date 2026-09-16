@@ -13,7 +13,7 @@
 (function () {
   'use strict';
 
-  window.PCF_COMBO = '2026-08-20';
+  window.PCF_COMBO = '2026-09-16-sem-laco';
 
   var LIMITE = 8;               // abaixo disso, rolar a lista nativa é mais rápido
   var contador = 0;
@@ -269,6 +269,21 @@
     select.classList.add('pcf-combo-nativo');
     select.setAttribute('tabindex', '-1');
     select.setAttribute('data-combo-pronto', '1');
+    // MARCA DE AUTORIA — sem ela a tela CONGELA, e congelou.
+    //
+    // `cloneNode` copia atributos mas NAO copia propriedade de objeto. Entao
+    // uma linha clonada pelo Supply chega com `data-combo-pronto` e SEM isto,
+    // enquanto a casca que acabamos de montar tem as duas coisas. E so assim
+    // que o observador consegue distinguir CLONE de MONTAGEM NOSSA.
+    //
+    // Sem a distincao: montamos a casca -> o observador ve o <select> "novo"
+    // dentro dela -> desmonta achando que e clone -> ve o <select> de novo
+    // solto -> monta -> ... Callback de MutationObserver e microtask, e o
+    // navegador so repinta quando a fila seca. Ela nunca secava: a aba
+    // travava no primeiro <select> com mais de 8 opcoes inserido depois do
+    // carregamento — o do modal de materiais do semanario, e o de "adicionar
+    // linha" do Supply.
+    select.__pcfCasca = caixa;
   }
 
   function varrer(raiz) {
@@ -284,6 +299,7 @@
     Array.prototype.forEach.call(prontos, function (select) {
       var casca = select.closest('.pcf-combo');
       if (!casca) return;
+      if (select.__pcfCasca === casca) return;   // montagem nossa, nao clone
       casca.parentNode.insertBefore(select, casca);
       casca.remove();
       select.classList.remove('pcf-combo-nativo');
@@ -307,6 +323,9 @@
             // linha copiada, presa ao valor dela.
             if (no.hasAttribute('data-combo-pronto')) {
               var casca = no.closest('.pcf-combo');
+              // O <select> entrou aqui porque NOS o movemos para dentro da
+              // casca. Reprocessar seria desmontar o que acabou de ser feito.
+              if (casca && no.__pcfCasca === casca) return;
               if (casca) {
                 casca.parentNode.insertBefore(no, casca);
                 casca.remove();
