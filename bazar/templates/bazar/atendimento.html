@@ -351,7 +351,16 @@
   </div>
 </div>
 
-<!-- ══════ Escolher o caixa ══════ -->
+<!-- ══════ Escolher o caixa ══════
+     SÓ EXISTE SE HOUVER CAIXA CADASTRADA. Sem a condição abaixo, esta folha
+     abria VAZIA no primeiro acesso do aparelho — uma pergunta sem nenhuma
+     resposta possível, cobrindo a tela, sem botão de fechar. O voluntário
+     ficava preso antes mesmo de digitar o primeiro nome, e parecia que o
+     Bazar inteiro não carregava. Foi exatamente o que aconteceu.
+
+     (Não escreva a tag do `if` aqui dentro: comentário de HTML não esconde
+     template tag do Django, e a tag citada abriria um bloco de verdade.) -->
+{% if salas %}
 <div class="bz-folha" data-caixa hidden>
   <div class="bz-folha-in">
     <p class="bz-folha-titulo">Uma vez por aparelho</p>
@@ -361,9 +370,15 @@
         <button type="button" class="bz-voltar" data-sala="{{ sala.pk }}"
                 style="font-size:1.05rem;font-weight:800;min-height:60px">{{ sala.nome }}</button>
       {% endfor %}
+      {# A saída existe porque `sala` é OPCIONAL ao finalizar (bazar/views.py).
+         Travar a fila por causa de um campo que o servidor nem exige seria
+         trocar uma coluna do relatório pela manhã inteira de atendimento. #}
+      <button type="button" class="bz-outra" data-caixa-depois
+              style="min-height:48px">Decidir depois</button>
     </div>
   </div>
 </div>
+{% endif %}
 
 <script>
   window.BAZAR = {

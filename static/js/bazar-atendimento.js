@@ -150,6 +150,12 @@
     if (chipCaixa) {
       chipCaixa.addEventListener('click', function () { telaCaixa.hidden = false; });
     }
+    // Sair sem escolher. O chip "Caixa: escolher" continua no topo, entao a
+    // decisao nao se perde — so deixa de barrar a fila.
+    var depois = q('[data-caixa-depois]');
+    if (depois) {
+      depois.addEventListener('click', function () { telaCaixa.hidden = true; });
+    }
     var guardado = nomeDoCaixa();
     if (guardado && nomeCaixa) {
       nomeCaixa.textContent = guardado;
