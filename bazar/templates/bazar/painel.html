@@ -119,6 +119,85 @@
         liberaria retirada extra para quem ainda nem foi atendido.
       </p>
 
+      <section class="bzp-bloco" style="margin-top:1.4rem">
+        <h2>Caixas de atendimento</h2>
+        <p style="margin:.25rem 0 .9rem;color:var(--ink-muted);font-size:.82rem">
+          São os pontos físicos onde se confere — "Mesa da entrada", "Sala 1".
+          O voluntário escolhe a dele <strong>uma vez por aparelho</strong>, e a
+          escolha vai para o relatório. <strong>Sem nenhuma cadastrada a
+          pergunta não aparece</strong> e o atendimento roda igual: se você só
+          tem um ponto, não precisa cadastrar nada.
+        </p>
+
+        {% if caixas %}
+          <div class="pcf-scroll-x">
+            <table class="pcf-table bzp-tabela" style="min-width:30rem">
+              <thead><tr><th>Caixa</th><th class="num">Retiradas</th><th>Na tela</th><th></th></tr></thead>
+              <tbody>
+                {% for caixa in caixas %}
+                  <tr>
+                    <td>
+                      <form method="post" action="{% url 'bazar:gerenciar_caixas' bazar.pk %}"
+                            style="display:flex;gap:.4rem;align-items:center">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="renomear">
+                        <input type="hidden" name="caixa" value="{{ caixa.pk }}">
+                        <input type="text" name="nome" value="{{ caixa.nome }}" maxlength="30"
+                               class="pcf-input" style="min-width:11rem" aria-label="Nome da caixa">
+                        <button type="submit" class="pcf-btn pcf-btn-outline pcf-btn-sm">Salvar</button>
+                      </form>
+                    </td>
+                    <td class="num">{{ caixa.usos }}</td>
+                    <td>
+                      <form method="post" action="{% url 'bazar:gerenciar_caixas' bazar.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="alternar">
+                        <input type="hidden" name="caixa" value="{{ caixa.pk }}">
+                        <button type="submit" class="pcf-btn {% if caixa.ativo %}pcf-btn-primary{% else %}pcf-btn-outline{% endif %} pcf-btn-sm">
+                          {% if caixa.ativo %}Aparece{% else %}Escondida{% endif %}
+                        </button>
+                      </form>
+                    </td>
+                    <td>
+                      {% if caixa.usos %}
+                        {# `Retirada.sala` e PROTECT: apagar apagaria a origem
+                           no relatorio. Botao que sempre recusa e pior que
+                           botao nenhum — aqui vai a explicacao no lugar dele. #}
+                        <span style="color:var(--ink-muted);font-size:.78rem">
+                          já usada — desative para tirar da tela
+                        </span>
+                      {% else %}
+                        <form method="post" action="{% url 'bazar:gerenciar_caixas' bazar.pk %}"
+                              onsubmit="return confirm('Excluir a caixa {{ caixa.nome|escapejs }}?')">
+                          {% csrf_token %}
+                          <input type="hidden" name="acao" value="excluir">
+                          <input type="hidden" name="caixa" value="{{ caixa.pk }}">
+                          <button type="submit" class="pcf-btn pcf-btn-outline pcf-btn-sm">Excluir</button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p style="margin:0 0 .9rem;color:var(--ink-muted);font-size:.85rem">
+            Nenhuma caixa cadastrada. O atendimento funciona assim mesmo.
+          </p>
+        {% endif %}
+
+        <form method="post" action="{% url 'bazar:gerenciar_caixas' bazar.pk %}"
+              style="display:flex;gap:.5rem;align-items:center;margin-top:.9rem;flex-wrap:wrap">
+          {% csrf_token %}
+          <input type="hidden" name="acao" value="criar">
+          <input type="text" name="nome" maxlength="30" required
+                 placeholder="Ex.: Mesa da entrada" class="pcf-input"
+                 style="min-width:13rem" aria-label="Nome da nova caixa">
+          <button type="submit" class="pcf-btn pcf-btn-primary pcf-btn-sm">Adicionar caixa</button>
+        </form>
+      </section>
+
       <div class="bzp-grade">
         <section class="bzp-bloco">
           <h2>Estoque por categoria</h2>

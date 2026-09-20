@@ -16,8 +16,8 @@ from functools import wraps
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db import IntegrityError
-from django.db.models import Q
+from django.db import IntegrityError, transaction
+from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -112,6 +112,23 @@ def buscar_atendido(request):
         .filter(nome__icontains=termo)
         .order_by("nome")[:LIMITE_DA_BUSCA]
     )
+
+    if not encontrados:
+        # DISTINGUIR "nao existe" de "existe e esta inativo". Sem isto a tela
+        # dizia "ninguem com esse nome" para uma crianca que esta na frente do
+        # voluntario, com ficha no sistema — e a saida oferecida era registrar
+        # como visitante, criando uma segunda verdade sobre a mesma crianca.
+        inativos = (Atendido.objects.filter(ativo=False, nome__icontains=termo)
+                    .order_by("nome")[:LIMITE_DA_BUSCA])
+        if inativos:
+            return JsonResponse({
+                "resultados": [],
+                "aviso": (
+                    "Achei no cadastro, mas como INATIVO: "
+                    + ", ".join(a.nome for a in inativos)
+                    + ". Quem cuida da matrícula precisa reativar, ou registre "
+                      "como quem veio sem cadastro."),
+            })
 
     return JsonResponse({"resultados": [
         {
@@ -283,8 +300,97 @@ def painel(request):
                 .prefetch_related("itens__categoria")[:15]
             ),
             "etapas": Bazar.Etapa.choices,
+            # As caixas vem com a contagem de retiradas porque a tela precisa
+            # saber QUAIS podem ser excluidas — `Retirada.sala` e PROTECT, e
+            # oferecer um botao que sempre recusa seria oferecer nada.
+            "caixas": bazar.salas.annotate(
+                usos=Count("retiradas")).order_by("ordem", "nome"),
         }
     return render(request, "bazar/painel.html", contexto)
+
+
+@coordenacao_required
+@require_POST
+def gerenciar_caixas(request, pk):
+    """Cadastrar as caixas de atendimento sem passar pelo admin.
+
+    Existe porque QUEM COORDENA O BAZAR NAO NECESSARIAMENTE ENTRA NO ADMIN:
+    `pode_coordenar` e superusuario OU area TRIADE/EVENTOS, e o admin do
+    Django exige `is_staff`, que e outra flag. O painel mandava a coordenacao
+    para "Configurar" e metade dela batia numa tela de login. Resultado real:
+    nenhuma caixa cadastrada no dia do evento.
+
+    Desativar e a acao normal; excluir so vale para caixa que nunca foi usada.
+    `Retirada.sala` e PROTECT de proposito — apagar uma caixa ja usada
+    reescreveria a origem no relatorio, que e justamente para o que ela serve.
+    """
+    bazar = get_object_or_404(Bazar, pk=pk)
+    acao = request.POST.get("acao")
+
+    if acao == "criar":
+        nome = (request.POST.get("nome") or "").strip()
+        if not nome:
+            messages.error(request, "Dê um nome para a caixa.")
+            return redirect("bazar:painel")
+        ultima = bazar.salas.order_by("-ordem").first()
+        try:
+            # `atomic` em volta do INSERT: sem ele o IntegrityError envenena a
+            # transacao inteira e a proxima consulta (a mensagem, o redirect)
+            # estoura com TransactionManagementError.
+            with transaction.atomic():
+                SalaDoBazar.objects.create(
+                    bazar=bazar, nome=nome,
+                    ordem=(ultima.ordem + 1) if ultima else 1)
+        except IntegrityError:
+            # `unique_together` (bazar, nome): duas "Mesa 1" na mesma edicao
+            # deixariam o relatorio sem como dizer de qual saiu a peca.
+            messages.error(request, f'Já existe uma caixa chamada "{nome}".')
+        else:
+            messages.success(request, f'Caixa "{nome}" criada.')
+        return redirect("bazar:painel")
+
+    caixa = get_object_or_404(SalaDoBazar, pk=request.POST.get("caixa") or 0,
+                              bazar=bazar)
+
+    if acao == "renomear":
+        nome = (request.POST.get("nome") or "").strip()
+        if not nome:
+            messages.error(request, "O nome não pode ficar vazio.")
+            return redirect("bazar:painel")
+        caixa.nome = nome
+        try:
+            with transaction.atomic():
+                caixa.save(update_fields=["nome"])
+        except IntegrityError:
+            messages.error(request, f'Já existe uma caixa chamada "{nome}".')
+        else:
+            messages.success(request, f'Agora chama "{nome}".')
+
+    elif acao == "alternar":
+        caixa.ativo = not caixa.ativo
+        caixa.save(update_fields=["ativo"])
+        messages.success(
+            request,
+            f'"{caixa.nome}" {"voltou para a tela" if caixa.ativo else "saiu da tela"}. '
+            "Quem já escolheu essa caixa no aparelho continua como está.")
+
+    elif acao == "excluir":
+        if caixa.retiradas.exists():
+            # Recusar precisa ser recusa, com o motivo e a saída.
+            messages.error(
+                request,
+                f'"{caixa.nome}" já tem retirada registrada e não pode ser '
+                "apagada — o relatório perderia de onde saiu a peça. "
+                "Desative, que ela some da tela e o histórico fica.")
+        else:
+            nome = caixa.nome
+            caixa.delete()
+            messages.success(request, f'Caixa "{nome}" excluída.')
+
+    else:
+        messages.error(request, "Ação desconhecida.")
+
+    return redirect("bazar:painel")
 
 
 @coordenacao_required

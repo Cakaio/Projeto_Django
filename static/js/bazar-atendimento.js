@@ -184,13 +184,33 @@
 
     fetch(cfg.urlBusca + '?q=' + encodeURIComponent(termo),
           { credentials: 'same-origin' })
-      .then(function (r) { return r.json(); })
-      .then(function (dados) { desenharSugestoes(dados.resultados || [], termo); })
-      .catch(function () {
+      // O STATUS IMPORTA. Sem esta linha, um 409 "Nenhum Bazar aberto" virava
+      // `resultados` indefinido, virava lista vazia, e a tela ACUSAVA A
+      // CRIANCA DE NAO EXISTIR quando o problema era do sistema.
+      .then(function (r) {
+        return r.json().then(function (dados) {
+          if (!r.ok) throw new Error(dados.erro || 'Falha na busca.');
+          return dados;
+        });
+      })
+      .then(function (dados) {
+        if (dados.aviso) { mostrarRecado(recadoBusca, 'aviso', dados.aviso); }
+        else { esconderRecado(recadoBusca); }
+        desenharSugestoes(dados.resultados || [], termo);
+      })
+      .catch(function (erro) {
         // Sem .catch a lista ficava em "Procurando…" para sempre.
-        sugestoes.innerHTML =
-          '<p class="bz-estado-busca">Sem conexão agora. Continue pelo papel — ' +
-          'o kit impresso está com a coordenação.</p>';
+        // A mensagem do servidor vem na frente: "Nenhum Bazar aberto" e uma
+        // informacao acionavel, "sem conexao" nao.
+        var texto = (erro && erro.message && erro.message !== 'Failed to fetch')
+          ? erro.message
+          : 'Sem conexão agora. Continue pelo papel — o kit impresso está ' +
+            'com a coordenação.';
+        sugestoes.innerHTML = '';
+        var aviso = document.createElement('p');
+        aviso.className = 'bz-estado-busca';
+        aviso.textContent = texto;
+        sugestoes.appendChild(aviso);
       });
   }
 

@@ -503,6 +503,51 @@ Outras armadilhas da tela, todas com teste:
   cinco primeiras e vazio no resto da manha. O CharField antigo fica como
   historico e nada novo escreve nele.
 
+### As caixas de atendimento (set/2026)
+
+`SalaDoBazar` = o ponto fisico onde se confere. O voluntario escolhe a dele UMA
+VEZ POR APARELHO (fica no `localStorage`) e a escolha vai para o relatorio.
+
+**A folha "Em qual caixa voce esta?" so existe se houver caixa cadastrada.**
+Sem o `{% if %}` no ELEMENTO, ela abria VAZIA no primeiro acesso: cobria a
+tela, sem nenhum botao dentro e sem como fechar. Para quem estava na fila, o
+Bazar inteiro "nao carregava" e a busca parecia quebrada. O `{% for %}` estava
+certo — laco vazio nao da erro, da uma caixa vazia. **Ao esconder uma lista,
+esconda o ELEMENTO, nao confie no laco.**
+
+Ela tambem tem saida ("Decidir depois"): `sala` e OPCIONAL ao finalizar, e
+barrar a fila por um campo que o servidor nem exige troca uma coluna do
+relatorio pela manha inteira de atendimento.
+
+**O cadastro vive no PAINEL, nao so no admin.** `pode_coordenar` e superusuario
+OU area TRIADE/EVENTOS; o admin do Django exige `is_staff`, que e OUTRA FLAG.
+O painel mandava a coordenacao para "Configurar" e metade dela batia numa tela
+de login — por isso nenhuma caixa estava cadastrada no dia do evento. Cota e
+categorias continuam no admin: sao configuradas uma vez, com calma, e mexer
+nelas no meio do evento bagunca o saldo de todo mundo.
+
+- **Nome unico por edicao** (`UniqueConstraint`): duas "Mesa 1" deixariam o
+  relatorio sem como dizer de qual saiu a peca. O `IntegrityError` e capturado
+  DENTRO de um `transaction.atomic()` — sem ele a transacao fica envenenada e
+  a proxima consulta estoura com `TransactionManagementError`.
+- **Caixa ja usada nao e excluida** (`Retirada.sala` e `PROTECT`). No lugar do
+  botao vai a explicacao e a saida: desative. Botao que sempre recusa e pior
+  que botao nenhum.
+
+### A busca nao pode acusar a crianca de nao existir
+
+Dois casos em que a tela dizia "Ninguem com esse nome" para uma crianca que
+estava na frente do voluntario:
+
+- **Sem Bazar aberto** o servidor responde **409**, e o JS fazia
+  `.then(r => r.json())` SEM OLHAR O STATUS: `resultados` indefinido virava
+  lista vazia. Agora o status e conferido e a mensagem do servidor aparece.
+- **`ativo = false`** sumia em silencio — `Atendido.objects.ativos()` e
+  `filter(ativo=True)`. A busca agora PROCURA TAMBEM entre os inativos quando
+  nao acha nada, e devolve `aviso` nomeando quem achou. Sem isso a saida
+  oferecida era registrar como visitante, criando uma segunda verdade sobre a
+  mesma crianca.
+
 ### Kit de papel (`bazar/papelaria.py`)
 
 O plano B, e a unica camada que funciona sem servidor, sem rede e sem bateria.
