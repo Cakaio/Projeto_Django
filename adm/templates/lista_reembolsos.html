@@ -43,6 +43,23 @@
   .rbs-data { white-space: nowrap; font-weight: 650; color: var(--ink); }
   .rbs-nota { display: block; margin-top: .3rem; font-size: .73rem; line-height: 1.4;
               color: hsl(var(--muted-foreground)); }
+  /* A correção de destino: fechada por padrão, discreta quando aberta. */
+  .rbs-corrigir { margin-top: .5rem; }
+  .rbs-corrigir > summary { cursor: pointer; font-size: .74rem; font-weight: 750;
+                            color: var(--brand); list-style: none; }
+  .rbs-corrigir > summary::-webkit-details-marker { display: none; }
+  .rbs-corrigir > summary::before { content: "✎ "; }
+  .rbs-corrigir form { display: grid; gap: .25rem; margin-top: .5rem;
+                       padding: .6rem .7rem; border: 1px solid #f0e4db;
+                       border-radius: 10px; background: #fffaf6; }
+  .rbs-corrigir label { font-size: .68rem; font-weight: 700;
+                        color: var(--ink-muted); }
+  .rbs-corrigir select { width: 100%; min-width: 9rem; padding: .3rem .45rem;
+                         font-size: .78rem; font-family: inherit;
+                         border: 1px solid #f0dfd3; border-radius: 8px;
+                         background: #fff; color: var(--ink); }
+  .rbs-corrigir button { margin-top: .35rem; }
+
   .rbs-dim { color: hsl(var(--muted-foreground)); }
   .rbs-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .rbs-table tfoot td { border-top: 1.5px solid hsl(var(--border)); border-bottom: 0;
@@ -246,6 +263,49 @@
                     {% endif %}
                     {% if pedido.categoria %}
                       <span class="rbs-nota">categoria: {{ pedido.categoria.nome }}</span>
+                    {% endif %}
+
+                    {% comment %}
+                      A correção mora NA COLUNA QUE MOSTRA O DESTINO, e não
+                      numa coluna nova: é onde a pessoa está olhando quando
+                      percebe que está errado.
+
+                      Fechada por padrão (`details`) para a tabela não virar um
+                      formulário gigante — a correção é excepcional, não o uso
+                      normal da tela.
+                    {% endcomment %}
+                    {% if pode_corrigir and pedido.status in 'APROVADO,PAGO' %}
+                      <details class="rbs-corrigir">
+                        <summary>Corrigir destino</summary>
+                        <form method="post"
+                              action="{% url 'adm:reembolso_corrigir_destino' pedido.pk %}"
+                              onsubmit="return confirm('Corrigir o destino deste reembolso? O teto da área antiga e da nova mudam AGORA, mesmo que o pedido já esteja pago.')">
+                          {% csrf_token %}
+                          <label for="corr-area-{{ pedido.pk }}">Desconta do teto de</label>
+                          <select id="corr-area-{{ pedido.pk }}" name="area">
+                            <option value="" {% if not pedido.area %}selected{% endif %}>Nenhuma área</option>
+                            {% for codigo, rotulo in areas %}
+                              <option value="{{ codigo }}" {% if pedido.area == codigo %}selected{% endif %}>{{ rotulo }}</option>
+                            {% endfor %}
+                          </select>
+
+                          <label for="corr-evento-{{ pedido.pk }}">Evento</label>
+                          <select id="corr-evento-{{ pedido.pk }}" name="evento">
+                            <option value="">Nenhum</option>
+                            {% for evento in eventos %}
+                              <option value="{{ evento.pk }}" {% if pedido.evento_id == evento.pk %}selected{% endif %}>{{ evento.nome }}</option>
+                            {% endfor %}
+                          </select>
+
+                          <button type="submit" class="pcf-btn pcf-btn-outline pcf-btn-sm">Salvar destino</button>
+                        </form>
+                        {% if pedido.destino_corrigido_por %}
+                          <span class="rbs-nota">
+                            corrigido por {{ pedido.destino_corrigido_por.get_full_name|default:pedido.destino_corrigido_por.username }}
+                            em {{ pedido.destino_corrigido_em|date:"d/m/Y H:i" }}
+                          </span>
+                        {% endif %}
+                      </details>
                     {% endif %}
                   </td>
 

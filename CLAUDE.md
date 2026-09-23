@@ -703,6 +703,31 @@ Em `_aplicar_destino_da_adm`, **chave ausente é "não mexi" e string vazia é
 "tirei a área"**. São coisas diferentes: o botão de aprovar sozinho não pode
 apagar o que o solicitante escolheu.
 
+### Corrigir o destino depois de aprovado (ou de pago)
+
+Errar a área na aprovação é fácil: os dois selects ficam ao lado dos botões de
+aprovar e rejeitar, num clique só. Até 09/2026 não havia como desfazer — o teto
+da área errada ficava encolhido **para sempre**, e o número só parecia um pouco
+maior do que devia, que é como esse tipo de erro sobrevive.
+
+`reembolso_corrigir_destino` (só POST, `AREAS_ESCRITA`) troca área/evento de um
+pedido **APROVADO ou PAGO**, na própria coluna que mostra o destino — é onde a
+pessoa está olhando quando percebe o erro.
+
+- **Quem mexe no teto é o `Lancamento`, não o pedido.** A view chama
+  `sincronizar_lancamento_do_reembolso`, que já sabia ATUALIZAR um lançamento
+  existente. Corrigir só o pedido deixaria a tela certa e o teto errado.
+- **PENDENTE e REJEITADO são recusados.** PENDENTE ainda não tem lançamento
+  (ele nasce na aprovação); mexer ali daria a impressão de ter mexido no teto
+  sem ter mexido.
+- **Corrigir pedido JÁ PAGO move o gasto RETROATIVAMENTE** entre tetos. É o
+  comportamento pedido e o correto, mas se o semestre já foi fechado na cabeça
+  de alguém, o número dele muda depois do fato — a confirmação diz isso antes.
+- **Fica gravado quem corrigiu** (`destino_corrigido_por` / `_em`, no padrão de
+  `aprovado_por` e `pago_por`). Mudar qual área consumiu o teto é correção
+  financeira: quando dois líderes olharem o mesmo número e discordarem,
+  precisa dar para saber quem mexeu.
+
 ### Chave PIX: ao vivo enquanto pendente, CONGELADA no pagamento
 
 A ADM pagava o reembolso perguntando a chave no grupo. Agora ela vem do perfil

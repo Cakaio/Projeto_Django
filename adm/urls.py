@@ -38,6 +38,8 @@ urlpatterns = [
     path('tetos/<int:pk>/deletar/', views.teto_deletar, name='teto_deletar'),
     path('reembolsos/', views.reembolsos, name='reembolsos'),
     path('reembolsos/<int:pk>/pagar/', views.reembolso_pagar, name='reembolso_pagar'),
+    path('reembolsos/<int:pk>/destino/', views.reembolso_corrigir_destino,
+         name='reembolso_corrigir_destino'),
     path('notificacoes-reembolso/', forms_views.receptores_reembolso, name='receptores_reembolso'),
     path('notificacoes-reembolso/novo/', forms_views.receptor_criar, name='receptor_criar'),
     path('notificacoes-reembolso/<int:pk>/editar/', forms_views.receptor_editar, name='receptor_editar'),

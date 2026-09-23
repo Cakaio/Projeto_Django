@@ -16,9 +16,11 @@ from decimal import Decimal
 from datetime import date
 import csv
 from django.views.decorators.http import require_POST
+from django.urls import reverse
+from voluntario.models import LISTA_AREAS
 from .models import (
-    Categoria, Conta, Lancamento, LinhaDeRateio, RateioDeGasto, RecargaCartao,
-    TetoArea, ORIGENS_AUTOMATICAS,
+    Categoria, Conta, Evento, Lancamento, LinhaDeRateio, RateioDeGasto,
+    RecargaCartao, TetoArea, ORIGENS_AUTOMATICAS,
 )
 from .forms import (CompletarLancamentoForm, CategoriaForm, ContaForm,
                     LancamentoForm, LinhaDeRateioForm, RateioDeGastoForm,
@@ -695,6 +697,13 @@ def reembolsos(request):
     return render(request, 'lista_reembolsos.html', {
         'pedidos': pedidos,
         'status_ativo': status,
+        # Para corrigir o destino na propria linha. Errar a area na aprovacao
+        # e facil — os selects ficam ao lado dos botoes — e ate agora nao havia
+        # como desfazer: o teto da area errada ficava encolhido para sempre.
+        'areas': LISTA_AREAS,
+        'eventos': Evento.objects.all(),
+        'pode_corrigir': (request.user.is_superuser
+                          or getattr(request.user, 'area', None) in AREAS_ESCRITA),
         'contagem_aprovado': contagens.get('APROVADO', 0),
         'contagem_pago': contagens.get('PAGO', 0),
         'contagem_pendente': contagens.get('PENDENTE', 0),
@@ -810,6 +819,58 @@ def reembolso_pagar(request, pk):
         'tipo_chave_pix': (solicitante.get_tipo_chave_pix_display()
                            if solicitante and solicitante.tipo_chave_pix else ''),
     })
+
+
+@adm_escrita_required
+@require_POST
+def reembolso_corrigir_destino(request, pk):
+    """Trocar a area/evento de um reembolso JA APROVADO ou JA PAGO.
+
+    Errar o destino na aprovacao e facil — os dois selects ficam ao lado dos
+    botoes, num clique so — e ate agora nao havia como desfazer: o teto da
+    area errada ficava encolhido PARA SEMPRE, e o numero so parecia um pouco
+    maior do que devia.
+
+    O trabalho de verdade e `sincronizar_lancamento_do_reembolso`, que ja sabia
+    ATUALIZAR um lancamento existente. Corrigir so o pedido deixaria o teto
+    errado: quem mexe no teto e o `Lancamento`, nao o pedido.
+    """
+    PedidoReembolso = apps.get_model('forms_pcf', 'PedidoReembolso')
+    pedido = get_object_or_404(
+        PedidoReembolso.objects.select_related('lancamento'), pk=pk)
+
+    if pedido.status not in ('APROVADO', 'PAGO'):
+        # PENDENTE ainda nao tem lancamento (ele nasce na aprovacao) e
+        # REJEITADO nunca vai ter. Corrigir destino ali nao mexeria em teto
+        # nenhum, e daria a impressao de ter mexido.
+        messages.error(
+            request,
+            'Só reembolso aprovado ou pago tem destino para corrigir. '
+            f'Este está como "{pedido.get_status_display()}".')
+        return redirect('adm:reembolsos')
+
+    antes = pedido.get_area_display() if pedido.area else 'nenhuma área'
+    nova_area = request.POST.get('area', '')
+    if nova_area and nova_area not in dict(LISTA_AREAS):
+        messages.error(request, 'Área inválida.')
+        return redirect(f"{reverse('adm:reembolsos')}?status={pedido.status}")
+
+    pedido.area = nova_area
+    evento_id = request.POST.get('evento') or None
+    pedido.evento_id = int(evento_id) if evento_id else None
+    pedido.destino_corrigido_por = request.user
+    pedido.destino_corrigido_em = timezone.now()
+
+    # O lancamento acompanha, e e ele que mexe no teto.
+    sincronizar_lancamento_do_reembolso(pedido, request.user)
+    pedido.save()
+
+    depois = pedido.get_area_display() if pedido.area else 'nenhuma área'
+    messages.success(
+        request,
+        f'Destino corrigido: {antes} → {depois}. '
+        'O teto das duas áreas já mudou.')
+    return redirect(f"{reverse('adm:reembolsos')}?status={pedido.status}")
 
 
 # ─────────────────────────── Rateio de gasto ───────────────────────────

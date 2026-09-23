@@ -62,6 +62,14 @@ class PedidoReembolso(models.Model):
     # congela aqui. Sem isso, alguem trocar de chave meses depois apagaria a
     # prova de para onde o dinheiro foi, e o comprovante anexado passaria a
     # apontar para uma chave que nao era aquela.
+    # Quem corrigiu o DESTINO (area/evento) depois de aprovado. Mudar qual
+    # area consumiu o teto e correcao financeira: quando dois lideres olharem
+    # o mesmo numero e discordarem, precisa dar para saber quem mexeu e
+    # quando. Mesmo padrao de `aprovado_por` e `pago_por`.
+    destino_corrigido_por = models.ForeignKey(
+        'voluntario.Voluntario', on_delete=models.SET_NULL, null=True,
+        blank=True, related_name='reembolsos_com_destino_corrigido')
+    destino_corrigido_em = models.DateTimeField(null=True, blank=True)
     chave_pix_paga = models.CharField(
         'chave PIX usada no pagamento', max_length=80, blank=True)
     tipo_chave_pix_paga = models.CharField(
