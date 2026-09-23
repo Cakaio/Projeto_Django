@@ -158,6 +158,15 @@
             </div>
             <div class="mp-field">{{ form.rg.label_tag }}{{ form.rg }}</div>
             <div class="mp-field">{{ form.celular.label_tag }}{{ form.celular }}</div>
+            <div class="mp-field">{{ form.tipo_chave_pix.label_tag }}{{ form.tipo_chave_pix }}</div>
+            <div class="mp-field">
+              {{ form.chave_pix.label_tag }}{{ form.chave_pix }}
+              <small style="display:block;margin-top:.3rem;font-size:.76rem;line-height:1.5;color:hsl(var(--muted-foreground))">
+                Serve para a ADM pagar seu reembolso direto, sem precisar
+                pedir no grupo. Fica visível <strong>só para o Financeiro</strong>,
+                na hora de pagar.
+              </small>
+            </div>
           </div>
         </div>
 

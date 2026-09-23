@@ -1,0 +1,184 @@
+"""Chave PIX: ao vivo enquanto pendente, CONGELADA no pagamento.
+
+A ADM pagava o reembolso perguntando a chave no grupo. Agora ela vem do perfil.
+
+A decisao que este arquivo protege: a chave gravada no pedido e COPIA, nao
+referencia — mesma razao de `ItemRetirada.pontos_unitarios` no Bazar. Se o
+voluntario trocar de chave meses depois, o registro do pagamento nao pode
+passar a apontar para uma chave que nao era aquela, senao o comprovante
+anexado fica contradizendo a tela.
+"""
+import datetime
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.sessions.backends.db import SessionStore
+from django.test import RequestFactory, TestCase
+
+from adm import views
+from adm.models import Categoria, Conta
+from forms_pcf.models import PedidoReembolso
+
+Voluntario = get_user_model()
+
+
+def pedido_http(metodo, usuario, dados=None):
+    fabrica = RequestFactory()
+    req = (fabrica.post('/x/', dados or {}) if metodo == 'post'
+           else fabrica.get('/x/'))
+    req.user = usuario
+    req.session = SessionStore()
+    req._messages = FallbackStorage(req)
+    return req
+
+
+def corpo(resposta):
+    return (resposta.rendered_content if hasattr(resposta, 'rendered_content')
+            else resposta.content.decode())
+
+
+class ChaveNoPerfilTests(TestCase):
+
+    def test_a_chave_e_opcional(self):
+        """Quem prefere receber de outro jeito nao pode ficar travado."""
+        pessoa = Voluntario.objects.create_user(
+            username='ana', password='x', area='AMARELO')
+
+        pessoa.full_clean()   # nao estoura sem chave
+
+        self.assertEqual(pessoa.chave_pix, '')
+
+    def test_o_voluntario_edita_a_propria_chave(self):
+        from voluntario.forms import MeuPerfilForm
+
+        self.assertIn('chave_pix', MeuPerfilForm.Meta.fields)
+        self.assertIn('tipo_chave_pix', MeuPerfilForm.Meta.fields)
+
+
+class TelaDePagamentoTests(TestCase):
+
+    def setUp(self):
+        self.adm = Voluntario.objects.create_user(
+            username='adm', password='x', area='ADM/FIN')
+        self.ana = Voluntario.objects.create_user(
+            username='ana', password='x', area='AMARELO',
+            first_name='Ana', last_name='Souza',
+            tipo_chave_pix='CELULAR', chave_pix='11987654321')
+        self.categoria = Categoria.objects.create(nome='Gasolina', tipo='DESPESA')
+        self.pedido = PedidoReembolso.objects.create(
+            solicitante=self.ana, valor=Decimal('50.00'), descricao='gasolina',
+            data_gasto=datetime.date(2026, 9, 19), categoria=self.categoria,
+            status='APROVADO')
+
+    def _abrir(self):
+        return corpo(views.reembolso_pagar(pedido_http('get', self.adm),
+                                           pk=self.pedido.pk))
+
+    def test_a_tela_mostra_a_chave_de_quem_pediu(self):
+        html = self._abrir()
+
+        self.assertIn('11987654321', html)
+        self.assertIn('Ana Souza', html)
+        self.assertIn('Celular', html)
+
+    def test_sem_chave_a_tela_AVISA_em_vez_de_ficar_muda(self):
+        """Sem o aviso a ADM abre a tela, nao acha a chave e volta a perguntar
+        no grupo — que e o trabalho que este campo existe para tirar dela."""
+        self.ana.chave_pix = ''
+        self.ana.tipo_chave_pix = ''
+        self.ana.save()
+
+        html = self._abrir()
+
+        self.assertIn('ainda não cadastrou chave PIX', html)
+
+    def test_a_chave_le_AO_VIVO_enquanto_nao_pagou(self):
+        """Se o voluntario corrigir um digito errado, a correcao vale."""
+        self.ana.chave_pix = '11999998888'
+        self.ana.save()
+
+        self.assertIn('11999998888', self._abrir())
+
+
+class CongelaNoPagamentoTests(TestCase):
+
+    def setUp(self):
+        self.adm = Voluntario.objects.create_user(
+            username='adm', password='x', area='ADM/FIN')
+        self.ana = Voluntario.objects.create_user(
+            username='ana', password='x', area='AMARELO', email='ana@x.org',
+            tipo_chave_pix='CELULAR', chave_pix='11987654321')
+        self.categoria = Categoria.objects.create(nome='Gasolina', tipo='DESPESA')
+        self.conta = Conta.objects.create(nome='BB', tipo='BANCO')
+        self.pedido = PedidoReembolso.objects.create(
+            solicitante=self.ana, valor=Decimal('50.00'), descricao='gasolina',
+            data_gasto=datetime.date(2026, 9, 19), categoria=self.categoria,
+            status='APROVADO')
+
+    def _pagar(self):
+        # O comprovante e OBRIGATORIO no formulario: o pagamento so existe
+        # com a prova anexada.
+        views.reembolso_pagar(
+            pedido_http('post', self.adm, {
+                'conta_pagamento': self.conta.pk,
+                'pago_em': '2026-09-20',
+                'area': 'AMARELO',
+                'comprovante_pagamento': SimpleUploadedFile(
+                    'comprovante.png', b'imagem', content_type='image/png'),
+            }),
+            pk=self.pedido.pk)
+        self.pedido.refresh_from_db()
+
+    def test_o_pagamento_grava_a_chave_usada(self):
+        self._pagar()
+
+        self.assertEqual(self.pedido.status, 'PAGO')
+        self.assertEqual(self.pedido.chave_pix_paga, '11987654321')
+        self.assertEqual(self.pedido.tipo_chave_pix_paga, 'CELULAR')
+
+    def test_trocar_de_chave_DEPOIS_nao_reescreve_o_pagamento(self):
+        """O comprovante anexado ficaria contradizendo a tela."""
+        self._pagar()
+
+        self.ana.chave_pix = '22911112222'
+        self.ana.save()
+        self.pedido.refresh_from_db()
+
+        self.assertEqual(self.pedido.chave_pix_paga, '11987654321')
+
+    def test_pagar_sem_chave_cadastrada_nao_estoura(self):
+        """Pagar por outro caminho continua valendo: a chave e conveniencia,
+        nao requisito."""
+        self.ana.chave_pix = ''
+        self.ana.tipo_chave_pix = ''
+        self.ana.save()
+
+        self._pagar()
+
+        self.assertEqual(self.pedido.status, 'PAGO')
+        self.assertEqual(self.pedido.chave_pix_paga, '')
+
+
+class ChaveNaoVazaTests(TestCase):
+    """Dado pessoal so serve na hora de pagar. Espalhar pela tela e exposicao
+    sem ganho."""
+
+    def test_a_chave_nao_aparece_na_caixa_de_entrada(self):
+        from forms_pcf import views as forms_views
+
+        adm = Voluntario.objects.create_user(
+            username='adm', password='x', area='ADM/FIN')
+        ana = Voluntario.objects.create_user(
+            username='ana', password='x', area='AMARELO',
+            tipo_chave_pix='CELULAR', chave_pix='11987654321')
+        categoria = Categoria.objects.create(nome='Gasolina', tipo='DESPESA')
+        PedidoReembolso.objects.create(
+            solicitante=ana, valor=Decimal('50.00'), descricao='gasolina',
+            data_gasto=datetime.date(2026, 9, 19), categoria=categoria)
+
+        html = corpo(
+            forms_views.ReembolsoInboxView.as_view()(pedido_http('get', adm)))
+
+        self.assertNotIn('11987654321', html)

@@ -758,12 +758,23 @@ def reembolso_pagar(request, pk):
         return redirect('adm:reembolsos')
 
     form = PagamentoReembolsoForm(request.POST or None, request.FILES or None, instance=pedido)
+    # AO VIVO enquanto nao foi pago: se o voluntario corrigir um digito errado,
+    # a correcao vale. Congela so no momento do pagamento.
+    solicitante = pedido.solicitante
 
     if request.method == 'POST' and form.is_valid():
         pago = form.save(commit=False)
         pago.status = 'PAGO'
         pago.pago_por = request.user
         pago.pago_em = pago.pago_em or timezone.localdate()
+        # CONGELA a chave PIX usada. Copia, nao referencia — mesma razao de
+        # `ItemRetirada.pontos_unitarios` no Bazar. Se o voluntario trocar de
+        # chave meses depois, o registro do pagamento nao pode passar a apontar
+        # para uma chave que nao era aquela: o comprovante anexado ficaria
+        # contradizendo a tela.
+        if pago.solicitante and not pago.chave_pix_paga:
+            pago.chave_pix_paga = pago.solicitante.chave_pix or ''
+            pago.tipo_chave_pix_paga = pago.solicitante.tipo_chave_pix or ''
         # O lançamento leva área, evento e conta do pedido: sem isso o gasto
         # não conta no teto da área nem no evento.
         sincronizar_lancamento_do_reembolso(pago, request.user)
@@ -795,6 +806,9 @@ def reembolso_pagar(request, pk):
         'form': form,
         'pedido': pedido,
         'titulo': 'Registrar Pagamento',
+        'chave_pix': getattr(solicitante, 'chave_pix', '') or '',
+        'tipo_chave_pix': (solicitante.get_tipo_chave_pix_display()
+                           if solicitante and solicitante.tipo_chave_pix else ''),
     })
 
 

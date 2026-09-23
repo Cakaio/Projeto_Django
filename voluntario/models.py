@@ -38,6 +38,13 @@ AREAS_ABREVIADAS = {
     "CR/RE": "CR/RE",
 }
 
+TIPOS_CHAVE_PIX = (
+    ("CPF", "CPF"),
+    ("CELULAR", "Celular"),
+    ("EMAIL", "E-mail"),
+    ("ALEATORIA", "Chave aleatória"),
+)
+
 FACULDADES = (
     ("EEL-USP", "EEL-USP"),
     ("SERRA DOURADA", "Serra Dourada"),
@@ -178,6 +185,16 @@ class Voluntario(AbstractUser):
         max_length=100, choices=CARGOS, blank=True, null=True,
         help_text="Cargo/posição na hierarquia."
     )
+    # Para a ADM pagar o reembolso direto, sem perguntar no grupo. OPCIONAL:
+    # quem prefere receber de outro jeito nao pode ficar travado por causa
+    # disto. Quem pagar copia a chave PARA O PEDIDO no momento do pagamento
+    # (`PedidoReembolso.chave_pix_paga`) — aqui e a chave de HOJE, e ela muda.
+    tipo_chave_pix = models.CharField(
+        "tipo da chave PIX", max_length=10, choices=TIPOS_CHAVE_PIX, blank=True)
+    chave_pix = models.CharField(
+        "chave PIX", max_length=80, blank=True,
+        help_text="Para a ADM pagar seu reembolso direto. Fica visível só "
+                  "para o Financeiro, na hora de pagar.")
 
     class Meta(AbstractUser.Meta):
         # Herdar de AbstractUser.Meta preserva `swappable = 'AUTH_USER_MODEL'`.

@@ -51,6 +51,11 @@ class MeuPerfilForm(forms.ModelForm):
             "email_usp",
             "n_usp",
             "celular",
+            # A chave PIX fica no perfil, e nao no pedido de reembolso: e a
+            # mesma toda vez, e redigita-la a cada pedido e o que produz
+            # digito errado.
+            "tipo_chave_pix",
+            "chave_pix",
             "instagram",
             "endereco",
             "republica",

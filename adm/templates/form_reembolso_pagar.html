@@ -188,6 +188,40 @@
             {% if form.pago_em.errors %}<p class="rbp-err">{{ form.pago_em.errors|join:", " }}</p>{% endif %}
           </div>
 
+          {# PARA ONDE MANDAR. Sem isto a ADM abre a tela, nao acha a chave e
+             volta a perguntar no grupo — que e o trabalho que este campo
+             existe para tirar dela. A chave vem AO VIVO do perfil e so
+             congela no pedido quando o pagamento e gravado. #}
+          <div class="pcf-field rbp-larga">
+            <span class="rbp-label-linha">
+              <label class="pcf-label">Pagar para</label>
+            </span>
+            {% if chave_pix %}
+              <div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;
+                          background:hsl(var(--muted));border-radius:12px;padding:.85rem .95rem">
+                <div style="flex:1;min-width:12rem">
+                  <strong style="display:block;font-size:.92rem">{{ pedido.solicitante.get_full_name|default:pedido.solicitante.username }}</strong>
+                  <span style="font-size:.85rem;color:var(--ink-soft)">
+                    PIX{% if tipo_chave_pix %} ({{ tipo_chave_pix }}){% endif %} —
+                    <strong id="rbp-pix">{{ chave_pix }}</strong>
+                  </span>
+                </div>
+                <button type="button" class="pcf-btn pcf-btn-outline pcf-btn-sm"
+                        onclick="navigator.clipboard&amp;&amp;navigator.clipboard.writeText(document.getElementById('rbp-pix').textContent.trim());this.textContent='Copiada!'">
+                  Copiar chave
+                </button>
+              </div>
+            {% else %}
+              <div role="alert" style="background:#fdf3dd;border:1px solid #f0e0b8;
+                          border-radius:12px;padding:.85rem .95rem;color:#7a5c0c;font-size:.86rem;line-height:1.55">
+                <strong>{{ pedido.solicitante.get_full_name|default:pedido.solicitante.username|default:"O solicitante" }}
+                ainda não cadastrou chave PIX.</strong>
+                Peça para preencher em <em>Meu Perfil</em>, ou pague por outro
+                caminho e anexe o comprovante do mesmo jeito.
+              </div>
+            {% endif %}
+          </div>
+
           <div class="pcf-field rbp-larga">
             <span class="rbp-label-linha">
               <label class="pcf-label" for="{{ form.comprovante_pagamento.id_for_label }}">{{ form.comprovante_pagamento.label }}</label>

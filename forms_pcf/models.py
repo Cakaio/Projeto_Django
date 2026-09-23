@@ -55,6 +55,17 @@ class PedidoReembolso(models.Model):
                                         help_text='De onde saiu o pagamento.')
     comprovante_pagamento = models.FileField(upload_to='reembolsos_pagos/', blank=True,
                                              help_text='Comprovante de que o ADM pagou.')
+    # A chave usada NO PAGAMENTO, copiada do perfil naquele instante — copia,
+    # nao referencia, pela mesma razao de `ItemRetirada.pontos_unitarios` no
+    # Bazar. Enquanto o pedido esta pendente a tela le a chave AO VIVO (se o
+    # voluntario corrigir um digito, a correcao vale); ao pagar, a chave
+    # congela aqui. Sem isso, alguem trocar de chave meses depois apagaria a
+    # prova de para onde o dinheiro foi, e o comprovante anexado passaria a
+    # apontar para uma chave que nao era aquela.
+    chave_pix_paga = models.CharField(
+        'chave PIX usada no pagamento', max_length=80, blank=True)
+    tipo_chave_pix_paga = models.CharField(
+        'tipo da chave usada', max_length=10, blank=True)
     pago_em = models.DateField(null=True, blank=True)
     pago_por = models.ForeignKey('voluntario.Voluntario', on_delete=models.SET_NULL,
                                  null=True, blank=True, related_name='reembolsos_pagos_por')

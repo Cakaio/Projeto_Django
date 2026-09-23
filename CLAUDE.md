@@ -683,6 +683,31 @@ Em `_aplicar_destino_da_adm`, **chave ausente é "não mexi" e string vazia é
 "tirei a área"**. São coisas diferentes: o botão de aprovar sozinho não pode
 apagar o que o solicitante escolheu.
 
+### Chave PIX: ao vivo enquanto pendente, CONGELADA no pagamento
+
+A ADM pagava o reembolso perguntando a chave no grupo. Agora ela vem do perfil
+do voluntário (`Voluntario.chave_pix` + `tipo_chave_pix`), e aparece na tela de
+pagar com botão de copiar.
+
+**São dois campos, e a razão é a mesma de `ItemRetirada.pontos_unitarios` no
+Bazar — cópia, não referência.** Enquanto o pedido está pendente a tela lê a
+chave AO VIVO do perfil: se o voluntário corrigir um dígito errado, a correção
+vale. No instante do pagamento a chave é congelada em
+`PedidoReembolso.chave_pix_paga`. Sem isso, alguém trocar de chave meses depois
+apagaria a prova de para onde o dinheiro foi, e o comprovante anexado passaria
+a contradizer a tela.
+
+- **A chave é OPCIONAL.** Quem prefere receber de outro jeito não pode ficar
+  travado, e pagar sem chave cadastrada continua funcionando.
+- **Sem chave, a tela AVISA** em vez de ficar muda. Sem o aviso a ADM abre a
+  tela, não acha a chave e volta a perguntar no grupo — que é o trabalho que o
+  campo existe para tirar dela.
+- **A chave não aparece em lista nenhuma**, só na tela de pagar. É dado pessoal
+  e só serve ali; espalhar é exposição sem ganho. Há teste cobrando isso.
+- `comprovante_pagamento` (a prova de que o ADM pagou) **já existia** e é
+  obrigatório no formulário — nada a ver com `comprovante`, que é o do gasto,
+  enviado pelo voluntário.
+
 ### Fechamento do sábado no Supply
 
 `supply.FechamentoSabado`, um por sábado, com duas etapas: **materiais** (o que
