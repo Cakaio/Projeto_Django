@@ -233,3 +233,105 @@ class TetoArea(models.Model):
 
     def __str__(self):
         return f'{self.get_area_display()} — R$ {self.valor} por semestre'
+
+
+class RateioDeGasto(models.Model):
+    """Quanto cada salinha gastou, SEM que o dinheiro saia de novo.
+
+    O Supply compra com dois ou mais cartões, de voluntários diferentes, numa
+    compra só — não separada por salinha. Quem lança o gasto da salinha não tem
+    como responder "de qual cartão?", e o extrato não sabe de qual salinha foi.
+
+    Lançar as duas coisas como despesa resolveria o teto e QUEBRARIA O CAIXA:
+    os R$800 dos cartões mais os R$800 rateados viram R$1.600 de gasto que não
+    existiu.
+
+    **Por isso rateio NÃO é `Lancamento`.** A alternativa era uma marca
+    `so_teto` no próprio lançamento, com `.exclude()` nas consultas de total.
+    Bastaria UMA consulta futura esquecer o filtro para dinheiro fantasma
+    aparecer no caixa — e quem a escrever daqui a um ano não vai saber que a
+    marca existe. Como modelo separado isso é impossível por construção: não há
+    filtro para esquecer, e o rateio tem um consumidor só, o teto.
+
+    O fluxo: a ADM lança cada cartão com o valor real do extrato (categoria
+    "materiais de Supply", ÁREA VAZIA, conta = o cartão) e depois rateia o
+    sábado entre as salinhas aqui.
+    """
+    data = models.DateField(
+        'data do gasto', default=timezone.localdate,
+        help_text='O sábado. É ela que decide em qual semestre o teto desconta.')
+    total_a_ratear = models.DecimalField(
+        'total a ratear', max_digits=10, decimal_places=2,
+        help_text='Quanto saiu dos cartões neste dia, somando todos.')
+    descricao = models.CharField(
+        'descrição', max_length=120, blank=True,
+        help_text='Distingue dois rateios do mesmo dia. Ex.: materiais, lanches.')
+    # NULO SIGNIFICA ABERTO. Sem booleano ao lado: data e booleano são duas
+    # verdades sobre o mesmo fato, e na primeira vez que uma for gravada sem a
+    # outra ninguem sabe qual vale. Mesmo padrao do `supply.FechamentoSabado`.
+    fechado_em = models.DateTimeField('fechado em', null=True, blank=True)
+    fechado_por = models.ForeignKey(
+        'voluntario.Voluntario', on_delete=models.SET_NULL, null=True,
+        blank=True, related_name='rateios_fechados')
+    criado_por = models.ForeignKey(
+        'voluntario.Voluntario', on_delete=models.SET_NULL, null=True,
+        blank=True, related_name='rateios_criados')
+    criado_em = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-data', '-criado_em']
+        verbose_name = 'rateio de gasto'
+        verbose_name_plural = 'rateios de gasto'
+
+    def __str__(self):
+        rotulo = self.descricao or 'Rateio'
+        return f'{rotulo} — {self.data:%d/%m/%Y} — R$ {self.total_a_ratear}'
+
+    @property
+    def rateado(self):
+        """Soma das linhas. Uma consulta."""
+        return (self.linhas.aggregate(t=Sum('valor'))['t'] or Decimal('0'))
+
+    @property
+    def falta_ratear(self):
+        return self.total_a_ratear - self.rateado
+
+    @property
+    def esta_aberto(self):
+        return self.fechado_em is None
+
+    @property
+    def pode_fechar(self):
+        """Fechar so vale quando bate no CENTAVO.
+
+        Fechar com sobra transformaria "esqueci metade" em "conferido", que e
+        exatamente o que este modelo existe para impedir.
+        """
+        return self.falta_ratear == Decimal('0')
+
+
+class LinhaDeRateio(models.Model):
+    """Quanto UMA área gastou dentro de um rateio."""
+    rateio = models.ForeignKey(
+        RateioDeGasto, on_delete=models.CASCADE, related_name='linhas')
+    area = models.CharField('área', max_length=30, choices=LISTA_AREAS)
+    valor = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        ordering = ['area']
+        verbose_name = 'linha de rateio'
+        verbose_name_plural = 'linhas de rateio'
+        constraints = [
+            # Duas linhas "Familia Feliz" no mesmo rateio deixariam a soma
+            # ambigua e a tela mostrando a salinha duas vezes.
+            models.UniqueConstraint(
+                fields=['rateio', 'area'],
+                name='uma_linha_por_area_no_rateio',
+                violation_error_message=(
+                    'Esta área já tem linha neste rateio. Some no valor da '
+                    'linha existente em vez de criar outra.'),
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.get_area_display()} — R$ {self.valor}'

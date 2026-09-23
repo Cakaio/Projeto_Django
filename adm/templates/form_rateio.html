@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block titulo %}{{ titulo }} — Financeiro{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .fra-). #}
+{# O visual base vem das classes .pcf-* (tailwindcss/input.css). #}
+<style>
+  .fra-wrap { max-width: 620px; padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+  .fra-crumb { display: inline-flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+               font-size: .78rem; font-weight: 600;
+               color: hsl(var(--muted-foreground)); margin-bottom: .6rem; }
+  .fra-crumb a { color: hsl(var(--muted-foreground)); text-decoration: none; }
+  .fra-crumb a:hover { color: var(--brand); }
+  .fra-form { display: grid; gap: 1.1rem; }
+  .fra-campo label { display: block; font-size: .8rem; font-weight: 750; margin-bottom: .3rem; }
+  .fra-campo input { width: 100%; }
+  .fra-help { margin: .3rem 0 0; font-size: .78rem; line-height: 1.5;
+              color: hsl(var(--muted-foreground)); }
+  .fra-erro { margin: .3rem 0 0; font-size: .78rem; font-weight: 650; color: #b03636; }
+  .fra-nota { background: hsl(var(--muted)); border-radius: 14px; padding: .95rem 1.05rem;
+              font-size: .83rem; line-height: 1.6; color: var(--ink-soft); }
+  .fra-acoes { display: flex; gap: .6rem; flex-wrap: wrap; }
+</style>
+
+<div class="pcf-container fra-wrap">
+  <p class="fra-crumb">
+    <a href="{% url 'adm:rateios' %}">Rateios</a> &rsaquo; <span>{{ titulo }}</span>
+  </p>
+  <h1 class="pcf-page-title">{{ titulo }}</h1>
+
+  <div class="fra-nota" style="margin:1rem 0 1.4rem">
+    O total é o que <strong>saiu dos cartões</strong> naquele dia, somando
+    todos. Você não precisa saber de qual cartão saiu o gasto de cada
+    salinha — é justamente isso que o rateio resolve.
+  </div>
+
+  <form method="post" class="fra-form">
+    {% csrf_token %}
+
+    {% for campo in form %}
+      <div class="fra-campo">
+        <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+        {{ campo }}
+        {% if campo.help_text %}<p class="fra-help">{{ campo.help_text }}</p>{% endif %}
+        {% for erro in campo.errors %}<p class="fra-erro">{{ erro }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+
+    {% for erro in form.non_field_errors %}<p class="fra-erro">{{ erro }}</p>{% endfor %}
+
+    <div class="fra-acoes">
+      <button type="submit" class="pcf-btn pcf-btn-primary">
+        {% if objeto %}Salvar{% else %}Criar e ratear{% endif %}
+      </button>
+      <a href="{% url 'adm:rateios' %}" class="pcf-btn pcf-btn-outline">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

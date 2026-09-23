@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block titulo %}Rateios de gasto{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .rat-). #}
+<style>
+  .rat-wrap { padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+  .rat-head { display: flex; align-items: flex-start; justify-content: space-between;
+              gap: 1rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
+  .rat-sub { margin: .35rem 0 0; max-width: 62ch; font-size: .87rem;
+             line-height: 1.6; color: hsl(var(--muted-foreground)); }
+  /* O aviso de aberto não é decoração: rateio esquecido deixa o teto da
+     salinha menor que a realidade, em silêncio. */
+  .rat-aviso { display: flex; gap: .85rem; align-items: flex-start;
+               background: #fdf3dd; border: 1px solid #f0e0b8; border-radius: 14px;
+               padding: .95rem 1.05rem; margin-bottom: 1.15rem; color: #7a5c0c; }
+  .rat-aviso b { display: block; font-size: .92rem; }
+  .rat-aviso p { margin: .2rem 0 0; font-size: .83rem; line-height: 1.55; }
+  .rat-grupo { margin-top: 1.6rem; }
+  .rat-grupo h2 { margin: 0 0 .6rem; font-size: .95rem; font-weight: 800; }
+  .rat-selo { display: inline-block; padding: .15rem .55rem; border-radius: 999px;
+              font-size: .7rem; font-weight: 800; letter-spacing: .04em; }
+  .rat-selo.aberto { background: #fdf3dd; color: #8a6a10; }
+  .rat-selo.fechado { background: #effcf5; color: #0f6b46; }
+  .rat-vazio { padding: 2rem 1.2rem; border: 1.5px dashed hsl(var(--border));
+               border-radius: 16px; text-align: center;
+               color: hsl(var(--muted-foreground)); font-size: .88rem; }
+</style>
+
+<div class="pcf-container rat-wrap">
+  <header class="rat-head">
+    <div>
+      <span class="pcf-eyebrow">Financeiro</span>
+      <h1 class="pcf-page-title">Rateios de gasto</h1>
+      <p class="rat-sub">
+        Diz <strong>quanto cada salinha gastou</strong> para descontar do teto,
+        sem descontar o caixa de novo — o dinheiro já saiu antes, no lançamento
+        do cartão. Use quando a compra do Supply foi feita junto, em mais de um
+        cartão, e não dá para saber de qual saiu o gasto de cada salinha.
+      </p>
+    </div>
+    {% if pode_escrever %}
+      <a href="{% url 'adm:rateio_criar' %}" class="pcf-btn pcf-btn-primary">Novo rateio</a>
+    {% endif %}
+  </header>
+
+  {% if abertos %}
+    <div class="rat-aviso" role="status">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+           viewBox="0 0 24 24" aria-hidden="true" style="flex:none;margin-top:.1rem">
+        <circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/>
+      </svg>
+      <div>
+        <b>{{ abertos|length }} rateio{{ abertos|length|pluralize }} em aberto —
+           R$ {{ falta_total }} ainda sem salinha</b>
+        <p>
+          Enquanto não fechar, o teto dessas salinhas está menor do que a
+          realidade e ninguém consegue perceber olhando a tela de tetos.
+        </p>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if abertos %}
+    <section class="rat-grupo">
+      <h2>Em aberto</h2>
+      <div class="pcf-scroll-x">
+        <table class="pcf-table" style="min-width:34rem">
+          <thead>
+            <tr><th>Data</th><th>Descrição</th><th class="num">Total</th>
+                <th class="num">Rateado</th><th class="num">Falta</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for rateio in abertos %}
+              <tr>
+                <td>{{ rateio.data|date:"d/m/Y" }}</td>
+                <td>{{ rateio.descricao|default:"—" }}</td>
+                <td class="num">R$ {{ rateio.total_a_ratear }}</td>
+                <td class="num">R$ {{ rateio.rateado }}</td>
+                <td class="num"><strong>R$ {{ rateio.falta_ratear }}</strong></td>
+                <td>
+                  {% if pode_escrever %}
+                    <a href="{% url 'adm:rateio_detalhe' rateio.pk %}"
+                       class="pcf-btn pcf-btn-primary pcf-btn-sm">Ratear</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="rat-grupo">
+    <h2>Fechados</h2>
+    {% if fechados %}
+      <div class="pcf-scroll-x">
+        <table class="pcf-table" style="min-width:34rem">
+          <thead>
+            <tr><th>Data</th><th>Descrição</th><th class="num">Total</th>
+                <th>Fechado por</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for rateio in fechados %}
+              <tr>
+                <td>{{ rateio.data|date:"d/m/Y" }}</td>
+                <td>{{ rateio.descricao|default:"—" }}</td>
+                <td class="num">R$ {{ rateio.total_a_ratear }}</td>
+                <td>
+                  <span class="rat-selo fechado">FECHADO</span>
+                  {{ rateio.fechado_por.get_full_name|default:"—" }}
+                </td>
+                <td>
+                  {% if pode_escrever %}
+                    <a href="{% url 'adm:rateio_detalhe' rateio.pk %}"
+                       class="pcf-btn pcf-btn-outline pcf-btn-sm">Ver</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="rat-vazio">Nenhum rateio fechado ainda.</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

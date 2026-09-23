@@ -15,12 +15,17 @@ from functools import wraps
 from decimal import Decimal
 from datetime import date
 import csv
+from django.views.decorators.http import require_POST
 from .models import (
-    Categoria, Conta, Lancamento, RecargaCartao, TetoArea, ORIGENS_AUTOMATICAS,
+    Categoria, Conta, Lancamento, LinhaDeRateio, RateioDeGasto, RecargaCartao,
+    TetoArea, ORIGENS_AUTOMATICAS,
 )
-from .forms import CompletarLancamentoForm, CategoriaForm, ContaForm, LancamentoForm, RecargaCartaoForm, TetoAreaForm
+from .forms import (CompletarLancamentoForm, CategoriaForm, ContaForm,
+                    LancamentoForm, LinhaDeRateioForm, RateioDeGastoForm,
+                    RecargaCartaoForm, TetoAreaForm)
 from .servicos import (despesas_por_categoria, limites_do_semestre,
-                       rotulo_do_semestre, saldo_das_contas, situacao_dos_tetos)
+                       rateios_abertos, rotulo_do_semestre,
+                       saldo_das_contas, situacao_dos_tetos)
 from forms_pcf.forms import PagamentoReembolsoForm
 from forms_pcf.views import sincronizar_lancamento_do_reembolso
 
@@ -86,6 +91,10 @@ def painel(request):
 
     return render(request, 'painel_adm.html', {
         'saldo': saldo,
+        # Rateio aberto precisa INCOMODAR. Esquecido, ele deixa o teto da
+        # salinha menor que a realidade em silencio — e a tela de tetos nao
+        # tem como denunciar, porque para ela o gasto simplesmente nao existe.
+        'rateios_abertos': rateios_abertos(),
         'total_receitas': total_receitas,
         'total_despesas': total_despesas,
         'ultimos': ultimos,
@@ -787,3 +796,136 @@ def reembolso_pagar(request, pk):
         'pedido': pedido,
         'titulo': 'Registrar Pagamento',
     })
+
+
+# ─────────────────────────── Rateio de gasto ───────────────────────────
+# O rateio desconta o TETO da salinha sem descontar o caixa: o dinheiro ja saiu
+# antes, no lancamento do cartao. Spec em
+# docs/superpowers/specs/2026-09-22-rateio-de-teto-design.md
+
+
+@adm_acesso_required
+def rateios(request):
+    """A lista, com os ABERTOS no topo.
+
+    Rateio aberto precisa incomodar: esquecido, ele deixa o teto da salinha
+    menor que a realidade em silencio — que e o defeito que o rateio existe
+    para matar.
+    """
+    lista = (RateioDeGasto.objects
+             .prefetch_related('linhas')
+             .select_related('criado_por'))
+    abertos = [r for r in lista if r.esta_aberto]
+    fechados = [r for r in lista if not r.esta_aberto]
+
+    return render(request, 'rateios.html', {
+        'abertos': abertos,
+        'fechados': fechados,
+        'falta_total': sum((r.falta_ratear for r in abertos), Decimal('0')),
+        'pode_escrever': (request.user.is_superuser
+                          or getattr(request.user, 'area', None) in AREAS_ESCRITA),
+    })
+
+
+@adm_escrita_required
+def rateio_form(request, pk=None):
+    """Criar ou corrigir o cabecalho: dia, descricao, total."""
+    rateio = get_object_or_404(RateioDeGasto, pk=pk) if pk else None
+    form = RateioDeGastoForm(request.POST or None, instance=rateio)
+
+    if request.method == 'POST' and form.is_valid():
+        novo = form.save(commit=False)
+        if rateio is None:
+            novo.criado_por = request.user
+        novo.save()
+        return redirect('adm:rateio_detalhe', pk=novo.pk)
+
+    return render(request, 'form_rateio.html', {
+        'form': form,
+        'titulo': 'Corrigir rateio' if rateio else 'Novo rateio',
+        'objeto': rateio,
+    })
+
+
+@adm_escrita_required
+def rateio_detalhe(request, pk):
+    """Onde o trabalho acontece: uma linha por salinha.
+
+    Salva a qualquer momento e fica ABERTO ate a soma bater. Melhor um teto
+    parcialmente certo que um teto zerado esperando alguem ter tempo.
+    """
+    rateio = get_object_or_404(
+        RateioDeGasto.objects.prefetch_related('linhas'), pk=pk)
+    form = LinhaDeRateioForm(request.POST or None, rateio=rateio)
+
+    if request.method == 'POST' and form.is_valid():
+        linha = form.save(commit=False)
+        linha.rateio = rateio
+        linha.save()
+        messages.success(
+            request, f'{linha.get_area_display()}: R$ {linha.valor} rateado.')
+        return redirect('adm:rateio_detalhe', pk=rateio.pk)
+
+    return render(request, 'rateio_detalhe.html', {
+        'rateio': rateio,
+        'form': form,
+        'linhas': rateio.linhas.all(),
+    })
+
+
+@adm_escrita_required
+@require_POST
+def rateio_linha_deletar(request, pk, linha_pk):
+    rateio = get_object_or_404(RateioDeGasto, pk=pk)
+    linha = get_object_or_404(LinhaDeRateio, pk=linha_pk, rateio=rateio)
+    nome = linha.get_area_display()
+    linha.delete()
+
+    # Tirar uma linha DESFAZ o fechamento: o rateio deixou de bater, e deixar
+    # o selo de "conferido" num numero que mudou e pior que nao ter selo.
+    if rateio.fechado_em and not rateio.pode_fechar:
+        rateio.fechado_em = None
+        rateio.fechado_por = None
+        rateio.save(update_fields=['fechado_em', 'fechado_por'])
+        messages.info(request, 'O rateio voltou a ficar ABERTO: a soma mudou.')
+
+    messages.success(request, f'{nome} saiu do rateio.')
+    return redirect('adm:rateio_detalhe', pk=rateio.pk)
+
+
+@adm_escrita_required
+@require_POST
+def rateio_fechar(request, pk):
+    """Fechar so vale quando bate no CENTAVO.
+
+    Fechar com sobra transformaria "esqueci metade" em "conferido" — e o teto
+    ficaria menor que a realidade com um selo dizendo que esta certo.
+    """
+    rateio = get_object_or_404(RateioDeGasto, pk=pk)
+
+    if rateio.fechado_em:
+        rateio.fechado_em = None
+        rateio.fechado_por = None
+        rateio.save(update_fields=['fechado_em', 'fechado_por'])
+        messages.success(request, 'Rateio reaberto.')
+    elif not rateio.pode_fechar:
+        messages.error(
+            request,
+            f'Ainda faltam R$ {rateio.falta_ratear} para ratear. '
+            'O rateio só fecha quando a soma bate no centavo.')
+    else:
+        rateio.fechado_em = timezone.now()
+        rateio.fechado_por = request.user
+        rateio.save(update_fields=['fechado_em', 'fechado_por'])
+        messages.success(request, 'Rateio fechado.')
+
+    return redirect('adm:rateio_detalhe', pk=rateio.pk)
+
+
+@adm_escrita_required
+@require_POST
+def rateio_deletar(request, pk):
+    rateio = get_object_or_404(RateioDeGasto, pk=pk)
+    rateio.delete()   # CASCADE leva as linhas junto
+    messages.success(request, 'Rateio excluído.')
+    return redirect('adm:rateios')

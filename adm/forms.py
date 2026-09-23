@@ -3,7 +3,7 @@ from django.utils import timezone
 
 from voluntario.models import Voluntario
 
-from .models import Categoria, Conta, Evento, Lancamento, RecargaCartao, TetoArea
+from .models import LinhaDeRateio, RateioDeGasto, Categoria, Conta, Evento, Lancamento, RecargaCartao, TetoArea
 
 
 def _voluntarios_ativos():
@@ -201,3 +201,68 @@ class CompletarLancamentoForm(forms.ModelForm):
         self.fields['conta'].queryset = Conta.objects.filter(ativo=True)
         for campo in self.fields.values():
             campo.widget.attrs.setdefault('class', 'pcf-input')
+
+
+class RateioDeGastoForm(forms.ModelForm):
+    """O cabeçalho do rateio: qual dia, quanto, e do quê.
+
+    O total é DIGITADO, não somado dos cartões. Decisão da coordenação: parte
+    da compra pode não ser de salinha nenhuma, e conferir contra o extrato
+    emperraria o fechamento por causa de centavo.
+    """
+
+    class Meta:
+        model = RateioDeGasto
+        fields = ['data', 'descricao', 'total_a_ratear']
+        widgets = {
+            'data': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+            'total_a_ratear': forms.NumberInput(
+                attrs={'step': '0.01', 'min': '0'}),
+            'descricao': forms.TextInput(
+                attrs={'placeholder': 'Ex.: Supply — materiais do sábado'}),
+        }
+
+
+class LinhaDeRateioForm(forms.ModelForm):
+    """Uma salinha e quanto ela gastou."""
+
+    class Meta:
+        model = LinhaDeRateio
+        fields = ['area', 'valor']
+        widgets = {
+            'valor': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+        }
+
+    def __init__(self, *args, rateio=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._rateio = rateio
+
+    def clean_valor(self):
+        valor = self.cleaned_data['valor']
+        if valor is not None and valor <= 0:
+            raise forms.ValidationError('O valor precisa ser maior que zero.')
+        return valor
+
+    def clean(self):
+        dados = super().clean()
+        if not self._rateio or dados.get('valor') is None:
+            return dados
+
+        # RATEAR ACIMA DO TOTAL E RECUSADO: isso e dedo errado, nao trabalho
+        # pela metade. Ratear abaixo salva e o rateio fica ABERTO.
+        ja = self._rateio.rateado
+        if self.instance.pk:
+            ja -= LinhaDeRateio.objects.get(pk=self.instance.pk).valor
+        if ja + dados['valor'] > self._rateio.total_a_ratear:
+            sobra = self._rateio.total_a_ratear - ja
+            raise forms.ValidationError(
+                f'Só faltam R$ {sobra} para ratear. '
+                'Corrija o valor ou aumente o total do rateio.')
+
+        if (dados.get('area')
+                and self._rateio.linhas.filter(area=dados['area'])
+                        .exclude(pk=self.instance.pk).exists()):
+            raise forms.ValidationError(
+                'Esta área já tem linha neste rateio. Some no valor da linha '
+                'existente em vez de criar outra.')
+        return dados

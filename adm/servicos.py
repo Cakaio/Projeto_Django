@@ -11,7 +11,8 @@ from django.db.models import Count, Sum
 
 from voluntario.models import LISTA_AREAS
 
-from .models import Conta, Lancamento, RecargaCartao, TetoArea
+from .models import (Conta, Lancamento, LinhaDeRateio, RateioDeGasto,
+                     RecargaCartao, TetoArea)
 
 # Lançamento sem categoria não deveria existir, mas a tela vai para o doador:
 # uma linha em branco na prestação de contas é pior que um rótulo honesto.
@@ -111,6 +112,41 @@ def _despesa_agrupada_por_area(inicio, fim):
     )
 
 
+def _rateio_agrupado_por_area(inicio, fim):
+    """Área -> valor rateado no período. Uma consulta.
+
+    Fonte SEPARADA de `_despesa_agrupada_por_area` de propósito. O rateio
+    desconta o teto e NÃO é dinheiro saindo: ele existe porque o dinheiro já
+    saiu antes, no lançamento do cartão. Somar as duas coisas no mesmo lugar
+    dobraria o total de quem lê "para onde o dinheiro foi".
+    """
+    return {
+        linha['area']: (linha['valor_total'] or Decimal('0'))
+        for linha in (
+            LinhaDeRateio.objects
+            .filter(rateio__data__range=(inicio, fim))
+            .values('area')
+            .annotate(valor_total=Sum('valor'))
+        )
+        if linha['area']
+    }
+
+
+def rateios_abertos():
+    """Os rateios que ainda nao fecharam, e quanto falta neles.
+
+    Rateio aberto precisa INCOMODAR: esquecido, ele deixa o teto da salinha
+    menor que a realidade em silencio — que e o defeito que o rateio existe
+    para matar.
+    """
+    abertos = [r for r in RateioDeGasto.objects.filter(fechado_em__isnull=True)]
+    return {
+        'quantidade': len(abertos),
+        'falta': sum((r.falta_ratear for r in abertos), Decimal('0')),
+        'rateios': abertos,
+    }
+
+
 def gasto_por_area(inicio, fim):
     """Quanto cada área gastou no período, da maior para a menor.
 
@@ -154,7 +190,8 @@ def _ordem_do_teto(linha):
     return (grupo, -linha['percentual'], -linha['gasto'], linha['nome'])
 
 
-def _linha_do_teto(area, rotulos, teto, gasto, teto_id=None):
+def _linha_do_teto(area, rotulos, teto, gasto, teto_id=None,
+                   gasto_lancado=None, gasto_rateado=None):
     """Monta a linha de uma área no semestre. Separada da consulta para que os
     casos de borda (teto zero, teto ausente) possam ser exercitados sem banco.
 
@@ -185,6 +222,9 @@ def _linha_do_teto(area, rotulos, teto, gasto, teto_id=None):
     return {
         'area': area,
         'nome': rotulos.get(area, SEM_AREA),
+        # As duas origens, para a tela poder explicar o numero.
+        'gasto_lancado': Decimal('0') if gasto_lancado is None else gasto_lancado,
+        'gasto_rateado': Decimal('0') if gasto_rateado is None else gasto_rateado,
         'teto': teto,
         'teto_id': teto_id,
         'gasto': gasto,
@@ -214,22 +254,28 @@ def situacao_dos_tetos(referencia):
     # O objeto inteiro, não só o valor: a linha precisa levar o id para a tela
     # conseguir editar e excluir. Continua UMA consulta.
     tetos = {teto.area: teto for teto in TetoArea.objects.all()}
-    gastos = {
+    lancado = {
         linha['area']: (linha['valor_total'] or Decimal('0'))
         for linha in _despesa_agrupada_por_area(inicio, fim)
         # Despesa sem área não pertence a teto de ninguém: entrar aqui como
         # "gastou sem teto" acusaria uma área que não existe.
         if linha['area']
     }
+    # DUAS ORIGENS, e a linha guarda as duas separadas. Sem isso o líder da
+    # salinha vê o teto encolher e procura um lançamento que NÃO EXISTE — o
+    # rateio não é lançamento nenhum.
+    rateado = _rateio_agrupado_por_area(inicio, fim)
 
     linhas = [
         _linha_do_teto(
             area, rotulos,
             tetos[area].valor if area in tetos else None,
-            gastos.get(area, Decimal('0')),
+            lancado.get(area, Decimal('0')) + rateado.get(area, Decimal('0')),
             teto_id=tetos[area].pk if area in tetos else None,
+            gasto_lancado=lancado.get(area, Decimal('0')),
+            gasto_rateado=rateado.get(area, Decimal('0')),
         )
-        for area in set(tetos) | set(gastos)
+        for area in set(tetos) | set(lancado) | set(rateado)
     ]
     linhas.sort(key=_ordem_do_teto)
     return linhas

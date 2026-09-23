@@ -600,6 +600,59 @@ Se um dia o Supply registrar o custo REAL (nota em mãos, não orçamento),
 religar o espelho volta a fazer sentido — mas o gatilho aí é a conferência do
 sábado, não o salvamento do pedido.
 
+### Rateio de gasto: desconta o TETO sem descontar o CAIXA
+
+O Supply compra com dois ou mais cartões, de voluntários diferentes, numa
+compra só — não separada por salinha. O extrato sabe quanto saiu de cada
+cartão e não sabe de qual salinha foi; a nota sabe que o Família Feliz gastou
+R$34 e não sabe de qual cartão saiu. Quem lança não tem como responder "de
+qual cartão?".
+
+Lançar as duas coisas como despesa resolveria o teto e **quebraria o caixa**:
+R$800 dos cartões + R$800 rateados = R$1.600 de gasto que não existiu.
+
+**A separação que o Financeiro já tinha:** as três contas leem campos
+DIFERENTES do mesmo lançamento — teto filtra por `area` e ignora `conta`;
+saldo filtra por `conta` e ignora `area`; só o TOTAL soma tudo. É o total que
+impedia lançar as duas coisas.
+
+**Rateio NÃO é `Lancamento`** (`RateioDeGasto` + `LinhaDeRateio`, em
+`adm/models.py`). A alternativa era uma marca `so_teto` no lançamento com
+`.exclude()` nas consultas de total — recusada: bastaria UMA consulta futura
+esquecer o filtro para dinheiro fantasma aparecer no caixa, e quem a escrever
+daqui a um ano não vai saber que a marca existe. Como modelo separado isso é
+**impossível por construção**.
+
+O fluxo: a ADM lança **cada cartão** com o valor real do extrato (categoria
+"materiais de Supply", **área vazia**, conta = o cartão), e depois rateia o
+sábado entre as salinhas. Ela nunca precisa saber de qual cartão saiu o quê.
+
+- **`fechado_em` nulo significa ABERTO.** Sem booleano ao lado — mesmo padrão
+  do `supply.FechamentoSabado`.
+- **Ratear ACIMA do total é recusado** (dedo errado); **abaixo salva e fica
+  ABERTO** (melhor um teto parcialmente certo que um teto zerado esperando
+  alguém ter tempo). Fechar só vale batendo no CENTAVO: fechar com sobra
+  transformaria "esqueci metade" em "conferido".
+- **Tirar linha de rateio fechado REABRE.** Selo de conferido num número que
+  mudou é pior que selo nenhum.
+- **Rateio aberto INCOMODA** no painel do ADM. Esquecido, ele deixa o teto da
+  salinha menor que a realidade e a tela de tetos não tem como denunciar —
+  para ela aquele gasto não existe.
+- **`situacao_dos_tetos` soma DUAS fontes e guarda as duas separadas**
+  (`gasto_lancado` e `gasto_rateado`). Sem isso o líder da salinha vê o teto
+  encolher e procura um lançamento que NÃO EXISTE. São 3 consultas — uma por
+  fonte, nenhuma no laço; há teste travando o número.
+- **`gasto_por_area` ("onde investimos") fica de fora de propósito.** Ela
+  responde "para onde o dinheiro foi", e o dinheiro já foi contado no
+  lançamento do cartão. Somar o rateio ali dobraria o total da própria tela —
+  por isso `_despesa_agrupada_por_area` NÃO mudou; o rateio entra por
+  `_rateio_agrupado_por_area`, que só o teto chama.
+- **Rateia ADM/FIN, não o Supply.** O `FechamentoSabado` do Supply continua
+  sendo só o aviso "conferi os números"; juntar faria o Supply responder por
+  um número que ele não lança.
+
+Spec: `docs/superpowers/specs/2026-09-22-rateio-de-teto-design.md`.
+
 ### De quem é o gasto do reembolso
 
 O formulário PERGUNTA, e a resposta tem três saídas que o modelo já sabia

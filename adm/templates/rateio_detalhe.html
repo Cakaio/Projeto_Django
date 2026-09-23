@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block titulo %}Ratear — {{ rateio.data|date:"d/m/Y" }}{% endblock %}
+
+{% block content %}
+{# Bloco enxuto: só LAYOUT específico desta tela (prefixo .rtd-). #}
+<style>
+  .rtd-wrap { padding-block: clamp(1.75rem, 4vw, 2.75rem) clamp(2.5rem, 6vw, 4rem); }
+  .rtd-head { margin-bottom: 1.2rem; }
+  .rtd-selo { display: inline-block; padding: .18rem .6rem; border-radius: 999px;
+              font-size: .7rem; font-weight: 800; letter-spacing: .04em; }
+  .rtd-selo.aberto { background: #fdf3dd; color: #8a6a10; }
+  .rtd-selo.fechado { background: #effcf5; color: #0f6b46; }
+
+  /* O placar. Não é enfeite: é onde a pessoa lê se o trabalho acabou. */
+  .rtd-placar { display: grid; gap: .55rem; background: hsl(var(--card));
+                border: 1px solid hsl(var(--border)); border-radius: 16px;
+                padding: 1.1rem 1.2rem; margin-bottom: 1.2rem; }
+  .rtd-linha { display: flex; justify-content: space-between; align-items: baseline;
+               gap: 1rem; font-size: .92rem; }
+  .rtd-linha b { font-variant-numeric: tabular-nums; }
+  .rtd-falta { border-top: 1px solid hsl(var(--border)); padding-top: .55rem;
+               font-size: 1.05rem; font-weight: 800; }
+  .rtd-falta.zerado { color: #0f6b46; }
+  .rtd-falta.pendente { color: #8a6a10; }
+
+  .rtd-form { display: grid; grid-template-columns: 1fr; gap: .7rem;
+              background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+              border-radius: 16px; padding: 1.1rem 1.2rem; margin-bottom: 1.2rem; }
+  @media (min-width: 40rem) {
+    .rtd-form { grid-template-columns: 2fr 1fr auto; align-items: end; }
+  }
+  .rtd-campo label { display: block; font-size: .78rem; font-weight: 700;
+                     margin-bottom: .25rem; }
+  .rtd-campo select, .rtd-campo input { width: 100%; }
+  .rtd-acoes { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.4rem; }
+  .rtd-vazio { padding: 1.8rem 1.2rem; border: 1.5px dashed hsl(var(--border));
+               border-radius: 16px; text-align: center;
+               color: hsl(var(--muted-foreground)); font-size: .88rem; }
+</style>
+
+<div class="pcf-container rtd-wrap">
+  <header class="rtd-head">
+    <a href="{% url 'adm:rateios' %}" class="pcf-link">&larr; Rateios</a>
+    <h1 class="pcf-page-title" style="margin-top:.3rem">
+      {{ rateio.descricao|default:"Rateio" }} — {{ rateio.data|date:"d/m/Y" }}
+    </h1>
+    <p style="margin:.3rem 0 0">
+      {% if rateio.esta_aberto %}
+        <span class="rtd-selo aberto">ABERTO</span>
+      {% else %}
+        <span class="rtd-selo fechado">FECHADO</span>
+        por {{ rateio.fechado_por.get_full_name|default:"—" }}
+        em {{ rateio.fechado_em|date:"d/m/Y H:i" }}
+      {% endif %}
+    </p>
+  </header>
+
+  <div class="rtd-placar">
+    <div class="rtd-linha"><span>Total a ratear</span><b>R$ {{ rateio.total_a_ratear }}</b></div>
+    <div class="rtd-linha"><span>Rateado</span><b>R$ {{ rateio.rateado }}</b></div>
+    <div class="rtd-linha rtd-falta {% if rateio.pode_fechar %}zerado{% else %}pendente{% endif %}">
+      <span>{% if rateio.pode_fechar %}Fechou{% else %}Falta ratear{% endif %}</span>
+      <b>R$ {{ rateio.falta_ratear }}</b>
+    </div>
+  </div>
+
+  {% if rateio.esta_aberto %}
+    <form method="post" class="rtd-form">
+      {% csrf_token %}
+      <div class="rtd-campo">
+        <label for="{{ form.area.id_for_label }}">Salinha / área</label>
+        {{ form.area }}
+      </div>
+      <div class="rtd-campo">
+        <label for="{{ form.valor.id_for_label }}">Quanto gastou</label>
+        {{ form.valor }}
+      </div>
+      <button type="submit" class="pcf-btn pcf-btn-primary">Acrescentar</button>
+      {% if form.errors %}
+        <div role="alert" style="grid-column:1/-1;background:#fdeaea;border:1px solid #f7d4d4;
+             border-radius:12px;padding:.75rem .9rem;color:#b03636;font-size:.85rem">
+          {% for erro in form.non_field_errors %}{{ erro }}{% endfor %}
+          {% for campo in form %}{% for erro in campo.errors %}{{ campo.label }}: {{ erro }}{% endfor %}{% endfor %}
+        </div>
+      {% endif %}
+    </form>
+  {% endif %}
+
+  {% if linhas %}
+    <div class="pcf-scroll-x">
+      <table class="pcf-table" style="min-width:26rem">
+        <thead><tr><th>Salinha / área</th><th class="num">Valor</th><th></th></tr></thead>
+        <tbody>
+          {% for linha in linhas %}
+            <tr>
+              <td>{{ linha.get_area_display }}</td>
+              <td class="num">R$ {{ linha.valor }}</td>
+              <td>
+                <form method="post"
+                      action="{% url 'adm:rateio_linha_deletar' rateio.pk linha.pk %}"
+                      onsubmit="return confirm('Tirar {{ linha.get_area_display|escapejs }} do rateio?')">
+                  {% csrf_token %}
+                  <button type="submit" class="pcf-btn pcf-btn-outline pcf-btn-sm">Tirar</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="rtd-vazio">
+      Nenhuma salinha rateada ainda. Acrescente acima — dá para salvar pela
+      metade e voltar depois.
+    </div>
+  {% endif %}
+
+  <div class="rtd-acoes">
+    <form method="post" action="{% url 'adm:rateio_fechar' rateio.pk %}">
+      {% csrf_token %}
+      {% if rateio.esta_aberto %}
+        {# Desabilitado enquanto não bate no centavo: fechar com sobra
+           transformaria "esqueci metade" em "conferido". #}
+        <button type="submit" class="pcf-btn pcf-btn-primary"
+                {% if not rateio.pode_fechar %}disabled
+                title="Faltam R$ {{ rateio.falta_ratear }} para ratear"{% endif %}>
+          Fechar rateio
+        </button>
+      {% else %}
+        <button type="submit" class="pcf-btn pcf-btn-outline">Reabrir</button>
+      {% endif %}
+    </form>
+
+    <a href="{% url 'adm:rateio_editar' rateio.pk %}" class="pcf-btn pcf-btn-outline">
+      Corrigir data / total
+    </a>
+
+    <form method="post" action="{% url 'adm:rateio_deletar' rateio.pk %}"
+          onsubmit="return confirm('Excluir este rateio e todas as suas linhas? O teto das salinhas volta ao que era.')">
+      {% csrf_token %}
+      <button type="submit" class="pcf-btn pcf-btn-outline">Excluir rateio</button>
+    </form>
+  </div>
+
+  <p style="margin:1.4rem 0 0;font-size:.82rem;line-height:1.6;color:hsl(var(--muted-foreground));max-width:62ch">
+    O que você rateia aqui desconta <strong>só o teto</strong> da salinha. O
+    caixa e o saldo do cartão não mudam — o dinheiro já saiu no lançamento do
+    cartão, com a área em branco.
+  </p>
+</div>
+{% endblock %}

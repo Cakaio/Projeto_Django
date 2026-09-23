@@ -14,6 +14,12 @@
   .tet-filtros-botoes .pcf-btn { flex: 1; }
   .tet-nota { margin: 0; grid-column: 1 / -1; font-size: .8rem; color: hsl(var(--muted-foreground)); }
 
+  /* Quebra do gasto por ORIGEM. O rateio do Supply nao tem lancamento
+     correspondente na lista — sem dizer isso, o numero parece errado. */
+  .tet-origem { display: block; margin-top: .15rem; font-size: .72rem;
+                font-weight: 600; line-height: 1.4;
+                color: hsl(var(--muted-foreground)); }
+
   /* ── Avisos: estouro e gasto sem teto ── */
   /* Não é faixa de topo nem hero: é um cartão de aviso no fluxo da página,
      logo acima da tabela que ele resume. */
@@ -206,6 +212,12 @@
           {% else %}
             <p class="tet-minha-num pcf-num">
               R$ {{ minha_linha.gasto|floatformat:2 }}
+              {% if minha_linha.gasto_rateado %}
+                <span class="tet-origem">
+                  R$ {{ minha_linha.gasto_lancado|floatformat:2 }} em lançamentos
+                  + R$ {{ minha_linha.gasto_rateado|floatformat:2 }} rateado do Supply
+                </span>
+              {% endif %}
               <span class="tet-minha-de">de R$ {{ minha_linha.teto|floatformat:2 }}</span>
             </p>
             <span class="pcf-progress tet-bar {% if minha_linha.estourou %}estourou{% elif minha_linha.percentual >= 80 %}perto{% endif %}" aria-hidden="true">
@@ -344,7 +356,18 @@
                     {% endif %}
                   </td>
 
-                  <td class="num"><span class="tet-valor">R$ {{ linha.gasto|floatformat:2 }}</span></td>
+                  <td class="num">
+                    <span class="tet-valor">R$ {{ linha.gasto|floatformat:2 }}</span>
+                    {# O RATEIO NAO E LANCAMENTO. Sem esta quebra, o lider da
+                       salinha ve o teto encolher e procura na lista um
+                       lancamento que nao existe. #}
+                    {% if linha.gasto_rateado %}
+                      <span class="tet-origem">
+                        R$ {{ linha.gasto_lancado|floatformat:2 }} em lançamentos
+                        + R$ {{ linha.gasto_rateado|floatformat:2 }} rateado do Supply
+                      </span>
+                    {% endif %}
+                  </td>
 
                   <td class="num">
                     {% if linha.sem_teto %}

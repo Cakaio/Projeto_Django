@@ -811,11 +811,18 @@ class SituacaoDosTetosTest(TestCase):
                          Decimal('20.00'))
 
     def test_numero_fixo_de_consultas(self):
+        """TRES consultas, sempre: tetos, lançamentos e rateio.
+
+        Passou de duas para três quando o rateio de gasto virou uma segunda
+        fonte do teto — uma consulta por FONTE, nenhuma dentro do laço, que é
+        a garantia que este teste protege. Se este número subir sem uma fonte
+        nova, é query no meio do laço e a tela fica mais lenta a cada área.
+        """
         TetoArea.objects.create(area='SUPPLY', valor='100.00')
         TetoArea.objects.create(area='RECREACAO', valor='100.00')
         self._gasto('SUPPLY', '30.00')
         self._gasto('VIOLETA', '30.00')
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(3):
             situacao_dos_tetos(self.referencia)
 
 
@@ -1017,9 +1024,11 @@ class TetoIdNaLinhaTest(TestCase):
         self.assertIsNone(self._linha('VIOLETA')['teto_id'])
 
     def test_carregar_o_objeto_nao_custa_consulta_a_mais(self):
+        """Trazer o `TetoArea` inteiro (e não só o valor) continua custando
+        zero consulta extra. Três é o piso: tetos, lançamentos e rateio."""
         TetoArea.objects.create(area='SUPPLY', valor='100.00')
         TetoArea.objects.create(area='RECREACAO', valor='100.00')
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(3):
             situacao_dos_tetos(self.referencia)
 
 
