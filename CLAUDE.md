@@ -722,8 +722,17 @@ a contradizer a tela.
 - **Sem chave, a tela AVISA** em vez de ficar muda. Sem o aviso a ADM abre a
   tela, não acha a chave e volta a perguntar no grupo — que é o trabalho que o
   campo existe para tirar dela.
-- **A chave não aparece em lista nenhuma**, só na tela de pagar. É dado pessoal
-  e só serve ali; espalhar é exposição sem ganho. Há teste cobrando isso.
+- **A chave aparece na caixa de entrada E na tela de pagar**, em coluna própria
+  e clicável para copiar. A primeira versão PROIBIA isso ("dado pessoal, só
+  serve na hora de pagar"), com teste. A regra foi desfeita a pedido, e a
+  evidência dava razão ao pedido: `REEMBOLSO_AREAS` é `{'ADM/FIN'}`, o **mesmo
+  público** da tela de pagar — não havia exposição nova, só o trabalho de abrir
+  pedido por pedido para copiar.
+  **O que torna a coluna aceitável é esse gate.** Se `REEMBOLSO_AREAS`
+  afrouxar, a coluna vira exposição de verdade; há teste travando quem entra.
+- **A cópia tem volta.** `navigator.clipboard` exige HTTPS e não existe em
+  navegador antigo: sem o `prompt` de reserva, a ADM clica e NADA acontece — e
+  conclui que travou, que é o defeito que este projeto já pagou caro.
 - `comprovante_pagamento` (a prova de que o ADM pagou) **já existia** e é
   obrigatório no formulário — nada a ver com `comprovante`, que é o do gasto,
   enviado pelo voluntário.

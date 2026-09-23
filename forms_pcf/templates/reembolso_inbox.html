@@ -1,5 +1,37 @@
 {% extends 'base.html' %}
-{% block titulo %}Reembolsos — ADM/FIN{% endblock %}
+{% block titulo %}Reembolsos — ADM/FIN<script>
+  // UM listener para a tabela inteira, nao um por linha: a caixa de entrada
+  // pode ter dezenas de pedidos.
+  document.addEventListener('click', function (evento) {
+    var botao = evento.target.closest('.rmb-pix');
+    if (!botao) return;
+
+    var chave = botao.dataset.pix || '';
+    var mostrar = function (texto) {
+      var alvo = botao.querySelector('.rmb-pix-chave');
+      var antes = alvo.textContent;
+      alvo.textContent = texto;
+      botao.classList.add('copiada');
+      window.setTimeout(function () {
+        alvo.textContent = antes;
+        botao.classList.remove('copiada');
+      }, 1400);
+    };
+
+    // `navigator.clipboard` exige HTTPS e nao existe em navegador antigo.
+    // Sem a volta, o voluntario clica e NADA acontece — e conclui que travou.
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(chave).then(function () {
+        mostrar('copiada!');
+      }).catch(function () {
+        window.prompt('Copie a chave PIX:', chave);
+      });
+    } else {
+      window.prompt('Copie a chave PIX:', chave);
+    }
+  });
+</script>
+{% endblock %}
 
 {% block content %}
 {# Bloco enxuto: só LAYOUT específico desta tela (prefixo .rmb-). #}
@@ -51,6 +83,7 @@
           <thead>
             <tr>
               <th>Solicitante</th>
+              <th title="Chave PIX do solicitante — toque para copiar">PIX</th>
               <th title="De quem é o gasto — é isto que decide qual teto encolhe">Desconta de</th>
               <th>Categoria</th>
               <th>Data Gasto</th>
@@ -64,6 +97,36 @@
             {% for p in pedidos %}
             <tr>
               <td class="rmb-td-bold">{{ p.solicitante.get_full_name|default:p.solicitante.username }}</td>
+              {% comment %}
+                A chave AQUI e na tela de pagar. Nao e exposicao nova: esta
+                caixa de entrada e ADM/FIN e superusuario (REEMBOLSO_AREAS),
+                o MESMO publico que ja via a chave ao pagar. O ganho e nao ter
+                de abrir pedido por pedido para copiar.
+
+                Continua sendo a chave AO VIVO do perfil; a que vale para o
+                registro e a congelada em `chave_pix_paga`, no pagamento.
+              {% endcomment %}
+              <td>
+                {% if p.solicitante.chave_pix %}
+                  <button type="button" class="rmb-pix"
+                          data-pix="{{ p.solicitante.chave_pix }}"
+                          title="Copiar {{ p.solicitante.chave_pix }}">
+                    <span class="rmb-pix-chave">{{ p.solicitante.chave_pix }}</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="9" y="9" width="13" height="13" rx="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </button>
+                  {% if p.solicitante.tipo_chave_pix %}
+                    <span class="rmb-pix-tipo">{{ p.solicitante.get_tipo_chave_pix_display }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="rmb-pix-sem" title="Peça para preencher em Meu Perfil">
+                    sem chave
+                  </span>
+                {% endif %}
+              </td>
               {% comment %} Mostra o dono do GASTO, não a área de quem pediu. Os dois
                  deixaram de ser a mesma coisa quando o solicitante passou a poder dizer
                  "isto é de um evento" ou "é do projeto" — e é o dono do gasto que decide
@@ -148,7 +211,7 @@
             </tr>
             {% empty %}
             <tr>
-              <td colspan="7">
+              <td colspan="8">
                 <div class="rmb-empty">
                   <div class="rmb-empty-icon" aria-hidden="true">
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -211,6 +274,26 @@ function toggleRejeitar(id) {
   .rmb-table tbody tr:hover { background: #fffaf6; }
   .rmb-th-right { text-align: right; }
   .rmb-td-bold { font-weight: 700; color: var(--ink); }
+
+  /* A chave PIX, clicavel para copiar. E um <button> e nao um <span> com
+     onclick: so o botao e alcancavel por teclado e anunciado como acionavel
+     por leitor de tela. */
+  .rmb-pix { display: inline-flex; align-items: center; gap: .4rem;
+             max-width: 100%; padding: .3rem .55rem; border-radius: 9px;
+             border: 1px solid hsl(var(--border)); background: hsl(var(--muted));
+             color: var(--ink); font: inherit; font-size: .82rem; font-weight: 700;
+             font-variant-numeric: tabular-nums; cursor: pointer;
+             transition: background .15s, border-color .15s; }
+  .rmb-pix:hover { background: #fff; border-color: #e8560f; }
+  .rmb-pix:focus-visible { outline: 2px solid #e8560f; outline-offset: 2px; }
+  .rmb-pix.copiada { background: #effcf5; border-color: #9fe0c0; color: #0f6b46; }
+  .rmb-pix-chave { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                   max-width: 14ch; }
+  .rmb-pix-tipo { display: block; margin-top: .2rem; font-size: .68rem;
+                  font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+                  color: hsl(var(--muted-foreground)); }
+  .rmb-pix-sem { font-size: .78rem; font-style: italic;
+                 color: hsl(var(--muted-foreground)); }
   .rmb-td-muted { color: var(--ink-muted); font-size: .82rem; }
   .rmb-td-motivo { max-width: 220px; word-break: break-word; }
   .rmb-valor { color: #b03636; font-variant-numeric: tabular-nums; }

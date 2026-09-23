@@ -161,24 +161,76 @@ class CongelaNoPagamentoTests(TestCase):
         self.assertEqual(self.pedido.chave_pix_paga, '')
 
 
-class ChaveNaoVazaTests(TestCase):
-    """Dado pessoal so serve na hora de pagar. Espalhar pela tela e exposicao
-    sem ganho."""
+class ChaveNaCaixaDeEntradaTests(TestCase):
+    """A chave aparece na caixa de entrada, em coluna propria e clicavel.
 
-    def test_a_chave_nao_aparece_na_caixa_de_entrada(self):
+    A primeira versao PROIBIA isso, com teste: "dado pessoal so serve na hora
+    de pagar". A regra foi desfeita a pedido, e a evidencia dava razao ao
+    pedido: `REEMBOLSO_AREAS` e {'ADM/FIN'}, o MESMO publico da tela de pagar.
+    Nao havia exposicao nova — so o trabalho de abrir pedido por pedido para
+    copiar a chave.
+    """
+
+    def setUp(self):
+        self.adm = Voluntario.objects.create_user(
+            username='adm', password='x', area='ADM/FIN')
+        self.ana = Voluntario.objects.create_user(
+            username='ana', password='x', area='AMARELO',
+            first_name='Ana', last_name='Souza',
+            tipo_chave_pix='CELULAR', chave_pix='11987654321')
+        self.categoria = Categoria.objects.create(nome='Gasolina',
+                                                  tipo='DESPESA')
+        self.pedido = PedidoReembolso.objects.create(
+            solicitante=self.ana, valor=Decimal('50.00'), descricao='gasolina',
+            data_gasto=datetime.date(2026, 9, 19), categoria=self.categoria)
+
+    def _html(self, usuario=None):
         from forms_pcf import views as forms_views
 
-        adm = Voluntario.objects.create_user(
-            username='adm', password='x', area='ADM/FIN')
-        ana = Voluntario.objects.create_user(
-            username='ana', password='x', area='AMARELO',
-            tipo_chave_pix='CELULAR', chave_pix='11987654321')
-        categoria = Categoria.objects.create(nome='Gasolina', tipo='DESPESA')
-        PedidoReembolso.objects.create(
-            solicitante=ana, valor=Decimal('50.00'), descricao='gasolina',
-            data_gasto=datetime.date(2026, 9, 19), categoria=categoria)
+        return corpo(forms_views.ReembolsoInboxView.as_view()(
+            pedido_http('get', usuario or self.adm)))
 
-        html = corpo(
-            forms_views.ReembolsoInboxView.as_view()(pedido_http('get', adm)))
+    def test_a_chave_aparece_na_coluna(self):
+        html = self._html()
 
-        self.assertNotIn('11987654321', html)
+        self.assertIn('11987654321', html)
+        self.assertIn('>PIX<', html)
+
+    def test_a_chave_e_clicavel_para_copiar(self):
+        """`<button>` e nao `<span>` com onclick: so o botao e alcancavel por
+        teclado e anunciado como acionavel por leitor de tela."""
+        html = self._html()
+
+        self.assertIn('data-pix="11987654321"', html)
+        self.assertIn('class="rmb-pix"', html)
+
+    def test_sem_chave_a_coluna_diz_sem_chave(self):
+        """Celula vazia faria a ADM achar que a tela nao carregou o dado."""
+        self.ana.chave_pix = ''
+        self.ana.tipo_chave_pix = ''
+        self.ana.save()
+
+        html = self._html()
+
+        self.assertIn('sem chave', html)
+        self.assertNotIn('data-pix="11987654321"', html)
+
+    def test_a_caixa_continua_sendo_so_de_ADM_FIN(self):
+        """E o que torna a coluna aceitavel: o publico da lista e o MESMO da
+        tela de pagar. Se este gate afrouxar, a coluna vira exposicao."""
+        from django.core.exceptions import PermissionDenied
+        from forms_pcf import views as forms_views
+
+        for area in ('AMARELO', 'SUPPLY', 'TRIADE'):
+            de_fora = Voluntario.objects.create_user(
+                username=f'u{area}', password='x', area=area)
+            with self.assertRaises(PermissionDenied, msg=area):
+                forms_views.ReembolsoInboxView.as_view()(
+                    pedido_http('get', de_fora))
+
+    def test_a_copia_tem_volta_quando_o_navegador_recusa(self):
+        """`navigator.clipboard` exige HTTPS e nao existe em navegador antigo.
+        Sem a volta, a ADM clica e NADA acontece — e conclui que travou."""
+        html = self._html()
+
+        self.assertIn('Copie a chave PIX', html)
