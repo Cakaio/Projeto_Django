@@ -272,6 +272,26 @@ O que decide se isso é segurança ou teatro:
   toda recusa da entrada pelo Google seria escrita e nunca vista — o mesmo
   defeito que a tela do Bazar tinha.
 
+## Comentário de template que NÃO é comentário
+
+Duas formas de escrever uma nota num template, e as duas têm armadilha que
+**não dá erro nenhum**: a nota aparece na tela para o voluntário, no meio do
+conteúdo. As duas aconteceram em 09/2026.
+
+1. **`{# ... #}` é de UMA LINHA SÓ.** Atravessou linha, deixa de ser comentário
+   e vira texto. Pegou seis lugares de uma vez — a tela de tetos e o painel do
+   Financeiro exibindo a explicação do código para quem abria a página.
+2. **Tag dentro de comentário HTML (`<!-- -->`) é EXECUTADA.** O Django não
+   sabe o que é comentário de HTML. Citar `{% if salas %}` numa nota abre um
+   bloco de verdade e a tela para de renderizar com `Invalid block tag`.
+
+Para nota de várias linhas existe **`{% comment %}...{% endcomment %}`**, a
+única forma que o Django trata como bloco. (Lembrando que ele **não aninha** —
+ver a seção da Revistinha.)
+
+`TESTE/tests_comentarios.py` varre todos os templates e reprova as duas coisas.
+Confirmei que ele pega reintroduzindo os defeitos de propósito.
+
 ## Estáticos: o `collectstatic` esquecido quebra tela em silêncio
 
 Já quebrou. Em 09/2026 a tela do Bazar subiu com o template NOVO e o JavaScript

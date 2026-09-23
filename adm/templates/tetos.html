@@ -358,9 +358,9 @@
 
                   <td class="num">
                     <span class="tet-valor">R$ {{ linha.gasto|floatformat:2 }}</span>
-                    {# O RATEIO NAO E LANCAMENTO. Sem esta quebra, o lider da
+                    {% comment %} O RATEIO NAO E LANCAMENTO. Sem esta quebra, o lider da
                        salinha ve o teto encolher e procura na lista um
-                       lancamento que nao existe. #}
+                       lancamento que nao existe. {% endcomment %}
                     {% if linha.gasto_rateado %}
                       <span class="tet-origem">
                         R$ {{ linha.gasto_lancado|floatformat:2 }} em lançamentos

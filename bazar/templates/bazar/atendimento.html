@@ -370,9 +370,9 @@
         <button type="button" class="bz-voltar" data-sala="{{ sala.pk }}"
                 style="font-size:1.05rem;font-weight:800;min-height:60px">{{ sala.nome }}</button>
       {% endfor %}
-      {# A saída existe porque `sala` é OPCIONAL ao finalizar (bazar/views.py).
+      {% comment %} A saída existe porque `sala` é OPCIONAL ao finalizar (bazar/views.py).
          Travar a fila por causa de um campo que o servidor nem exige seria
-         trocar uma coluna do relatório pela manhã inteira de atendimento. #}
+         trocar uma coluna do relatório pela manhã inteira de atendimento. {% endcomment %}
       <button type="button" class="bz-outra" data-caixa-depois
               style="min-height:48px">Decidir depois</button>
     </div>

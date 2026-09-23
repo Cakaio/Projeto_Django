@@ -188,10 +188,10 @@
             {% if form.pago_em.errors %}<p class="rbp-err">{{ form.pago_em.errors|join:", " }}</p>{% endif %}
           </div>
 
-          {# PARA ONDE MANDAR. Sem isto a ADM abre a tela, nao acha a chave e
+          {% comment %} PARA ONDE MANDAR. Sem isto a ADM abre a tela, nao acha a chave e
              volta a perguntar no grupo — que e o trabalho que este campo
              existe para tirar dela. A chave vem AO VIVO do perfil e so
-             congela no pedido quando o pagamento e gravado. #}
+             congela no pedido quando o pagamento e gravado. {% endcomment %}
           <div class="pcf-field rbp-larga">
             <span class="rbp-label-linha">
               <label class="pcf-label">Pagar para</label>

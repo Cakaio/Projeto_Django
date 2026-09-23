@@ -119,8 +119,8 @@
     <form method="post" action="{% url 'adm:rateio_fechar' rateio.pk %}">
       {% csrf_token %}
       {% if rateio.esta_aberto %}
-        {# Desabilitado enquanto não bate no centavo: fechar com sobra
-           transformaria "esqueci metade" em "conferido". #}
+        {% comment %} Desabilitado enquanto não bate no centavo: fechar com sobra
+           transformaria "esqueci metade" em "conferido". {% endcomment %}
         <button type="submit" class="pcf-btn pcf-btn-primary"
                 {% if not rateio.pode_fechar %}disabled
                 title="Faltam R$ {{ rateio.falta_ratear }} para ratear"{% endif %}>

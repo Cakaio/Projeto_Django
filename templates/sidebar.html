@@ -308,10 +308,24 @@
       <span>Dores &amp; Sugestões</span>
     </a>
     {% if user.is_superuser or user.area == 'PROJETOS' or user.area == 'TRIADE' %}
+    {% comment %}
+      BACKLOG DESLIGADO DA SIDEBAR a pedido (09/2026). A tela continua no ar e
+      alcançável por /projetos/backlog/ — só saiu do menu.
+
+      PARA RELIGAR: apagar as duas linhas de comentário que cercam o bloco
+      abaixo. Nada mais: a rota e a permissão continuam de pé.
+
+      Bloco de comentário, e não a forma com cerquilha: aquela é de UMA LINHA
+      SÓ, e em várias ela deixa de ser comentário e o texto aparece na tela.
+      E este tipo de bloco NÃO ANINHA — por isso esta nota não pode citar a
+      tag de fechamento, senão ela fecharia o comentário aqui mesmo.
+    {% endcomment %}
+    {% comment %}
     <a class="pcf-navitem" href="{% url 'projetos:backlog' %}" title="Backlog do que Projetos está fazendo por área">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><path d="M3 17h7M3 21h7M14 17h7M14 21h7"/></svg>
       <span>Backlog</span>
     </a>
+    {% endcomment %}
     <a class="pcf-navitem" href="{% url 'projetos:por_area' %}" title="Como está a relação com cada área">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
       <span>Relação com as Áreas</span>

@@ -160,9 +160,9 @@
                     </td>
                     <td>
                       {% if caixa.usos %}
-                        {# `Retirada.sala` e PROTECT: apagar apagaria a origem
+                        {% comment %} `Retirada.sala` e PROTECT: apagar apagaria a origem
                            no relatorio. Botao que sempre recusa e pior que
-                           botao nenhum — aqui vai a explicacao no lugar dele. #}
+                           botao nenhum — aqui vai a explicacao no lugar dele. {% endcomment %}
                         <span style="color:var(--ink-muted);font-size:.78rem">
                           já usada — desative para tirar da tela
                         </span>

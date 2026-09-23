@@ -121,9 +121,9 @@
           <span class="fin-tool-body">
             <span class="fin-tool-title">
               Rateios de gasto
-              {# Rateio aberto deixa o teto da salinha menor que a realidade
+              {% comment %} Rateio aberto deixa o teto da salinha menor que a realidade
                  EM SILENCIO: a tela de tetos nao tem como denunciar, porque
-                 para ela aquele gasto simplesmente nao existe ainda. #}
+                 para ela aquele gasto simplesmente nao existe ainda. {% endcomment %}
               {% if rateios_abertos.quantidade %}
               <span class="pcf-badge danger fin-pending">{{ rateios_abertos.quantidade }}</span>
               {% endif %}
