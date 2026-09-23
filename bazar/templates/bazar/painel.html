@@ -26,6 +26,36 @@
   .bzp-tabela td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
   .bzp-baixo { color: #b45309; font-weight: 850; }
 
+  /* LISTA, e nao tabela. Quatro numeros curtos nunca precisaram de 26rem de
+     largura minima: a tabela forcava barra de rolagem dentro de um cartao
+     estreito, em qualquer tela. A lista encolhe em vez de rolar. */
+  .bzp-lista { display: grid; gap: .1rem; }
+  .bzp-item { display: grid; grid-template-columns: 1fr auto; align-items: baseline;
+              gap: .5rem 1rem; padding: .5rem 0; border-bottom: 1px solid #f7f0eb; }
+  .bzp-item:last-child { border-bottom: 0; }
+  .bzp-nome { font-size: .88rem; font-weight: 650; color: var(--ink); min-width: 0;
+              overflow-wrap: anywhere; }
+  .bzp-nome.vazio { font-style: italic; color: var(--ink-muted); font-weight: 600; }
+  .bzp-nums { display: flex; align-items: baseline; gap: .75rem;
+              font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bzp-saiu { font-size: 1.02rem; font-weight: 850; color: var(--ink); }
+  .bzp-resta { font-size: .78rem; font-weight: 700; color: var(--ink-muted); }
+  .bzp-resta.baixo { color: #b45309; }
+
+  /* A barra e o que transforma "4, 1, 1" em leitura instantanea. */
+  .bzp-barra { grid-column: 1 / -1; height: 5px; border-radius: 999px;
+               background: #f4e7de; overflow: hidden; }
+  .bzp-barra span { display: block; height: 100%; border-radius: 999px;
+                    background: #e8560f; }
+  .bzp-item.zerado .bzp-nome,
+  .bzp-item.zerado .bzp-saiu { color: #b6ada4; font-weight: 600; }
+  .bzp-item.zerado .bzp-barra { background: #f7f0eb; }
+
+  /* O rodape que EXPLICA o travessao em vez de deixar a tela parecer quebrada. */
+  .bzp-nota { margin: .9rem 0 0; padding-top: .8rem; border-top: 1px solid #f0e4db;
+              font-size: .78rem; line-height: 1.55; color: var(--ink-muted); }
+  .bzp-nota a { color: #e8560f; font-weight: 700; }
+
   /* Cartão do kit de papel */
   .bzp-kit { display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap;
              margin-bottom: 1.25rem; border-left: 4px solid var(--brand); }
@@ -201,35 +231,69 @@
       <div class="bzp-grade">
         <section class="bzp-bloco">
           <h2>Estoque por categoria</h2>
-          <div class="pcf-scroll-x">
-            <table class="pcf-table bzp-tabela" style="min-width:26rem">
-              <thead><tr><th>Categoria</th><th class="num">Inicial</th><th class="num">Saiu</th><th class="num">Resta</th></tr></thead>
-              <tbody>
-                {% for categoria in categorias %}
-                  <tr>
-                    <td>{{ categoria.nome }}</td>
-                    <td class="num">{% if categoria.estoque_inicial %}{{ categoria.estoque_inicial }}{% else %}—{% endif %}</td>
-                    <td class="num">{{ categoria.distribuido }}</td>
-                    <td class="num {% if categoria.estoque_baixo %}bzp-baixo{% endif %}">
-                      {% if categoria.restante is None %}—{% else %}{{ categoria.restante }}{% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+          {% if categorias %}
+            <div class="bzp-lista">
+              {% for categoria in categorias %}
+                <div class="bzp-item {% if not categoria.distribuido %}zerado{% endif %}">
+                  <span class="bzp-nome {% if not categoria.nome %}vazio{% endif %}">
+                    {{ categoria.nome|default:"(sem nome)" }}
+                  </span>
+                  <span class="bzp-nums">
+                    <span class="bzp-saiu">{{ categoria.distribuido }}</span>
+                    {% if categoria.restante is not None %}
+                      <span class="bzp-resta {% if categoria.estoque_baixo %}baixo{% endif %}">
+                        restam {{ categoria.restante }} de {{ categoria.estoque_inicial }}
+                      </span>
+                    {% endif %}
+                  </span>
+                  <span class="bzp-barra" aria-hidden="true">
+                    <span style="width:{{ categoria.fatia }}%"></span>
+                  </span>
+                </div>
+              {% endfor %}
+            </div>
+
+            {% if not tem_estoque_cadastrado %}
+              {% comment %}
+                Sem estoque cadastrado, as colunas "Inicial" e "Resta" da tabela
+                antiga eram TRES TRAVESSOES por linha, e a tela parecia quebrada.
+                A coordenação lia um cartão que não dizia nada. Aqui ela lê o que
+                o sistema SABE (o que saiu) e o motivo de não saber o resto.
+              {% endcomment %}
+              <p class="bzp-nota">
+                O estoque inicial não foi cadastrado, então dá para acompanhar
+                <strong>o que saiu</strong>, mas não quanto resta.
+                <a href="/admin/bazar/bazar/{{ bazar.pk }}/change/">Cadastrar agora</a>
+              </p>
+            {% endif %}
+          {% else %}
+            <p class="bzp-nota" style="border-top:0;padding-top:0">
+              Nenhuma categoria cadastrada — sem elas a tela de atendimento não
+              tem o que oferecer.
+              <a href="/admin/bazar/bazar/{{ bazar.pk }}/change/">Cadastrar</a>
+            </p>
+          {% endif %}
         </section>
 
         <section class="bzp-bloco">
           <h2>Atendimentos por salinha</h2>
-          <div class="pcf-scroll-x">
-            <table class="pcf-table bzp-tabela" style="min-width:18rem">
-              <tbody>
-                {% for linha in salinhas %}
-                  <tr><td>{{ linha.sala }}</td><td class="num">{{ linha.total }}</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
+          {% comment %}
+            A ordem continua sendo a OFICIAL das salinhas (Violeta -> Família
+            Feliz). Ordenar por quantidade poria o Amarelo antes do Anil, que
+            não é como o projeto fala das salas. O que muda é o PESO: salinha
+            sem atendimento fica discreta, e quem tem ganha barra — antes eram
+            oito zeros e um 2, todos com a mesma força visual.
+          {% endcomment %}
+          <div class="bzp-lista">
+            {% for linha in salinhas %}
+              <div class="bzp-item {% if not linha.total %}zerado{% endif %}">
+                <span class="bzp-nome">{{ linha.sala }}</span>
+                <span class="bzp-nums"><span class="bzp-saiu">{{ linha.total }}</span></span>
+                <span class="bzp-barra" aria-hidden="true">
+                  <span style="width:{% if maior_salinha %}{% widthratio linha.total maior_salinha 100 %}{% else %}0{% endif %}%"></span>
+                </span>
+              </div>
+            {% endfor %}
           </div>
         </section>
 

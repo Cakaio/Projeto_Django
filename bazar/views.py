@@ -282,6 +282,32 @@ def cancelar(request, pk):
 
 
 # ────────────────────────────── Coordenação ──────────────────────────────
+def linhas_do_estoque(bazar):
+    """Categorias com o que a tela precisa, ja calculado.
+
+    `maior` e o maior valor de `distribuido` entre elas: e ele que da a escala
+    da barrinha. Sem barra, "4, 1, 1" sao tres numeros soltos; com ela, a
+    proporcao se le sem contar.
+    """
+    categorias = list(Categoria.objects.filter(bazar=bazar))
+    saidas = [c.distribuido for c in categorias]
+    maior = max(saidas, default=0)
+
+    return [
+        {
+            "nome": c.nome.strip(),
+            "estoque_inicial": c.estoque_inicial,
+            "distribuido": saiu,
+            "restante": c.restante,
+            "estoque_baixo": c.estoque_baixo,
+            # Percentual da barra. Sem ninguem ter retirado nada, a barra fica
+            # zerada em vez de dividir por zero.
+            "fatia": round(saiu * 100 / maior) if maior else 0,
+        }
+        for c, saiu in zip(categorias, saidas)
+    ]
+
+
 @coordenacao_required
 def painel(request):
     """Os números do dia e a chave das etapas."""
@@ -289,10 +315,22 @@ def painel(request):
     contexto = {"bazar": bazar, "bazares": Bazar.objects.all()[:10]}
 
     if bazar:
+        salinhas = por_salinha(bazar)   # uma consulta so; o maximo sai dela
         contexto |= {
             "numeros": numeros_do_bazar(bazar),
-            "salinhas": por_salinha(bazar),
-            "categorias": Categoria.objects.filter(bazar=bazar),
+            "salinhas": salinhas,
+            # A escala da barrinha. `widthratio` precisa do maior valor, e
+            # dividir por zero derrubaria a tela num Bazar que ainda nao teve
+            # atendimento nenhum.
+            "maior_salinha": max((l["total"] for l in salinhas), default=0),
+            # Materializado AQUI, e nao no template, por dois motivos:
+            # `distribuido` faz uma consulta por categoria (o laco do template
+            # fazia N), e a tela precisa saber se ALGUMA tem estoque cadastrado
+            # para decidir se mostra as colunas — o template nao tem como
+            # perguntar isso sem contorcao.
+            "categorias": linhas_do_estoque(bazar),
+            "tem_estoque_cadastrado": any(
+                c.estoque_inicial for c in Categoria.objects.filter(bazar=bazar)),
             "ultimas": (
                 Retirada.objects
                 .filter(bazar=bazar, finalizada_em__isnull=False)
