@@ -240,7 +240,7 @@ function toggleRejeitar(id) {
 <style>
   /* ── Página / cabeçalho ── */
   .rmb-page { background: hsl(var(--background)); }
-  .rmb-wrap { max-width: 1080px; padding-block: clamp(2rem, 5vw, 3.25rem); }
+  .rmb-wrap { max-width: 1280px; padding-block: clamp(2rem, 5vw, 3.25rem); }
   .rmb-head { margin-bottom: 1.5rem; }
   .rmb-head-text { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
   .rmb-back { display: inline-flex; align-items: center; gap: .3rem; align-self: flex-start; font-size: .8rem; font-weight: 600; color: var(--ink-muted); text-decoration: none; margin-bottom: .1rem; }
@@ -267,7 +267,11 @@ function toggleRejeitar(id) {
 
   /* ── Tabela ── */
   .rmb-tablecard { padding: 0; overflow: hidden; }
-  .rmb-table { min-width: 760px; }
+  /* 8 colunas. Em 760px a de Ações era espremida e os selects colapsavam
+     para uma fresta — o rótulo `nowrap` ficava com todo o espaço e o select,
+     que pode encolher até zero, sumia. O cartão rola na horizontal, que é o
+     certo para tabela densa de administração. */
+  .rmb-table { min-width: 1040px; }
   .rmb-table th { background: #fff7f1; color: var(--ink-muted); padding: .8rem 1rem; white-space: nowrap; border-bottom: 1px solid #f4e7de; }
   .rmb-table td { border-bottom: 1px solid #f7e9df; vertical-align: top; }
   .rmb-table tbody tr { transition: background .15s ease; }
@@ -301,11 +305,15 @@ function toggleRejeitar(id) {
 
   /* Escolha do dono do gasto, dentro do formulário de aprovar */
   .rmb-aprovar { display: inline-flex; flex-direction: column; gap: .35rem; }
-  .rmb-dono-adm { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .25rem .4rem;
-                  align-items: center; margin-bottom: .15rem; }
+  /* Rótulo EM CIMA do select, não ao lado. Lado a lado o rótulo era `nowrap`
+     e ficava com todo o espaço; o select, com `minmax(0, 1fr)`, encolhia até
+     virar uma fresta com barra de rolagem dentro. Empilhado, o select recebe
+     a largura inteira da coluna e não tem como colapsar. */
+  .rmb-dono-adm { display: grid; gap: .1rem; margin-bottom: .45rem; }
   .rmb-dono-lab { font-size: .68rem; font-weight: 700; letter-spacing: .02em;
-                  color: hsl(var(--muted-foreground)); white-space: nowrap; }
-  .rmb-dono-sel { width: 100%; max-width: 11rem; padding: .28rem .45rem; font-size: .76rem;
+                  color: hsl(var(--muted-foreground)); }
+  .rmb-dono-lab + .rmb-dono-sel { margin-bottom: .4rem; }
+  .rmb-dono-sel { width: 100%; min-width: 9rem; padding: .34rem .5rem; font-size: .78rem;
                   border: 1px solid #f0dfd3; border-radius: 8px; background: #fff;
                   color: var(--ink); font-family: inherit; }
   .rmb-dono-sel:focus { outline: none; border-color: #f7c9a8;
@@ -320,7 +328,7 @@ function toggleRejeitar(id) {
                          white-space: nowrap; }
 
   /* ── Ações ── */
-  .rmb-td-actions { white-space: nowrap; min-width: 180px; }
+  .rmb-td-actions { white-space: nowrap; min-width: 240px; }
   /* align-items no topo: o formulário de aprovar agora tem dois selects em cima
      do botão, e sem isto o botão de rejeitar esticaria até a altura dele. */
   .rmb-actions { display: flex; gap: .4rem; flex-wrap: wrap; align-items: flex-start; }

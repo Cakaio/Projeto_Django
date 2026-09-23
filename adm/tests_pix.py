@@ -234,3 +234,48 @@ class ChaveNaCaixaDeEntradaTests(TestCase):
         html = self._html()
 
         self.assertIn('Copie a chave PIX', html)
+
+
+class TabelaDaCaixaDeEntradaTests(TestCase):
+    """A tabela tem de continuar inteira quando ganha coluna.
+
+    Acrescentar a coluna do PIX quebrou DUAS coisas de uma vez, e nenhuma
+    dava erro: o `colspan` da linha "nenhum pedido" ficou um a menos que as
+    colunas, e os selects de area/evento colapsaram para uma fresta porque a
+    tabela nao tinha largura para oito colunas.
+    """
+
+    def setUp(self):
+        self.adm = Voluntario.objects.create_user(
+            username='adm', password='x', area='ADM/FIN')
+
+    def _html(self):
+        from forms_pcf import views as forms_views
+
+        return corpo(forms_views.ReembolsoInboxView.as_view()(
+            pedido_http('get', self.adm)))
+
+    def test_o_colspan_da_linha_vazia_bate_com_as_colunas(self):
+        """Um a menos e a tabela sai torta, sem erro nenhum."""
+        import re
+
+        html = self._html()
+        cabecalho = html[html.index('<thead'):html.index('</thead>')]
+        colunas = len(re.findall(r'<th[\s>]', cabecalho))
+
+        colspans = [int(n) for n in re.findall(r'colspan="(\d+)"', html)]
+
+        self.assertTrue(colspans, 'A linha de "nenhum pedido" sumiu.')
+        for valor in colspans:
+            self.assertEqual(
+                valor, colunas,
+                f'colspan={valor} com {colunas} colunas: a tabela sai torta.')
+
+    def test_o_select_de_area_nao_pode_colapsar(self):
+        """Com o rotulo AO LADO, ele era `nowrap` e ficava com todo o espaco;
+        o select encolhia ate virar uma fresta com barra de rolagem dentro."""
+        html = self._html()
+
+        self.assertIn('min-width: 9rem', html)
+        # A grade de duas colunas era o que permitia o colapso.
+        self.assertNotIn('grid-template-columns: auto minmax(0, 1fr)', html)
