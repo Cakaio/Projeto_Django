@@ -272,6 +272,29 @@ O que decide se isso é segurança ou teatro:
   toda recusa da entrada pelo Google seria escrita e nunca vista — o mesmo
   defeito que a tela do Bazar tinha.
 
+## O painel do combo fica ACIMA de tudo
+
+`pcf-combo.js` anexa o painel da busca ao `document.body`, não ao campo que o
+abriu. Isso é de propósito: dentro de um `<td>` ou de um cartão com
+`overflow:hidden` a lista seria cortada. O preço é que o painel **não herda o
+empilhamento de quem o abriu** — só o `z-index` decide quem fica na frente.
+
+Em 09/2026 ele estava em `200` e **todo modal do projeto ficava na frente**:
+9999 na base, no SAAS e nas listas de voluntários e atendidos; 1100/1090 no
+supply e no semanário; 1080 nas pautas. A pessoa abria "Selecione a regra..."
+dentro do modal de Aplicar Ocorrências e a lista aparecia ATRÁS — impossível
+escolher, e sem erro nenhum na tela.
+
+Hoje o painel está em `99999`. Enquanto está aberto, ele É a coisa com que a
+pessoa está interagindo: precisa ser o topo, sempre.
+
+`TESTE/tests_empilhamento.py` cobra duas coisas, e as duas são necessárias:
+1. **Nenhum `z-index` do projeto alcança o painel** — senão o número vira
+   mentira no dia em que alguém criar um modal novo.
+2. **O `pcf.css` SERVIDO carrega o mesmo valor do `input.css`.** `input.css` é
+   fonte; quem chega no navegador é o compilado. Mudar a fonte e esquecer o
+   `cd tailwindcss && npm run build` deixaria o conserto só no repositório.
+
 ## Comentário de template que NÃO é comentário
 
 Duas formas de escrever uma nota num template, e as duas têm armadilha que

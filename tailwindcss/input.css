@@ -360,8 +360,17 @@
      porque dentro de um container com rolagem (a tabela de pedidos do Supply)
      ele era RECORTADO e aparecia só a primeira opção. O JS calcula left/top/
      width a partir do campo e reposiciona ao rolar. */
+  /* O PAINEL FICA ACIMA DE TUDO, e o numero alto e deliberado.
+     Ele e anexado ao `document.body` (nao ao campo), entao nao herda o
+     empilhamento de quem o abriu: so o z-index decide. Com 200 ele ficava
+     ATRAS de todo modal do projeto — 9999 no de ocorrencias e na base, 1100
+     no semanario, 1090 no supply, 1080 nas pautas —, e a pessoa abria a lista
+     de regras e nao via nada.
+     Enquanto esta aberto, o painel E a coisa com que a pessoa esta
+     interagindo: ele precisa ser o topo, sempre. `TESTE/tests_empilhamento.py`
+     cobra que nenhum z-index do projeto alcance este. */
   .pcf-combo-painel {
-    position: fixed; z-index: 200; display: none; flex-direction: column; padding: .5rem;
+    position: fixed; z-index: 99999; display: none; flex-direction: column; padding: .5rem;
     background: hsl(var(--card)); border: 1px solid hsl(var(--border));
     border-radius: 14px; box-shadow: var(--shadow-lg);
   }
