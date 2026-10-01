@@ -188,7 +188,9 @@
       card.append(detalhes);
     }
     const proprios = state.voluntarios.filter(v => v.apto && v.area === n.area);
-    const grupo = el('details', {class: 'aj-own-details'}, [el('summary', {text: `${proprios.length} da própria área`})]);
+    const grupo = el('div', {class: 'aj-group aj-own-team'}, [
+      el('div', {class: 'aj-group-head'}, [el('span', {class: 'aj-section-label', text: 'Alocados automaticamente · própria área'})]),
+    ]);
     const chips = el('div', {class: 'aj-chips'});
     proprios.forEach(v => {
       const saindo = state.ajudas.filter(a => a.voluntario === v.id && sobrepoe(n, a));
@@ -213,7 +215,7 @@
       grupoExtras.append(row);
     });
     if (!extras.length) grupoExtras.append(el('p', {class: 'aj-drop-hint', text: editavel() ? 'Solte uma pessoa aqui' : 'Sem ajudas externas'}));
-    card.append(grupoExtras, grupo);
+    card.append(grupo, grupoExtras);
     if (editavel()) card.append(el('footer', {class: 'aj-area-footer'}, [btn('+ Alocar', 'alocar', {'data-key': n.key, class: 'pcf-btn pcf-btn-outline pcf-btn-sm'}), btn('Ajustar necessidade', 'editar-necessidade', {'data-key': n.key})]));
     return card;
   }

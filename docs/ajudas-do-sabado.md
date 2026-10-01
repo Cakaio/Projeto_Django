@@ -45,7 +45,10 @@ autenticação Django, `Voluntario.area`, `LISTA_AREAS`, `Voluntario.objects.ati
   uma chave única que impeça essa evolução.
 - `Ajuda`: escala, voluntário, área destino e início/fim. O sábado vem da escala
   (`ajuda.sabado`); não há duas relações independentes que possam discordar.
-  Permanência na própria área nunca gera registro.
+  Permanência na própria área nunca gera registro. No quadro de organização,
+  os voluntários confirmados aparecem automaticamente no card da sua área,
+  sempre visíveis em “Alocados automaticamente · própria área”, antes das ajudas
+  externas. Saídas para outras áreas continuam descontadas nos respectivos horários.
 
 `Semanario.vagas` representa **pessoas extras**, conforme confirmado pelo usuário.
 A sugestão para uma sala é `presentes da própria área + vagas do semanário daquele

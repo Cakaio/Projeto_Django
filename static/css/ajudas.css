@@ -36,7 +36,7 @@
 #aj-quadro .aj-time{font-size:.74rem;font-weight:650}
 .aj-coverage-line{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.55rem .65rem;border-radius:8px;background:var(--cream);margin-bottom:.55rem;flex-wrap:wrap}
 .aj-coverage-status{font-size:.65rem}
-#aj-quadro .aj-own-details{margin-top:.8rem;padding-top:.65rem;border-top:1px solid hsl(var(--border))}
+#aj-quadro .aj-own-team{margin-top:.8rem;padding-top:.65rem;border-top:1px solid hsl(var(--border))}
 #aj-quadro .aj-extra{background:var(--cream);border-color:hsl(var(--border))}
 #aj-quadro .aj-extra-text{display:flex;align-items:baseline;gap:.3rem .5rem;flex-wrap:wrap}
 #aj-quadro .aj-extra-text>strong{flex-basis:100%;font-size:.79rem}
