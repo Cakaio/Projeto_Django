@@ -4,6 +4,25 @@
   const sobrepoe = (a, b) => a.hora_inicio < b.hora_fim && a.hora_fim > b.hora_inicio;
   const horario = valor => typeof valor === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(valor);
   const contem = (n, a) => n.area === a.area_destino && n.hora_inicio <= a.hora_inicio && n.hora_fim >= a.hora_fim;
+  const normalizar = texto => texto.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  function candidatosAjuda(quadro, incluirAlocados = false, editando = null) {
+    const alocados = new Set(quadro.ajudas.map(a => a.voluntario));
+    const atual = quadro.ajudas.find(a => a.key === editando)?.voluntario;
+    return quadro.voluntarios.filter(v => v.id === atual || (v.apto && (incluirAlocados || !alocados.has(v.id))));
+  }
+
+  function filtrarEquipe(quadro, {busca = '', areas = [], carro = ''} = {}) {
+    const termo = normalizar(busca);
+    return candidatosAjuda(quadro).filter(v => {
+      const area = quadro.areas.find(a => a.valor === v.area)?.nome || v.area;
+      return normalizar(`${v.nome} ${area}`).includes(termo)
+        && (!areas.length || areas.includes(v.area))
+        && (!carro || (carro === 'sim' && v.vai_de_carro === true)
+          || (carro === 'nao' && v.vai_de_carro === false)
+          || (carro === 'indefinido' && v.vai_de_carro == null));
+    });
+  }
 
   function cobertura(n, voluntarios, ajudas) {
     if (!horario(n.hora_inicio) || !horario(n.hora_fim) || n.hora_inicio >= n.hora_fim) return [];
@@ -69,7 +88,7 @@
   }
 
   // As mesmas funções executadas no navegador são verificáveis sem DOM.
-  if (typeof module !== 'undefined' && module.exports) module.exports = {cobertura, analisar, sobrepoe};
+  if (typeof module !== 'undefined' && module.exports) module.exports = {cobertura, analisar, sobrepoe, filtrarEquipe, candidatosAjuda};
   if (typeof document === 'undefined') return;
   const root = document.getElementById('aj-quadro');
   if (!root) return;
@@ -92,8 +111,33 @@
   const pessoa = id => state.voluntarios.find(v => v.id === Number(id));
   const editavel = () => state.status !== 'PUBLICADA' && !saving;
   const faixa = n => `${n.hora_inicio}–${n.hora_fim}`;
+  function chipArea(area, nome = nomeArea(area), attrs = {}) {
+    const chip = el('span', {class: 'aj-area-tag', text: nome, ...attrs});
+    chip.style.setProperty('--area-color', cores[area] || '#9d907a');
+    return chip;
+  }
+  function historicoVisual(v) {
+    const bloco = el('div', {class: 'aj-history-visual'});
+    if (!v.historico.length) {
+      bloco.append(el('span', {class: 'aj-muted', text: 'Sem ajudas anteriores'}));
+      return bloco;
+    }
+    bloco.append(el('span', {class: 'aj-history-label', text: 'Recentes · última à esquerda'}));
+    const chips = el('div', {class: 'aj-history-chips'});
+    v.historico.slice(0, 3).forEach(h => chips.append(chipArea(h.area_codigo, h.area, {
+      title: `${h.data} · ${h.area} · ${h.horario}`, tabindex: '0', 'aria-label': `${h.area}, ${h.data}, ${h.horario}`,
+    })));
+    bloco.append(chips);
+    const detalhe = el('details', {class: 'aj-history'}, [el('summary', {text: 'Ver datas e histórico'})]);
+    detalhe.append(el('ul', {}, v.historico.map(h => el('li', {}, [
+      chipArea(h.area_codigo, h.area), el('span', {text: `${h.data} · ${h.horario}`}),
+    ]))));
+    if (v.preferencias.length) detalhe.append(el('p', {text: `Na enquete: ${v.preferencias.join(', ')}.`}));
+    bloco.append(detalhe);
+    return bloco;
+  }
   function payload() {
-    return {revisao: state.revisao, hora_inicio: state.hora_inicio, hora_fim: state.hora_fim,
+    return {revisao: state.revisao,
       necessidades: state.necessidades.map(({area, hora_inicio, hora_fim, quantidade}) => ({area, hora_inicio, hora_fim, quantidade})),
       ajudas: state.ajudas.map(({voluntario, area_destino, hora_inicio, hora_fim}) => ({voluntario, area_destino, hora_inicio, hora_fim})),
     };
@@ -104,6 +148,11 @@
     state.necessidades.forEach(n => { n.key = novaKey(); });
     state.ajudas.forEach(a => { a.key = novaKey(); });
     baseline = JSON.stringify(payload());
+    if (!$('aj-filtro-areas').childElementCount) {
+      state.areas.forEach(a => $('aj-filtro-areas').append(el('label', {class: 'aj-filter-option'}, [
+        el('input', {type: 'checkbox', value: a.valor}), chipArea(a.valor, a.nome),
+      ])));
+    }
     render();
   }
   function feedback(texto, erro = false) {
@@ -129,14 +178,9 @@
     const card = el('article', {class: `pcf-card aj-area ${temErro ? 'aj-has-error' : ''}`, 'data-necessidade': n.key});
     card.style.setProperty('--area-color', cores[n.area] || 'var(--brand)');
     card.append(el('header', {class: 'aj-section-head'}, [el('h2', {text: nomeArea(n.area)}), el('span', {class: 'aj-time', text: faixa(n)})]));
-    const contador = el('div', {class: `aj-counter ${st.classe}`, text: st.minimo === st.maximo ? st.minimo : `${st.minimo}–${st.maximo}`});
-    contador.append(el('small', {text: ` / ${n.quantidade}`}));
-    card.append(el('div', {class: 'aj-counter-row'}, [contador, el('span', {class: 'aj-muted', text: 'pessoas'})]));
-    const barra = el('span');
-    barra.style.width = `${n.quantidade ? Math.min(100, st.minimo / n.quantidade * 100) : 100}%`;
-    card.append(el('div', {class: `aj-meter ${st.classe}`, 'aria-hidden': 'true'}, [barra]));
+    const contador = el('span', {class: `aj-count ${st.classe}`, text: `${st.minimo === st.maximo ? st.minimo : `${st.minimo}–${st.maximo}`} / ${n.quantidade} pessoas`});
     const situacao = st.falta ? `Faltam até ${n.quantidade - st.minimo} pessoas` : st.maximo > n.quantidade ? `Até ${st.maximo - n.quantidade} pessoas a mais` : 'Necessidade atendida';
-    card.append(el('p', {class: `aj-count ${st.classe}`, text: situacao}));
+    card.append(el('div', {class: 'aj-coverage-line'}, [contador, el('span', {class: `aj-coverage-status ${st.classe}`, text: situacao})]));
     if (n.sugestao?.includes('vagas extras')) card.append(el('p', {class: 'aj-muted', text: `Sugestão: ${n.sugestao}.`}));
     if (st.segmentos.length > 1) {
       const detalhes = el('details', {class: 'aj-segments'}, [el('summary', {text: 'Equipe varia no período · ver horários'})]);
@@ -144,76 +188,61 @@
       card.append(detalhes);
     }
     const proprios = state.voluntarios.filter(v => v.apto && v.area === n.area);
-    const grupo = el('div', {class: 'aj-group'}, [el('div', {class: 'aj-group-head'}, [el('span', {class: 'aj-section-label', text: 'Equipe da área'})])]);
+    const grupo = el('details', {class: 'aj-own-details'}, [el('summary', {text: `${proprios.length} da própria área`})]);
     const chips = el('div', {class: 'aj-chips'});
     proprios.forEach(v => {
       const saindo = state.ajudas.filter(a => a.voluntario === v.id && sobrepoe(n, a));
       const disponivel = st.segmentos.some(s => s.proprios.includes(v.id));
       chips.append(el('span', {class: `aj-chip ${saindo.length ? 'aj-chip-away' : ''}`,
-        draggable: editavel() ? 'true' : 'false', 'data-voluntario': v.id,
+        draggable: editavel() && !state.ajudas.some(a => a.voluntario === v.id) ? 'true' : 'false', 'data-voluntario': v.id,
         text: `${v.nome}${saindo.length ? (disponivel ? ' · parcial' : ' · em ajuda') : ''}`,
         title: saindo.length ? saindo.map(a => `${nomeArea(a.area_destino)} ${faixa(a)}`).join('; ') : 'Presente na própria área durante todo o período',
       }));
     });
     if (!proprios.length) chips.append(el('span', {class: 'aj-muted', text: 'Nenhuma presença confirmada nesta área.'}));
     grupo.append(chips);
-    card.append(grupo);
     const extras = state.ajudas.filter(a => a.area_destino === n.area && sobrepoe(n, a));
     const grupoExtras = el('div', {class: 'aj-group'});
     if (extras.length) grupoExtras.append(el('div', {class: 'aj-group-head'}, [el('span', {class: 'aj-section-label', text: 'Ajudas externas'})]));
     extras.forEach(a => {
       const v = pessoa(a.voluntario);
       const row = el('div', {class: 'aj-extra', draggable: editavel() ? 'true' : 'false', 'data-voluntario': a.voluntario, 'data-ajuda': a.key}, [
-        el('div', {class: 'aj-extra-text'}, [el('strong', {text: v?.nome || 'Voluntário inexistente'}), el('small', {text: `${nomeArea(v?.area)} · ${faixa(a)}`})]),
+        el('div', {class: 'aj-extra-text'}, [el('strong', {text: v?.nome || 'Voluntário inexistente'}), chipArea(v?.area), el('small', {text: faixa(a)})]),
       ]);
       if (editavel()) row.append(btn('Editar', 'editar-ajuda', {'data-key': a.key}), btn('×', 'remover-ajuda', {'data-key': a.key, class: 'aj-mini-btn aj-remove', 'aria-label': `Remover ajuda de ${v?.nome || 'voluntário'}`}));
       grupoExtras.append(row);
     });
     if (!extras.length) grupoExtras.append(el('p', {class: 'aj-drop-hint', text: editavel() ? 'Solte uma pessoa aqui' : 'Sem ajudas externas'}));
-    card.append(grupoExtras);
+    card.append(grupoExtras, grupo);
     if (editavel()) card.append(el('footer', {class: 'aj-area-footer'}, [btn('+ Alocar', 'alocar', {'data-key': n.key, class: 'pcf-btn pcf-btn-outline pcf-btn-sm'}), btn('Ajustar necessidade', 'editar-necessidade', {'data-key': n.key})]));
     return card;
   }
   function renderEquipe() {
-    const filtro = $('aj-busca').value.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const necessidade = state.necessidades.find(n => n.key === $('aj-destino-filtro').value);
-    const visiveis = state.voluntarios.filter(v => {
-      const texto = `${v.nome} ${nomeArea(v.area)}`.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (!texto.includes(filtro)) return false;
-      return !necessidade || (v.apto && v.area !== necessidade.area && !state.ajudas.some(a => a.voluntario === v.id && sobrepoe(necessidade, a)));
-    });
+    const areas = [...$('aj-filtro-areas').querySelectorAll('input:checked')].map(i => i.value);
+    const visiveis = filtrarEquipe(state, {busca: $('aj-busca').value, areas, carro: $('aj-carro-filtro').value});
+    $('aj-areas-selecionadas').textContent = areas.length ? `${areas.length} selecionada${areas.length > 1 ? 's' : ''}` : 'Todas';
     const cards = visiveis.map(v => {
       const card = el('article', {class: `aj-person ${v.apto ? '' : 'aj-person-inactive'}`, 'data-voluntario': v.id, draggable: editavel() && v.apto ? 'true' : 'false'});
+      card.style.setProperty('--area-color', cores[v.area] || '#9d907a');
       const iniciais = v.nome.split(/\s+/).slice(0, 2).map(n => n[0]).join('');
       card.append(el('div', {class: 'aj-person-head'}, [el('span', {class: 'aj-avatar', text: iniciais, 'aria-hidden': 'true'}),
-        el('div', {class: 'aj-person-title'}, [el('strong', {text: v.nome}), el('span', {class: 'aj-person-meta', text: nomeArea(v.area)})]),
-        el('span', {class: `aj-car ${v.vai_de_carro ? '' : 'aj-no-car'}`, text: v.vai_de_carro === true ? 'De carro' : v.vai_de_carro === false ? 'Sem carro' : 'Carro: não informou'}),
+        el('div', {class: 'aj-person-title'}, [el('strong', {text: v.nome}), chipArea(v.area)]),
       ]));
-      if (!v.apto) card.append(el('p', {class: 'aj-form-error', text: 'Presença não confirmada ou voluntário inativo. Revise as ajudas.'}));
-      const alocacoes = state.ajudas.filter(a => a.voluntario === v.id);
-      if (alocacoes.length) card.append(el('div', {class: 'aj-person-assignments'}, alocacoes.map(a => el('span', {class: 'aj-assignment-tag', text: `${nomeArea(a.area_destino)} ${faixa(a)}`}))));
-      const ultima = v.historico[0];
-      const hist = el('details', {class: 'aj-history'}, [el('summary', {
-        text: ultima ? `Última: ${ultima.data.slice(0, 5)} · ${ultima.area}` : 'Últimas ajudas',
-        title: 'Ver até cinco ajudas recentes e preferências da enquete',
-      })]);
-      if (v.historico.length) hist.append(el('ul', {}, v.historico.map(h => el('li', {text: `${h.data} — ${h.area} · ${h.horario}`}))));
-      else hist.append(el('p', {text: 'Nenhuma ajuda anterior publicada.'}));
-      if (v.preferencias.length) hist.append(el('p', {text: `Na enquete: ${v.preferencias.join(', ')}.`}));
-      card.append(hist);
+      if (v.vai_de_carro !== null) card.querySelector('.aj-person-head').append(el('span', {class: `aj-car ${v.vai_de_carro ? '' : 'aj-no-car'}`, text: v.vai_de_carro ? 'De carro' : 'Sem carro'}));
+      card.append(historicoVisual(v));
       if (editavel() && v.apto) card.append(btn('Alocar →', 'alocar-pessoa', {'data-voluntario': v.id}));
       return card;
     });
     $('aj-equipe').replaceChildren(...(cards.length ? cards : [el('p', {class: 'aj-empty', text: 'Nenhuma pessoa disponível para este filtro.'})]));
-    $('aj-total-equipe').textContent = necessidade ? `${visiveis.length} livres` : state.voluntarios.filter(v => v.apto).length;
+    const livres = candidatosAjuda(state).length;
+    $('aj-total-equipe').textContent = `${livres} sem ajuda`;
+    $('aj-filtro-resumo').textContent = `${visiveis.length} de ${livres} disponíveis`;
+    $('aj-outra-ajuda').hidden = !editavel();
   }
   function render() {
     const readonly = !editavel();
     $('aj-status').textContent = state.status === 'PUBLICADA' ? 'Publicada' : 'Rascunho';
     $('aj-status').className = `pcf-badge outline ${state.status === 'PUBLICADA' ? 'ok' : 'brand'}`;
-    ['aj-inicio', 'aj-fim'].forEach(id => { $(id).disabled = readonly; });
-    $('aj-inicio').value = state.hora_inicio;
-    $('aj-fim').value = state.hora_fim;
     ['aj-salvar', 'aj-publicar', 'aj-adicionar'].forEach(id => { $(id).hidden = readonly; });
     ['aj-reabrir', 'aj-ver-publicada'].forEach(id => { $(id).hidden = state.status !== 'PUBLICADA'; });
     $('aj-salvo').textContent = alterado() ? 'Alterações não salvas' : state.revisao ? 'Todas as alterações salvas' : 'Sugestões ainda não salvas';
@@ -227,19 +256,36 @@
     const faltas = state.necessidades.filter(n => estatistica(n).falta).length;
     $('aj-resumo').replaceChildren(...[[state.voluntarios.filter(v => v.apto).length, 'presenças confirmadas'], [state.ajudas.length, 'ajudas alocadas'], [faltas, 'necessidades com falta']].map(([num, texto]) => el('span', {}, [el('strong', {text: num}), ` ${texto}`])));
     $('aj-areas').replaceChildren(...(state.necessidades.length ? state.necessidades.map(n => renderArea(n, erros)) : [el('div', {class: 'pcf-card aj-empty', text: 'Nenhuma necessidade configurada. Use “+ Necessidade” para adicionar uma área.'})]));
-    const selected = $('aj-destino-filtro').value;
-    opcoes($('aj-destino-filtro'), [['', 'Todos os horários'], ...state.necessidades.map(n => [n.key, `${nomeArea(n.area)} · ${faixa(n)}`])], selected);
     renderEquipe();
   }
 
-  function abrirAjuda(necessidadeKey = '', voluntarioId = '', ajudaKey = null) {
+  function atualizarPessoas(selecionado = $('aj-pessoa').value) {
+    const candidatos = candidatosAjuda(state, $('aj-incluir-alocados').checked, ajudaEditada);
+    opcoes($('aj-pessoa'), [['', 'Selecione uma pessoa'], ...candidatos.map(v => {
+      const quantidade = state.ajudas.filter(a => a.voluntario === v.id).length;
+      return [v.id, `${v.nome} · ${nomeArea(v.area)}${quantidade ? ` · ${quantidade} ajuda(s)` : ''}${v.apto ? '' : ' (indisponível)'}`];
+    })], selecionado);
+    contextoPessoa();
+  }
+  function contextoPessoa() {
+    const box = $('aj-pessoa-contexto');
+    box.replaceChildren();
+    const v = pessoa($('aj-pessoa').value);
+    if (!v) return;
+    const ajudas = state.ajudas.filter(a => a.voluntario === v.id);
+    box.append(chipArea(v.area), el('p', {class: 'aj-section-label', text: ajudas.length ? 'Neste sábado' : 'Ainda sem ajuda neste sábado'}));
+    if (ajudas.length) box.append(el('div', {class: 'aj-person-assignments'}, ajudas.map(a => el('span', {class: 'aj-assignment-tag', text: `${nomeArea(a.area_destino)} · ${faixa(a)}`}))));
+    box.append(historicoVisual(v));
+  }
+  function abrirAjuda(necessidadeKey = '', voluntarioId = '', ajudaKey = null, incluirAlocados = false) {
     if (!editavel()) return;
     if (!state.necessidades.length) return feedback('Adicione uma necessidade antes de alocar pessoas.', true);
     ajudaEditada = ajudaKey;
     const ajuda = state.ajudas.find(a => a.key === ajudaKey);
     const necessidade = state.necessidades.find(n => n.key === necessidadeKey) || (ajuda && state.necessidades.find(n => contem(n, ajuda))) || state.necessidades[0];
     $('aj-ajuda-titulo').textContent = ajuda ? 'Editar ajuda' : 'Alocar ajuda';
-    opcoes($('aj-pessoa'), [['', 'Selecione uma pessoa'], ...state.voluntarios.filter(v => v.apto || v.id === ajuda?.voluntario).map(v => [v.id, `${v.nome} · ${nomeArea(v.area)}${v.apto ? '' : ' (indisponível)'}`])], ajuda?.voluntario || voluntarioId);
+    $('aj-incluir-alocados').checked = incluirAlocados;
+    atualizarPessoas(ajuda?.voluntario || voluntarioId);
     opcoes($('aj-necessidade'), state.necessidades.map(n => [n.key, `${nomeArea(n.area)} · ${faixa(n)}`]), necessidade.key);
     $('aj-ajuda-inicio').value = ajuda?.hora_inicio || necessidade.hora_inicio;
     $('aj-ajuda-fim').value = ajuda?.hora_fim || necessidade.hora_fim;
@@ -247,6 +293,9 @@
     $('aj-dialog-ajuda').showModal();
   }
   function confirmarAjuda(voluntarioId, necessidade, inicio, fim, key = null) {
+    if (!key && state.ajudas.some(a => a.voluntario === Number(voluntarioId)) && !$('aj-incluir-alocados').checked) {
+      return 'Para uma segunda ajuda, marque “Incluir quem já tem ajuda”.';
+    }
     const ajuda = {key: key || novaKey(), voluntario: Number(voluntarioId), area_destino: necessidade.area, hora_inicio: inicio, hora_fim: fim};
     const outras = state.ajudas.filter(a => a.key !== key);
     const erros = analisar({...state, ajudas: [...outras, ajuda]}).filter(e => e.ajuda === ajuda.key);
@@ -309,7 +358,7 @@
     const key = action.dataset.key;
     switch (action.dataset.action) {
       case 'alocar': abrirAjuda(key); break;
-      case 'alocar-pessoa': abrirAjuda($('aj-destino-filtro').value, action.dataset.voluntario); break;
+      case 'alocar-pessoa': abrirAjuda('', action.dataset.voluntario); break;
       case 'editar-ajuda': abrirAjuda('', '', key); break;
       case 'remover-ajuda': state.ajudas = state.ajudas.filter(a => a.key !== key); render(); break;
       case 'editar-necessidade': abrirNecessidade(key); break;
@@ -380,13 +429,17 @@
       $('aj-ajuda-erro').textContent = `${erro} Ajuste o período para alocar.`;
     }
   });
-  ['aj-inicio', 'aj-fim'].forEach(id => $(id).addEventListener('change', () => {
-    if (!editavel()) return;
-    state[id === 'aj-inicio' ? 'hora_inicio' : 'hora_fim'] = $(id).value;
-    render();
-  }));
   $('aj-busca').addEventListener('input', renderEquipe);
-  $('aj-destino-filtro').addEventListener('change', renderEquipe);
+  $('aj-filtro-areas').addEventListener('change', renderEquipe);
+  $('aj-carro-filtro').addEventListener('change', renderEquipe);
+  $('aj-limpar-filtros').addEventListener('click', () => {
+    $('aj-busca').value = ''; $('aj-carro-filtro').value = '';
+    $('aj-filtro-areas').querySelectorAll('input').forEach(input => { input.checked = false; });
+    renderEquipe();
+  });
+  $('aj-incluir-alocados').addEventListener('change', () => atualizarPessoas());
+  $('aj-pessoa').addEventListener('change', contextoPessoa);
+  $('aj-outra-ajuda').addEventListener('click', () => abrirAjuda('', '', null, true));
   $('aj-adicionar').addEventListener('click', () => abrirNecessidade());
   $('aj-salvar').addEventListener('click', () => persistir('salvar'));
   $('aj-publicar').addEventListener('click', () => {

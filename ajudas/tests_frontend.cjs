@@ -1,6 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {cobertura, analisar} = require('../static/js/ajudas.js');
+const {cobertura, analisar, filtrarEquipe, candidatosAjuda} = require('../static/js/ajudas.js');
 
 const base = () => ({
   hora_inicio: '06:00', hora_fim: '12:30', areas: [{valor: 'AZUL'}, {valor: 'VERDE'}, {valor: 'SUPPLY'}],
@@ -55,4 +55,45 @@ test('necessidades de mesma área contíguas permitidas, sobrepostas recusadas',
   assert.deepEqual(analisar(s), []);
   s.necessidades[2].hora_inicio = '10:30';
   assert(analisar(s).some(e => e.necessidade === 'n3'));
+});
+
+test('primeira ajuda retira pessoa dos disponíveis mesmo em outro horário', () => {
+  const s = base();
+  assert.deepEqual(filtrarEquipe(s).map(v => v.id), [2]);
+  assert.deepEqual(candidatosAjuda(s).map(v => v.id), [2]);
+  assert.deepEqual(candidatosAjuda(s, true).map(v => v.id), [1, 2]);
+  assert.deepEqual(candidatosAjuda(s, false, 'a1').map(v => v.id), [1, 2]);
+});
+test('somente remoção da última ajuda devolve a pessoa à equipe', () => {
+  const s = base();
+  s.ajudas.push({...s.ajudas[0], key:'a2', hora_inicio:'10:00', hora_fim:'11:00'});
+  s.ajudas.shift();
+  assert.deepEqual(filtrarEquipe(s).map(v=>v.id), [2]);
+  s.ajudas=[];
+  assert.deepEqual(filtrarEquipe(s).map(v=>v.id), [1, 2]);
+});
+test('áreas múltiplas, busca e carro são cumulativos e preservados', () => {
+  const s = base(); s.ajudas=[];
+  s.voluntarios[0].vai_de_carro=true;
+  s.voluntarios[1].vai_de_carro=false;
+  s.voluntarios.push({id:3, area:'SUPPLY', nome:'Ana', apto:true, vai_de_carro:true});
+  const filtro={areas:['AZUL','VERDE'], carro:'sim', busca:'Caio'};
+  assert.deepEqual(filtrarEquipe(s, filtro).map(v=>v.id), [1]);
+  assert.deepEqual(filtrarEquipe(s, {areas:['AZUL','VERDE']}).map(v=>v.id), [1,2]);
+  s.ajudas.push({voluntario:1, area_destino:'SUPPLY', hora_inicio:'06:00', hora_fim:'07:00'});
+  assert.deepEqual(filtrarEquipe(s, filtro), []);
+  s.ajudas=[];
+  assert.deepEqual(filtrarEquipe(s, filtro).map(v=>v.id), [1]);
+  assert.deepEqual(filtro,{areas:['AZUL','VERDE'], carro:'sim', busca:'Caio'});
+});
+test('carro desconhecido não é interpretado como não vai de carro', () => {
+  const s = base(); s.ajudas=[];
+  s.voluntarios[0].vai_de_carro=null; s.voluntarios[1].vai_de_carro=false;
+  assert.deepEqual(filtrarEquipe(s,{carro:'nao'}).map(v=>v.id), [2]);
+  assert.deepEqual(filtrarEquipe(s,{carro:'indefinido'}).map(v=>v.id), [1]);
+});
+test('pessoa inapta não volta a ser candidata após remoção da ajuda', () => {
+  const s=base(); s.ajudas=[]; s.voluntarios[0].apto=false;
+  assert.deepEqual(filtrarEquipe(s).map(v=>v.id), [2]);
+  assert.deepEqual(candidatosAjuda(s,true).map(v=>v.id), [2]);
 });

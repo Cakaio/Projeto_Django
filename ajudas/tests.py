@@ -170,10 +170,6 @@ class AjudasTests(TestCase):
                 self.assertEqual(self.post("salvar", dados).status_code, 400)
 
     def test_backend_recusa_horarios_do_dia_e_necessidades_invalidos(self):
-        for inicio, fim in [("12:30", "06:00"), ("06:00", "06:00")]:
-            dados = self.dados()
-            dados.update(hora_inicio=inicio, hora_fim=fim)
-            self.assertEqual(self.post("salvar", dados).status_code, 400)
         dados = self.dados()
         dados["necessidades"][0]["hora_inicio"] = "05:00"
         self.assertEqual(self.post("salvar", dados).status_code, 400)
@@ -378,14 +374,35 @@ class AjudasTests(TestCase):
         with self.assertRaises(ValidationError):
             self.sabado.clean()
 
-    def test_pode_encurtar_dia_e_necessidades_na_mesma_edicao(self):
+    def test_payload_legado_nao_altera_periodo_do_sabado(self):
         escala = self.salvar()
         dados = self.dados()
         dados.update(revisao=escala.revisao, hora_inicio="08:00")
         dados["necessidades"] = [n for n in dados["necessidades"] if n["area"] != "SUPPLY"]
         self.salvar(dados)
         self.sabado.refresh_from_db()
-        self.assertEqual(self.sabado.hora_inicio, dt.time(8))
+        self.assertEqual(self.sabado.hora_inicio, dt.time(6))
+
+    def test_salva_sem_periodo_no_payload(self):
+        dados = self.dados()
+        dados.pop("hora_inicio")
+        dados.pop("hora_fim")
+        self.assertEqual(self.post("salvar", dados).status_code, 200)
+
+    def test_periodo_forjado_nao_permite_ajudas_fora_do_cadastro(self):
+        dados = self.dados()
+        dados["hora_inicio"] = "05:00"
+        dados["necessidades"][2]["hora_inicio"] = "05:00"
+        dados["ajudas"][0].update(area_destino="SUPPLY", hora_inicio="05:00", hora_fim="06:00")
+        self.assertEqual(self.post("salvar", dados).status_code, 400)
+
+    def test_quadro_remove_controles_redundantes_e_inclui_novos_filtros(self):
+        self.client.force_login(self.triade)
+        resposta = self.client.get(reverse("ajudas:organizar", args=[self.sabado.pk]))
+        self.assertNotContains(resposta, 'id="aj-inicio"')
+        self.assertNotContains(resposta, 'id="aj-destino-filtro"')
+        for campo in ["aj-filtro-areas", "aj-carro-filtro", "aj-incluir-alocados", "aj-pessoa-contexto"]:
+            self.assertContains(resposta, f'id="{campo}"')
 
     def test_constraint_banco_rejeita_periodo_invertido(self):
         with self.assertRaises(IntegrityError), transaction.atomic():

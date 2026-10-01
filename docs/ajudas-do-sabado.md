@@ -13,7 +13,14 @@ autenticação Django, `Voluntario.area`, `LISTA_AREAS`, `Voluntario.objects.ati
 4. Revise quantidades e horários. Arraste pessoas ou use **Alocar**, que também
    funciona em celular e por teclado. **Editar** permite uma ajuda mais curta que
    o período da necessidade. Arrastar uma ajuda existente muda sua alocação;
-   arrastar da equipe cria outra ajuda, se não houver conflito.
+   arrastar da equipe cria a primeira ajuda. A pessoa sai imediatamente da
+   **Equipe confirmada** e só retorna quando sua última ajuda é removida.
+   Para uma segunda ajuda, use **Alocar quem já tem ajuda** ou marque
+   **Incluir quem já tem ajuda** no formulário. As alocações atuais e seus
+   horários aparecem antes da confirmação; sobreposições continuam bloqueadas.
+   A lista de disponíveis combina busca, múltiplas áreas originais e carro,
+   preservando os filtros durante alterações e salvamento. Carro não informado
+   é distinto de uma resposta negativa.
 5. **Salvar rascunho** persiste o conjunto. Movimentos, inclusões e exclusões
    anteriores ao salvamento ficam somente no navegador. Sair com alterações
    pendentes aciona o aviso do navegador; não há recuperação após fechar/descartar.
@@ -26,8 +33,11 @@ autenticação Django, `Voluntario.area`, `LISTA_AREAS`, `Voluntario.objects.ati
 
 - `Sabado`: dois `TimeField`, `hora_inicio` e `hora_fim`, com defaults para os
   registros antigos e constraint de ordem. O formulário do admin impede encurtar
-  o dia deixando necessidades/ajudas salvas fora dele. O quadro permite ajustar
-  período e alocações juntos, na mesma transação.
+  o dia deixando necessidades/ajudas salvas fora dele. O período é editado apenas
+  no cadastro do sábado. O quadro exibe esses horários como informação e o serviço
+  sempre valida contra o `Sabado` relido do banco, ignorando horários gerais
+  enviados por clientes antigos. Para encurtar o dia, ajuste primeiro as faixas
+  existentes e depois o cadastro de Sabado.
 - `EscalaAjuda`: uma por sábado, com status `RASCUNHO`/`PUBLICADA`, revisão para
   detectar edições concorrentes, data de publicação e última atualização.
 - `NecessidadeAjuda`: escala, área, início/fim absolutos e quantidade **total**
@@ -81,13 +91,49 @@ publicação enquanto não forem corrigidas/removidas.
 O salvamento é atômico e substitui as linhas da escala após validar todo o novo
 conjunto. A revisão rejeita abas desatualizadas com HTTP 409; a trava do sábado
 serializa gravações também na criação da primeira escala em bancos com suporte
-a `SELECT FOR UPDATE`. As relações não são expostas para edição direta no admin:
-há somente consulta da escala e link para o quadro. Escritas programáticas em
+a `SELECT FOR UPDATE`. O admin lista todas as ajudas, com filtros por sábado,
+área original, destino e status, busca por voluntário/tema e ordenação por data.
+Voluntários TRIADE com acesso ao Django admin (`is_staff`) podem editar ajudas
+de rascunhos diretamente, mantendo a escala/sábado fixos. O formulário reutiliza
+as validações do model e de destino. A edição trava o sábado antes de validar,
+confere a revisão e a incrementa após salvar, invalidando abas antigas do quadro.
+Escalas publicadas ficam em consulta até serem reabertas pelo link do quadro.
+Escalas e necessidades também possuem tabelas com navegação, mantendo sua
+configuração/publicação no quadro. Não há inclusão ou exclusão avulsa pelo admin.
+Escritas programáticas em
 lote devem passar pelos serviços; `bulk_create`/`update` não executam `clean()`.
 
 O histórico consulta os próprios registros de ajuda de escalas publicadas,
 anteriores ao sábado editado e ao dia atual, limitado às cinco mais recentes
-por pessoa. A tela pública mostra equipe e horários, sem carro ou histórico.
+por pessoa. O payload inclui o código da área existente, sem novo campo no banco.
+Os três registros mais recentes aparecem em chips coloridos (mais recente à
+esquerda); uma expansão mostra as datas, horários e até cinco registros. Cores
+sempre acompanham nomes, e não substituem texto. O mesmo histórico aparece no
+formulário ao selecionar alguém já alocado. Não há escolha automática de destino.
+A tela pública mostra equipe e horários, sem carro ou histórico.
+
+Os selects dos diálogos usam `data-busca="off"`, opção já prevista pelo combobox
+do projeto: o painel global é anexado ao `body`, fora da camada modal de `dialog`,
+e suas opções são capturadas ao montar. Usar os selects nativos nesses formulários
+preserva a interação no celular e a atualização da lista de candidatos.
+
+## Evolução de outubro de 2026
+
+Nenhum model ou campo foi adicionado/removido e não há migration nova.
+
+| Arquivo alterado | Mudança |
+| --- | --- |
+| `ajudas/templates/ajudas/organizar.html` | Filtros de áreas/carro, inclusão intencional de alocados, contexto da pessoa; período apenas informativo |
+| `static/js/ajudas.js` | Lista de quem não tem ajuda, preservação dos filtros, segunda ajuda explícita, chips de histórico e cards compactos |
+| `static/css/ajudas.css` | Área original destacada, histórico visual, filtros e hierarquia baseada na escala pública |
+| `ajudas/selectors.py` | Código da área no histórico, reutilizando o campo existente |
+| `ajudas/services.py` | Horários gerais vindos exclusivamente de Sabado; validação de destino compartilhada |
+| `ajudas/validators.py` | Validação de contenção na necessidade reutilizada no quadro e admin |
+| `ajudas/forms.py` | Remoção de EscalaForm redundante e formulário do admin com controle de revisão |
+| `ajudas/admin.py` | Tabelas dos três models, filtros, busca, links e edição validada de ajudas em rascunho |
+| `ajudas/tests.py`, `ajudas/tests_frontend.cjs` | Testes do período canônico, filtros, retirada/retorno e seleção de candidatos |
+| `ajudas/tests_admin.py` (novo) | Testes de edição, permissões, conflitos, revisão e publicação no admin |
+| `docs/ajudas-do-sabado.md` | Fluxo e decisões atualizados |
 
 ## URLs e autorização
 

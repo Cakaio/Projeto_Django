@@ -61,6 +61,7 @@ def historico_recente(sabado, voluntario_ids):
     for ajuda in qs:
         historico[ajuda.voluntario_id].append({
             "data": ajuda.sabado.data.strftime("%d/%m/%Y"), "area": ajuda.get_area_destino_display(),
+            "area_codigo": ajuda.area_destino,
             "horario": f"{ajuda.hora_inicio:%H:%M}–{ajuda.hora_fim:%H:%M}",
         })
     return historico

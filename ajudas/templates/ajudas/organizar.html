@@ -13,7 +13,7 @@
   <noscript><p class="aj-alert">Ative o JavaScript para organizar as ajudas. A consulta de escalas publicadas funciona sem JavaScript.</p></noscript>
   <fieldset class="aj-fieldset" id="aj-controles">
     <div class="pcf-card aj-toolbar">
-      <div class="aj-actions"><span class="aj-section-label">Período do sábado</span><label class="aj-time-label">Início<input id="aj-inicio" class="pcf-input" type="time" required></label><span aria-hidden="true">—</span><label class="aj-time-label">Término<input id="aj-fim" class="pcf-input" type="time" required></label></div>
+      <span class="aj-muted">Sábado · {{ sabado.hora_inicio|time:'H:i' }}–{{ sabado.hora_fim|time:'H:i' }}</span>
       <div class="aj-actions"><span id="aj-salvo" class="aj-muted" aria-live="polite"></span><button type="button" id="aj-salvar" class="pcf-btn pcf-btn-outline pcf-btn-sm">Salvar rascunho</button><button type="button" id="aj-publicar" class="pcf-btn pcf-btn-primary pcf-btn-sm">Publicar escala</button><button type="button" id="aj-reabrir" class="pcf-btn pcf-btn-primary pcf-btn-sm" hidden>Reabrir para editar</button></div>
     </div>
     <div id="aj-feedback" class="aj-alert" role="status" tabindex="-1" hidden></div>
@@ -27,9 +27,12 @@
       <aside class="pcf-card aj-roster" aria-labelledby="aj-equipe-titulo">
         <div class="aj-section-head"><h2 id="aj-equipe-titulo">Equipe confirmada</h2><span id="aj-total-equipe" class="pcf-badge outline"></span></div>
         <label class="pcf-label" for="aj-busca">Buscar pessoa ou área</label><input class="pcf-input" id="aj-busca" type="search" placeholder="Nome ou área…">
-        <label class="pcf-label" for="aj-destino-filtro">Disponibilidade para</label><select class="pcf-input" id="aj-destino-filtro"><option value="">Todos os horários</option></select>
-        <p class="aj-muted aj-hint">A equipe própria já conta em sua área. Ajudas externas aparecem junto ao nome.</p>
+        <details class="aj-filtros-areas"><summary>Área original <span id="aj-areas-selecionadas">Todas</span></summary><div id="aj-filtro-areas" class="aj-filter-options" role="group" aria-label="Filtrar por áreas originais"></div></details>
+        <label class="pcf-label" for="aj-carro-filtro">Transporte</label><select class="pcf-input" id="aj-carro-filtro"><option value="">Todos</option><option value="sim">Vai de carro</option><option value="nao">Não vai de carro</option><option value="indefinido">Não informado</option></select>
+        <div class="aj-section-head aj-filter-status"><p class="aj-muted" id="aj-filtro-resumo" aria-live="polite"></p><button type="button" class="aj-mini-btn" id="aj-limpar-filtros">Limpar filtros</button></div>
+        <p class="aj-muted aj-hint">Quem recebe uma ajuda sai desta lista.</p>
         <div id="aj-equipe" class="aj-people"></div>
+        <button type="button" class="pcf-btn pcf-btn-outline pcf-btn-sm aj-outra-ajuda" id="aj-outra-ajuda">Alocar quem já tem ajuda</button>
       </aside>
     </div>
   </fieldset>
@@ -37,8 +40,11 @@
   <dialog id="aj-dialog-ajuda" class="aj-dialog" aria-labelledby="aj-ajuda-titulo">
     <form id="aj-form-ajuda">
       <h2 id="aj-ajuda-titulo">Alocar ajuda</h2><p class="aj-muted">Escolha a área e o período desta ajuda.</p>
-      <label class="pcf-label" for="aj-pessoa">Voluntário</label><select id="aj-pessoa" class="pcf-input" required></select>
-      <label class="pcf-label" for="aj-necessidade">Área e necessidade</label><select id="aj-necessidade" class="pcf-input" required></select>
+      <label class="aj-toggle"><input type="checkbox" id="aj-incluir-alocados"> Incluir quem já tem ajuda</label>
+      {% comment %}O combobox global usa um painel no body, fora da camada modal do dialog. Estes selects dinâmicos usam a opção nativa prevista pelo componente.{% endcomment %}
+      <label class="pcf-label" for="aj-pessoa">Voluntário</label><select id="aj-pessoa" class="pcf-input" data-busca="off" required></select>
+      <div id="aj-pessoa-contexto" class="aj-pessoa-contexto" aria-live="polite"></div>
+      <label class="pcf-label" for="aj-necessidade">Área e necessidade</label><select id="aj-necessidade" class="pcf-input" data-busca="off" required></select>
       <div class="aj-two-fields"><label class="pcf-label">Início<input id="aj-ajuda-inicio" class="pcf-input" type="time" required></label><label class="pcf-label">Término<input id="aj-ajuda-fim" class="pcf-input" type="time" required></label></div>
       <p id="aj-ajuda-erro" class="aj-form-error" role="alert"></p>
       <div class="aj-actions aj-dialog-actions"><button type="button" class="pcf-btn pcf-btn-ghost" data-fechar>Cancelar</button><button class="pcf-btn pcf-btn-primary" type="submit">Confirmar ajuda</button></div>
@@ -47,7 +53,7 @@
   <dialog id="aj-dialog-necessidade" class="aj-dialog" aria-labelledby="aj-necessidade-titulo">
     <form id="aj-form-necessidade">
       <h2 id="aj-necessidade-titulo">Nova necessidade</h2><p class="aj-muted">Qualquer área do projeto pode receber ajuda.</p>
-      <label class="pcf-label" for="aj-n-area">Área</label><select id="aj-n-area" class="pcf-input" required></select>
+      <label class="pcf-label" for="aj-n-area">Área</label><select id="aj-n-area" class="pcf-input" data-busca="off" required></select>
       <div class="aj-two-fields"><label class="pcf-label">Início<input id="aj-n-inicio" class="pcf-input" type="time" required></label><label class="pcf-label">Término<input id="aj-n-fim" class="pcf-input" type="time" required></label></div>
       <label class="pcf-label" for="aj-n-quantidade">Total de pessoas necessárias</label><input id="aj-n-quantidade" class="pcf-input" type="number" min="0" max="100000" required>
       <p id="aj-necessidade-erro" class="aj-form-error" role="alert"></p>

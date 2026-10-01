@@ -34,3 +34,11 @@ def validar_conflitos(ajudas):
                                  anterior.hora_inicio, anterior.hora_fim):
             raise ValidationError(f"{ajuda.voluntario}: há ajudas com horários sobrepostos.")
         por_voluntario[ajuda.voluntario_id] = ajuda
+
+
+def validar_destino(ajuda, necessidades):
+    if not isinstance(ajuda.hora_inicio, time) or not isinstance(ajuda.hora_fim, time):
+        return
+    if not any(n.area == ajuda.area_destino and n.hora_inicio <= ajuda.hora_inicio
+               and n.hora_fim >= ajuda.hora_fim for n in necessidades):
+        raise ValidationError("A ajuda deve caber em uma necessidade da área destino.")

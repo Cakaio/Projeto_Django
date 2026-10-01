@@ -5,10 +5,10 @@ from django.utils import timezone
 
 from sabado.models import DisponibilidadeVoluntario, Sabado
 from voluntario.models import Voluntario
-from .forms import AjudaForm, EscalaForm, NecessidadeForm, RevisaoForm
+from .forms import AjudaForm, NecessidadeForm, RevisaoForm
 from .models import Ajuda, EscalaAjuda, NecessidadeAjuda
 from .permissions import exigir_triade
-from .validators import validar_conflitos, validar_participante, validar_periodo, sobrepoe
+from .validators import validar_conflitos, validar_destino, validar_participante, validar_periodo, sobrepoe
 
 
 class ConflitoEdicao(ValidationError):
@@ -50,7 +50,7 @@ def _conferir_revisao(escala, revisao):
 @transaction.atomic
 def salvar_escala(*, usuario, sabado_id, dados, publicar=False):
     exigir_triade(usuario)
-    cabecalho = _validar_form(EscalaForm(dados), "Sábado")
+    cabecalho = _validar_form(RevisaoForm(dados), "Escala")
     necessidades_dados = _linhas(dados, "necessidades", NecessidadeForm)
     ajudas_dados = _linhas(dados, "ajudas", AjudaForm)
     # Trava também o caso da PRIMEIRA escala, quando não há linha para bloquear.
@@ -60,8 +60,8 @@ def salvar_escala(*, usuario, sabado_id, dados, publicar=False):
     if escala and escala.status == EscalaAjuda.Status.PUBLICADA:
         raise ConflitoEdicao("Reabra a escala publicada antes de editá-la.")
 
-    sabado.hora_inicio = cabecalho["hora_inicio"]
-    sabado.hora_fim = cabecalho["hora_fim"]
+    # O cadastro de Sabado é a única fonte do período, inclusive para clientes
+    # antigos que ainda enviam hora_inicio/hora_fim no payload.
     validar_periodo(sabado.hora_inicio, sabado.hora_fim, sabado)
     necessidades = [NecessidadeAjuda(**linha) for linha in necessidades_dados]
     por_area = {}
@@ -85,15 +85,11 @@ def salvar_escala(*, usuario, sabado_id, dados, publicar=False):
         ajuda = Ajuda(voluntario=voluntario, **{k: v for k, v in linha.items() if k != "voluntario"})
         validar_periodo(ajuda.hora_inicio, ajuda.hora_fim, sabado)
         validar_participante(voluntario, ajuda.area_destino, voluntario.pk in confirmados)
-        if not any(n.hora_inicio <= ajuda.hora_inicio and n.hora_fim >= ajuda.hora_fim
-                   for n in por_area.get(ajuda.area_destino, [])):
-            raise ValidationError(f"{voluntario}: a ajuda deve caber em uma necessidade da área destino.")
+        validar_destino(ajuda, por_area.get(ajuda.area_destino, []))
         ajudas.append(ajuda)
     validar_conflitos(ajudas)
 
-    # A validação considera o conjunto novo, permitindo ajustar o período e as
-    # alocações juntos. Nada é perdido se qualquer linha falhar.
-    Sabado.objects.filter(pk=sabado.pk).update(hora_inicio=sabado.hora_inicio, hora_fim=sabado.hora_fim)
+    # A validação considera o conjunto novo. Nada é perdido se uma linha falhar.
     if escala is None:
         escala = EscalaAjuda(sabado=sabado)
     else:
