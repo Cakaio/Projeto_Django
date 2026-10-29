@@ -25,8 +25,8 @@ from .models import (
 from .forms import (CompletarLancamentoForm, CategoriaForm, ContaForm,
                     LancamentoForm, LinhaDeRateioForm, RateioDeGastoForm,
                     RecargaCartaoForm, TetoAreaForm)
-from .servicos import (despesas_por_categoria, limites_do_semestre,
-                       rateios_abertos, rotulo_do_semestre,
+from .servicos import (despesas_por_categoria, limites_do_mes,
+                       rateios_abertos, rotulo_do_mes,
                        saldo_das_contas, situacao_dos_tetos)
 from forms_pcf.forms import PagamentoReembolsoForm
 from forms_pcf.views import sincronizar_lancamento_do_reembolso
@@ -549,42 +549,43 @@ def recarga_form(request, pk=None):
 
 # ─── Tetos por área ───
 
-def _semestre_escolhido(bruto):
-    """Lê ?semestre=YYYY-N da querystring. Valor torto cai no semestre atual —
-    filtro que não dá para entender não derruba a página."""
+def _mes_escolhido(bruto):
+    """Lê ?mes=YYYY-MM da querystring. Valor torto cai no mês atual — filtro
+    que não dá para entender não derruba a página."""
     hoje = timezone.localdate()
     if not bruto:
         return hoje
     try:
-        ano, numero = bruto.split('-')
-        ano, numero = int(ano), int(numero)
+        ano, mes = bruto.split('-')
+        ano, mes = int(ano), int(mes)
     except (ValueError, TypeError):
         return hoje
-    if numero not in (1, 2) or not (2000 <= ano <= 2100):
+    if not (1 <= mes <= 12) or not (2000 <= ano <= 2100):
         return hoje
-    return date(ano, 1 if numero == 1 else 7, 1)
+    return date(ano, mes, 1)
 
 
-def _semestres_para_escolher(quantos=6):
-    """Os últimos semestres, do mais recente para o mais antigo.
+def _meses_para_escolher(quantos=12):
+    """Os últimos meses, do mais recente para o mais antigo.
 
-    Lista fechada em vez de campo de data livre: semestre não é data, e um
-    seletor de mês faria o usuário achar que o teto é mensal.
+    Lista fechada em vez de campo de data livre: o recorte é o mês inteiro, e
+    um campo de data faria parecer que dá para ver "de 10 a 20".
     """
     hoje = timezone.localdate()
-    ano, numero = hoje.year, 1 if hoje.month <= 6 else 2
+    ano, mes = hoje.year, hoje.month
     opcoes = []
     for _ in range(quantos):
-        opcoes.append({'valor': f'{ano}-{numero}', 'rotulo': f'{numero}º semestre de {ano}'})
-        numero -= 1
-        if numero == 0:
-            numero, ano = 2, ano - 1
+        opcoes.append({'valor': f'{ano}-{mes:02d}',
+                       'rotulo': rotulo_do_mes(date(ano, mes, 1))})
+        mes -= 1
+        if mes == 0:
+            mes, ano = 12, ano - 1
     return opcoes
 
 
 @login_required
 def tetos(request):
-    """Teto x gasto de cada área no semestre.
+    """Teto x gasto de cada área NO MÊS.
 
     Gate escrito à mão de propósito: é a única tela do Financeiro aberta a
     qualquer voluntário logado, porque o pedido é que cada um veja a situação
@@ -592,10 +593,11 @@ def tetos(request):
     gasto — nenhum lançamento individual aparece aqui.
 
     O teto é um só por área e vale até alguém alterar; o que muda de período é
-    o gasto, medido no semestre escolhido.
+    o gasto, medido no MÊS escolhido. Quem estourou em agosto começa setembro
+    com o teto inteiro — por isso o seletor é de mês, e não de semestre.
     """
-    referencia = _semestre_escolhido(request.GET.get('semestre'))
-    inicio, fim = limites_do_semestre(referencia)
+    referencia = _mes_escolhido(request.GET.get('mes'))
+    inicio, fim = limites_do_mes(referencia)
     linhas = situacao_dos_tetos(referencia)
 
     area_do_usuario = getattr(request.user, 'area', '') or ''
@@ -604,9 +606,9 @@ def tetos(request):
     return render(request, 'tetos.html', {
         'linhas': linhas,
         'referencia': referencia,
-        'semestre_rotulo': rotulo_do_semestre(referencia),
-        'semestre': f'{referencia.year}-{1 if referencia.month <= 6 else 2}',
-        'semestres': _semestres_para_escolher(),
+        'mes_rotulo': rotulo_do_mes(referencia),
+        'mes': f'{referencia.year}-{referencia.month:02d}',
+        'meses': _meses_para_escolher(),
         'inicio': inicio,
         'fim': fim,
         'minha_linha': minha_linha,
@@ -615,8 +617,6 @@ def tetos(request):
         'total_gasto': sum((linha['gasto'] for linha in linhas), Decimal('0')),
         'estouros': sum(1 for linha in linhas if linha['estourou']),
         'gastos_sem_teto': sum(1 for linha in linhas if linha['sem_teto']),
-        # A tela é de leitura para todos; o botão de editar só faz sentido para
-        # quem tem escrita no Financeiro.
         'pode_editar': (request.user.is_superuser
                         or getattr(request.user, 'area', None) in AREAS_ESCRITA),
     })

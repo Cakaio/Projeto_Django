@@ -279,3 +279,114 @@ class TabelaDaCaixaDeEntradaTests(TestCase):
         self.assertIn('min-width: 9rem', html)
         # A grade de duas colunas era o que permitia o colapso.
         self.assertNotIn('grid-template-columns: auto minmax(0, 1fr)', html)
+
+
+class DescricaoNaAprovacaoTests(TestCase):
+    """A descrição do gasto tem de aparecer NA TELA DE APROVAR.
+
+    Ela aparecia na tela de pagar, na lista do ADM e nos e-mails, e faltava
+    justamente onde a decisão é tomada. A ADM aprovava olhando nome, valor e
+    categoria — nunca o que de fato foi comprado.
+    """
+
+    def setUp(self):
+        self.adm = Voluntario.objects.create_user(
+            username='adm', password='x', area='ADM/FIN')
+        self.ana = Voluntario.objects.create_user(
+            username='ana', password='x', area='AMARELO',
+            first_name='Ana', last_name='Souza')
+        self.categoria = Categoria.objects.create(nome='Gasolina',
+                                                  tipo='DESPESA')
+        self.pedido = PedidoReembolso.objects.create(
+            solicitante=self.ana, valor=Decimal('50.00'),
+            descricao='gasolina para buscar material do Supply em Guará',
+            data_gasto=datetime.date(2026, 9, 19), categoria=self.categoria)
+
+    def _html(self):
+        from forms_pcf import views as forms_views
+
+        return corpo(forms_views.ReembolsoInboxView.as_view()(
+            pedido_http('get', self.adm)))
+
+    def test_a_descricao_aparece_na_caixa_de_entrada(self):
+        self.assertIn('gasolina para buscar material do Supply em Guará',
+                      self._html())
+
+    def test_a_descricao_NAO_e_cortada(self):
+        """Descrição cortada obriga a abrir o pedido para ler o fim, que é o
+        trabalho que mostrá-la aqui veio tirar."""
+        self.pedido.descricao = 'x' * 300
+        self.pedido.save()
+
+        self.assertIn('x' * 300, self._html())
+
+    def test_sem_descricao_a_celula_DIZ_que_nao_tem(self):
+        """Célula vazia faria a ADM achar que a tela não carregou o dado."""
+        self.pedido.descricao = ''
+        self.pedido.save()
+
+        self.assertIn('sem descrição', self._html())
+
+    def test_a_descricao_e_escapada(self):
+        """Texto livre do voluntário vai para uma tela de outra pessoa."""
+        self.pedido.descricao = '<script>alert(1)</script>'
+        self.pedido.save()
+
+        html = self._html()
+
+        self.assertNotIn('<script>alert(1)</script>', html)
+        self.assertIn('&lt;script&gt;', html)
+
+    def test_continua_com_oito_colunas(self):
+        """A descrição entrou SEM nova coluna, de propósito: a tabela já
+        colapsou uma vez ao ganhar a do PIX, e descrição é prosa — numa nona
+        coluna sairia picada numa fresta."""
+        import re
+
+        html = self._html()
+        cabecalho = html[html.index('<thead'):html.index('</thead>')]
+
+        self.assertEqual(len(re.findall(r'<th[\s>]', cabecalho)), 8)
+
+
+class DescricaoNoAvisoTests(TestCase):
+    """O push do pedido novo precisa dizer DO QUE se trata.
+
+    Sem a descrição ele dizia só quem e quanto, e a ADM abria a tela para
+    descobrir — ou aprovava olhando só o valor.
+    """
+
+    def setUp(self):
+        self.ana = Voluntario.objects.create_user(
+            username='ana', password='x', area='AMARELO',
+            first_name='Ana', last_name='Souza')
+        self.categoria = Categoria.objects.create(nome='Gasolina',
+                                                  tipo='DESPESA')
+
+    def _corpo_do_push(self, descricao):
+        from unittest.mock import patch
+
+        from forms_pcf import views as forms_views
+
+        pedido = PedidoReembolso.objects.create(
+            solicitante=self.ana, valor=Decimal('50.00'), descricao=descricao,
+            data_gasto=datetime.date(2026, 9, 19), categoria=self.categoria)
+        vista = forms_views.EnviarReembolsoView()
+        with patch('notificacoes.services.enviar_push_async') as enviado:
+            vista._avisar_adm_por_push(pedido)
+        return enviado.call_args.args[2]
+
+    def test_a_descricao_entra_no_push(self):
+        self.assertIn('gasolina do Supply',
+                      self._corpo_do_push('gasolina do Supply'))
+
+    def test_descricao_longa_e_cortada(self):
+        """O sistema operacional trunca o corpo sem avisar: melhor cortar aqui,
+        onde dá para pedir o resto na tela."""
+        corpo_push = self._corpo_do_push('y' * 300)
+
+        self.assertLess(len(corpo_push), 120)
+        self.assertIn('…', corpo_push)
+
+    def test_sem_descricao_o_push_nao_fica_com_dois_pontos_solto(self):
+        self.assertFalse(self._corpo_do_push('').rstrip().endswith(':'))

@@ -76,9 +76,9 @@
           {% if confirmar_delecao %}
             Sem teto, {{ objeto.get_area_display }} passa a aparecer como "gastou sem teto definido".
           {% elif objeto %}
-            Teto de {{ objeto.get_area_display }}: R$ {{ objeto.valor|floatformat:2 }} por semestre.
+            Teto de {{ objeto.get_area_display }}: R$ {{ objeto.valor|floatformat:2 }} por mês.
           {% else %}
-            Quanto uma área pode gastar por semestre. Um teto por área, que vale até alguém alterar.
+            Quanto uma área pode gastar por mês. Um teto por área, que vale até alguém alterar.
           {% endif %}
         </p>
       </div>
@@ -92,7 +92,7 @@
       <div>
         <p class="fte-info-t">O teto vale até alguém alterar</p>
         <p class="fte-info-s">
-          Não se cadastra de novo a cada período: o que muda é o gasto, medido no semestre
+          Não se cadastra de novo a cada mês: o que muda é o gasto, medido no mês
           corrente. Conta contra ele toda despesa marcada com esta área — inclusive reembolso
           pago. Quem é da área vê a situação sozinho na tela de tetos, sem poder mexer no valor.
         </p>
@@ -108,7 +108,7 @@
       <div style="min-width:0">
         <p class="fte-confirm-t">Excluir o teto de {{ objeto.get_area_display }}?</p>
         <p class="fte-confirm-s">
-          Sai o limite de <strong>R$ {{ objeto.valor|floatformat:2 }} por semestre</strong>. O que
+          Sai o limite de <strong>R$ {{ objeto.valor|floatformat:2 }} por mês</strong>. O que
           já foi gasto continua lançado — some só o limite contra o qual ele era comparado, e a
           área passa a aparecer na tela como "gastou sem teto definido".
           {% comment %} Zero e "sem teto" dizem coisas diferentes, e confundir os dois é o erro
@@ -162,7 +162,7 @@
           {% if form.valor.errors %}
             <p class="fte-erro">{{ form.valor.errors|join:" " }}</p>
           {% else %}
-            <p class="fte-help">Valor em reais que a área pode gastar no semestre inteiro. Zero significa que a área não pode gastar nada.</p>
+            <p class="fte-help">Valor em reais que a área pode gastar a cada mês. O gasto zera na virada do mês. Zero significa que a área não pode gastar nada.</p>
           {% endif %}
         </div>
 

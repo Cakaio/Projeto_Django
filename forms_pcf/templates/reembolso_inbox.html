@@ -96,7 +96,29 @@
           <tbody>
             {% for p in pedidos %}
             <tr>
-              <td class="rmb-td-bold">{{ p.solicitante.get_full_name|default:p.solicitante.username }}</td>
+              {% comment %}
+                A DESCRICAO VIVE AQUI, embaixo do nome, e nao numa coluna
+                propria. Duas razoes:
+
+                1. Ela e prosa, nao campo curto. Numa nona coluna ficaria com
+                   dois centimetros de largura e sairia picada em sete linhas
+                   — e a tabela ja colapsou uma vez ao ganhar a coluna do PIX.
+                2. A linha passa a se ler inteira: QUEM pediu e O QUE comprou,
+                   lado a lado. Era o que faltava para a ADM aprovar olhando o
+                   gasto, e nao so o valor.
+
+                Sem `truncatechars`: descricao cortada obriga a abrir o pedido
+                para ler o fim, que e justamente o trabalho que mostrar aqui
+                vem tirar. Ela quebra em varias linhas e a celula cresce.
+              {% endcomment %}
+              <td class="rmb-td-quem">
+                <span class="rmb-td-bold">{{ p.solicitante.get_full_name|default:p.solicitante.username }}</span>
+                {% if p.descricao %}
+                  <span class="rmb-desc">{{ p.descricao }}</span>
+                {% else %}
+                  <span class="rmb-desc rmb-desc-sem">sem descrição</span>
+                {% endif %}
+              </td>
               {% comment %}
                 A chave AQUI e na tela de pagar. Nao e exposicao nova: esta
                 caixa de entrada e ADM/FIN e superusuario (REEMBOLSO_AREAS),
@@ -278,6 +300,13 @@ function toggleRejeitar(id) {
   .rmb-table tbody tr:hover { background: #fffaf6; }
   .rmb-th-right { text-align: right; }
   .rmb-td-bold { font-weight: 700; color: var(--ink); }
+  /* Largura mínima para a descrição ter onde quebrar: sem ela a coluna
+     encolhe até a prosa sair uma palavra por linha. */
+  .rmb-td-quem { min-width: 13rem; }
+  .rmb-desc { display: block; margin-top: .22rem; font-size: .78rem;
+              line-height: 1.4; color: var(--ink-muted);
+              white-space: normal; overflow-wrap: anywhere; }
+  .rmb-desc-sem { font-style: italic; opacity: .75; }
 
   /* A chave PIX, clicavel para copiar. E um <button> e nao um <span> com
      onclick: so o botao e alcancavel por teclado e anunciado como acionavel

@@ -21,7 +21,7 @@ from adm.servicos import (
     gasto_por_area, saldo_das_contas, situacao_dos_tetos,
 )
 from adm.views import (
-    AdmAcessoMixin, AdmEscritaMixin, _periodo_prestacao_contas, _semestre_escolhido,
+    AdmAcessoMixin, AdmEscritaMixin, _periodo_prestacao_contas, _mes_escolhido,
     completar_lancamento,
     contas as view_contas, lista_lancamentos, onde_investimos, painel,
     recargas as view_recargas,
@@ -689,7 +689,7 @@ class SituacaoDosTetosTest(TestCase):
     def setUp(self):
         self.despesa = Categoria.objects.create(nome='Materiais', tipo='DESPESA')
         self.receita = Categoria.objects.create(nome='Doação', tipo='RECEITA')
-        # Referência dentro do 2º semestre de 2026 (jul–dez).
+        # Referência dentro de agosto de 2026 — a janela do teto é o MÊS.
         self.referencia = date(2026, 8, 1)
 
     def _gasto(self, area, valor, dia=10):
@@ -779,35 +779,67 @@ class SituacaoDosTetosTest(TestCase):
         # que não existe.
         self.assertEqual(situacao_dos_tetos(self.referencia), [])
 
-    def test_qualquer_data_do_semestre_da_o_mesmo_recorte(self):
-        """A referência é só para achar o semestre; o dia não recorta nada."""
+    def test_qualquer_dia_do_mes_da_o_mesmo_recorte(self):
+        """A referência é só para achar o mês; o dia não recorta nada."""
         TetoArea.objects.create(area='SUPPLY', valor='100.00')
         self._gasto('SUPPLY', '30.00', dia=20)
-        for referencia in (date(2026, 7, 1), date(2026, 8, 17), date(2026, 12, 31)):
+        for referencia in (date(2026, 8, 1), date(2026, 8, 17), date(2026, 8, 31)):
             with self.subTest(referencia=referencia):
                 linha = self._linha(situacao_dos_tetos(referencia), 'SUPPLY')
                 self.assertEqual(linha['gasto'], Decimal('30.00'))
 
-    def test_gasto_do_outro_semestre_fica_fora(self):
-        """O teto é por semestre: gasto de janeiro não pesa no segundo."""
+    def test_O_TETO_ZERA_NA_VIRADA_DO_MES(self):
+        """A regra que esta tela existe para cumprir: gastar o teto inteiro em
+        agosto não deixa setembro sem nada. É o pedido da liderança, e era o
+        contrário enquanto a janela foi o semestre."""
+        TetoArea.objects.create(area='SUPPLY', valor='170.00')
+        self._gasto('SUPPLY', '170.00')                     # agosto, no talo
+
+        agosto = self._linha(situacao_dos_tetos(date(2026, 8, 1)), 'SUPPLY')
+        self.assertEqual(agosto['gasto'], Decimal('170.00'))
+        self.assertEqual(agosto['disponivel'], Decimal('0.00'))
+
+        setembro = self._linha(situacao_dos_tetos(date(2026, 9, 1)), 'SUPPLY')
+        self.assertEqual(setembro['gasto'], Decimal('0'))
+        self.assertEqual(setembro['disponivel'], Decimal('170.00'))
+        self.assertFalse(setembro['estourou'])
+
+    def test_o_teto_continua_cadastrado_uma_vez_so(self):
+        """O gasto zera no mês; o CADASTRO não. Exigir recadastro todo mês foi
+        a primeira versão desta tela, e a área aparecia como "gastou sem teto"
+        por esquecimento — o defeito que o teto único veio matar."""
+        TetoArea.objects.create(area='SUPPLY', valor='170.00',
+                                vigente_desde=date(2026, 1, 1))
+        self._gasto('SUPPLY', '10.00')
+
+        for referencia in (date(2026, 8, 1), date(2026, 9, 1), date(2027, 4, 1)):
+            with self.subTest(referencia=referencia):
+                linha = self._linha(situacao_dos_tetos(referencia), 'SUPPLY')
+                self.assertEqual(linha['teto'], Decimal('170.00'))
+                self.assertFalse(linha['sem_teto'])
+
+    def test_gasto_do_outro_mes_fica_fora(self):
+        """Gasto de julho não pesa em agosto, mesmo sendo o mesmo semestre —
+        é exatamente o que mudou."""
         TetoArea.objects.create(area='SUPPLY', valor='100.00')
         Lancamento.objects.create(categoria=self.despesa, valor='40.00',
-                                  data=date(2026, 3, 10), area='SUPPLY')   # 1º semestre
-        self._gasto('SUPPLY', '30.00')                                      # 2º semestre
+                                  data=date(2026, 7, 10), area='SUPPLY')
+        self._gasto('SUPPLY', '30.00')                                  # agosto
         self.assertEqual(self._linha(situacao_dos_tetos(date(2026, 8, 1)), 'SUPPLY')['gasto'],
                          Decimal('30.00'))
-        self.assertEqual(self._linha(situacao_dos_tetos(date(2026, 3, 1)), 'SUPPLY')['gasto'],
+        self.assertEqual(self._linha(situacao_dos_tetos(date(2026, 7, 1)), 'SUPPLY')['gasto'],
                          Decimal('40.00'))
 
-    def test_as_duas_pontas_do_semestre_entram(self):
+    def test_as_duas_pontas_do_mes_entram(self):
         TetoArea.objects.create(area='SUPPLY', valor='1000.00')
-        for dia in (date(2026, 7, 1), date(2026, 12, 31)):
+        for dia in (date(2026, 8, 1), date(2026, 8, 31)):
             Lancamento.objects.create(categoria=self.despesa, valor='10.00',
                                       data=dia, area='SUPPLY')
-        # E o vizinho de fora não entra.
-        Lancamento.objects.create(categoria=self.despesa, valor='99.00',
-                                  data=date(2027, 1, 1), area='SUPPLY')
-        self.assertEqual(self._linha(situacao_dos_tetos(date(2026, 9, 1)), 'SUPPLY')['gasto'],
+        # E os vizinhos de fora não entram.
+        for dia in (date(2026, 7, 31), date(2026, 9, 1)):
+            Lancamento.objects.create(categoria=self.despesa, valor='99.00',
+                                      data=dia, area='SUPPLY')
+        self.assertEqual(self._linha(situacao_dos_tetos(date(2026, 8, 15)), 'SUPPLY')['gasto'],
                          Decimal('20.00'))
 
     def test_numero_fixo_de_consultas(self):
@@ -870,33 +902,48 @@ class GastoPorAreaTest(TestCase):
         self.assertEqual(total, Decimal('0'))
 
 
-class SemestreEscolhidoTest(TestCase):
+class MesEscolhidoTest(TestCase):
     """Link torto no grupo do WhatsApp não pode virar erro 500 na tela que
     todos os voluntários abrem."""
 
-    def test_vazio_cai_no_semestre_atual(self):
-        self.assertEqual(_semestre_escolhido(''), timezone.localdate())
+    def test_vazio_cai_no_mes_atual(self):
+        self.assertEqual(_mes_escolhido(''), timezone.localdate())
 
-    def test_semestre_valido_e_respeitado(self):
-        self.assertEqual(_semestre_escolhido('2026-1'), date(2026, 1, 1))
-        self.assertEqual(_semestre_escolhido('2026-2'), date(2026, 7, 1))
+    def test_mes_valido_e_respeitado(self):
+        self.assertEqual(_mes_escolhido('2026-01'), date(2026, 1, 1))
+        self.assertEqual(_mes_escolhido('2026-9'), date(2026, 9, 1))
+        self.assertEqual(_mes_escolhido('2026-12'), date(2026, 12, 1))
 
     def test_numero_invalido_cai_no_padrao(self):
-        for bruto in ('2026-3', '2026-0', '2026-13'):
+        for bruto in ('2026-0', '2026-13', '2026-99'):
             with self.subTest(bruto=bruto):
-                self.assertEqual(_semestre_escolhido(bruto), timezone.localdate())
+                self.assertEqual(_mes_escolhido(bruto), timezone.localdate())
 
     def test_texto_qualquer_cai_no_padrao(self):
-        for bruto in ('semestre passado', '2026', 'abc-1', '99999-1'):
+        for bruto in ('mes passado', '2026', 'abc-1', '99999-1'):
             with self.subTest(bruto=bruto):
-                self.assertEqual(_semestre_escolhido(bruto), timezone.localdate())
+                self.assertEqual(_mes_escolhido(bruto), timezone.localdate())
 
-    def test_limites_do_semestre(self):
-        from adm.servicos import limites_do_semestre
-        self.assertEqual(limites_do_semestre(date(2026, 3, 9)),
-                         (date(2026, 1, 1), date(2026, 6, 30)))
-        self.assertEqual(limites_do_semestre(date(2026, 7, 1)),
-                         (date(2026, 7, 1), date(2026, 12, 31)))
+    def test_limites_do_mes(self):
+        from adm.servicos import limites_do_mes
+        self.assertEqual(limites_do_mes(date(2026, 3, 9)),
+                         (date(2026, 3, 1), date(2026, 3, 31)))
+        self.assertEqual(limites_do_mes(date(2026, 9, 30)),
+                         (date(2026, 9, 1), date(2026, 9, 30)))
+
+    def test_fevereiro_de_ano_bissexto(self):
+        """29 dias, e o `monthrange` é quem sabe disso — 28 fixo deixaria o
+        gasto do dia 29 fora do teto de fevereiro a cada quatro anos."""
+        from adm.servicos import limites_do_mes
+        self.assertEqual(limites_do_mes(date(2028, 2, 10))[1], date(2028, 2, 29))
+        self.assertEqual(limites_do_mes(date(2026, 2, 10))[1], date(2026, 2, 28))
+
+    def test_rotulo_sai_em_portugues(self):
+        """`strftime('%B')` depende do locale do servidor, que é inglês no
+        PythonAnywhere: a tela sairia 'September' sem erro nenhum."""
+        from adm.servicos import rotulo_do_mes
+        self.assertEqual(rotulo_do_mes(date(2026, 9, 1)), 'setembro de 2026')
+        self.assertEqual(rotulo_do_mes(date(2026, 3, 1)), 'março de 2026')
 
 
 class AcessoDasTelasNovasTest(TestCase):

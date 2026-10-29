@@ -206,20 +206,26 @@ class Evento(models.Model):
 
 
 class TetoArea(models.Model):
-    """Quanto uma área pode gastar por semestre.
+    """Quanto uma área pode gastar POR MÊS.
 
-    UM teto por área, que vale até alguém alterar ou excluir — não se cadastra
-    de novo a cada período. Era mensal antes; virou assim porque na prática o
-    valor combinado quase nunca muda, e obrigar a redigitar todo mês fazia a
-    tela mentir por esquecimento: sem o teto do mês, a área aparecia como
-    "gastou sem teto" mesmo tendo limite combinado.
+    Duas coisas diferentes, e é a confusão entre elas que já custou duas
+    reescritas desta classe:
 
-    O gasto é medido no SEMESTRE corrente. `vigente_desde` é só memória de
-    quando o valor passou a valer — não recorta o gasto, porque teto que muda
-    no meio do semestre continua sendo o teto daquele semestre.
+    1. O CADASTRO é um só por área e vale até alguém alterar ou excluir. NÃO
+       se cadastra de novo a cada mês. A primeira versão obrigava a redigitar
+       todo mês, e a tela mentia por esquecimento: sem o teto do mês, a área
+       aparecia como "gastou sem teto" mesmo tendo limite combinado.
+    2. A JANELA DE CONSUMO é o mês. Gasto de agosto não pesa em setembro: a
+       área recomeça cada mês com o valor inteiro disponível. Enquanto a
+       janela foi o semestre, quem gastasse o teto em agosto ficava sem nada
+       até dezembro, que não é como a liderança combina o limite.
+
+    `vigente_desde` é só memória de quando o valor passou a valer — não
+    recorta o gasto, porque teto alterado no meio do mês continua sendo o teto
+    daquele mês.
     """
     area = models.CharField(max_length=30, choices=LISTA_AREAS, unique=True)
-    valor = models.DecimalField('teto por semestre', max_digits=10, decimal_places=2)
+    valor = models.DecimalField('teto por mês', max_digits=10, decimal_places=2)
     vigente_desde = models.DateField('vale a partir de', default=timezone.localdate)
     definido_por = models.ForeignKey('voluntario.Voluntario', on_delete=models.SET_NULL,
                                      null=True, blank=True, related_name='tetos_definidos')
@@ -232,7 +238,7 @@ class TetoArea(models.Model):
         verbose_name_plural = 'tetos de área'
 
     def __str__(self):
-        return f'{self.get_area_display()} — R$ {self.valor} por semestre'
+        return f'{self.get_area_display()} — R$ {self.valor} por mês'
 
 
 class RateioDeGasto(models.Model):
@@ -259,7 +265,7 @@ class RateioDeGasto(models.Model):
     """
     data = models.DateField(
         'data do gasto', default=timezone.localdate,
-        help_text='O sábado. É ela que decide em qual semestre o teto desconta.')
+        help_text='O sábado. É ela que decide em qual mês o teto desconta.')
     total_a_ratear = models.DecimalField(
         'total a ratear', max_digits=10, decimal_places=2,
         help_text='Quanto saiu dos cartões neste dia, somando todos.')

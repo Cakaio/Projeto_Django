@@ -59,7 +59,16 @@ class CorrigirDestinoTests(TestCase):
         return resposta
 
     def _gasto_de(self, area):
-        linha = next((l for l in situacao_dos_tetos(HOJE)
+        """A referência é HOJE DE VERDADE, não a data do gasto.
+
+        O lançamento do reembolso nasce com `data=timezone.localdate()` (a
+        data da APROVAÇÃO, não a da compra), e o teto é medido no MÊS. Usar
+        `HOJE` aqui fazia o teste passar só enquanto a data fixa e a data real
+        caíssem no mesmo recorte — passou a quebrar na virada do mês.
+        """
+        from django.utils import timezone
+
+        linha = next((l for l in situacao_dos_tetos(timezone.localdate())
                       if l['area'] == area), None)
         return linha['gasto'] if linha else Decimal('0')
 

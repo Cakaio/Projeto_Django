@@ -4,6 +4,7 @@ Vive fora de views.py porque a revista do CR/RE precisa dos mesmos números:
 importar uma view a partir de outro app amarraria os dois lados por acidente.
 """
 
+from calendar import monthrange
 from datetime import date
 from decimal import Decimal
 
@@ -84,21 +85,31 @@ def _percentual(valor, base):
     return (Decimal(valor) / Decimal(base) * CEM).quantize(UMA_CASA)
 
 
-def limites_do_semestre(referencia):
-    """Primeiro e último dia do semestre da data dada, com as duas pontas dentro.
+MESES = ('janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+         'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro')
 
-    Janeiro–junho ou julho–dezembro. O teto é por semestre, então é este
-    intervalo que decide o que já foi usado.
+
+def limites_do_mes(referencia):
+    """Primeiro e último dia do mês da data dada, com as duas pontas dentro.
+
+    É ESTA a janela do teto. O valor cadastrado vale até alguém alterar, mas o
+    que ele limita é o gasto DO MÊS: quem estourou em agosto começa setembro
+    com o teto inteiro de novo. Antes a janela era o semestre, e uma área que
+    gastasse tudo em agosto ficava sem nada até dezembro.
     """
-    if referencia.month <= 6:
-        return date(referencia.year, 1, 1), date(referencia.year, 6, 30)
-    return date(referencia.year, 7, 1), date(referencia.year, 12, 31)
+    primeiro = date(referencia.year, referencia.month, 1)
+    return primeiro, date(referencia.year, referencia.month,
+                          monthrange(referencia.year, referencia.month)[1])
 
 
-def rotulo_do_semestre(referencia):
-    """'1º semestre de 2026' — o que a tela mostra."""
-    numero = 1 if referencia.month <= 6 else 2
-    return f'{numero}º semestre de {referencia.year}'
+def rotulo_do_mes(referencia):
+    """'setembro de 2026' — o que a tela mostra.
+
+    Nome escrito à mão e não `strftime('%B')`: o mês por extenso depende do
+    locale do sistema, e o do PythonAnywhere é inglês. A tela sairia com
+    'September' sem erro nenhum.
+    """
+    return f'{MESES[referencia.month - 1]} de {referencia.year}'
 
 
 def _despesa_agrupada_por_area(inicio, fim):
@@ -192,7 +203,7 @@ def _ordem_do_teto(linha):
 
 def _linha_do_teto(area, rotulos, teto, gasto, teto_id=None,
                    gasto_lancado=None, gasto_rateado=None):
-    """Monta a linha de uma área no semestre. Separada da consulta para que os
+    """Monta a linha de uma área no mês. Separada da consulta para que os
     casos de borda (teto zero, teto ausente) possam ser exercitados sem banco.
 
     `teto_id` é o que permite editar e excluir o teto direto da tabela. Sem ele
@@ -236,10 +247,11 @@ def _linha_do_teto(area, rotulos, teto, gasto, teto_id=None,
 
 
 def situacao_dos_tetos(referencia):
-    """Teto x gasto de cada área no semestre — a tela que o voluntário abre.
+    """Teto x gasto de cada área NO MÊS — a tela que o voluntário abre.
 
     O teto é UM por área e vale até alguém alterar ou excluir; o que muda de
-    período é o gasto, medido no semestre da data dada.
+    período é o gasto, medido no MÊS da data dada. Gasto de agosto não pesa
+    em setembro: a área recomeça o mês com o teto inteiro disponível.
 
     Entram as áreas COM teto definido E as que gastaram sem ter teto: gasto sem
     teto é justamente o que a tela precisa denunciar, e esconder deixaria o
@@ -248,7 +260,7 @@ def situacao_dos_tetos(referencia):
     Devolve lista de dicts com area, nome, teto (Decimal ou None), gasto,
     disponivel, percentual, estourou e sem_teto.
     """
-    inicio, fim = limites_do_semestre(referencia)
+    inicio, fim = limites_do_mes(referencia)
     rotulos = dict(LISTA_AREAS)
 
     # O objeto inteiro, não só o valor: a linha precisa levar o id para a tela

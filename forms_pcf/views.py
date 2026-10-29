@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.contrib import messages
 from django.utils import timezone
+from django.utils.text import Truncator
 from functools import wraps
 from .models import FeedbackArea, PedidoReembolso, ReceptorNotificacaoReembolso
 from .forms import FeedbackAreaForm, PedidoReembolsoForm, ReceptorNotificacaoReembolsoForm
@@ -101,8 +102,10 @@ def sincronizar_lancamento_do_reembolso(pedido, usuario=None):
         categoria=pedido.categoria,
         valor=pedido.valor,
         # localdate, não now().date(): `now()` é UTC, e depois das 21h em São
-        # Paulo ele já virou o dia seguinte. Numa virada de semestre isso joga
-        # o reembolso no semestre errado e some do teto que devia consumir.
+        # Paulo ele já virou o dia seguinte. Numa virada de MÊS isso joga o
+        # reembolso no mês errado e some do teto que devia consumir — e agora
+        # o teto é mensal, então a virada acontece doze vezes por ano, não
+        # duas.
         data=timezone.localdate(),
         descricao=f'Reembolso: {pedido.descricao}',
         origem='REEMBOLSO',
@@ -186,10 +189,16 @@ class EnviarReembolsoView(LoginRequiredMixin, FormView):
         from voluntario.models import Voluntario
 
         nome = pedido.solicitante.get_full_name() or pedido.solicitante.username
+        # A DESCRICAO entra no aviso. Sem ela o push dizia so quem e quanto, e
+        # a ADM tinha de abrir a tela para saber do que se tratava — ou, pior,
+        # aprovava olhando so o valor. Cortada em 60 porque o corpo do push e
+        # truncado pelo sistema operacional sem avisar: melhor cortar aqui,
+        # onde da para pedir o resto na tela, do que deixar o Android decidir.
+        resumo = Truncator(pedido.descricao or '').chars(60)
         enviar_push_async(
             Voluntario.objects.ativos().filter(area__in=REEMBOLSO_AREAS),
             "Novo pedido de reembolso",
-            f"R$ {pedido.valor} — {nome}",
+            f"R$ {pedido.valor} — {nome}" + (f": {resumo}" if resumo else ''),
             url="/forms/reembolso/inbox/",
             # Tag POR PEDIDO. Com a tag fixa "reembolso", dois pedidos na mesma
             # tarde viravam uma notificação só: a segunda substituía a primeira

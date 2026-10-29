@@ -751,6 +751,24 @@ pessoa está olhando quando percebe o erro.
   financeira: quando dois líderes olharem o mesmo número e discordarem,
   precisa dar para saber quem mexeu.
 
+### A descrição do gasto aparece onde a decisão é tomada
+
+Ela aparecia na tela de pagar, na lista do ADM e nos dois e-mails, e faltava
+justamente na **caixa de entrada**, que é onde se aprova. A ADM decidia
+olhando nome, valor e categoria — nunca o que de fato foi comprado.
+
+- **A descrição vive embaixo do nome do solicitante, NÃO em coluna própria.**
+  Ela é prosa, não campo curto: numa nona coluna sairia picada numa fresta, e
+  esta tabela já colapsou uma vez ao ganhar a coluna do PIX. Embaixo do nome,
+  a linha se lê inteira: quem pediu e o que comprou.
+- **Sem `truncatechars`.** Descrição cortada obriga a abrir o pedido para ler
+  o fim, que é exatamente o trabalho que mostrá-la ali veio tirar.
+- **Sem descrição, a célula DIZ "sem descrição".** Célula vazia faria a ADM
+  achar que a tela não carregou o dado — mesmo padrão de "sem chave".
+- **O push também leva a descrição**, cortada em 60 caracteres. O sistema
+  operacional trunca o corpo sem avisar: melhor cortar onde dá para pedir o
+  resto na tela do que deixar o Android decidir.
+
 ### Chave PIX: ao vivo enquanto pendente, CONGELADA no pagamento
 
 A ADM pagava o reembolso perguntando a chave no grupo. Agora ela vem do perfil
@@ -858,6 +876,37 @@ sem remontar todas as edições.
 quatro templates. Nada mais.
 
 ## Tetos de área (Financeiro)
+
+### O cadastro vale para sempre; o GASTO zera todo mês
+
+São duas coisas diferentes, e confundi-las já custou duas reescritas:
+
+- **O cadastro é UM por área** e vale até alguém alterar ou excluir. A
+  primeira versão exigia recadastrar todo mês, e a tela mentia por
+  esquecimento: sem o teto do mês, a área aparecia como "gastou sem teto"
+  mesmo tendo limite combinado.
+- **A janela de consumo é o MÊS** (`limites_do_mes`, usada por
+  `situacao_dos_tetos`). Gastou os R$170 em agosto? Setembro começa com os
+  R$170 inteiros. Enquanto a janela foi o semestre, quem estourasse em agosto
+  ficava sem nada até dezembro — não é como a liderança combina o limite.
+
+Consequências que vieram junto:
+- **A migration `0008` NÃO converte os valores já cadastrados**, de propósito.
+  Dividir por seis seria chutar o que a liderança combinou. Conferir os
+  números na tela de tetos faz parte do deploy.
+- **`vigente_desde` continua sendo só memória** de quando o valor passou a
+  valer. Não recorta o gasto: teto alterado no meio do mês continua sendo o
+  teto daquele mês.
+- **A virada de data passou a acontecer 12 vezes por ano, não 2.** Por isso
+  `sincronizar_lancamento_do_reembolso` usa `timezone.localdate()` e não
+  `now().date()` — depois das 21h em São Paulo o UTC já virou, e o reembolso
+  cairia no mês errado. Teste que fixa uma data e compara com
+  `situacao_dos_tetos` de hoje quebra na virada do mês; use a mesma
+  referência nos dois lados.
+- **`rotulo_do_mes` escreve o mês à mão**, sem `strftime('%B')`: o locale do
+  PythonAnywhere é inglês e a tela sairia "September" sem erro nenhum.
+
+### Quem mexe
 
 Quem mexe no teto é **ADM/FIN** (e superusuário), em QUALQUER área — não só na
 própria (`AREAS_ESCRITA` em `adm/views.py`). A Tríade lê o Financeiro inteiro e

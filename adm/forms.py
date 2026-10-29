@@ -124,7 +124,8 @@ class RecargaCartaoForm(forms.ModelForm):
 class TetoAreaForm(forms.ModelForm):
     """Um teto por área, que vale até alguém alterar ou excluir.
 
-    Não há campo de mês: o teto não é cadastrado por período. `vigente_desde` é
+    Não há campo de mês: o teto não é cadastrado por período — ele vale até
+    alguém alterar, e é o GASTO que é medido mês a mês. `vigente_desde` é
     memória de quando o valor passou a valer, não recorte do gasto.
     """
 
@@ -139,12 +140,13 @@ class TetoAreaForm(forms.ModelForm):
         }
         labels = {
             'area': 'Área',
-            'valor': 'Teto por semestre (R$)',
+            'valor': 'Teto por mês (R$)',
             'vigente_desde': 'Vale a partir de',
             'observacao': 'Observação',
         }
         help_texts = {
-            'valor': 'Quanto a área pode gastar no semestre. Vale até alguém alterar ou excluir.',
+            'valor': ('Quanto a área pode gastar POR MÊS. Vale até alguém '
+                      'alterar ou excluir: não precisa cadastrar de novo todo mês.'),
             'vigente_desde': 'Só para registro de quando foi combinado.',
         }
 
